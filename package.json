@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "scripts": {
+    "test-promises": "node -e \"import('./promises.js').then(p => p.test())\""
+  },
+  "dependencies": {
+    "promises-aplus-tests": "^2.1.2"
+  }
+}
