@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES6",
+    "lib": ["ES6", "DOM"],
+    "module": "ES6"
+  }
+}
