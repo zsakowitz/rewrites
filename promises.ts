@@ -1,14 +1,14 @@
-export class Promise<T> {
-  static resolve<T>(value: T | PromiseLike<T>): Promise<T> {
-    return new Promise<T>((resolve) => resolve(value));
+export class zPromise<T> {
+  static resolve<T>(value: T | PromiseLike<T>): zPromise<T> {
+    return new zPromise<T>((resolve) => resolve(value));
   }
 
-  static reject(reason?: any): Promise<never> {
-    return new Promise<never>((_, reject) => reject(reason));
+  static reject(reason?: any): zPromise<never> {
+    return new zPromise<never>((_, reject) => reject(reason));
   }
 
-  static try<T>(fn: () => T | PromiseLike<T>): Promise<T> {
-    return new Promise<T>((resolve) => resolve(fn()));
+  static try<T>(fn: () => T | PromiseLike<T>): zPromise<T> {
+    return new zPromise<T>((resolve) => resolve(fn()));
   }
 
   private promise: globalThis.Promise<T>;
@@ -33,8 +33,8 @@ export class Promise<T> {
       | ((reason: any) => TResult2 | PromiseLike<TResult2>)
       | undefined
       | null
-  ): Promise<TResult1 | TResult2> {
-    return Promise.resolve(this.promise.then(onfulfilled, onrejected));
+  ): zPromise<TResult1 | TResult2> {
+    return zPromise.resolve(this.promise.then(onfulfilled, onrejected));
   }
 
   catch<TResult = never>(
@@ -42,24 +42,24 @@ export class Promise<T> {
       | ((reason: any) => TResult | PromiseLike<TResult>)
       | undefined
       | null
-  ): Promise<TResult | T> {
+  ): zPromise<TResult | T> {
     return this.then<T, TResult>(null, onrejected);
   }
 
   passthrough(
     onfulfilled?: ((value: T) => void | PromiseLike<void>) | undefined | null,
     onrejected?: ((reason: any) => void | PromiseLike<void>) | undefined | null
-  ): Promise<T> {
+  ): zPromise<T> {
     return this.then<T, never>(
       (value) => {
         if (typeof onfulfilled == "function")
-          return Promise.resolve(onfulfilled(value)).then(() => value);
+          return zPromise.resolve(onfulfilled(value)).then(() => value);
 
         return value;
       },
       (reason) => {
         if (typeof onrejected == "function")
-          return Promise.resolve(onrejected(reason)).then(() => {
+          return zPromise.resolve(onrejected(reason)).then(() => {
             throw reason;
           });
 
@@ -81,7 +81,7 @@ export class Promise<T> {
       | ((reason: any) => TResult2 | PromiseLike<TResult2>)
       | undefined
       | null
-  ): Promise<(T extends any[] ? TResult1 : T) | TResult2> {
+  ): zPromise<(T extends any[] ? TResult1 : T) | TResult2> {
     return this.then<T extends any[] ? TResult1 : T, TResult2>((value) => {
       if (typeof onfulfilled == "function" && Array.isArray(value))
         return onfulfilled(...value);
