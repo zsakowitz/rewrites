@@ -30,6 +30,7 @@ export class zMap<K, V> implements Map<K, V> {
   }
 
   delete(key: K): boolean {
+    delete this.k[zMap.getKeyOf(key)];
     return delete this.v[zMap.getKeyOf(key)];
   }
 
