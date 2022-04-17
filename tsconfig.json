@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "strict": true,
-    "target": "ES6",
+    "target": "ES2020",
     "lib": ["ES6", "DOM"],
     "module": "ES6",
     "outDir": "./dist",
