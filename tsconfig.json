@@ -5,6 +5,7 @@
     "lib": ["ES6", "DOM"],
     "module": "ES6",
     "outDir": "./dist",
-    "allowJs": true
+    "allowJs": true,
+    "moduleResolution": "node"
   }
 }
