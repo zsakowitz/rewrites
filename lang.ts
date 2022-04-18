@@ -5,6 +5,7 @@ type Coroutine<T> = Generator<A.Parser<any>, T, any>;
 export interface Node<T extends string> {
   nodeType: T;
   output: string;
+  variables?: string[];
 }
 
 // LineTerminatorNode
@@ -36,7 +37,9 @@ export let IntegerNode: A.Parser<IntegerNode> = A.regex(/^[+-]?\d+n/).map(
 
 export interface NumberNode extends Node<"NumberNode"> {}
 
-export let NumberNode: A.Parser<NumberNode> = A.regex(/^[+-]?\d+/).map((x) => ({
+export let NumberNode: A.Parser<NumberNode> = A.regex(
+  /^[+-]?\d+(\.\d+)?(e[+-]?\d+)?|NaN|-?Infinity/
+).map((x) => ({
   nodeType: "NumberNode",
   output: x,
 }));
@@ -45,19 +48,72 @@ export let NumberNode: A.Parser<NumberNode> = A.regex(/^[+-]?\d+/).map((x) => ({
 
 export interface StringNode extends Node<"StringNode"> {}
 
-export let StringNode: A.Parser<StringNode> = A.sequenceOf([
-  A.char('"'),
-  A.many(
-    A.choice([
-      // For some reason, the arcsecond typings think that A.anyCharExcept
-      // returns a number when it actually returns a string, so we have
-      // to do a small fix for TypeScript purposes. Ugh.
-      A.anyCharExcept(A.anyOfString('"\\\n')).map((x) => "" + x),
-      A.sequenceOf([A.char("\\"), A.anyChar]).map(([, x]) => `\\${x}`),
-    ])
-  ).map((x) => x.join("")),
-  A.char('"'),
-]).map((x) => ({ nodeType: "StringNode", output: x.join("") }));
+export let StringNode: A.Parser<StringNode> = A.coroutine(
+  function* (): Coroutine<StringNode> {
+    let variables: string[] = [];
+    let output = "";
+
+    yield A.char('"');
+
+    let all: (string | ExpressionNode)[] = yield A.many(
+      A.choice([
+        // For some reason, the arcsecond typings think that A.anyCharExcept
+        // returns a number when it actually returns a string, so we have
+        // to do a small fix for TypeScript purposes. Ugh.
+        A.anyCharExcept(A.anyOfString('"\\{')).map((x) => {
+          if ((x as any) == "`") return "\\`";
+          if ((x as any) == "$") return "\\$";
+          return "" + x;
+        }),
+        A.sequenceOf([A.char("\\"), A.anyChar]).map(([, x]) => `\\${x}`),
+        A.recursiveParser(() =>
+          A.sequenceOf([A.char("{"), ExpressionNode, A.char("}")]).map(
+            ([, x]) => x
+          )
+        ),
+      ])
+    );
+
+    for (let result of all) {
+      if (typeof result == "string") {
+        output += result;
+      } else {
+        variables.push(...result.variables);
+        output += "${" + result.output + "}";
+      }
+    }
+
+    yield A.char('"');
+
+    return {
+      nodeType: "StringNode",
+      output: "`" + output + "`",
+      variables,
+    };
+  }
+);
+
+// BooleanNode
+
+export interface BooleanNode extends Node<"BooleanNode"> {}
+
+export let BooleanNode: A.Parser<BooleanNode> = A.regex(
+  /^yes|no|true|false/i
+).map((x) => ({
+  nodeType: "BooleanNode",
+  output: x == "yes" || x == "true" ? "true" : "false",
+}));
+
+// SymbolNode
+
+export interface SymbolNode extends Node<"SymbolNode"> {}
+
+export let SymbolNode: A.Parser<SymbolNode> = A.regex(
+  /^#[A-Za-z][A-Za-z0-9_]*/
+).map((x) => ({
+  nodeType: "SymbolNode",
+  output: `Symbol.for(${x.slice(1)})`,
+}));
 
 // IdentifierNode
 
@@ -65,13 +121,46 @@ export interface IdentifierNode extends Node<"IdentifierNode"> {}
 
 export let IdentifierNode: A.Parser<IdentifierNode> = A.regex(
   /^[A-Za-z][A-Za-z0-9_]*/
-).map((x) => ({ nodeType: "IdentifierNode", output: x }));
+).map((x) => ({
+  nodeType: "IdentifierNode",
+  output: x,
+  variables: [x],
+}));
 
 // ExpressionNode
 
-export interface ExpressionNode extends Node<"ExpressionNode"> {}
+export interface ExpressionNode extends Node<"ExpressionNode"> {
+  variables: string[];
+}
 
-export let ExpressionNode: A.Parser<ExpressionNode> = A.fail("not defined");
+export let DeepExpressionNode: A.Parser<ExpressionNode> = A.recursiveParser(
+  () => ExpressionNode
+);
+
+export let ExpressionNode: A.Parser<ExpressionNode> = A.choice([
+  IntegerNode,
+  NumberNode,
+  StringNode,
+  BooleanNode,
+  SymbolNode,
+  IdentifierNode,
+  A.sequenceOf([
+    DeepExpressionNode,
+    A.optionalWhitespace,
+    A.str("+"),
+    A.optionalWhitespace,
+    DeepExpressionNode,
+  ]).map<ExpressionNode>(([a, , , , b]) => ({
+    variables: a.variables.concat(b.variables),
+    output: `${a.output} + ${b.output}`,
+    nodeType: "ExpressionNode",
+  })),
+]).map((x: Node<string>) => ({
+  // The ordering of the spread operator adds a default value to `variables`.
+  variables: [],
+  ...x,
+  nodeType: "ExpressionNode",
+}));
 
 // IdentifierWithDefaultNode
 
@@ -88,8 +177,6 @@ export interface VariableDeclarationNode
 
 export let VariableDeclarationNode = A.coroutine(
   function* (): Coroutine<VariableDeclarationNode> {
-    yield A.str("let");
-    yield A.whitespace;
     let identifier: IdentifierNode = yield IdentifierNode;
     yield A.optionalWhitespace;
     yield A.char("=");
@@ -101,10 +188,19 @@ export let VariableDeclarationNode = A.coroutine(
       nodeType: "VariableDeclarationNode",
       identifier,
       expression,
-      output: `let ${identifier} = ${expression};`,
+      output: `${identifier} = ${expression};`,
     };
   }
 );
+
+// ScriptNode
+
+export interface ScriptNode extends Node<"ScriptNode"> {}
+
+export let ScriptNode: A.Parser<ScriptNode> = A.sequenceOf([
+  A.choice([ExpressionNode]),
+  A.endOfInput,
+]).map(([x]) => ({ ...x, nodeType: "ScriptNode" }));
 
 // Type augmentations
 
