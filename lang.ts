@@ -133,64 +133,69 @@ export interface ExpressionNode extends Node<"ExpressionNode"> {
   variables: string[];
 }
 
-export let DeepExpressionNode: A.Parser<ExpressionNode> = A.recursiveParser(
-  () => ExpressionNode
-);
+function maxChoice<T extends A.Parser<any>[]>(parsers: T): T[number] {
+  return new A.Parser((state) => {
+    if (state.isError) return state;
 
-export let ExpressionNode: A.Parser<ExpressionNode> = A.choice([
-  IntegerNode,
-  NumberNode,
-  StringNode,
-  BooleanNode,
-  SymbolNode,
-  IdentifierNode,
-  A.sequenceOf([
-    DeepExpressionNode,
-    A.optionalWhitespace,
-    A.str("+"),
-    A.optionalWhitespace,
-    DeepExpressionNode,
-  ]).map<ExpressionNode>(([a, , , , b]) => ({
-    variables: a.variables.concat(b.variables),
-    output: `${a.output} + ${b.output}`,
-    nodeType: "ExpressionNode",
-  })),
-]).map((x: Node<string>) => ({
-  // The ordering of the spread operator adds a default value to `variables`.
-  variables: [],
-  ...x,
-  nodeType: "ExpressionNode",
-}));
+    let maxIndex = -1;
+    let result: any = null;
 
-// IdentifierWithDefaultNode
+    for (let parser of parsers) {
+      let state2 = parser.p(state);
 
-export interface IdentifierWithDefaultNode
-  extends Node<"IdentifierWithDefaultNode"> {}
+      if (state2.isError) continue;
 
-// VariableDeclarationNode
+      if (state2.index == state.dataView.byteLength) {
+        return state2;
+      }
 
-export interface VariableDeclarationNode
-  extends Node<"VariableDeclarationNode"> {
-  identifier: IdentifierNode;
-  expression: ExpressionNode;
+      if (state2.index > maxIndex) {
+        maxIndex = state2.index;
+        result = state2.result;
+      }
+    }
+
+    if (maxIndex == -1) {
+      return A.updateError(
+        state,
+        `maxChoice: Expecting to match at least one value`
+      );
+    } else {
+      return A.updateParserState(state, result, maxIndex);
+    }
+  });
 }
 
-export let VariableDeclarationNode = A.coroutine(
-  function* (): Coroutine<VariableDeclarationNode> {
-    let identifier: IdentifierNode = yield IdentifierNode;
-    yield A.optionalWhitespace;
-    yield A.char("=");
-    yield A.optionalWhitespace;
-    let expression: ExpressionNode = yield ExpressionNode;
-    yield LineTerminatorNode;
-
-    return {
-      nodeType: "VariableDeclarationNode",
-      identifier,
-      expression,
-      output: `${identifier} = ${expression};`,
-    };
-  }
+export let ExpressionNode: A.Parser<ExpressionNode> = A.recursiveParser(() =>
+  maxChoice([
+    IntegerNode,
+    NumberNode,
+    StringNode,
+    BooleanNode,
+    SymbolNode,
+    IdentifierNode,
+    A.sequenceOf([A.str("("), ExpressionNode, A.str(")")]).map(([, x]) => ({
+      variables: x.variables,
+      output: `(${x.output})`,
+      nodeType: "ExpressionNode",
+    })),
+    A.sequenceOf([
+      ExpressionNode,
+      A.optionalWhitespace,
+      A.choice([A.str("+"), A.str("-"), A.str("*"), A.str("/")]),
+      A.optionalWhitespace,
+      ExpressionNode,
+    ]).map<ExpressionNode>(([a, , op, , b]) => ({
+      variables: a.variables.concat(b.variables),
+      output: `${a.output} ${op} ${b.output}`,
+      nodeType: "ExpressionNode",
+    })),
+  ]).map((x: Node<string>) => ({
+    // The ordering of the spread operator adds a default value to `variables`.
+    variables: [],
+    ...x,
+    nodeType: "ExpressionNode",
+  }))
 );
 
 // ScriptNode
@@ -198,12 +203,14 @@ export let VariableDeclarationNode = A.coroutine(
 export interface ScriptNode extends Node<"ScriptNode"> {}
 
 export let ScriptNode: A.Parser<ScriptNode> = A.sequenceOf([
-  A.choice([ExpressionNode]),
+  A.optionalWhitespace,
+  ExpressionNode,
+  A.optionalWhitespace,
   A.endOfInput,
-]).map(([x]) => ({ ...x, nodeType: "ScriptNode" }));
+]).map(([, x]) => ({ ...x, nodeType: "ScriptNode" }));
 
 // Type augmentations
 
 declare module "arcsecond" {
-  export function str<T extends string>(str: T): A.Parser<T>;
+  function str<T extends string>(str: T): A.Parser<T>;
 }
