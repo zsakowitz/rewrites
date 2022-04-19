@@ -133,41 +133,8 @@ export interface ExpressionNode extends Node<"ExpressionNode"> {
   variables: string[];
 }
 
-function maxChoice<T extends A.Parser<any>[]>(parsers: T): T[number] {
-  return new A.Parser((state) => {
-    if (state.isError) return state;
-
-    let maxIndex = -1;
-    let result: any = null;
-
-    for (let parser of parsers) {
-      let state2 = parser.p(state);
-
-      if (state2.isError) continue;
-
-      if (state2.index == state.dataView.byteLength) {
-        return state2;
-      }
-
-      if (state2.index > maxIndex) {
-        maxIndex = state2.index;
-        result = state2.result;
-      }
-    }
-
-    if (maxIndex == -1) {
-      return A.updateError(
-        state,
-        `maxChoice: Expecting to match at least one value`
-      );
-    } else {
-      return A.updateParserState(state, result, maxIndex);
-    }
-  });
-}
-
 export let ExpressionNode: A.Parser<ExpressionNode> = A.recursiveParser(() =>
-  maxChoice([
+  A.choice([
     IntegerNode,
     NumberNode,
     StringNode,
