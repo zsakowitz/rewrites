@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "arcsecond": "^4.1.0",
+    "ohm-js": "^16.3.2",
     "promises-aplus-tests": "^1.2.1",
     "typescript": "^4.6.3"
   }
