@@ -179,5 +179,5 @@ export let ScriptNode: A.Parser<ScriptNode> = A.sequenceOf([
 // Type augmentations
 
 declare module "arcsecond" {
-  function str<T extends string>(str: T): A.Parser<T>;
+  export function str<T extends string>(str: T): A.Parser<T>;
 }
