@@ -1,5 +1,5 @@
 import ohm from "ohm-js";
-import extras from "ohm-js/extras";
+import extras from "ohm-js/extras/index.js";
 import { readFileSync } from "fs";
 
 let lang = readFileSync("../lang.ohm", "utf8");
