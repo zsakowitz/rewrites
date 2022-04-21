@@ -4,6 +4,7 @@
     "test-promises": "node -e \"import('./deferred.js').then(p => p.test())\""
   },
   "dependencies": {
+    "@types/node": "^17.0.23",
     "arcsecond": "^4.1.0",
     "ohm-js": "^16.3.2",
     "promises-aplus-tests": "^1.2.1",
