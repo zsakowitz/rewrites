@@ -65,7 +65,7 @@ Storymatic {
     = BlockFunction<"@"> -- method
     | BlockFunction<"@@"> -- static_method
     | property "=" Expression #statementTerminator -- property
-    | static_property "=" Expression #statementTerminator -- static_property
+    | staticProperty "=" Expression #statementTerminator -- staticProperty
 
   ImportableItemName
     = identifier #(space+) "as" #(space+) identifier -- identifier_rewrite
@@ -245,7 +245,7 @@ Storymatic {
   Accessor
     = identifier
     | property
-    | static_property
+    | staticProperty
     | Accessor "." identOrWord -- member_access
     | Accessor "." symbol -- symbol_access
     | Accessor "[" Expression "]" -- computed_member_access
