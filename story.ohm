@@ -25,8 +25,9 @@ Storymatic {
 
   Statement
     = Expression #statementTerminator -- expression
-    | IfStatement -- if
-    | BlockFunction<""> -- function
+    | IfStatement
+    | BlockFunction<"">
+    | ClassDeclaration
     | "print" #(space+) Expression #statementTerminator -- print
     | "throw" #(space+) Expression #statementTerminator -- throw
     | "repeat" #(space+) Expression SingleStatementBlock<"do"> -- repeat
