@@ -15,11 +15,11 @@ Storymatic {
     = WrappedStatementBlock -- wrapped_block
     | Statement -- single_statement
 
-   IfStatement = ("if" | "unless") Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
-   ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then">
-   ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock
+  IfStatement = ("if" | "unless") Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
+  ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then">
+  ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock
 
-   ElseIfKeyword
+  ElseIfKeyword
     = "else" "if" -- else_if
     | "elif" -- elif
 
@@ -84,7 +84,7 @@ Storymatic {
     | "fn" #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":" Expression -- multi_args_expression
     | "fn" #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
-   BlockFunction
+  BlockFunction
     = "fn" #(space+) identifier #(space+) ":" Expression -- no_args_expression
     | "fn" #(space+) identifier #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
     | "fn" #(space+) identifier #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
