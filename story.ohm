@@ -15,17 +15,18 @@ Storymatic {
     = WrappedStatementBlock -- wrapped_block
     | Statement -- single_statement
 
-  IfStatement = ("if" | "unless") Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
-  ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then">
-  ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock
+   IfStatement = ("if" | "unless") Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
+   ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then">
+   ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock
 
-  ElseIfKeyword
+   ElseIfKeyword
     = "else" "if" -- else_if
     | "elif" -- elif
 
   Statement
     = Expression #statementTerminator -- expression
-    | IfStatement | BlockFunction
+    | IfStatement
+    | BlockFunction
     | "print" #(space+) Expression #statementTerminator -- print
     | "throw" #(space+) Expression #statementTerminator -- throw
     | "repeat" #(space+) Expression SingleStatementBlock<"do"> -- repeat
@@ -83,7 +84,7 @@ Storymatic {
     | "fn" #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":" Expression -- multi_args_expression
     | "fn" #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
-  BlockFunction
+   BlockFunction
     = "fn" #(space+) identifier #(space+) ":" Expression -- no_args_expression
     | "fn" #(space+) identifier #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
     | "fn" #(space+) identifier #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
@@ -151,21 +152,23 @@ Storymatic {
     | CompareExp ">=" AddExp -- greater_than_equal
     | CompareExp #(space+) ("is" #(space+))? "in" #(space+) AddExp -- within
     | CompareExp #(space+) "isnt" #(space+) "in" #(space+) AddExp -- not_within
-    | CompareExp #(space+) "is" #(space+) ("a" | "an") #(space+) AddExp -- instanceof
+    | CompareExp #(space+) "is" #("nt"?) #(space+) ("a" | "an") #(space+) AddExp -- instanceof
     | CompareExp #(space+) "isnt" #(space+) ("a" | "an") #(space+) AddExp -- not_instanceof
     | AddExp
 
   EqualityExp
-    = EqualityExp #(spaces "==" | (space+ "is" ~(space+ ("a" | "an")) space+)) CompareExp -- equal_to
-    | EqualityExp #(spaces "!=" | (space+ "isnt" ~(space+ ("a" | "an")) space+)) CompareExp -- not_equal_to
+    = EqualityExp ("==" | EqualityExpWords<"is">) CompareExp -- equal_to
+    | EqualityExp ("!=" | EqualityExpWords<"isnt">) CompareExp -- not_equal_to
     | CompareExp
+  
+  EqualityExpWords<keyword> = #(space+ keyword ~(space+ ("a" | "an")) space+)
 
   LogicalAndExp
-    = LogicalAndExp #(spaces "&&" | (space+ "and" space+)) EqualityExp -- logical_and
+    = LogicalAndExp #(spaces "&&" spaces | space+ "and" space+) EqualityExp -- logical_and
     | EqualityExp
   
   LogicalOrExp
-    = LogicalOrExp #(spaces "||" | (space+ "or" space+)) LogicalAndExp -- logical_or
+    = LogicalOrExp #(spaces "||" spaces | space+ "or" space+) LogicalAndExp -- logical_or
     | LogicalOrExp "??" LogicalAndExp -- logical_nullish_coalescing
     | LogicalAndExp
 
