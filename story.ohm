@@ -47,6 +47,10 @@ Storymatic {
     | ("await" | "wait") #(space+) ("for" #(space+))? (identifier "=")? Expression SingleStatementBlock<"do"> -- wait_for_expression
     | ("await" | "wait") #(space+) ("for" #(space+))? (identifier "=")? Expression #statementTerminator -- await_expression
 
+  ImportableName
+    = identifier
+    | identifier #(space+) "as" #(space+) identifier
+
   ForLoopKey
     = identifier -- bare
     | "(" identifier ")" -- parenthesized
@@ -99,7 +103,8 @@ Storymatic {
     = identifier ~":" -- restructure
     | identOrWord ":" Expression -- key_value
     | symbol ":" Expression -- symbol_value
-    | string ":" Expression -- string_key
+    | string_non_interpolatable ":" Expression -- string_key
+    | string ":" Expression -- computed_string_key
     | digit+ ":" Expression -- numerical_key
     | "[" Expression "]" ":" Expression -- computed_key
 
@@ -196,7 +201,10 @@ Storymatic {
     | identifier
 
   AssignableKeyWithRewrite
-    = identifier ":" AssignableWithDefault -- with_rewrite
+    = identifier ":" AssignableWithDefault -- standard_rewrite
+    | string_non_interpolatable ":" AssignableWithDefault -- string_rewrite
+    | string ":" AssignableWithDefault -- computed_string_rewrite
+    | "[" Expression "]" ":" AssignableWithDefault -- computed_rewrite
     | IdentifierWithDefault
 
   Assignable
@@ -225,14 +233,19 @@ Storymatic {
     | "\\x" hexDigit hexDigit -- hex_sequence
     | "\\u" hexDigit hexDigit hexDigit hexDigit -- unicode_sequence
     | "\\u{" hexDigit+ "}" -- unicode_code_point_sequence
+
+  string_interpolatable_bit<delimeter>
+    = string_bit<delimeter>
     | "{" applySyntactic<Expression> "}" -- interpolated
   
+  string_interpolatable<delimeter> = delimeter string_interpolatable_bit<delimeter>* delimeter
   string_full<delimeter> = delimeter string_bit<delimeter>* delimeter
-  string = string_full<"\""> | string_full<"'">
+  string = string_interpolatable<"\""> | string_interpolatable<"'">
+  string_non_interpolatable = string_full<"\""> | string_full<"'">
 
   reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "wait") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits") ~id_continue
+  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
