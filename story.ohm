@@ -26,7 +26,7 @@ Storymatic {
   Statement
     = Expression #statementTerminator -- expression
     | IfStatement
-    | BlockFunction
+    | BlockFunction<"">
     | "print" #(space+) Expression #statementTerminator -- print
     | "throw" #(space+) Expression #statementTerminator -- throw
     | "repeat" #(space+) Expression SingleStatementBlock<"do"> -- repeat
@@ -55,6 +55,15 @@ Storymatic {
     | "export" "*" "from" #(space+) string_non_interpolatable #statementTerminator -- export_all_from
     | "export" #(space+) ListOf<ImportableItemName, ","> #statementTerminator -- export
     | "export" "*" #(space+) string_non_interpolatable #statementTerminator -- export_default
+    | OptionalExport "class" #(space+) identifier ("extends" Expression)? "{" ClassElement* "}" -- class
+
+  OptionalExport = ("export" #(space+))?
+
+  ClassElement
+    = BlockFunction<"@"> -- method
+    | BlockFunction<"@@"> -- static_method
+    | "@" identifier "=" Expression #statementTerminator -- property
+    | "@@" identifier "=" Expression #statementTerminator -- static_property
 
   ImportableItemName
     = identifier #(space+) "as" #(space+) identifier -- identifier_rewrite
@@ -88,6 +97,8 @@ Storymatic {
     | hexNumber
     | bigint
     | identifier
+    | property
+    | staticProperty
     | symbol
     | boolean
     | string
@@ -98,16 +109,16 @@ Storymatic {
     | "fn" #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
     | "fn" #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
     | "fn" #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
-    | "fn" #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":" Expression -- multi_args_expression
-    | "fn" #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":"? WrappedStatementBlock -- multi_args_wrapped_block
+    | "fn" #(space+) "of" #(space+) ParameterList ":" Expression -- multi_args_expression
+    | "fn" #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
-  BlockFunction
-    = "fn" #(space+) identifier #(space+) ":" Expression -- no_args_expression
-    | "fn" #(space+) identifier #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
-    | "fn" #(space+) identifier #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
-    | "fn" #(space+) identifier #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
-    | "fn" #(space+) identifier #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":" Expression -- multi_args_expression
-    | "fn" #(space+) identifier #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":"? WrappedStatementBlock -- multi_args_wrapped_block
+  BlockFunction<prefix>
+    = OptionalExport "fn" #(space+) prefix identifier #(space+) ":" Expression -- no_args_expression
+    | OptionalExport "fn" #(space+) prefix identifier #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
+    | OptionalExport "fn" #(space+) prefix identifier #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
+    | OptionalExport "fn" #(space+) prefix identifier #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
+    | OptionalExport "fn" #(space+) prefix identifier #(space+) "of" #(space+) ParameterList ":" Expression -- multi_args_expression
+    | OptionalExport "fn" #(space+) prefix identifier #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
   ObjectEntry
     = identifier ~":" -- restructure
@@ -135,6 +146,9 @@ Storymatic {
 
   ArgumentList = ListOf<Expression, ",">
   NonEmptyArgumentList = NonemptyListOf<Expression, ",">
+
+  ParameterList = ListOf<AssignableWithDefault, ","> ","?
+  NonEmptyParameterList = NonemptyListOf<AssignableWithDefault, ","> ","?
 
   ClassCreationExp
     = ("a" | "an") #(space+) ClassCreationExp ~("with" | "(") -- class_creation
@@ -253,9 +267,9 @@ Storymatic {
   string = string_interpolatable<"\""> | string_interpolatable<"'">
   string_non_interpolatable = string_full<"\""> | string_full<"'">
 
-  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "wait") ~id_continue
+  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "wait" | "import" | "export" | "class") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as") ~id_continue
+  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as" | "extends") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
@@ -265,6 +279,9 @@ Storymatic {
   identifierWords = identifierWord (whitespace (identifierWord | digit+))*
   identifier = identifierWords
   identOrWord = identifier | word
+
+  property = "@" spaces identifier
+  staticProperty = "@@" spaces identifier
 
   symbol = "#" spaces identOrWord
 }
