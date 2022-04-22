@@ -25,8 +25,8 @@ Storymatic {
 
   Statement
     = Expression #statementTerminator -- expression
-    | IfStatement
-    | BlockFunction<"">
+    | IfStatement -- if
+    | BlockFunction<""> -- function
     | "print" #(space+) Expression #statementTerminator -- print
     | "throw" #(space+) Expression #statementTerminator -- throw
     | "repeat" #(space+) Expression SingleStatementBlock<"do"> -- repeat
@@ -54,10 +54,12 @@ Storymatic {
     | "export" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- export_from
     | "export" "*" "from" #(space+) string_non_interpolatable #statementTerminator -- export_all_from
     | "export" #(space+) ListOf<ImportableItemName, ","> #statementTerminator -- export
-    | "export" "*" #(space+) string_non_interpolatable #statementTerminator -- export_default
-    | OptionalExport "class" #(space+) identifier ("extends" Expression)? "{" ClassElement* "}" -- class
+    | "export" "*" Expression #statementTerminator -- export_default
+    | "export" #(space+) ClassDeclaration -- export_class
+    | "export" #(space+) VariableAssignment -- export_variable
+    | "export" #(space+) BlockFunction<""> -- export_function
 
-  OptionalExport = ("export" #(space+))?
+  ClassDeclaration = "class" #(space+) identifier ("extends" Expression)? "{" ClassElement* "}"
 
   ClassElement
     = BlockFunction<"@"> -- method
@@ -113,12 +115,12 @@ Storymatic {
     | "fn" #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
   BlockFunction<prefix>
-    = OptionalExport "fn" #(space+) prefix identifier #(space+) ":" Expression -- no_args_expression
-    | OptionalExport "fn" #(space+) prefix identifier #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
-    | OptionalExport "fn" #(space+) prefix identifier #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
-    | OptionalExport "fn" #(space+) prefix identifier #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
-    | OptionalExport "fn" #(space+) prefix identifier #(space+) "of" #(space+) ParameterList ":" Expression -- multi_args_expression
-    | OptionalExport "fn" #(space+) prefix identifier #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
+    = "fn" #(space+) prefix identifier #(space+) ":" Expression -- no_args_expression
+    | "fn" #(space+) prefix identifier #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
+    | "fn" #(space+) prefix identifier #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
+    | "fn" #(space+) prefix identifier #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
+    | "fn" #(space+) prefix identifier #(space+) "of" #(space+) ParameterList ":" Expression -- multi_args_expression
+    | "fn" #(space+) prefix identifier #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
   ObjectEntry
     = identifier ~":" -- restructure
@@ -215,6 +217,8 @@ Storymatic {
     | "yield" #(space+) AssignmentExp -- yield
     | "yield" #(space+ "from" | "*") #(space+) AssignmentExp -- yield_from
     | TernaryExp
+
+  VariableAssignment = Assignable "=" Expression
 
   AssignableWithDefault
     = Assignable "=" Expression -- with_default
