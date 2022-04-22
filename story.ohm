@@ -15,8 +15,7 @@ Storymatic {
     = WrappedStatementBlock -- wrapped_block
     | Statement -- single_statement
 
-  IfStatement = "if" Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
-  UnlessStatement = "unless" Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
+  IfStatement = ("if" | "unless") Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
   ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then">
   ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock
 
@@ -26,7 +25,7 @@ Storymatic {
 
   Statement
     = Expression #statementTerminator -- expression
-    | IfStatement | UnlessStatement
+    | IfStatement
     | "print" #(space+) Expression #statementTerminator -- print
     | "throw" #(space+) Expression #statementTerminator -- throw
     | "repeat" #(space+) Expression SingleStatementBlock<"do"> -- repeat
