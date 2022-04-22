@@ -156,7 +156,7 @@ Storymatic {
   string_hex_sequence = "\\x" hexDigit hexDigit
   string_unicode_sequence = "\\u" hexDigit hexDigit hexDigit hexDigit
   string_unicode_code_point_sequence = "\\u{" hexDigit+ "}"
-  string_interpolated = "{" Expression "}"
+  string_interpolated = "{" applySyntactic<Expression> "}"
   string_bit<delimeter>
     = string_character<delimeter>
     | string_escape
