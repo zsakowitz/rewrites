@@ -11,17 +11,26 @@ Storymatic {
     = prefix? WrappedStatementBlock -- wrapped_block
     | prefix #(space+) Statement -- single_statement
 
+  UnprefixedSingleStatementBlock
+    = WrappedStatementBlock -- wrapped_block
+    | Statement -- single_statement
+
   IfStatement = "if" Expression SingleStatementBlock<"then"> ";"? ElseIfStatement* ElseStatement?
   ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then"> ";"?
-  ElseStatement = "else" SingleStatementBlock<"then"> ";"?
+  ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock ";"?
 
   ElseIfKeyword
     = "else" "if" -- else_if
     | "elif" -- elif
 
+  PrintStatement = "print" #(space+) Expression #statementTerminator
+  ThrowStatement = "throw" #(space+) Expression #statementTerminator
+
   Statement
-    = Expression #statementTerminator spaces -- expression
+    = Expression #statementTerminator -- expression
     | IfStatement
+    | PrintStatement
+    | ThrowStatement
 
   statementTerminator
     = spaces ";" -- semicolon
@@ -32,25 +41,31 @@ Storymatic {
 
   lineTerminator = (~("\r\n" | "\n") space)* ("\r\n" | "\n") spaces ~lineContinuer
   lineContinuer
-    = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "<" | ">" | "&&" | "||" | reserved_operators
+    = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "<" | ">" | "&&" | "||" | "??" | reserved_operators
 
-  Expression = LogicalExp
+  Expression = AssignmentExp
 
   LiteralExp
     = "(" Expression ")" -- parenthesized
     | decimalNumber
     | hexNumber
+    | bigint
     | identifier
     | symbol
     | boolean
+    | string
     | null
+
+  ClassCreationExp
+    = "a" ClassCreationExp -- class_creation
+    | LiteralExp
 
   NotExp
     = ("!" | ("not" #(~id_continue))) NotExp -- logical_not
     | "+" NotExp -- unary_plus
     | "-" NotExp -- unary_minus
     | "type" "of" #(~id_continue) NotExp -- typeof
-    | LiteralExp
+    | ClassCreationExp
 
   ExpExp
     = ExpExp "^" NotExp -- exponentiate
@@ -72,28 +87,60 @@ Storymatic {
     | CompareExp "<=" AddExp -- less_than_equal
     | CompareExp ">" AddExp -- greater_than
     | CompareExp ">=" AddExp -- greater_than_equal
-    | CompareExp ("is" spaces)? "in" #(~id_continue) AddExp -- within
-    | CompareExp "isnt" spaces "in" #(~id_continue) AddExp -- not_within
-    | CompareExp "is" spaces "a" #(~id_continue) AddExp -- instanceof
-    | CompareExp "isnt" spaces "a" #(~id_continue) AddExp -- not_instanceof
+    | CompareExp #(space+) ("is" #(space+))? "in" #(space+) AddExp -- within
+    | CompareExp #(space+) "isnt" #(space+) "in" #(space+) AddExp -- not_within
+    | CompareExp #(space+) "is" #(space+) "a" #(space+) AddExp -- instanceof
+    | CompareExp #(space+) "isnt" #(space+) "a" #(space+) AddExp -- not_instanceof
     | AddExp
 
   EqualityExp
-    = EqualityExp ("==" | ("is" ~(spaces "a") #(~id_continue))) CompareExp -- equal_to
-    | EqualityExp ("!=" | ("isnt" ~(spaces "a") #(~id_continue))) CompareExp -- not_equal_to
+    = EqualityExp #(spaces "==" | (space+ "is" ~(space+ "a") space+)) CompareExp -- equal_to
+    | EqualityExp #(spaces "!=" | (space+ "isnt" ~(space+ "a") space+)) CompareExp -- not_equal_to
     | CompareExp
 
-  LogicalExp
-    = LogicalExp ("&&" | ("and" #(~id_continue))) EqualityExp -- logical_and
-    | LogicalExp ("||" | ("or" #(~id_continue))) EqualityExp -- logical_or
+  LogicalAndExp
+    = LogicalAndExp #(spaces "&&" | (space+ "and" space+)) EqualityExp -- logical_and
     | EqualityExp
+  
+  LogicalOrExp
+    = LogicalOrExp #(spaces "||" | (space+ "or" space+)) LogicalAndExp -- logical_or
+    | LogicalOrExp "??" LogicalAndExp -- logical_nullish_coalescing
+    | LogicalAndExp
+
+  TernaryExp
+    = LogicalOrExp "?" TernaryExp ":" TernaryExp -- symbolic
+    | "if" #(space+) LogicalOrExp #(space+) "then" #(space+) TernaryExp #(space+) "else" #(space+) TernaryExp -- worded
+    | LogicalOrExp
+
+  AssignmentExp
+    = Assignable "=" AssignmentExp -- assignment
+    | "yield" #(space+) AssignmentExp -- yield
+    | "yield" #(space+ "from" | "*") #(space+) AssignmentExp -- yield_from
+    | TernaryExp
+
+  AssignableWithDefault
+    = Assignable "=" Expression -- with_default
+    | Assignable
+
+  IdentifierWithDefault
+    = identifier "=" Expression -- with_default
+    | identifier
+
+  AssignableKeyWithRewrite
+    = identifier ":" AssignableWithDefault -- with_rewrite
+    | IdentifierWithDefault
+
+  Assignable
+    = identifier -- identifier
+    | "[" ListOf<AssignableWithDefault, ","> "]" -- array
+    | "{" ListOf<AssignableKeyWithRewrite, ","> "}" -- object
 
   whitespace = (~("\n" | "\r") space)+
 
-  number = digit+
   sign = ("+" | "-")?
-  decimalNumber = sign number ("." number)? ("e" sign number)?
-  hexNumber = sign "0x" hexDigit+
+  decimalNumber = ~"0x" digit+ ("." digit+)? ("e" sign digit+)?
+  hexNumber = "0x" hexDigit+
+  bigint = ~"0x" digit+ "n"
 
   boolean = true | false
   true = "true"
@@ -103,7 +150,26 @@ Storymatic {
 
   id_continue = letter | digit
 
-  reserved_block = ("if" | "elif" | "else" | "elseif" | "then") ~id_continue
+  string_character<delimeter> = ~("\\" | "{" | delimeter) any
+  string_escape = "\\" ("\\" | "{" | "\"" | "'")
+  string_sequence = "\\" ("b" | "f" | "n" | "r" | "t" | "v" | ("0" ~digit))
+  string_hex_sequence = "\\x" hexDigit hexDigit
+  string_unicode_sequence = "\\u" hexDigit hexDigit hexDigit hexDigit
+  string_unicode_code_point_sequence = "\\u{" hexDigit+ "}"
+  string_interpolated = "{" Expression "}"
+  string_bit<delimeter>
+    = string_character<delimeter>
+    | string_escape
+    | string_sequence
+    | string_hex_sequence
+    | string_unicode_sequence
+    | string_unicode_code_point_sequence
+    | string_interpolated
+  
+  string_full<delimeter> = delimeter string_bit<delimeter>* delimeter
+  string = string_full<"\""> | string_full<"'">
+
+  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt") ~id_continue
   reserved_inline = ("a" | "type" | "of" | "typeof") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
@@ -113,5 +179,5 @@ Storymatic {
   identifierWords = identifierWord (whitespace (identifierWord | digit+))*
   identifier = identifierWords
 
-  symbol = "#" identifier
+  symbol = "#" spaces identifier
 }
