@@ -1,15 +1,61 @@
-Arithmetic {
-  Exp = AddExp
+Storymatic {
+  Script = Statement+
+
+  Statement
+    = Expression (StatementTerminator+ | end)
+
+  StatementTerminator = "\r\n" | "\n" | ";"
+
+  Expression = EqualityExp
+  Parenthesized = "(" Expression ")"
 
   MulExp
-    = MulExp "*" number  -- times
-    | MulExp "/" number  -- div
+    = Multiplication
+    | Division
+    | Parenthesized
     | number
-  
+    | hexNumber
+    | identifier
+
+  Multiplication = MulExp "*" MulExp
+  Division = MulExp "/" MulExp
+
   AddExp
-    = AddExp "+" MulExp  -- plus
-    | AddExp "-" MulExp  -- minus
+    = Addition
+    | Subtraction
     | MulExp
 
+  Addition = AddExp "+" MulExp
+  Subtraction = AddExp "-" MulExp
+
+  CompareExp
+    = LessThan
+    | LessThanEqual
+    | GreaterThan
+    | GreaterThanEqual
+    | AddExp
+
+  LessThan = CompareExp "<" AddExp
+  LessThanEqual = CompareExp "<=" AddExp
+  GreaterThan = CompareExp ">" AddExp
+  GreaterThanEqual = CompareExp ">=" AddExp
+
+  EqualityExp
+    = EqualTo
+    | NotEqualTo
+    | CompareExp
+
+  EqualTo = EqualityExp ("==" | "is") CompareExp
+  NotEqualTo = EqualityExp ("!=" | "isnt") CompareExp
+
+  whitespace = (~("\n" | "\r") space)+
+
   number = digit+
+  sign = ("+" | "-")?
+  decimalNumber = sign number ("." number)? ("e" sign number)?
+  hexNumber = sign "0x" hexDigit+
+
+  identifierWord = letter+ (digit+ letter+)*
+  identifierWords = identifierWord (whitespace identifierWord)*
+  identifier = identifierWords
 }
