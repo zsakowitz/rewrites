@@ -94,15 +94,15 @@ Storymatic {
 
   ObjectEntry
     = identifier ~":" -- restructure
-    | identifier ":" Expression -- key_value
+    | identOrWord ":" Expression -- key_value
     | symbol ":" Expression -- symbol_value
     | string ":" Expression -- string_key
     | digit+ ":" Expression -- numerical_key
     | "[" Expression "]" ":" Expression -- computed_key
 
   MemberAccessExp
-    = MemberAccessExp "." identifier -- member_access
-    | MemberAccessExp "?." identifier -- optional_chaining_member_access
+    = MemberAccessExp "." identOrWord -- member_access
+    | MemberAccessExp "?." identOrWord -- optional_chaining_member_access
     | MemberAccessExp "." symbol -- symbol_access
     | MemberAccessExp "?." symbol -- optional_chaining_symbol_access
     | MemberAccessExp "[" MemberAccessExp "]" -- computed_member_access
@@ -231,9 +231,12 @@ Storymatic {
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
-  identifierWord = ~reserved letter+ (digit+ letter+)*
+  char = letter | "_"
+  word = nonemptyListOf<char+, digit+>
+  identifierWord = ~reserved word
   identifierWords = identifierWord (whitespace (identifierWord | digit+))*
   identifier = identifierWords
+  identOrWord = identifier | word
 
-  symbol = "#" spaces identifier
+  symbol = "#" spaces identOrWord
 }
