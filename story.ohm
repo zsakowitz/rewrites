@@ -1,52 +1,51 @@
 Storymatic {
   Script = Statement+
 
+  StatementBlock
+    = "{" StatementBlock "}" -- statement_block
+    | Statement
+
   Statement
     = Expression (StatementTerminator+ | end)
 
   StatementTerminator = "\r\n" | "\n" | ";"
 
   Expression = EqualityExp
-  Parenthesized = "(" Expression ")"
 
-  MulExp
-    = Multiplication
-    | Division
-    | Parenthesized
-    | number
+  LiteralExp
+    = "(" Expression ")" -- parenthesized
+    | decimalNumber
     | hexNumber
     | identifier
+    | symbol
+    | boolean
+    | null
 
-  Multiplication = MulExp "*" MulExp
-  Division = MulExp "/" MulExp
+  ExpExp
+    = ExpExp "^" LiteralExp -- exponentiate
+    | LiteralExp
+
+  MulExp
+    = MulExp "*" ExpExp -- multiplication
+    | MulExp "/" ExpExp -- division
+    | ExpExp
 
   AddExp
-    = Addition
-    | Subtraction
+    = AddExp "+" MulExp -- addition
+    | AddExp "-" MulExp -- subtraction
     | MulExp
 
-  Addition = AddExp "+" MulExp
-  Subtraction = AddExp "-" MulExp
-
   CompareExp
-    = LessThan
-    | LessThanEqual
-    | GreaterThan
-    | GreaterThanEqual
+    = CompareExp "<" AddExp -- less_than
+    | CompareExp "<=" AddExp -- less_than_equal
+    | CompareExp ">" AddExp -- greater_than
+    | CompareExp ">=" AddExp -- greater_than_equal
     | AddExp
 
-  LessThan = CompareExp "<" AddExp
-  LessThanEqual = CompareExp "<=" AddExp
-  GreaterThan = CompareExp ">" AddExp
-  GreaterThanEqual = CompareExp ">=" AddExp
-
   EqualityExp
-    = EqualTo
-    | NotEqualTo
+    = EqualityExp ("==" | "is") CompareExp -- equal_to
+    | EqualityExp ("!=" | "isnt") CompareExp -- not_equal_to
     | CompareExp
-
-  EqualTo = EqualityExp ("==" | "is") CompareExp
-  NotEqualTo = EqualityExp ("!=" | "isnt") CompareExp
 
   whitespace = (~("\n" | "\r") space)+
 
@@ -55,7 +54,17 @@ Storymatic {
   decimalNumber = sign number ("." number)? ("e" sign number)?
   hexNumber = sign "0x" hexDigit+
 
-  identifierWord = letter+ (digit+ letter+)*
+  boolean = true | false
+  true = "true"
+  false = "false"
+
+  null = "null"
+
+  reserved = "true" | "false" | "null" | ("is" ~"nt") | "isnt"
+
+  identifierWord = ~(reserved ~(letter | digit)) letter+ (digit+ letter+)*
   identifierWords = identifierWord (whitespace identifierWord)*
   identifier = identifierWords
+
+  symbol = "#" identifier
 }
