@@ -42,10 +42,8 @@ Storymatic {
     | "continue" #statementTerminator -- continue
     | "return" #(space+) Expression #statementTerminator -- return
     | "for" #(space+) identifier
-      (#(space+) "from" #(space+) Expression)?
-      (#(space+) ("to" | "through") #(space+) Expression)?
-      (#(space+) "step" #(space+) Expression)?
-      SingleStatementBlock<"do"> -- count
+      (#(space+) "from" #(space+) Expression)? (#(space+) ("to" | "through") #(space+) Expression)?
+      (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- count
 
   ForLoopKey
     = identifier -- bare
