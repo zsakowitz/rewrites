@@ -64,8 +64,8 @@ Storymatic {
   ClassElement
     = BlockFunction<"@"> -- method
     | BlockFunction<"@@"> -- static_method
-    | "@" identifier "=" Expression #statementTerminator -- property
-    | "@@" identifier "=" Expression #statementTerminator -- static_property
+    | property "=" Expression #statementTerminator -- property
+    | static_property "=" Expression #statementTerminator -- static_property
 
   ImportableItemName
     = identifier #(space+) "as" #(space+) identifier -- identifier_rewrite
@@ -115,12 +115,12 @@ Storymatic {
     | "fn" #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
   BlockFunction<prefix>
-    = "fn" #(space+) prefix identifier #(space+) ":" Expression -- no_args_expression
-    | "fn" #(space+) prefix identifier #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
-    | "fn" #(space+) prefix identifier #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
-    | "fn" #(space+) prefix identifier #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
-    | "fn" #(space+) prefix identifier #(space+) "of" #(space+) ParameterList ":" Expression -- multi_args_expression
-    | "fn" #(space+) prefix identifier #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
+    = "fn" #(space+) prefix identOrWord #(space+) ":" Expression -- no_args_expression
+    | "fn" #(space+) prefix identOrWord #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
+    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
+    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
+    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) ParameterList ":" Expression -- multi_args_expression
+    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
   ObjectEntry
     = identifier ~":" -- restructure
@@ -213,7 +213,7 @@ Storymatic {
     | LogicalOrExp
 
   AssignmentExp
-    = Assignable "=" AssignmentExp -- assignment
+    = AssignableOrAccessor "=" AssignmentExp -- assignment
     | "yield" #(space+) AssignmentExp -- yield
     | "yield" #(space+ "from" | "*") #(space+) AssignmentExp -- yield_from
     | TernaryExp
@@ -235,10 +235,20 @@ Storymatic {
     | "[" Expression "]" ":" AssignableWithDefault -- computed_rewrite
     | IdentifierWithDefault
 
+  AssignableOrAccessor = Assignable | Accessor
+
   Assignable
     = identifier -- identifier
     | "[" ListOf<AssignableWithDefault, ","> ","? "]" -- array
     | "{" ListOf<AssignableKeyWithRewrite, ","> ","? "}" -- object
+
+  Accessor
+    = identifier
+    | property
+    | static_property
+    | Accessor "." identOrWord -- member_access
+    | Accessor "." symbol -- symbol_access
+    | Accessor "[" Expression "]" -- computed_member_access
 
   whitespace = (~("\n" | "\r") space)+
 
@@ -284,8 +294,8 @@ Storymatic {
   identifier = identifierWords
   identOrWord = identifier | word
 
-  property = "@" spaces identifier
-  staticProperty = "@@" spaces identifier
+  property = "@" spaces identOrWord
+  staticProperty = "@@" spaces identOrWord
 
   symbol = "#" spaces identOrWord
 }
