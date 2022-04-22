@@ -15,22 +15,41 @@ Storymatic {
     = WrappedStatementBlock -- wrapped_block
     | Statement -- single_statement
 
-  IfStatement = "if" Expression SingleStatementBlock<"then"> ";"? ElseIfStatement* ElseStatement?
-  ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then"> ";"?
-  ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock ";"?
+  IfStatement = "if" Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
+  UnlessStatement = "unless" Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
+  ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then">
+  ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock
 
   ElseIfKeyword
     = "else" "if" -- else_if
     | "elif" -- elif
 
-  PrintStatement = "print" #(space+) Expression #statementTerminator
-  ThrowStatement = "throw" #(space+) Expression #statementTerminator
-
   Statement
     = Expression #statementTerminator -- expression
-    | IfStatement
-    | PrintStatement
-    | ThrowStatement
+    | IfStatement | UnlessStatement
+    | "print" #(space+) Expression #statementTerminator -- print
+    | "throw" #(space+) Expression #statementTerminator -- throw
+    | "repeat" #(space+) Expression SingleStatementBlock<"do"> -- repeat
+    | "while" #(space+) Expression SingleStatementBlock<"do"> -- while
+    | "until" #(space+) Expression SingleStatementBlock<"do"> -- until
+    | "do" #(space+) UnprefixedSingleStatementBlock #(space+) "while" #(space+) Expression -- do_while
+    | "do" #(space+) UnprefixedSingleStatementBlock #(space+) "until" #(space+) Expression -- do_until
+    | "for" #(space+) ForLoopKey #(space+) "in" #(space+) Expression SingleStatementBlock<"do"> -- for_key
+    | "for" #(space+) "(" identifier? "," identifier? ")" #(space+) "in" #(space+) Expression SingleStatementBlock<"do"> -- for_key_value
+    | "for" #(space+) ForLoopKey #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- iterate_over
+    | "for" #(space+) "(" identifier? "," identifier? ")" #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- iterate_indices
+    | "break" #statementTerminator -- break
+    | "continue" #statementTerminator -- continue
+    | "return" #(space+) Expression #statementTerminator -- return
+    | "for" #(space+) identifier
+      (#(space+) "from" #(space+) Expression)?
+      (#(space+) ("to" | "through") #(space+) Expression)?
+      (#(space+) "step" #(space+) Expression)?
+      SingleStatementBlock<"do"> -- count
+
+  ForLoopKey
+    = identifier -- bare
+    | "(" identifier ")" -- parenthesized
 
   statementTerminator
     = spaces ";" -- semicolon
@@ -189,9 +208,9 @@ Storymatic {
   string_full<delimeter> = delimeter string_bit<delimeter>* delimeter
   string (a string) = string_full<"\""> | string_full<"'">
 
-  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw") ~id_continue
+  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("a" | "an" | "type" | "of" | "from" | "typeof") ~id_continue
+  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved (a reserved word) = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
