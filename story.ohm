@@ -63,8 +63,9 @@ Storymatic {
 
   LiteralExp
     = "(" Expression ")" -- parenthesized
-    | "[" ListOf<Expression, ","> "]" -- array
-    | "{" ListOf<ObjectEntry, ","> "}" -- object
+    | "[" ListOf<Expression, ","> ","? "]" -- array
+    | "{" ListOf<ObjectEntry, ","> ","? "}" -- object
+    | InlineFunction
     | decimalNumber
     | hexNumber
     | bigint
@@ -73,6 +74,14 @@ Storymatic {
     | boolean
     | string
     | null
+
+  InlineFunction
+    = "fn" Expression -- no_args_expression
+    | "fn" WrappedStatementBlock -- no_args_wrapped_block
+    | "fn" #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
+    | "fn" #(space+) "of" #(space+) AssignableWithDefault ":" WrappedStatementBlock -- single_arg_wrapped_block
+    | "fn" #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":" Expression -- multi_args_expression
+    | "fn" #(space+) "of" #(space+) ListOf<AssignableWithDefault, ","> ","? ":"? WrappedStatementBlock -- multi_args_wrapped_block
 
   ObjectEntry
     = identifier ~":" -- restructure
@@ -177,8 +186,8 @@ Storymatic {
 
   Assignable
     = identifier -- identifier
-    | "[" ListOf<AssignableWithDefault, ","> "]" -- array
-    | "{" ListOf<AssignableKeyWithRewrite, ","> "}" -- object
+    | "[" ListOf<AssignableWithDefault, ","> ","? "]" -- array
+    | "{" ListOf<AssignableKeyWithRewrite, ","> ","? "}" -- object
 
   whitespace (whitespace) = (~("\n" | "\r") space)+
 
@@ -205,7 +214,7 @@ Storymatic {
   string_full<delimeter> = delimeter string_bit<delimeter>* delimeter
   string (a string) = string_full<"\""> | string_full<"'">
 
-  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue") ~id_continue
+  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
   reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
