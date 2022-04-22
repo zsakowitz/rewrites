@@ -60,7 +60,7 @@ Storymatic {
 
   lineTerminator = whitespace? ("\r" | "\n")+ spaces ~lineContinuer
   lineContinuer
-    = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "?." | "<" | ">" | "&&" | "||" | "??" | reserved_operators
+    = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "?." | "?" | ":" | "<" | ">" | "&&" | "||" | "??" | reserved_operators
 
   Expression = AssignmentExp
 
@@ -70,6 +70,7 @@ Storymatic {
     | "{" ListOf<ObjectEntry, ","> ","? "}" -- object
     | InlineFunction
     | decimalNumber
+    | unitNumber
     | hexNumber
     | bigint
     | identifier
@@ -127,8 +128,8 @@ Storymatic {
   NotExp
     = "!" NotExp -- logical_not_symbolic
     | "not" #(space+) NotExp -- logical_not_worded
-    | "+" NotExp -- unary_plus
-    | "-" NotExp -- unary_minus
+    | "+" ~digit NotExp -- unary_plus
+    | "-" ~digit NotExp -- unary_minus
     | "type" "of" #(space+) NotExp -- typeof
     | ("await" | "wait") #(space+) ("for" #(space+))? Expression -- await
     | ClassCreationExp
@@ -207,10 +208,10 @@ Storymatic {
 
   sign = ("+" | "-")?
   number = digit+
-  unitNumber = decimalNumber identifierWord
-  decimalNumber = ~"0x" digit+ ("." digit+)? ("e" sign digit+)?
-  hexNumber = "0x" hexDigit+
-  bigint = ~"0x" digit+ "n"
+  unitNumber = ~"0x" sign digit+ ("." digit+)? ("e" sign digit+)? identifierWord
+  decimalNumber = ~"0x" sign digit+ ("." digit+)? ("e" sign digit+)? ~char
+  hexNumber = sign "0x" hexDigit+
+  bigint = ~"0x" sign digit+ "n"
 
   boolean = "true" | "false"
   null = "null"
