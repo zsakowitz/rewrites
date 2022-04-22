@@ -39,7 +39,7 @@ Storymatic {
     | spaces end -- script_end
     | lineTerminator -- newline
 
-  lineTerminator = (~("\r\n" | "\n") space)* ("\r\n" | "\n") spaces ~lineContinuer
+  lineTerminator = whitespace? ("\r" | "\n")+ spaces ~lineContinuer
   lineContinuer
     = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "?." | "<" | ">" | "&&" | "||" | "??" | reserved_operators
 
@@ -47,6 +47,8 @@ Storymatic {
 
   LiteralExp
     = "(" Expression ")" -- parenthesized
+    | "[" ListOf<Expression, ","> "]" -- array
+    | "{" ListOf<ObjectEntry, ","> "}" -- object
     | decimalNumber
     | hexNumber
     | bigint
@@ -55,6 +57,14 @@ Storymatic {
     | boolean
     | string
     | null
+
+  ObjectEntry
+    = identifier ~":" -- restructure
+    | identifier ":" Expression -- key_value
+    | symbol ":" Expression -- symbol_value
+    | string ":" Expression -- string_key
+    | digit+ ":" Expression -- numerical_key
+    | "[" Expression "]" ":" Expression -- computed_key
 
   MemberAccessExp
     = MemberAccessExp "." identifier -- member_access
@@ -154,22 +164,20 @@ Storymatic {
     | "[" ListOf<AssignableWithDefault, ","> "]" -- array
     | "{" ListOf<AssignableKeyWithRewrite, ","> "}" -- object
 
-  whitespace = (~("\n" | "\r") space)+
+  whitespace (whitespace) = (~("\n" | "\r") space)+
 
   sign = ("+" | "-")?
-  decimalNumber = ~"0x" digit+ ("." digit+)? ("e" sign digit+)?
-  hexNumber = "0x" hexDigit+
-  bigint = ~"0x" digit+ "n"
+  number (a number) = digit+
+  decimalNumber (a decimal number) = ~"0x" digit+ ("." digit+)? ("e" sign digit+)?
+  hexNumber (a hexadecimal number) = "0x" hexDigit+
+  bigint (a big integer) = ~"0x" digit+ "n"
 
-  boolean = true | false
-  true = "true"
-  false = "false"
-
-  null = "null"
+  boolean (a boolean) = "true" | "false"
+  null (null) = "null"
 
   id_continue = letter | digit
 
-  string_bit<delimeter>
+  string_bit<delimeter> (a string character, escape sequence, or interpolation)
     = ~("\\" | "{" | delimeter) any -- character
     | "\\" ("\\" | "{" | "\"" | "'") -- escape
     | "\\" ("b" | "f" | "n" | "r" | "t" | "v" | ("0" ~digit)) -- escape_sequence
@@ -179,17 +187,17 @@ Storymatic {
     | "{" applySyntactic<Expression> "}" -- interpolated
   
   string_full<delimeter> = delimeter string_bit<delimeter>* delimeter
-  string = string_full<"\""> | string_full<"'">
+  string (a string) = string_full<"\""> | string_full<"'">
 
   reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
   reserved_inline = ("a" | "an" | "type" | "of" | "from" | "typeof") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
-  reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
+  reserved (a reserved word) = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
   identifierWord = ~reserved letter+ (digit+ letter+)*
   identifierWords = identifierWord (whitespace (identifierWord | digit+))*
-  identifier = identifierWords
+  identifier (an identifier) = identifierWords
 
-  symbol = "#" spaces identifier
+  symbol (a symbol) = "#" spaces identifier
 }
