@@ -150,21 +150,14 @@ Storymatic {
 
   id_continue = letter | digit
 
-  string_character<delimeter> = ~("\\" | "{" | delimeter) any
-  string_escape = "\\" ("\\" | "{" | "\"" | "'")
-  string_sequence = "\\" ("b" | "f" | "n" | "r" | "t" | "v" | ("0" ~digit))
-  string_hex_sequence = "\\x" hexDigit hexDigit
-  string_unicode_sequence = "\\u" hexDigit hexDigit hexDigit hexDigit
-  string_unicode_code_point_sequence = "\\u{" hexDigit+ "}"
-  string_interpolated = "{" applySyntactic<Expression> "}"
   string_bit<delimeter>
-    = string_character<delimeter>
-    | string_escape
-    | string_sequence
-    | string_hex_sequence
-    | string_unicode_sequence
-    | string_unicode_code_point_sequence
-    | string_interpolated
+    = ~("\\" | "{" | delimeter) any -- character
+    | "\\" ("\\" | "{" | "\"" | "'") -- escape
+    | "\\" ("b" | "f" | "n" | "r" | "t" | "v" | ("0" ~digit)) -- escape_sequence
+    | "\\x" hexDigit hexDigit -- hex_sequence
+    | "\\u" hexDigit hexDigit hexDigit hexDigit -- unicode_sequence
+    | "\\u{" hexDigit+ "}" -- unicode_code_point_sequence
+    | "{" applySyntactic<Expression> "}" -- interpolated
   
   string_full<delimeter> = delimeter string_bit<delimeter>* delimeter
   string = string_full<"\""> | string_full<"'">
