@@ -46,14 +46,24 @@ Storymatic {
       (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- count
     | ("await" | "wait") #(space+) ("for" #(space+))? (identifier "=")? Expression SingleStatementBlock<"do"> -- wait_for_expression
     | ("await" | "wait") #(space+) ("for" #(space+))? (identifier "=")? Expression #statementTerminator -- await_expression
+    | "import" #(space+) string_non_interpolatable #statementTerminator -- empty_import
+    | "import" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import
+    | "import" "*" "as" #(space+) identifier #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import_all
+    | "import" "*" identifier #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import_default
+    | "export" #statementTerminator -- empty_export
+    | "export" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- export_from
+    | "export" "*" "from" #(space+) string_non_interpolatable #statementTerminator -- export_all_from
+    | "export" #(space+) ListOf<ImportableItemName, ","> #statementTerminator -- export
+    | "export" "*" #(space+) string_non_interpolatable #statementTerminator -- export_default
 
-  ImportableName
-    = identifier
-    | identifier #(space+) "as" #(space+) identifier
+  ImportableItemName
+    = identifier #(space+) "as" #(space+) identifier -- identifier_rewrite
+    | string_non_interpolatable #(space+) "as" #(space+) identifier -- string_rewrite
+    | identifier
 
   ForLoopKey
-    = identifier -- bare
-    | "(" identifier ")" -- parenthesized
+    = "(" identifier ")" -- parenthesized
+    | identifier
 
   statementTerminator
     = spaces ";" -- semicolon
