@@ -1,16 +1,26 @@
 Storymatic {
-  Script = Statement+
+  Script = StatementBlock
 
-  StatementBlock
-    = "{" StatementBlock "}" -- statement_block
-    | Statement
+  WrappedStatementBlock = "{" StatementBlock "}"
+
+  StatementBlock = WrappedStatementBlock | Statement*
+  SingleStatementBlock<prefix> = prefix? WrappedStatementBlock | prefix Statement
+
+  IfStatement = "if" Expression SingleStatementBlock<"then"> ";"* ElseIfStatement* ElseStatement?
+  ElseIfStatement = ElseIfKeyword Expression SingleStatementBlock<"then"> ";"*
+  ElseStatement = "else" SingleStatementBlock<"then"> ";"*
+
+  ElseIfKeyword
+    = "else" "if" -- else_if
+    | "elif" -- elif
 
   Statement
-    = Expression (StatementTerminator+ | end)
+    = Expression StatementTerminator -- expression
+    | IfStatement
 
-  StatementTerminator = "\r\n" | "\n" | ";"
+  StatementTerminator = ";"+ | &reserved_block | &("elif") | &"}" | end
 
-  Expression = EqualityExp
+  Expression = LogicalExp
 
   LiteralExp
     = "(" Expression ")" -- parenthesized
@@ -20,10 +30,18 @@ Storymatic {
     | symbol
     | boolean
     | null
+  
+  NotExp
+    = ("!" | "not") NotExp -- logical_not
+    | "+" NotExp -- unary_plus
+    | "-" NotExp -- unary_minus
+    | "type" "of" NotExp -- typeof
+    | NotExp "is" space "a" reserved_type -- typeof_check
+    | LiteralExp
 
   ExpExp
-    = ExpExp "^" LiteralExp -- exponentiate
-    | LiteralExp
+    = ExpExp "^" NotExp -- exponentiate
+    | NotExp
 
   MulExp
     = MulExp "*" ExpExp -- multiplication
@@ -40,12 +58,21 @@ Storymatic {
     | CompareExp "<=" AddExp -- less_than_equal
     | CompareExp ">" AddExp -- greater_than
     | CompareExp ">=" AddExp -- greater_than_equal
+    | CompareExp (("is" space)? "in") AddExp -- within
+    | CompareExp ("isnt" space "in") AddExp -- not_within
+    | CompareExp ("is" space "a") AddExp -- instanceof
+    | CompareExp ("isnt" space "a") AddExp -- not_instanceof
     | AddExp
 
   EqualityExp
     = EqualityExp ("==" | "is") CompareExp -- equal_to
     | EqualityExp ("!=" | "isnt") CompareExp -- not_equal_to
     | CompareExp
+
+  LogicalExp
+    = LogicalExp ("&&" | "and") EqualityExp -- logical_and
+    | LogicalExp ("||" | "or") EqualityExp -- logical_or
+    | EqualityExp
 
   whitespace = (~("\n" | "\r") space)+
 
@@ -60,10 +87,14 @@ Storymatic {
 
   null = "null"
 
-  reserved = "true" | "false" | "null" | ("is" ~"nt") | "isnt"
+  reserved_block = ("if" | "elif" | "else" | "elseif" | "then") ~(letter | digit)
+  reserved_inline = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "a") ~(letter | digit)
+  reserved_primitive = ("true" | "false" | "null") ~(letter | digit)
+  reserved_type = ("string" | "number" | "boolean" | "symbol" | "bigint" | "object" | "function" | "void" | "null") ~(letter | digit)
+  reserved = reserved_block | reserved_inline | reserved_primitive | reserved_type
 
-  identifierWord = ~(reserved ~(letter | digit)) letter+ (digit+ letter+)*
-  identifierWords = identifierWord (whitespace identifierWord)*
+  identifierWord = ~reserved letter+ (digit+ letter+)*
+  identifierWords = identifierWord (whitespace (identifierWord | digit+))*
   identifier = identifierWords
 
   symbol = "#" identifier
