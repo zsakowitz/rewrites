@@ -41,7 +41,7 @@ Storymatic {
 
   lineTerminator = (~("\r\n" | "\n") space)* ("\r\n" | "\n") spaces ~lineContinuer
   lineContinuer
-    = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "<" | ">" | "&&" | "||" | "??" | reserved_operators
+    = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "?." | "<" | ">" | "&&" | "||" | "??" | reserved_operators
 
   Expression = AssignmentExp
 
@@ -56,15 +56,34 @@ Storymatic {
     | string
     | null
 
-  ClassCreationExp
-    = "a" ClassCreationExp -- class_creation
+  MemberAccessExp
+    = MemberAccessExp "." identifier -- member_access
+    | MemberAccessExp "?." identifier -- optional_chaining_member_access
+    | MemberAccessExp "." symbol -- symbol_access
+    | MemberAccessExp "?." symbol -- optional_chaining_symbol_access
+    | MemberAccessExp "[" MemberAccessExp "]" -- computed_member_access
+    | MemberAccessExp "?." "[" MemberAccessExp "]" -- optional_chaining_computed_member_access
+    | MemberAccessExp "(" ArgumentList ")" -- function_call
+    | MemberAccessExp #(space+) "with" #(space+) ~"(" Expression -- function_call_worded
+    | MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- function_call_worded_list
+    | ("a" | "an") #(space+) MemberAccessExp "(" ArgumentList ")" -- class_creation_args_symbolic
+    | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) ~"(" Expression -- class_creation_args_worded
+    | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- class_creation_args_worded_list
     | LiteralExp
 
+  ArgumentList = ListOf<Expression, ",">
+  NonEmptyArgumentList = NonemptyListOf<Expression, ",">
+
+  ClassCreationExp
+    = ("a" | "an") #(space+) ClassCreationExp ~("with" | "(") -- class_creation
+    | MemberAccessExp
+
   NotExp
-    = ("!" | ("not" #(~id_continue))) NotExp -- logical_not
+    = "!" NotExp -- logical_not_symbolic
+    | "not" #(space+) NotExp -- logical_not_worded
     | "+" NotExp -- unary_plus
     | "-" NotExp -- unary_minus
-    | "type" "of" #(~id_continue) NotExp -- typeof
+    | "type" "of" #(space+) NotExp -- typeof
     | ClassCreationExp
 
   ExpExp
@@ -89,13 +108,13 @@ Storymatic {
     | CompareExp ">=" AddExp -- greater_than_equal
     | CompareExp #(space+) ("is" #(space+))? "in" #(space+) AddExp -- within
     | CompareExp #(space+) "isnt" #(space+) "in" #(space+) AddExp -- not_within
-    | CompareExp #(space+) "is" #(space+) "a" #(space+) AddExp -- instanceof
-    | CompareExp #(space+) "isnt" #(space+) "a" #(space+) AddExp -- not_instanceof
+    | CompareExp #(space+) "is" #(space+) ("a" | "an") #(space+) AddExp -- instanceof
+    | CompareExp #(space+) "isnt" #(space+) ("a" | "an") #(space+) AddExp -- not_instanceof
     | AddExp
 
   EqualityExp
-    = EqualityExp #(spaces "==" | (space+ "is" ~(space+ "a") space+)) CompareExp -- equal_to
-    | EqualityExp #(spaces "!=" | (space+ "isnt" ~(space+ "a") space+)) CompareExp -- not_equal_to
+    = EqualityExp #(spaces "==" | (space+ "is" ~(space+ ("a" | "an")) space+)) CompareExp -- equal_to
+    | EqualityExp #(spaces "!=" | (space+ "isnt" ~(space+ ("a" | "an")) space+)) CompareExp -- not_equal_to
     | CompareExp
 
   LogicalAndExp
@@ -163,8 +182,8 @@ Storymatic {
   string = string_full<"\""> | string_full<"'">
 
   reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw") ~id_continue
-  reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt") ~id_continue
-  reserved_inline = ("a" | "type" | "of" | "typeof") ~id_continue
+  reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
+  reserved_inline = ("a" | "an" | "type" | "of" | "from" | "typeof") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
