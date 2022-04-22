@@ -44,6 +44,8 @@ Storymatic {
     | "for" #(space+) identifier
       (#(space+) "from" #(space+) Expression)? (#(space+) ("to" | "through") #(space+) Expression)?
       (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- count
+    | ("await" | "wait") #(space+) ("for" #(space+))? (identifier "=")? Expression SingleStatementBlock<"do"> -- wait_for_expression
+    | ("await" | "wait") #(space+) ("for" #(space+))? (identifier "=")? Expression #statementTerminator -- await_expression
 
   ForLoopKey
     = identifier -- bare
@@ -128,6 +130,7 @@ Storymatic {
     | "+" NotExp -- unary_plus
     | "-" NotExp -- unary_minus
     | "type" "of" #(space+) NotExp -- typeof
+    | ("await" | "wait") #(space+) ("for" #(space+))? Expression -- await
     | ClassCreationExp
 
   ExpExp
@@ -204,6 +207,7 @@ Storymatic {
 
   sign = ("+" | "-")?
   number = digit+
+  unitNumber = decimalNumber identifierWord
   decimalNumber = ~"0x" digit+ ("." digit+)? ("e" sign digit+)?
   hexNumber = "0x" hexDigit+
   bigint = ~"0x" digit+ "n"
@@ -225,9 +229,9 @@ Storymatic {
   string_full<delimeter> = delimeter string_bit<delimeter>* delimeter
   string = string_full<"\""> | string_full<"'">
 
-  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn") ~id_continue
+  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "wait") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof") ~id_continue
+  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
