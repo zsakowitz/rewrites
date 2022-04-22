@@ -1,9 +1,8 @@
 import ohm from "ohm-js";
 import extras from "ohm-js/extras/index.js";
-import { readFileSync } from "fs";
+import story from "./story.ohm-bundle.js";
 
-let lang = readFileSync("../story.ohm", "utf8");
-globalThis.story = ohm.grammar(lang);
+globalThis.story = story;
 globalThis.toAST = (text: string) => extras.toAST(story.match(text));
 
 declare global {
