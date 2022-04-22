@@ -197,20 +197,20 @@ Storymatic {
     | "[" ListOf<AssignableWithDefault, ","> ","? "]" -- array
     | "{" ListOf<AssignableKeyWithRewrite, ","> ","? "}" -- object
 
-  whitespace (whitespace) = (~("\n" | "\r") space)+
+  whitespace = (~("\n" | "\r") space)+
 
   sign = ("+" | "-")?
-  number (a number) = digit+
-  decimalNumber (a decimal number) = ~"0x" digit+ ("." digit+)? ("e" sign digit+)?
-  hexNumber (a hexadecimal number) = "0x" hexDigit+
-  bigint (a big integer) = ~"0x" digit+ "n"
+  number = digit+
+  decimalNumber = ~"0x" digit+ ("." digit+)? ("e" sign digit+)?
+  hexNumber = "0x" hexDigit+
+  bigint = ~"0x" digit+ "n"
 
-  boolean (a boolean) = "true" | "false"
-  null (null) = "null"
+  boolean = "true" | "false"
+  null = "null"
 
   id_continue = letter | digit
 
-  string_bit<delimeter> (a string character, escape sequence, or interpolation)
+  string_bit<delimeter>
     = ~("\\" | "{" | delimeter) any -- character
     | "\\" ("\\" | "{" | "\"" | "'") -- escape
     | "\\" ("b" | "f" | "n" | "r" | "t" | "v" | ("0" ~digit)) -- escape_sequence
@@ -220,17 +220,17 @@ Storymatic {
     | "{" applySyntactic<Expression> "}" -- interpolated
   
   string_full<delimeter> = delimeter string_bit<delimeter>* delimeter
-  string (a string) = string_full<"\""> | string_full<"'">
+  string = string_full<"\""> | string_full<"'">
 
   reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
   reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
-  reserved (a reserved word) = reserved_block | reserved_operators | reserved_inline | reserved_primitive
+  reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
   identifierWord = ~reserved letter+ (digit+ letter+)*
   identifierWords = identifierWord (whitespace (identifierWord | digit+))*
-  identifier (an identifier) = identifierWords
+  identifier = identifierWords
 
-  symbol (a symbol) = "#" spaces identifier
+  symbol = "#" spaces identifier
 }
