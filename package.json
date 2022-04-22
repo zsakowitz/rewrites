@@ -2,8 +2,8 @@
   "type": "module",
   "scripts": {
     "test-promises": "node -e \"import('./dist/deferred.js').then(p => p.test())\"",
-    "build-ohm": "ohm generateBundles --esm --withTypes story.ohm; rm story.ohm-bundle.js > dist/story.ohm-bundle.js",
-    "ohm-cli": "clear; node -i -e \"import('./dist/lang.js');\""
+    "build-ohm": "ohm generateBundles --esm --withTypes story.ohm; mv story.ohm-bundle.js dist/story.ohm-bundle.js",
+    "ohm-cli": "npm run build-ohm; clear; node -i -e \"import('./dist/lang.js');\""
   },
   "dependencies": {
     "@ohm-js/cli": "^1.1.0",
