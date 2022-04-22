@@ -30,3 +30,4 @@ coverage
 *.sw?
 
 dist
+story.ohm-bundle.d.ts
