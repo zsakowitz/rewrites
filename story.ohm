@@ -45,8 +45,8 @@ Storymatic {
     | "for" #(space+) identifier
       (#(space+) "from" #(space+) Expression)? (#(space+) ("to" | "through") #(space+) Expression)?
       (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- count
-    | ("await" | "wait") #(space+) ("for" #(space+))? (identifier "=")? Expression SingleStatementBlock<"do"> -- wait_for_expression
-    | ("await" | "wait") #(space+) ("for" #(space+))? (identifier "=")? Expression #statementTerminator -- await_expression
+    | "await" #(space+) (identifier "=")? Expression SingleStatementBlock<"do"> -- await_asynchronous
+    | "await" #(space+) (identifier "=")? Expression #statementTerminator -- await_expression
     | "import" #(space+) string_non_interpolatable #statementTerminator -- empty_import
     | "import" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import
     | "import" "*" "as" #(space+) identifier #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import_all
@@ -163,7 +163,7 @@ Storymatic {
     | "+" ~digit NotExp -- unary_plus
     | "-" ~digit NotExp -- unary_minus
     | "type" "of" #(space+) NotExp -- typeof
-    | ("await" | "wait") #(space+) ("for" #(space+))? Expression -- await
+    | "await" #(space+) Expression -- await
     | ClassCreationExp
 
   ExpExp
@@ -284,7 +284,7 @@ Storymatic {
 
   reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "wait" | "import" | "export" | "class") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as" | "extends") ~id_continue
+  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as" | "extends" | "await") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
