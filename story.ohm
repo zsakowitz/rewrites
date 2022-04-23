@@ -31,7 +31,7 @@ Storymatic {
     = Expression #statementTerminator -- expression
     | IfStatement
     | TryStatement
-    | BlockFunction<"">
+    | BlockFunction
     | ClassDeclaration
     | "print" #(space+) Expression #statementTerminator -- print
     | "throw" #(space+) Expression #statementTerminator -- throw
@@ -64,13 +64,13 @@ Storymatic {
     | "export" "*" Expression #statementTerminator -- export_default
     | "export" #(space+) ClassDeclaration -- export_class
     | "export" #(space+) VariableAssignment -- export_variable
-    | "export" #(space+) BlockFunction<""> -- export_function
+    | "export" #(space+) BlockFunction -- export_function
 
   ClassDeclaration = "class" #(space+) identifier ("extends" Expression)? "{" ClassElement* "}"
 
   ClassElement
-    = BlockFunction<"@"> -- method
-    | BlockFunction<"@@"> -- static_method
+    = Method<"@"> -- method
+    | Method<"@@"> -- static_method
     | property "=" Expression #statementTerminator -- property
     | staticProperty "=" Expression #statementTerminator -- staticProperty
 
@@ -90,6 +90,13 @@ Storymatic {
     | spaces end -- script_end
     | lineTerminator -- newline
 
+  expressionTerminator
+    = spaces "," -- comma
+    | spaces &reserved_block -- keyword
+    | spaces &"}" -- block_end
+    | spaces end -- script_end
+    | lineTerminator -- newline
+
   lineTerminator = whitespace? ("\r" | "\n")+ spaces ~lineContinuer
   lineContinuer
     = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "?." | "?" | ":" | "<" | ">" | "&&" | "||" | "??" | reserved_operators
@@ -98,8 +105,8 @@ Storymatic {
 
   LiteralExp
     = "(" Expression ")" -- parenthesized
-    | "[" ListOf<ArrayEntry, ","> ","? "]" -- array
-    | "{" ListOf<ObjectEntry, ","> ","? "}" -- object
+    | "[" ListOf<ArrayEntry, expressionTerminator> expressionTerminator? "]" -- array
+    | "{" ListOf<ObjectEntry, expressionTerminator> expressionTerminator? "}" -- object
     | InlineFunction
     | decimalNumber
     | unitNumber
@@ -118,20 +125,27 @@ Storymatic {
     | "..." Expression -- spread_operator
 
   InlineFunction
-    = "fn" #(space+) ":"? Expression -- no_args_expression
-    | "fn" #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
-    | "fn" #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
-    | "fn" #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
-    | "fn" #(space+) "of" #(space+) ParameterList ":" Expression -- multi_args_expression
-    | "fn" #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
+    = "fn" #(space+) ":"? Expression -- expression
+    | "fn" #(space+) ":"? WrappedStatementBlock -- wrapped_block
+    | "fn" #(space+) "of" #(space+) ParameterList ":" Expression -- params_and_expression
+    | "fn" #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
 
-  BlockFunction<prefix>
-    = "fn" #(space+) prefix identOrWord #(space+) ":" Expression -- no_args_expression
-    | "fn" #(space+) prefix identOrWord #(space+) ":"? WrappedStatementBlock -- no_args_wrapped_block
-    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) AssignableWithDefault ":" Expression -- single_arg_expression
-    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) AssignableWithDefault ":"? WrappedStatementBlock -- single_arg_wrapped_block
-    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) ParameterList ":" Expression -- multi_args_expression
-    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- multi_args_wrapped_block
+  BlockFunction
+    = "fn" #(space+) identifier #(space+) ":" Expression -- expression
+    | "fn" #(space+) identifier #(space+) ":"? WrappedStatementBlock -- wrapped_block
+    | "fn" #(space+) identifier #(space+) "of" #(space+) ParameterList ":" Expression -- params_and_expression
+    | "fn" #(space+) identifier #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
+
+  Method<prefix>
+    = "fn" #(space+) prefix identOrWord #(space+) ":" Expression -- expression
+    | "fn" #(space+) prefix identOrWord #(space+) ":"? WrappedStatementBlock -- wrapped_block
+    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) ParameterList ":" Expression -- params_and_expression
+    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
+
+  MethodName
+    = identOrWord -- identifier
+    | symbol -- symbol
+    | "[" Expression "]" -- computed_key
 
   ObjectEntry
     = identifier ~":" -- restructure
@@ -142,6 +156,7 @@ Storymatic {
     | digit+ ":" Expression -- numerical_key
     | "[" Expression "]" ":" Expression -- computed_key
     | "..." Expression -- spread_operator
+    | Method<""> -- object_method
 
   MemberAccessExp
     = MemberAccessExp "." identOrWord -- member_access
@@ -318,5 +333,7 @@ Storymatic {
   property = "@" spaces identOrWord
   staticProperty = "@@" spaces identOrWord
 
-  symbol = "#" spaces identOrWord
+  symbol
+    = "#" spaces identOrWord -- symbol_for
+    | "##" spaces identOrWord -- builtin_symbol
 }
