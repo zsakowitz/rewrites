@@ -52,7 +52,7 @@ Storymatic {
       (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- count
     | "await" #(space+) (identifier "=")? Expression SingleStatementBlock<"do"> -- await_new_thread
     | "await" #(space+) (identifier "=")? Expression #statementTerminator -- await_main_thread
-    | "when" #(space+) Expression ("of" ArgumentList)? SingleStatementBlock<"do"> -- when_callback
+    | "when" #(space+) Expression ("with" ArgumentList)? SingleStatementBlock<"do"> -- when_callback
     | "import" #(space+) string_non_interpolatable #statementTerminator -- empty_import
     | "import" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import
     | "import" "*" "as" #(space+) identifier #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import_all
@@ -98,7 +98,7 @@ Storymatic {
 
   LiteralExp
     = "(" Expression ")" -- parenthesized
-    | "[" ListOf<Expression, ","> ","? "]" -- array
+    | "[" ListOf<ArrayEntry, ","> ","? "]" -- array
     | "{" ListOf<ObjectEntry, ","> ","? "}" -- object
     | InlineFunction
     | decimalNumber
@@ -112,6 +112,10 @@ Storymatic {
     | boolean
     | string
     | null
+
+  ArrayEntry
+    = Expression
+    | "..." Expression -- spread_operator
 
   InlineFunction
     = "fn" #(space+) ":"? Expression -- no_args_expression
@@ -137,6 +141,7 @@ Storymatic {
     | string ":" Expression -- computed_string_key
     | digit+ ":" Expression -- numerical_key
     | "[" Expression "]" ":" Expression -- computed_key
+    | "..." Expression -- spread_operator
 
   MemberAccessExp
     = MemberAccessExp "." identOrWord -- member_access
@@ -154,11 +159,19 @@ Storymatic {
     | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- class_creation_args_worded_list
     | LiteralExp
 
-  ArgumentList = ListOf<Expression, ",">
-  NonEmptyArgumentList = NonemptyListOf<Expression, ",">
+  ArgumentList = ListOf<Argument, ",">
+  NonEmptyArgumentList = NonemptyListOf<Argument, ",">
 
-  ParameterList = ListOf<AssignableWithDefault, ","> ","?
-  NonEmptyParameterList = NonemptyListOf<AssignableWithDefault, ","> ","?
+  Argument
+    = Expression
+    | "..." Expression -- spread_operator
+
+  ParameterList = ListOf<Parameter, ","> ","?
+  NonEmptyParameterList = NonemptyListOf<Parameter, ","> ","?
+
+  Parameter
+    = AssignableWithDefault
+    | "..." Assignable -- rest_operator
 
   ClassCreationExp
     = ("a" | "an") #(space+) ClassCreationExp ~("with" | "(") -- class_creation
@@ -247,8 +260,8 @@ Storymatic {
 
   Assignable
     = identifier -- identifier
-    | "[" ListOf<AssignableWithDefault, ","> ","? "]" -- array
-    | "{" ListOf<AssignableKeyWithRewrite, ","> ","? "}" -- object
+    | "[" ListOf<AssignableWithDefault, ","> ("," "..." Assignable)? ","? "]" -- array
+    | "{" ListOf<AssignableKeyWithRewrite, ","> ("," "..." Assignable)? ","? "}" -- object
 
   Accessor
     = identifier
