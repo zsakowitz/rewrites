@@ -170,7 +170,7 @@ Storymatic {
     | "+" ~digit NotExp -- unary_plus
     | "-" ~digit NotExp -- unary_minus
     | "type" "of" #(space+) NotExp -- typeof
-    | "await" #(space+) Expression -- await
+    | "await" #(space+) NotExp -- await
     | ClassCreationExp
 
   ExpExp
