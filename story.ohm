@@ -105,8 +105,8 @@ Storymatic {
 
   LiteralExp
     = "(" Expression ")" -- parenthesized
-    | "[" ListOf<ArrayEntry, expressionTerminator> expressionTerminator? "]" -- array
-    | "{" ListOf<ObjectEntry, expressionTerminator> expressionTerminator? "}" -- object
+    | "[" ListOf<ArrayEntry, expressionTerminator> ","? "]" -- array
+    | "{" ListOf<ObjectEntry, expressionTerminator> ","? "}" -- object
     | InlineFunction
     | decimalNumber
     | unitNumber
@@ -277,8 +277,8 @@ Storymatic {
 
   Assignable
     = identifier -- identifier
-    | "[" ListOf<AssignableWithDefault, ","> ("," "..." Assignable)? ","? "]" -- array
-    | "{" ListOf<AssignableKeyWithRewrite, ","> ("," "..." Assignable)? ","? "}" -- object
+    | "[" ListOf<AssignableWithDefault, expressionTerminator> ("," "..." Assignable)? ","? "]" -- array
+    | "{" ListOf<AssignableKeyWithRewrite, expressionTerminator> ("," "..." Assignable)? ","? "}" -- object
 
   Accessor
     = identifier
