@@ -137,14 +137,16 @@ Storymatic {
     | "fn" #(space+) identifier #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
 
   Method<prefix>
-    = "fn" #(space+) prefix identOrWord #(space+) ":" Expression -- expression
-    | "fn" #(space+) prefix identOrWord #(space+) ":"? WrappedStatementBlock -- wrapped_block
-    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) ParameterList ":" Expression -- params_and_expression
-    | "fn" #(space+) prefix identOrWord #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
+    = "fn" #(space+) prefix MethodName #(space+) ":" Expression -- expression
+    | "fn" #(space+) prefix MethodName #(space+) ":"? WrappedStatementBlock -- wrapped_block
+    | "fn" #(space+) prefix MethodName #(space+) "of" #(space+) ParameterList ":" Expression -- params_and_expression
+    | "fn" #(space+) prefix MethodName #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
 
   MethodName
     = identOrWord -- identifier
     | symbol -- symbol
+    | string_non_interpolatable -- string_key
+    | string -- computed_string_key
     | "[" Expression "]" -- computed_key
 
   ObjectEntry
