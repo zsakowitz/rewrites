@@ -326,7 +326,7 @@ Storymatic {
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
   char = letter | "_"
-  word = nonemptyListOf<char+, digit+>
+  word = char+ (digit+ char+)*
   identifierWord = ~reserved word
   identifierWords = identifierWord (whitespace (identifierWord | digit+))*
   identifier = identifierWords
