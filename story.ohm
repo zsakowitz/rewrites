@@ -45,8 +45,9 @@ Storymatic {
     | "for" #(space+) identifier
       (#(space+) "from" #(space+) Expression)? (#(space+) ("to" | "through") #(space+) Expression)?
       (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- count
-    | "await" #(space+) (identifier "=")? Expression SingleStatementBlock<"do"> -- await_asynchronous
-    | "await" #(space+) (identifier "=")? Expression #statementTerminator -- await_expression
+    | "await" #(space+) (identifier "=")? Expression SingleStatementBlock<"do"> -- await_new_thread
+    | "await" #(space+) (identifier "=")? Expression #statementTerminator -- await_main_thread
+    | "when" #(space+) Expression ("of" ArgumentList)? SingleStatementBlock<"do"> -- when_callback
     | "import" #(space+) string_non_interpolatable #statementTerminator -- empty_import
     | "import" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import
     | "import" "*" "as" #(space+) identifier #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import_all
@@ -282,7 +283,7 @@ Storymatic {
   string = string_interpolatable<"\""> | string_interpolatable<"'">
   string_non_interpolatable = string_full<"\""> | string_full<"'">
 
-  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "wait" | "import" | "export" | "class") ~id_continue
+  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
   reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as" | "extends" | "await") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
