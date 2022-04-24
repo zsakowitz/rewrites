@@ -63,8 +63,13 @@ function createNodes(...nodes: ohm.Node[]) {
   return nodes.map((e) => e.js());
 }
 
-function indent(text: string) {
-  let split = text.split("\n");
+function indent(text: string): string;
+function indent(node: Node): Node;
+function indent(item: string | Node): string | Node;
+function indent(item: string | Node): string | Node {
+  if (typeof item == "object") return createNode(indent(item.output), item);
+
+  let split = item.split("\n");
   let indented = split
     .slice(1)
     .map((e) => e && "  " + e)
@@ -194,6 +199,10 @@ let actions: StorymaticActionDict<Node> = {
     let js = node.js();
     return makeNode`finally ${js}`;
   },
+  FunctionBody_expression(_, node) {
+    let js = node.js();
+    return makeNode`{\n  ${indent(js)}}\n`;
+  },
   identifier(node) {
     return node.js();
   },
@@ -284,11 +293,7 @@ let actions: StorymaticActionDict<Node> = {
   },
   SingleStatementBlock_single_statement(_0, _1, statementNode) {
     let js = statementNode.js();
-    return createNode(
-      `{
-  ${indent(js.output)}}\n`,
-      js
-    );
+    return makeNode`{\n  ${indent(js)}}\n`;
   },
   StatementBlock_statements(node) {
     let nodes = createNodes(...node.children);
@@ -322,11 +327,7 @@ let actions: StorymaticActionDict<Node> = {
   },
   UnprefixedSingleStatementBlock_single_statement(statementNode) {
     let js = statementNode.js();
-    return createNode(
-      `{
-  ${indent(js.output)}}\n`,
-      js
-    );
+    return makeNode`{\n  ${indent(js)}}\n`;
   },
   whitespace(_) {
     return createNode(" ");
@@ -336,11 +337,7 @@ let actions: StorymaticActionDict<Node> = {
   },
   WrappedStatementBlock(_0, node, _1) {
     let js = node.js();
-    return createNode(
-      `{
-  ${indent(js.output)}}\n`,
-      js
-    );
+    return makeNode`{\n  ${indent(js)}}\n`;
   },
 };
 
