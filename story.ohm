@@ -8,16 +8,17 @@ Storymatic {
     | Statement* -- statements
 
   SingleStatementBlock<prefix>
-    = prefix? WrappedStatementBlock -- wrapped_block
+    = WrappedStatementBlock -- wrapped_block
     | prefix #(space+) Statement -- single_statement
 
   UnprefixedSingleStatementBlock
     = WrappedStatementBlock -- wrapped_block
     | Statement -- single_statement
 
-  IfStatement = ("if" | "unless") #(space+) Expression SingleStatementBlock<"then"> ElseIfStatement* ElseStatement?
-  ElseIfStatement = ElseIfKeyword #(space+) Expression SingleStatementBlock<"then">
+  IfStatement = ("if" | "unless") #(space+) Expression SingleStatementBlock<thenOrDo> ElseIfStatement* ElseStatement?
+  ElseIfStatement = ElseIfKeyword #(space+) Expression SingleStatementBlock<thenOrDo>
   ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock
+  thenOrDo = "then" | "do"
 
   TryStatement = "try" #(space+) UnprefixedSingleStatementBlock CatchStatement? FinallyStatement?
   CatchStatement = "catch" #(space+) (identifier #(space+) "of" #(space+))? UnprefixedSingleStatementBlock
@@ -53,7 +54,6 @@ Storymatic {
       (#(space+) "from" #(space+) Expression)? (#(space+) ("to" | "through") #(space+) Expression)?
       (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- count
     | "await" #(space+) (identifier "=")? Expression SingleStatementBlock<"do"> -- await_new_thread
-    | "await" #(space+) (identifier "=")? Expression #statementTerminator -- await_main_thread
     | "when" #(space+) Expression ("with" ArgumentList)? SingleStatementBlock<"do"> -- when_callback
     | "import" #(space+) string_non_interpolatable #statementTerminator -- empty_import
     | "import" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import
@@ -322,18 +322,17 @@ Storymatic {
   string = string_interpolatable<"\""> | string_interpolatable<"'">
   string_non_interpolatable = string_full<"\""> | string_full<"'">
 
-  reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally") ~id_continue
+  reserved_block = ("if" | "elif" | ("else" ~"if") | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as" | "extends" | "await" | "rescope") ~id_continue
+  reserved_inline = (("a" ~("n" | "s")) | "an" | "in" | ("type" ~"of") | "of" | "from" | "typeof" | "as" | "extends" | "await" | "rescope") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
   char = letter | "_"
   word = char+ (number char*)*
   identifierWord = ~reserved word
-  identifierNumber = char* (number char*)*
-  identifierEl = identifierWord | identifierNumber
-  identifierWords = identifierWord (whitespace identifierEl)*
+  identifierNumber = char* (number char*)+
+  identifierWords = identifierWord (whitespace (identifierWord | identifierNumber))*
   identifier = identifierWords
   identOrWord = identifier | word
 
