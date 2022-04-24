@@ -68,7 +68,7 @@ Storymatic {
     | "export" #(space+) VariableAssignment -- export_variable
     | "export" #(space+) BlockFunction -- export_function
 
-  ClassDeclaration = "class" #(space+) identifier ("extends" Expression)? "{" ClassElement* "}"
+  ClassDeclaration = "class" #(space+) identifier (#(space+) "extends" #(space+) Expression)? "{" ClassElement* "}"
 
   ClassElement
     = Method<"@"> -- method
@@ -253,20 +253,20 @@ Storymatic {
     | LogicalOrExp
 
   AssignmentExp
-    = AssignableOrAccessor "=" AssignmentExp -- assignment
+    = ~("super" ~id_continue | "this" "=") AssignableOrAccessor "=" AssignmentExp -- assignment
     | "rescope" #(space+) AssignableOrAccessor "=" AssignmentExp -- assignment_rescoped
     | "yield" #(space+) AssignmentExp -- yield
     | "yield" #(space+ "from" space+ | "*") AssignmentExp -- yield_from
     | TernaryExp
 
-  VariableAssignment = Assignable "=" Expression
+  VariableAssignment = ~("super" ~id_continue | "this" "=") Assignable "=" Expression
 
   AssignableWithDefault
-    = Assignable "=" Expression -- with_default
+    = ~("super" ~id_continue | "this" "=") Assignable "=" Expression -- with_default
     | Assignable
 
   IdentifierWithDefault
-    = identifier "=" Expression -- with_default
+    = ~("super" ~id_continue | "this" "=") identifier "=" Expression -- with_default
     | identifier
 
   AssignableKeyWithRewrite
@@ -354,5 +354,3 @@ Storymatic {
 }
 
 // switch-case
-// class extends
-// super()
