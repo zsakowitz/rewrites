@@ -51,19 +51,16 @@ Storymatic {
     | "until" #(space+) Expression SingleStatementBlock<"do"> -- until
     | "do" #(space+) UnprefixedSingleStatementBlock #(space+) "while" #(space+) Expression #statementTerminator -- do_while
     | "do" #(space+) UnprefixedSingleStatementBlock #(space+) "until" #(space+) Expression #statementTerminator -- do_until
-    | "for" #(space+) ForLoopKey #(space+) "in" #(space+) Expression SingleStatementBlock<"do"> -- for_key
-    | "for" #(space+) "(" identifier? "," identifier? ")" #(space+) "in" #(space+) Expression SingleStatementBlock<"do"> -- for_key_value
-    | "for" #(space+) ForLoopKey #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- iterate_over
-    | "for" #(space+) "(" identifier? "," identifier? ")" #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- iterate_indices
-    | "for" #(space+) "await" #(space+) ForLoopKey #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- await_iterate_over
-    | "for" #(space+) "await" #(space+) "(" identifier? "," identifier? ")" #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- await_iterate_indices
+    | "for" #(space+) Assignable #(space+) "in" #(space+) Expression SingleStatementBlock<"do"> -- for_in
+    | "for" #(space+) Assignable #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- for_of
+    | "for" #(space+) "await" #(space+) Assignable #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- for_await_of
+    | "for" #(space+) identifier
+      (#(space+) "from" #(space+) Expression)? (#(space+) ("to" | "through") #(space+) Expression)?
+      (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- for_range
     | "break" #statementTerminator -- break
     | "continue" #statementTerminator -- continue
     | "return" #(space+) Expression #statementTerminator -- return
-    | "for" #(space+) identifier
-      (#(space+) "from" #(space+) Expression)? (#(space+) ("to" | "through") #(space+) Expression)?
-      (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- count
-    | "await" #(space+) (identifier "=")? Expression SingleStatementBlock<"do"> -- await_new_thread
+    | "await" #(space+) (Assignable "=")? Expression SingleStatementBlock<"do"> -- await_new_thread
     | "when" #(space+) Expression ("with" ArgumentList)? SingleStatementBlock<"do"> -- when_callback
     | "import" #(space+) string_non_interpolatable #statementTerminator -- empty_import
     | "import" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import
@@ -90,10 +87,6 @@ Storymatic {
   ImportableItemName
     = identifier #(space+) "as" #(space+) identifier -- identifier_rewrite
     | string_non_interpolatable #(space+) "as" #(space+) identifier -- string_rewrite
-    | identifier
-
-  ForLoopKey
-    = "(" identifier ")" -- parenthesized
     | identifier
 
   statementTerminator
