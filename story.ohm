@@ -172,7 +172,7 @@ Storymatic {
     | MemberAccessExp "(" ArgumentList ")" -- function_call
     | MemberAccessExp #(space+) "with" #(space+) ~"(" Expression -- function_call_worded
     | MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- function_call_worded_list
-    | MemberAccessExp #(space+) ~identifier ArgumentList -- function_call_implied
+    | MemberAccessExp #(space+) ~identifier NonEmptyArgumentList -- function_call_implied
     | ("a" | "an") #(space+) MemberAccessExp "(" ArgumentList ")" -- class_creation_args_symbolic
     | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) ~"(" Expression -- class_creation_args_worded
     | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- class_creation_args_worded_list
