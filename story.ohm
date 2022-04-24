@@ -324,7 +324,7 @@ Storymatic {
 
   reserved_block = ("if" | "elif" | "else" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as" | "extends" | "await") ~id_continue
+  reserved_inline = ("a" | "an" | "in" | "type" | "of" | "from" | "typeof" | "emits" | "as" | "extends" | "await" | "rescope") ~id_continue
   reserved_primitive = ("true" | "false" | "null") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
