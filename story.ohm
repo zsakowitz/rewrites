@@ -4,15 +4,15 @@ Storymatic {
   WrappedStatementBlock = "{" StatementBlock "}"
 
   StatementBlock
-    = WrappedStatementBlock -- wrapped_block
+    = WrappedStatementBlock
     | Statement* -- statements
 
   SingleStatementBlock<prefix>
-    = WrappedStatementBlock -- wrapped_block
+    = WrappedStatementBlock
     | prefix #(space+) Statement -- single_statement
 
   UnprefixedSingleStatementBlock
-    = WrappedStatementBlock -- wrapped_block
+    = WrappedStatementBlock
     | Statement -- single_statement
 
   IfStatement = ("if" | "unless") #(space+) Expression SingleStatementBlock<thenOrDo> ElseIfStatement* ElseStatement?
@@ -191,7 +191,7 @@ Storymatic {
     | MemberAccessExp "(" ArgumentList ")" -- function_call
     | MemberAccessExp #(space+) "with" #(space+) ~"(" Expression -- function_call_worded
     | MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- function_call_worded_list
-    | MemberAccessExp #(space+) ~identifier NonEmptyArgumentList -- function_call_implied
+    | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier NonEmptyArgumentList -- function_call_implied
     | ("a" | "an") #(space+) MemberAccessExp "(" ArgumentList ")" -- class_creation_args_symbolic
     | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) ~"(" Expression -- class_creation_args_worded
     | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- class_creation_args_worded_list
