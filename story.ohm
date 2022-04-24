@@ -152,7 +152,7 @@ Storymatic {
 
   FunctionBody
     = ":" Expression -- expression
-    | WrappedStatementBlock -- wrapped_block
+    | WrappedStatementBlock
 
   MethodName
     = identOrWord -- identifier
@@ -309,7 +309,7 @@ Storymatic {
 
   sign = ("+" | "-")?
   number = digit+
-  unitNumber = ~"0x" sign digit+ ("." digit+)? ("e" sign digit+)? identifierWord
+  unitNumber = ~"0x" sign digit+ ("." digit+)? ("e" sign digit+)? ~("n" ~id_continue) identifierWord
   decimalNumber = ~"0x" sign digit+ ("." digit+)? ("e" sign digit+)? ~char
   hexNumber = sign "0x" hexDigit+
   bigint = ~"0x" sign digit+ "n"
