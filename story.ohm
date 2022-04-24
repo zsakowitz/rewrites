@@ -346,5 +346,3 @@ Storymatic {
   block_comment = "/*" (~"*/" any)* "*/"
   line_comment = "//" (~("\r\n" | "\n") any)* &("\r\n" | "\n" | end)
 }
-
-// FOR AWAIT OF
