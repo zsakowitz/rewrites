@@ -73,8 +73,8 @@ Storymatic {
   ClassElement
     = Method<"@"> -- method
     | Method<"@@"> -- static_method
-    | property "=" Expression #statementTerminator -- property
-    | staticProperty "=" Expression #statementTerminator -- staticProperty
+    | "@" MethodName "=" Expression #statementTerminator -- property
+    | "@@" MethodName "=" Expression #statementTerminator -- static_property
 
   ImportableItemName
     = identifier #(space+) "as" #(space+) identifier -- identifier_rewrite
