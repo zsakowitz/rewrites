@@ -130,7 +130,7 @@ Storymatic {
     | property
     | undefined
     | boolean
-    | symbol
+    | Symbol
     | string
     | null
 
@@ -156,7 +156,7 @@ Storymatic {
 
   MethodName
     = identOrWord -- identifier
-    | symbol -- symbol
+    | Symbol -- Symbol
     | string_non_interpolatable -- string_key
     | string -- computed_string_key
     | "[" Expression "]" -- computed_key
@@ -164,7 +164,7 @@ Storymatic {
   ObjectEntry
     = identifier ~":" -- restructure
     | identOrWord ":" Expression -- key_value
-    | symbol ":" Expression -- symbol_value
+    | Symbol ":" Expression -- symbol_value
     | string_non_interpolatable ":" Expression -- string_key
     | string ":" Expression -- computed_string_key
     | digit+ ":" Expression -- numerical_key
@@ -175,8 +175,8 @@ Storymatic {
   MemberAccessExp
     = MemberAccessExp "." identOrWord -- member_access
     | MemberAccessExp "?." identOrWord -- optional_chaining_member_access
-    | MemberAccessExp "." symbol -- symbol_access
-    | MemberAccessExp "?." symbol -- optional_chaining_symbol_access
+    | MemberAccessExp "." Symbol -- symbol_access
+    | MemberAccessExp "?." Symbol -- optional_chaining_symbol_access
     | MemberAccessExp "[" MemberAccessExp "]" -- computed_member_access
     | MemberAccessExp "?." "[" MemberAccessExp "]" -- optional_chaining_computed_member_access
     | MemberAccessExp "(" ArgumentList ")" -- function_call
@@ -281,6 +281,7 @@ Storymatic {
 
   AssignableKeyWithRewrite
     = identifier ":" AssignableWithDefault -- standard_rewrite
+    | Symbol ":" AssignableWithDefault -- symbol_rewrite
     | string_non_interpolatable ":" AssignableWithDefault -- string_rewrite
     | string ":" AssignableWithDefault -- computed_string_rewrite
     | "[" Expression "]" ":" AssignableWithDefault -- computed_rewrite
@@ -300,7 +301,7 @@ Storymatic {
 
   AccessorAddon
     = "." identOrWord -- member_access
-    | "." symbol -- symbol_access
+    | "." Symbol -- symbol_access
     | "[" Expression "]" -- computed_member_access
 
   Accessor = AccessorBase AccessorAddon*
@@ -358,13 +359,16 @@ Storymatic {
   property = "@" spaces identOrWord
   staticProperty = "@@" spaces identOrWord
 
-  symbol
-    = "#" spaces identOrWord -- symbol_for
-    | "##" spaces identOrWord -- builtin_symbol
+  Symbol
+    = "#" SymbolKey -- symbol_for
+    | "##" SymbolKey -- builtin_symbol
+
+  SymbolKey
+    = identOrWord -- name
+    | string -- string
+    | "[" Expression "]" -- computed
 
   space += block_comment | line_comment
   block_comment = "/*" (~"*/" any)* "*/"
   line_comment = "//" (~("\r\n" | "\n") any)* &("\r\n" | "\n" | end)
 }
-
-// switch-case
