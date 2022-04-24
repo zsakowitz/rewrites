@@ -243,7 +243,7 @@ Storymatic {
     | EqualityExp ("!=" | #equalityExpWords<"isnt">) CompareExp -- not_equal_to
     | CompareExp
 
-  equalityExpWords<keyword> = #(space+ keyword ~(space+ ("a" | "an")) space+)
+  equalityExpWords<keyword> = #(space+ keyword ~(space+ ("a" ~"n" | "an" | "in")) space+)
 
   LogicalAndExp
     = LogicalAndExp #(spaces "&&" spaces | space+ "and" space+) EqualityExp -- logical_and
