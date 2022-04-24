@@ -54,7 +54,11 @@ function makeNode(
   strings: TemplateStringsArray,
   ...substitutions: (string | Node)[]
 ) {
-  let text = strings.map((e, i) => e + (substitutions[i] || "")).join("");
+  let text = strings[0];
+  text += strings
+    .slice(1)
+    .map((e, i) => substitutions[i] + e)
+    .join("");
   let nodes = substitutions.filter((e): e is Node => typeof e != "string");
   return createNode(text, ...nodes);
 }
@@ -105,10 +109,10 @@ function makeFunction({ identifier, isMethod, params, body }: Function): Node {
   let ident = identifier || `$${Math.random().toString().slice(2, 8)}`;
 
   if (isMethod) {
-    return createNode(`${async}${gen}${ident}(${params}) {
+    return createNode(`${async}${gen}${ident}(${params || ""}) {
   ${self}${scopedText}${indent(output)}}`);
   } else {
-    return createNode(`${async}function${gen} ${ident}(${params}) {
+    return createNode(`${async}function${gen} ${ident}(${params || ""}) {
   ${scopedText}${indent(output)}}`);
   }
 }
@@ -140,7 +144,12 @@ let actions: StorymaticActionDict<Node> = {
   boolean(node) {
     return createNode(node.sourceString);
   },
-  BlockFunction_no_params(_0, _1, identNode, _2, funcBody) {},
+  BlockFunction_no_params(_0, _1, identNode, funcBody) {
+    return makeNode`${makeFunction({
+      identifier: identNode.js(),
+      body: funcBody.js(),
+    })}\n`;
+  },
   char(node) {
     return createNode(node.sourceString);
   },
@@ -201,7 +210,8 @@ let actions: StorymaticActionDict<Node> = {
   },
   FunctionBody_expression(_, node) {
     let js = node.js();
-    return makeNode`{\n  ${indent(js)}}\n`;
+    let body = makeNode`return ${js};\n`;
+    return makeNode`{\n  ${indent(body)}}\n`;
   },
   identifier(node) {
     return node.js();
