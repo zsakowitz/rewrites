@@ -329,9 +329,11 @@ Storymatic {
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
   char = letter | "_"
-  word = char+ (digit+ char+)*
+  word = char+ (number char*)*
   identifierWord = ~reserved word
-  identifierWords = identifierWord (whitespace (identifierWord | digit+))*
+  identifierNumber = char* (number char*)*
+  identifierEl = identifierWord | identifierNumber
+  identifierWords = identifierWord (whitespace identifierEl)*
   identifier = identifierWords
   identOrWord = identifier | word
 
