@@ -327,8 +327,11 @@ Storymatic {
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
   reserved_inline = (("a" ~("n" | "s")) | "an" | "in" | ("type" ~"of") | "of" | "from" | "typeof" | "as" | "extends" | "await" | "rescope") ~id_continue
   reserved_primitive = ("true" | "false" | "null" | "undefined") ~id_continue
-  reserved_javascript = ("break" | "case" | "catch" | "class" | "const" | "continue" | "debugger" | "default" | "delete" | "do" | "else" | "enum" | "export" | "extends" | "false" | "finally" | "for" | "function" | "if" | "import" | "in" | "instanceof" | "new" | "null" | "return" | "super" | "switch" | "this" | "throw" | "true" | "try" | "typeof" | "var" | "void" | "while" | "with" | "implements" | "interface" | "let" | "package" | "private" | "protected" | "public" | "static" | "yield") ~id_continue
-  reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
+
+  // `super` and `this` are omitted because they are valid names and used often.
+  // We assume JavaScript environments will disallow them from being used in the wrong places.
+  reserved_javascript = ("break" | "case" | "catch" | "class" | "const" | "continue" | "debugger" | "default" | "delete" | "do" | "else" | "enum" | "export" | "extends" | "false" | "finally" | "for" | "function" | "if" | "import" | "in" ~"stanceof" | "instanceof" | "new" | "null" | "return" | /* "super" | */ "switch" | /* "this" | */ "throw" | "true" | "try" | "typeof" | "var" | "void" | "while" | "with" | "implements" | "interface" | "let" | "package" | "private" | "protected" | "public" | "static" | "yield") ~id_continue
+  reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive | reserved_javascript
 
   char = letter | "_"
   word = char+ (number char*)*
