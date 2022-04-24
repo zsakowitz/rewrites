@@ -131,6 +131,7 @@ Storymatic {
     | undefined
     | boolean
     | Symbol
+    | string_non_interpolatable
     | string
     | null
 
