@@ -1,19 +1,16 @@
 // To make this work, run `npm run build-ohm` in the console.
 
 import ohm from "ohm-js";
-import extras from "ohm-js/extras/index.js";
 import story, {
   StorymaticActionDict,
   StorymaticGrammar,
   StorymaticSemantics,
 } from "./story.ohm-bundle.js";
 
-globalThis.story = story;
-globalThis.match = (text: string) => story.match(text);
-globalThis.toAST = (text: string) => extras.toAST(story.match(text));
-globalThis.semantics = story.createSemantics();
-globalThis.js = (text: string) => semantics(story.match(text)).js();
-globalThis.cjs = (text: string) => console.log(js(text).output);
+let semantics = story.createSemantics();
+export function js(text: string) {
+  return semantics(story.match(text)).js();
+}
 
 interface Node {
   readonly output: string;
@@ -135,6 +132,10 @@ let actions: StorymaticActionDict<Node> = {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} - ${b}`;
   },
+  ArgumentList(node) {
+    let js = createNodes(...node.asIteration().children);
+    return createNode(js.map((e) => e.output).join(", "), ...js);
+  },
   AssignableWithDefault_with_default(assignable, _, expression) {
     return makeNode`${assignable.js()} = ${expression.js()}`;
   },
@@ -203,6 +204,15 @@ let actions: StorymaticActionDict<Node> = {
   },
   char(node) {
     return createNode(node.sourceString);
+  },
+  ClassCreationExp_class_creation_implied(_0, _1, target, _2, args) {
+    return makeNode`new ${target.js()}(${args.js()})`;
+  },
+  ClassCreationExp_class_creation_no_args(_0, _1, target) {
+    return makeNode`new ${target.js()}()`;
+  },
+  ClassCreationExp_class_creation_symbolic(_0, _1, target, _2, args, _3) {
+    return makeNode`new ${target.js()}(${args.js()})`;
   },
   CompareExp_greater_than(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
@@ -483,3 +493,5 @@ declare module "./story.ohm-bundle.js" {
     (match: ohm.MatchResult): StorymaticDict;
   }
 }
+
+export { story, semantics };
