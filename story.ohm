@@ -20,6 +20,15 @@ Storymatic {
   ElseStatement = "else" #(space+) UnprefixedSingleStatementBlock
   thenOrDo = "then" | "do"
 
+  SwitchStatement = "switch" #(space+) Expression "{" CaseStatement* DefaultStatement? "}"
+  CaseClause = "case" #(space+) Expression CaseTerminator
+  CaseStatement = CaseClause+ UnprefixedSingleStatementBlock
+  DefaultStatement = "default" UnprefixedSingleStatementBlock
+
+  CaseTerminator
+    = #colonTerminator -- terminator
+    | &"{" -- final
+
   TryStatement = "try" #(space+) UnprefixedSingleStatementBlock CatchStatement? FinallyStatement?
   CatchStatement = "catch" #(space+) (identifier #(space+) "of" #(space+))? UnprefixedSingleStatementBlock
   FinallyStatement = "finally" #(space+) UnprefixedSingleStatementBlock
@@ -34,6 +43,7 @@ Storymatic {
     | TryStatement
     | BlockFunction
     | ClassDeclaration
+    | SwitchStatement
     | "print" #(space+) Expression #statementTerminator -- print
     | "throw" #(space+) Expression #statementTerminator -- throw
     | "repeat" #(space+) Expression SingleStatementBlock<"do"> -- repeat
@@ -67,6 +77,7 @@ Storymatic {
     | "export" #(space+) ClassDeclaration -- export_class
     | "export" #(space+) VariableAssignment -- export_variable
     | "export" #(space+) BlockFunction -- export_function
+    | "rescope" #(space+) ListOf<identifier, ","> #statementTerminator -- rescope
 
   ClassDeclaration = "class" #(space+) identifier (#(space+) "extends" #(space+) Expression)? "{" ClassElement* "}"
 
@@ -94,6 +105,13 @@ Storymatic {
 
   expressionTerminator
     = spaces "," -- comma
+    | spaces &reserved_block -- keyword
+    | spaces &"}" -- block_end
+    | spaces end -- script_end
+    | lineTerminator -- newline
+
+  colonTerminator
+    = spaces ":" -- comma
     | spaces &reserved_block -- keyword
     | spaces &"}" -- block_end
     | spaces end -- script_end
@@ -253,20 +271,24 @@ Storymatic {
     | LogicalOrExp
 
   AssignmentExp
-    = ~("super" ~id_continue | "this" "=") AssignableOrAccessor "=" AssignmentExp -- assignment
-    | "rescope" #(space+) AssignableOrAccessor "=" AssignmentExp -- assignment_rescoped
+    = AssignableOrAccessor "=" AssignmentExp -- assignment
+    | "rescope" #(space+) identifier "=" AssignmentExp -- assignment_rescoped
     | "yield" #(space+) AssignmentExp -- yield
     | "yield" #(space+ "from" space+ | "*") AssignmentExp -- yield_from
     | TernaryExp
 
-  VariableAssignment = ~("super" ~id_continue | "this" "=") Assignable "=" Expression
+  SuperOrThis
+    = "super" ~id_continue -- super
+    | "this" "=" -- this
+
+  VariableAssignment = Assignable "=" Expression
 
   AssignableWithDefault
-    = ~("super" ~id_continue | "this" "=") Assignable "=" Expression -- with_default
+    = Assignable "=" Expression -- with_default
     | Assignable
 
   IdentifierWithDefault
-    = ~("super" ~id_continue | "this" "=") identifier "=" Expression -- with_default
+    = identifier "=" Expression -- with_default
     | identifier
 
   AssignableKeyWithRewrite
@@ -276,20 +298,24 @@ Storymatic {
     | "[" Expression "]" ":" AssignableWithDefault -- computed_rewrite
     | IdentifierWithDefault
 
-  AssignableOrAccessor = Assignable | Accessor
+  AssignableOrAccessor = Accessor | Assignable ~("." | "[")
 
   Assignable
     = identifier -- identifier
     | "[" listOf<AssignableWithDefault, expressionTerminator> ("," "..." Assignable)? ","? "]" -- array
     | "{" listOf<AssignableKeyWithRewrite, expressionTerminator> ("," "..." Assignable)? ","? "}" -- object
 
-  Accessor
+  AccessorBase
     = identifier
     | property
     | staticProperty
-    | Accessor "." identOrWord -- member_access
-    | Accessor "." symbol -- symbol_access
-    | Accessor "[" Expression "]" -- computed_member_access
+
+  AccessorAddon
+    = "." identOrWord -- member_access
+    | "." symbol -- symbol_access
+    | "[" Expression "]" -- computed_member_access
+
+  Accessor = AccessorBase AccessorAddon*
 
   whitespace = (~("\r\n" | "\n") space)+
 
