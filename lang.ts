@@ -19,10 +19,15 @@ interface Node {
   readonly scopedVariables: string[];
   readonly isAsync: boolean;
   readonly isGenerator: boolean;
+  toString(): string;
 }
 
 interface PartialNode extends Partial<Node> {
   output: string;
+}
+
+function toString(this: Node) {
+  return this.output;
 }
 
 function createNode(options: string | PartialNode, ...parents: Node[]): Node {
@@ -33,8 +38,11 @@ function createNode(options: string | PartialNode, ...parents: Node[]): Node {
     parents.push({ output: options, scopedVariables: [] } as any);
   }
 
+  let output = typeof options == "string" ? options : options.output;
+
   return {
-    output: typeof options == "string" ? options : options.output,
+    output,
+    toString,
     isAsync: parents.some((e) => e.isAsync),
     isGenerator: parents.some((e) => e.isGenerator),
     scopedVariables: parents.flatMap((e) => e.scopedVariables),
@@ -57,22 +65,115 @@ let actions: StorymaticActionDict<Node> = {
 
   AddExp_addition(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a.output} + ${b.output}`, a, b);
+    return createNode(`${a} + ${b}`, a, b);
   },
   AddExp_subtraction(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a.output} - ${b.output}`, a, b);
+    return createNode(`${a} - ${b}`, a, b);
   },
-  decimalNumber(a, b, c, d, e, f, g) {
+  char(node) {
+    return createNode(node.sourceString);
+  },
+  CompareExp_greater_than(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} > ${b}`, a, b);
+  },
+  CompareExp_greater_than_equal(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} >= ${b}`, a, b);
+  },
+  CompareExp_instanceof(nodeA, _0, _1, _2, _3, _4, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} instanceof ${b}`, a, b);
+  },
+  CompareExp_less_than(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} < ${b}`, a, b);
+  },
+  CompareExp_less_than_equal(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} <= ${b}`, a, b);
+  },
+  CompareExp_not_instanceof(nodeA, _0, _1, _2, _3, _4, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`!(${a} instanceof ${b})`, a, b);
+  },
+  CompareExp_not_within(nodeA, _0, _1, _2, _3, _4, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`!(${a} in Object(${b}))`, a, b);
+  },
+  CompareExp_within(nodeA, _0, _1, _2, _3, _4, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} in Object(${b})`, a, b);
+  },
+  decimalNumber(_0, _1, _2, _3, _4, _5, _6) {
     return createNode(this.sourceString);
+  },
+  ExpExp_exponentiate(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} ** ${b}`, a, b);
+  },
+  identifier(node) {
+    return node.js();
+  },
+  identifierEl(node) {
+    return node.js();
+  },
+  identifierNumber(_0, _1, _2) {
+    return createNode(this.sourceString);
+  },
+  identifierWord(node) {
+    return createNode(node.sourceString);
+  },
+  identifierWords(firstWord, _, otherWords) {
+    let output = firstWord.sourceString;
+
+    for (let word of otherWords.children) {
+      let text = word.sourceString;
+      output += text[0].toUpperCase() + text.slice(1);
+    }
+
+    return createNode(`$${output}`);
   },
   LiteralExp_parenthesized(_0, node, _1) {
     let js = node.js();
-    return createNode(`(${js.output})`, js);
+    return createNode(`(${js})`, js);
+  },
+  MulExp_division(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} / ${b}`, a, b);
+  },
+  MulExp_modulus(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} % ${b}`, a, b);
+  },
+  MulExp_multiplication(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} * ${b}`, a, b);
   },
   NotExp_await(_0, _1, node) {
     let js = node.js();
-    return createNode({ output: `await ${js.output}`, isAsync: true }, js);
+    return createNode({ output: `await ${js}`, isAsync: true }, js);
+  },
+  NotExp_logical_not_symbolic(_0, node) {
+    let js = node.js();
+    return createNode(`!${js}`, js);
+  },
+  NotExp_logical_not_worded(_0, _1, node) {
+    let js = node.js();
+    return createNode(`!${js}`, js);
+  },
+  NotExp_typeof(_0, _1, _2, node) {
+    let js = node.js();
+    return createNode(`typeof ${js}`, js);
+  },
+  NotExp_unary_minus(_0, node) {
+    let js = node.js();
+    return createNode(`-${js}`, js);
+  },
+  NotExp_unary_plus(_0, node) {
+    let js = node.js();
+    return createNode(`+${js}`, js);
   },
   number(node) {
     return createNode(node.sourceString);
@@ -86,10 +187,19 @@ let actions: StorymaticActionDict<Node> = {
 
     if (js.isAsync) output += `\n\nexport {};`;
 
+    if (js.isGenerator)
+      output = `throw new SyntaxError('Yield statements may not appear in the top level of a script.');`;
+
     return createNode(output);
   },
   Statement_expression(node, _) {
     return node.js();
+  },
+  whitespace(_) {
+    return createNode(" ");
+  },
+  word(_0, _1, _2) {
+    return createNode(this.sourceString);
   },
 };
 
