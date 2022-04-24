@@ -115,10 +115,11 @@ Storymatic {
     | hexNumber
     | bigint
     | identifier
-    | property
     | staticProperty
-    | symbol
+    | property
+    | undefined
     | boolean
+    | symbol
     | string
     | null
 
@@ -249,7 +250,6 @@ Storymatic {
 
   TernaryExp
     = LogicalOrExp "?" TernaryExp ":" TernaryExp -- symbolic
-    | "if" #(space+) LogicalOrExp #(space+) "then" #(space+) TernaryExp #(space+) "else" #(space+) TernaryExp -- worded
     | LogicalOrExp
 
   AssignmentExp
@@ -302,6 +302,7 @@ Storymatic {
 
   boolean = "true" | "false"
   null = "null"
+  undefined = "undefined"
 
   id_continue = letter | digit
 
@@ -325,7 +326,8 @@ Storymatic {
   reserved_block = ("if" | "elif" | ("else" ~"if") | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
   reserved_inline = (("a" ~("n" | "s")) | "an" | "in" | ("type" ~"of") | "of" | "from" | "typeof" | "as" | "extends" | "await" | "rescope") ~id_continue
-  reserved_primitive = ("true" | "false" | "null") ~id_continue
+  reserved_primitive = ("true" | "false" | "null" | "undefined") ~id_continue
+  reserved_javascript = ("true" | "false" | "")
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
   char = letter | "_"
