@@ -323,11 +323,11 @@ Storymatic {
   string = string_interpolatable<"\""> | string_interpolatable<"'">
   string_non_interpolatable = string_full<"\""> | string_full<"'">
 
-  reserved_block = ("if" | "elif" | ("else" ~"if") | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally") ~id_continue
+  reserved_block = ("if" | "elif" | ("else" ~"if") | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally" | "switch" | "case") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
   reserved_inline = (("a" ~("n" | "s")) | "an" | "in" | ("type" ~"of") | "of" | "from" | "typeof" | "as" | "extends" | "await" | "rescope") ~id_continue
   reserved_primitive = ("true" | "false" | "null" | "undefined") ~id_continue
-  reserved_javascript = ("true" | "false" | "")
+  reserved_javascript = ("break" | "case" | "catch" | "class" | "const" | "continue" | "debugger" | "default" | "delete" | "do" | "else" | "enum" | "export" | "extends" | "false" | "finally" | "for" | "function" | "if" | "import" | "in" | "instanceof" | "new" | "null" | "return" | "super" | "switch" | "this" | "throw" | "true" | "try" | "typeof" | "var" | "void" | "while" | "with" | "implements" | "interface" | "let" | "package" | "private" | "protected" | "public" | "static" | "yield") ~id_continue
   reserved = reserved_block | reserved_operators | reserved_inline | reserved_primitive
 
   char = letter | "_"
@@ -349,3 +349,7 @@ Storymatic {
   block_comment = "/*" (~"*/" any)* "*/"
   line_comment = "//" (~("\r\n" | "\n") any)* &("\r\n" | "\n" | end)
 }
+
+// switch-case
+// class extends
+// super()
