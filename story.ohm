@@ -38,12 +38,14 @@ Storymatic {
     | "repeat" #(space+) Expression SingleStatementBlock<"do"> -- repeat
     | "while" #(space+) Expression SingleStatementBlock<"do"> -- while
     | "until" #(space+) Expression SingleStatementBlock<"do"> -- until
-    | "do" #(space+) UnprefixedSingleStatementBlock #(space+) "while" #(space+) Expression -- do_while
-    | "do" #(space+) UnprefixedSingleStatementBlock #(space+) "until" #(space+) Expression -- do_until
+    | "do" #(space+) UnprefixedSingleStatementBlock #(space+) "while" #(space+) Expression #statementTerminator -- do_while
+    | "do" #(space+) UnprefixedSingleStatementBlock #(space+) "until" #(space+) Expression #statementTerminator -- do_until
     | "for" #(space+) ForLoopKey #(space+) "in" #(space+) Expression SingleStatementBlock<"do"> -- for_key
     | "for" #(space+) "(" identifier? "," identifier? ")" #(space+) "in" #(space+) Expression SingleStatementBlock<"do"> -- for_key_value
     | "for" #(space+) ForLoopKey #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- iterate_over
     | "for" #(space+) "(" identifier? "," identifier? ")" #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- iterate_indices
+    | "for" #(space+) "await" #(space+) ForLoopKey #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- await_iterate_over
+    | "for" #(space+) "await" #(space+) "(" identifier? "," identifier? ")" #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- await_iterate_indices
     | "break" #statementTerminator -- break
     | "continue" #statementTerminator -- continue
     | "return" #(space+) Expression #statementTerminator -- return
@@ -97,7 +99,7 @@ Storymatic {
     | spaces end -- script_end
     | lineTerminator -- newline
 
-  lineTerminator = whitespace? ("\r" | "\n")+ spaces ~lineContinuer
+  lineTerminator = whitespace? ("\r\n" | "\n")+ spaces ~lineContinuer
   lineContinuer
     = "+" | "-" | "*" | "/" | "^" | "%" | "==" | "!=" | "[" | "(" | "." | "?." | "?" | ":" | "<" | ">" | "&&" | "||" | "??" | reserved_operators
 
@@ -252,8 +254,9 @@ Storymatic {
 
   AssignmentExp
     = AssignableOrAccessor "=" AssignmentExp -- assignment
+    | "rescope" #(space+) AssignableOrAccessor "=" AssignmentExp -- assignment_rescoped
     | "yield" #(space+) AssignmentExp -- yield
-    | "yield" #(space+ "from" | "*") #(space+) AssignmentExp -- yield_from
+    | "yield" #(space+ "from" space+ | "*") AssignmentExp -- yield_from
     | TernaryExp
 
   VariableAssignment = Assignable "=" Expression
@@ -288,7 +291,7 @@ Storymatic {
     | Accessor "." symbol -- symbol_access
     | Accessor "[" Expression "]" -- computed_member_access
 
-  whitespace = (~("\n" | "\r") space)+
+  whitespace = (~("\r\n" | "\n") space)+
 
   sign = ("+" | "-")?
   number = digit+
@@ -338,4 +341,10 @@ Storymatic {
   symbol
     = "#" spaces identOrWord -- symbol_for
     | "##" spaces identOrWord -- builtin_symbol
+
+  space += block_comment | line_comment
+  block_comment = "/*" (~"*/" any)* "*/"
+  line_comment = "//" (~("\r\n" | "\n") any)* &("\r\n" | "\n" | end)
 }
+
+// FOR AWAIT OF
