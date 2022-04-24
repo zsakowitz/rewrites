@@ -13,6 +13,7 @@ globalThis.match = (text: string) => story.match(text);
 globalThis.toAST = (text: string) => extras.toAST(story.match(text));
 globalThis.semantics = story.createSemantics();
 globalThis.js = (text: string) => semantics(story.match(text)).js();
+globalThis.cjs = (text: string) => console.log(js(text).output);
 
 interface Node {
   readonly output: string;
@@ -45,12 +46,59 @@ function createNode(options: string | PartialNode, ...parents: Node[]): Node {
     toString,
     isAsync: parents.some((e) => e.isAsync),
     isGenerator: parents.some((e) => e.isGenerator),
-    scopedVariables: parents.flatMap((e) => e.scopedVariables),
+    scopedVariables: parents.flatMap((e) => e.scopedVariables || []),
   };
 }
 
 function createNodes(...nodes: ohm.Node[]) {
   return nodes.map((e) => e.js());
+}
+
+function indent(text: string) {
+  let split = text.split("\n");
+  let indented = split
+    .slice(1)
+    .map((e) => e && "  " + e)
+    .join("\n");
+
+  return split[0] + "\n" + indented;
+}
+
+interface Function {
+  identifier?: Node;
+  isMethod?: "class" | "object";
+  params?: Node;
+  body: Node;
+}
+
+function makeFunction({ identifier, isMethod, params, body }: Function): Node {
+  // Remove wrapping block of functions
+  let output = body.output
+    .split("\n")
+    .slice(1, -1)
+    .map((e) => e.slice(2))
+    .join("\n");
+
+  console.log(body.scopedVariables, params?.scopedVariables);
+
+  let vars = new Set(body.scopedVariables);
+  for (let name of params?.scopedVariables || []) vars.delete(name);
+  let scoped = [...vars].sort();
+  let scopedText = scoped.length ? `let ${scoped.join(", ")};\n  ` : "";
+
+  let async = body.isAsync ? "async " : "";
+  let gen = body.isGenerator ? "*" : "";
+  let self = isMethod == "class" ? "let $self = this;\n  " : "";
+
+  let ident = identifier || `$${Math.random().toString().slice(2, 8)}`;
+
+  if (isMethod) {
+    return createNode(`${async}${gen}${ident}(${params}) {
+  ${self}${scopedText}${indent(output)}}`);
+  } else {
+    return createNode(`${async}function${gen} ${ident}(${params}) {
+  ${scopedText}${indent(output)}}`);
+  }
 }
 
 let actions: StorymaticActionDict<Node> = {
@@ -109,14 +157,23 @@ let actions: StorymaticActionDict<Node> = {
   decimalNumber(_0, _1, _2, _3, _4, _5, _6) {
     return createNode(this.sourceString);
   },
+  equalityExpWords(_0, node, _1) {
+    if (node.sourceString == "isnt") return createNode("!=");
+    return createNode("==");
+  },
+  EqualityExp_equal_to(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} === ${b}`, a, b);
+  },
+  EqualityExp_not_equal_to(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} !== ${b}`, a, b);
+  },
   ExpExp_exponentiate(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
     return createNode(`${a} ** ${b}`, a, b);
   },
   identifier(node) {
-    return node.js();
-  },
-  identifierEl(node) {
     return node.js();
   },
   identifierNumber(_0, _1, _2) {
@@ -133,11 +190,23 @@ let actions: StorymaticActionDict<Node> = {
       output += text[0].toUpperCase() + text.slice(1);
     }
 
-    return createNode(`$${output}`);
+    return createNode(`${output}`);
   },
   LiteralExp_parenthesized(_0, node, _1) {
     let js = node.js();
     return createNode(`(${js})`, js);
+  },
+  LogicalAndExp_logical_and(nodeA, _0, _1, _2, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} && ${b}`, a, b);
+  },
+  LogicalOrExp_logical_nullish_coalescing(nodeA, _, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} ?? ${b}`, a, b);
+  },
+  LogicalOrExp_logical_or(nodeA, _0, _1, _2, nodeB) {
+    let [a, b] = createNodes(nodeA, nodeB);
+    return createNode(`${a} || ${b}`, a, b);
   },
   MulExp_division(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
@@ -185,21 +254,77 @@ let actions: StorymaticActionDict<Node> = {
     if (js.scopedVariables.length > 1)
       output = `let ${js.scopedVariables.join(", ")};\n` + output;
 
-    if (js.isAsync) output += `\n\nexport {};`;
+    if (js.isAsync) output += `\nexport {};`;
 
     if (js.isGenerator)
       output = `throw new SyntaxError('Yield statements may not appear in the top level of a script.');`;
 
-    return createNode(output);
+    return createNode(`"use strict";\n${output}`);
+  },
+  SingleStatementBlock_single_statement(_0, _1, statementNode) {
+    let js = statementNode.js();
+    return createNode(
+      `{
+  ${indent(js.output)}}\n`,
+      js
+    );
+  },
+  StatementBlock_statements(node) {
+    let nodes = createNodes(...node.children);
+    return createNode(nodes.map((e) => e.output).join("\n"), ...nodes);
+  },
+  Statement_await_new_thread(_0, _1, identNode, _2, exprNode, statementNode) {
+    let [ident, expr] = createNodes(identNode, exprNode);
+    let statement = statementNode.js();
+    let func: Function = {
+      body: statement,
+      params: ident,
+    };
+
+    return createNode(
+      `(async function ($expr) {
+  ${indent(`(${makeFunction(func)})(await $expr);\n`)}})(${expr});`,
+      ident,
+      expr,
+      statement
+    );
   },
   Statement_expression(node, _) {
-    return node.js();
+    let js = node.js();
+    return createNode(js.output + ";", js);
+  },
+  TernaryExp_symbolic(conditionNode, _0, trueNode, _1, falseNode) {
+    let condition = conditionNode.js();
+    let [ifTrue, ifFalse] = createNodes(trueNode, falseNode);
+
+    return createNode(
+      `${condition} ? ${ifTrue} : ${ifFalse}`,
+      condition,
+      ifTrue,
+      ifFalse
+    );
+  },
+  UnprefixedSingleStatementBlock_single_statement(statementNode) {
+    let js = statementNode.js();
+    return createNode(
+      `{
+  ${indent(js.output)}}\n`,
+      js
+    );
   },
   whitespace(_) {
     return createNode(" ");
   },
   word(_0, _1, _2) {
     return createNode(this.sourceString);
+  },
+  WrappedStatementBlock(_0, node, _1) {
+    let js = node.js();
+    return createNode(
+      `{
+  ${indent(js.output)}}\n`,
+      js
+    );
   },
 };
 
@@ -213,12 +338,13 @@ declare global {
   var match: (text: string) => ohm.MatchResult;
   var semantics: StorymaticSemantics;
   var js: (text: string) => SMNode;
+  var cjs: (text: string) => void;
 }
 
 declare module "ohm-js" {
   export interface Node {
     js(): SMNode;
-    asIteration(): Node;
+    asIteration(): ohm.IterationNode;
   }
 }
 
