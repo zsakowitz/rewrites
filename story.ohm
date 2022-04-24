@@ -173,6 +173,12 @@ Storymatic {
     | "..." Expression -- spread_operator
     | Method<""> -- object_method
 
+  ClassCreationExp
+    = "new" #(space+) ClassCreationExp "(" ArgumentList ")" -- class_creation_symbolic
+    | "new" #(space+) ClassCreationExp ~"(" #((~("\r\n" | "\n") space)+) ~identifier ArgumentList -- class_creation_implied
+    | "new" #(space+) ClassCreationExp -- class_creation_no_args
+    | LiteralExp
+
   MemberAccessExp
     = MemberAccessExp "." identOrWord -- member_access
     | MemberAccessExp "?." identOrWord -- optional_chaining_member_access
@@ -182,9 +188,7 @@ Storymatic {
     | MemberAccessExp "?." "[" MemberAccessExp "]" -- optional_chaining_computed_member_access
     | MemberAccessExp "(" ArgumentList ")" -- function_call
     | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier ~StatementBlock NonEmptyArgumentList -- function_call_implied
-    | "new" #(space+) MemberAccessExp "(" ArgumentList ")" -- class_creation
-    | "new" #(space+) MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier NonEmptyArgumentList -- class_creation_implied
-    | LiteralExp
+    | ClassCreationExp
 
   ArgumentList = ListOf<Argument, ",">
   NonEmptyArgumentList = NonemptyListOf<Argument, ",">
@@ -200,10 +204,6 @@ Storymatic {
     = AssignableWithDefault
     | "..." Assignable -- rest_operator
 
-  ClassCreationExp
-    = "new" #(space+) ClassCreationExp ~"(" -- class_creation
-    | MemberAccessExp
-
   NotExp
     = "!" NotExp -- logical_not_symbolic
     | "not" #(space+) NotExp -- logical_not_worded
@@ -211,7 +211,7 @@ Storymatic {
     | "-" ~digit NotExp -- unary_minus
     | "type" "of" #(space+) NotExp -- typeof
     | "await" #(space+) NotExp -- await
-    | ClassCreationExp
+    | MemberAccessExp
 
   ExpExp
     = ExpExp "^" NotExp -- exponentiate
