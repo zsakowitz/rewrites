@@ -189,12 +189,9 @@ Storymatic {
     | MemberAccessExp "[" MemberAccessExp "]" -- computed_member_access
     | MemberAccessExp "?." "[" MemberAccessExp "]" -- optional_chaining_computed_member_access
     | MemberAccessExp "(" ArgumentList ")" -- function_call
-    | MemberAccessExp #(space+) "with" #(space+) ~"(" Expression -- function_call_worded
-    | MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- function_call_worded_list
     | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier NonEmptyArgumentList -- function_call_implied
-    | ("a" | "an") #(space+) MemberAccessExp "(" ArgumentList ")" -- class_creation_args_symbolic
-    | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) ~"(" Expression -- class_creation_args_worded
-    | ("a" | "an") #(space+) MemberAccessExp #(space+) "with" #(space+) "(" ArgumentList ")" -- class_creation_args_worded_list
+    | ("a" | "an") #(space+) MemberAccessExp "(" ArgumentList ")" -- class_creation
+    | ("a" | "an") #(space+) MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier NonEmptyArgumentList -- class_creation_implied
     | LiteralExp
 
   ArgumentList = ListOf<Argument, ",">
@@ -212,7 +209,7 @@ Storymatic {
     | "..." Assignable -- rest_operator
 
   ClassCreationExp
-    = ("a" | "an") #(space+) ClassCreationExp ~("with" | "(") -- class_creation
+    = ("a" | "an") #(space+) ClassCreationExp ~"(" -- class_creation
     | MemberAccessExp
 
   NotExp
