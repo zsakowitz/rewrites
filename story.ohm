@@ -139,22 +139,20 @@ Storymatic {
     | "..." Expression -- spread_operator
 
   InlineFunction
-    = "fn" #(space+) ":"? Expression -- expression
-    | "fn" #(space+) ":"? WrappedStatementBlock -- wrapped_block
-    | "fn" #(space+) "of" #(space+) ParameterList ":" Expression -- params_and_expression
-    | "fn" #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
+    = "fn" #(space+) FunctionBody -- no_params
+    | "fn" #(space+) "of" #(space+) ParameterList FunctionBody -- with_params
 
   BlockFunction
-    = "fn" #(space+) identifier #(space+) ":" Expression -- expression
-    | "fn" #(space+) identifier #(space+) ":"? WrappedStatementBlock -- wrapped_block
-    | "fn" #(space+) identifier #(space+) "of" #(space+) ParameterList ":" Expression -- params_and_expression
-    | "fn" #(space+) identifier #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
+    = "fn" #(space+) identifier #(space+) FunctionBody -- no_params
+    | "fn" #(space+) identifier #(space+) "of" #(space+) ParameterList FunctionBody -- with_params
 
   Method<prefix>
-    = "fn" #(space+) prefix MethodName #(space+) ":" Expression -- expression
-    | "fn" #(space+) prefix MethodName #(space+) ":"? WrappedStatementBlock -- wrapped_block
-    | "fn" #(space+) prefix MethodName #(space+) "of" #(space+) ParameterList ":" Expression -- params_and_expression
-    | "fn" #(space+) prefix MethodName #(space+) "of" #(space+) ParameterList ":"? WrappedStatementBlock -- params_and_wrapped_block
+    = "fn" #(space+) prefix MethodName #(space+) FunctionBody -- no_params
+    | "fn" #(space+) prefix MethodName #(space+) "of" #(space+) ParameterList FunctionBody -- with_params
+
+  FunctionBody
+    = ":" Expression -- expression
+    | WrappedStatementBlock -- wrapped_block
 
   MethodName
     = identOrWord -- identifier
@@ -182,7 +180,7 @@ Storymatic {
     | MemberAccessExp "[" MemberAccessExp "]" -- computed_member_access
     | MemberAccessExp "?." "[" MemberAccessExp "]" -- optional_chaining_computed_member_access
     | MemberAccessExp "(" ArgumentList ")" -- function_call
-    | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier NonEmptyArgumentList -- function_call_implied
+    | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier ~StatementBlock NonEmptyArgumentList -- function_call_implied
     | ("a" | "an") #(space+) MemberAccessExp "(" ArgumentList ")" -- class_creation
     | ("a" | "an") #(space+) MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier NonEmptyArgumentList -- class_creation_implied
     | LiteralExp
