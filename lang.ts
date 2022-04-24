@@ -135,6 +135,41 @@ let actions: StorymaticActionDict<Node> = {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} - ${b}`;
   },
+  AssignableWithDefault_with_default(assignable, _, expression) {
+    return makeNode`${assignable.js()} = ${expression.js()}`;
+  },
+  AssignableKeyWithRewrite_computed_rewrite(_0, expr, _1, _2, assignable) {
+    return makeNode`[${expr.js()}]: ${assignable.js()}`;
+  },
+  AssignableKeyWithRewrite_computed_string_rewrite(string, _, assignable) {
+    return makeNode`[${string.js()}]: ${assignable.js()}`;
+  },
+  AssignableKeyWithRewrite_standard_rewrite(ident, _, assignable) {
+    return makeNode`${ident.js()}: ${assignable.js()}`;
+  },
+  AssignableKeyWithRewrite_string_rewrite(string, _, assignable) {
+    return makeNode`${string.js()}: ${assignable.js()}`;
+  },
+  AssignableKeyWithRewrite_symbol_rewrite(symbol, _, assignable) {
+    return makeNode`[${symbol.js()}]: ${assignable.js()}`;
+  },
+  Assignable_array(_0, varNodes, _1, _2, spreadNode, _3, _4) {
+    let nodes = createNodes(...varNodes.asIteration().children);
+    if (spreadNode.sourceString) nodes.push(makeNode`...${spreadNode.js()}`);
+    return createNode(`[${nodes.join(", ")}]`, ...nodes);
+  },
+  Assignable_identifier(identNode) {
+    let js = identNode.js();
+    return createNode({ output: js.output, scopedVariables: [js.output] }, js);
+  },
+  Assignable_object(_0, varNodes, _1, _2, spreadNode, _3, _4) {
+    let nodes = createNodes(...varNodes.asIteration().children);
+    if (spreadNode.sourceString) nodes.push(makeNode`...${spreadNode.js()}`);
+    return createNode(`{ ${nodes.join(", ")} }`, ...nodes);
+  },
+  AssignmentExp_assignment(assignable, _, expression) {
+    return makeNode`${assignable.js()} = ${expression.js()}`;
+  },
   bigint(_0, _1, _2) {
     return createNode(this.sourceString);
   },
@@ -148,6 +183,22 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`${makeFunction({
       identifier: identNode.js(),
       body: funcBody.js(),
+    })}\n`;
+  },
+  BlockFunction_with_params(
+    _0,
+    _1,
+    identNode,
+    _2,
+    _3,
+    _4,
+    paramListNode,
+    funcBody
+  ) {
+    return makeNode`${makeFunction({
+      identifier: identNode.js(),
+      body: funcBody.js(),
+      params: paramListNode.js(),
     })}\n`;
   },
   char(node) {
@@ -287,6 +338,13 @@ let actions: StorymaticActionDict<Node> = {
   number(node) {
     return createNode(node.sourceString);
   },
+  ParameterList(node, _) {
+    let nodes = createNodes(...node.asIteration().children);
+    return createNode(nodes.map((e) => e.output).join(", "), ...nodes);
+  },
+  Parameter_rest_operator(_, node) {
+    return makeNode`...${node.js()}`;
+  },
   Script(node) {
     let js = node.js();
     let output = js.output;
@@ -328,6 +386,21 @@ let actions: StorymaticActionDict<Node> = {
   Statement_expression(node, _) {
     let js = node.js();
     return createNode(js.output + ";", js);
+  },
+  SymbolKey_computed(_0, node, _1) {
+    return node.js();
+  },
+  SymbolKey_string(node) {
+    return node.js();
+  },
+  SymbolKey_name(node) {
+    return makeNode`"${node.js()}"`;
+  },
+  Symbol_builtin_symbol(_, node) {
+    return makeNode`Symbol[${node.js()}]`;
+  },
+  Symbol_symbol_for(_, node) {
+    return makeNode`Symbol.for(${node.js()})`;
   },
   TernaryExp_symbolic(conditionNode, _0, trueNode, _1, falseNode) {
     let condition = conditionNode.js();

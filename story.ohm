@@ -280,7 +280,7 @@ Storymatic {
     | identifier
 
   AssignableKeyWithRewrite
-    = identifier ":" AssignableWithDefault -- standard_rewrite
+    = identOrWord ":" AssignableWithDefault -- standard_rewrite
     | Symbol ":" AssignableWithDefault -- symbol_rewrite
     | string_non_interpolatable ":" AssignableWithDefault -- string_rewrite
     | string ":" AssignableWithDefault -- computed_string_rewrite
