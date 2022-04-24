@@ -50,6 +50,15 @@ function createNode(options: string | PartialNode, ...parents: Node[]): Node {
   };
 }
 
+function makeNode(
+  strings: TemplateStringsArray,
+  ...substitutions: (string | Node)[]
+) {
+  let text = strings.map((e, i) => e + (substitutions[i] || "")).join("");
+  let nodes = substitutions.filter((e): e is Node => typeof e != "string");
+  return createNode(text, ...nodes);
+}
+
 function createNodes(...nodes: ohm.Node[]) {
   return nodes.map((e) => e.js());
 }
@@ -78,8 +87,6 @@ function makeFunction({ identifier, isMethod, params, body }: Function): Node {
     .slice(1, -1)
     .map((e) => e.slice(2))
     .join("\n");
-
-  console.log(body.scopedVariables, params?.scopedVariables);
 
   let vars = new Set(body.scopedVariables);
   for (let name of params?.scopedVariables || []) vars.delete(name);
@@ -113,46 +120,56 @@ let actions: StorymaticActionDict<Node> = {
 
   AddExp_addition(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} + ${b}`, a, b);
+    return makeNode`${a} + ${b}`;
   },
   AddExp_subtraction(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} - ${b}`, a, b);
+    return makeNode`${a} - ${b}`;
   },
+  bigint(_0, _1, _2) {
+    return createNode(this.sourceString);
+  },
+  block_comment(_0, _1, _2) {
+    return createNode("");
+  },
+  boolean(node) {
+    return createNode(node.sourceString);
+  },
+  BlockFunction_no_params(_0, _1, identNode, _2, funcBody) {},
   char(node) {
     return createNode(node.sourceString);
   },
   CompareExp_greater_than(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} > ${b}`, a, b);
+    return makeNode`${a} > ${b}`;
   },
   CompareExp_greater_than_equal(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} >= ${b}`, a, b);
+    return makeNode`${a} >= ${b}`;
   },
   CompareExp_instanceof(nodeA, _0, _1, _2, _3, _4, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} instanceof ${b}`, a, b);
+    return makeNode`${a} instanceof ${b}`;
   },
   CompareExp_less_than(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} < ${b}`, a, b);
+    return makeNode`${a} < ${b}`;
   },
   CompareExp_less_than_equal(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} <= ${b}`, a, b);
+    return makeNode`${a} <= ${b}`;
   },
   CompareExp_not_instanceof(nodeA, _0, _1, _2, _3, _4, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`!(${a} instanceof ${b})`, a, b);
+    return makeNode`!(${a} instanceof ${b})`;
   },
   CompareExp_not_within(nodeA, _0, _1, _2, _3, _4, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`!(${a} in Object(${b}))`, a, b);
+    return makeNode`!(${a} in Object(${b}))`;
   },
   CompareExp_within(nodeA, _0, _1, _2, _3, _4, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} in Object(${b})`, a, b);
+    return makeNode`${a} in Object(${b})`;
   },
   decimalNumber(_0, _1, _2, _3, _4, _5, _6) {
     return createNode(this.sourceString);
@@ -163,15 +180,19 @@ let actions: StorymaticActionDict<Node> = {
   },
   EqualityExp_equal_to(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} === ${b}`, a, b);
+    return makeNode`${a} === ${b}`;
   },
   EqualityExp_not_equal_to(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} !== ${b}`, a, b);
+    return makeNode`${a} !== ${b}`;
   },
   ExpExp_exponentiate(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} ** ${b}`, a, b);
+    return makeNode`${a} ** ${b}`;
+  },
+  FinallyStatement(_0, _1, node) {
+    let js = node.js();
+    return makeNode`finally ${js}`;
   },
   identifier(node) {
     return node.js();
@@ -190,35 +211,35 @@ let actions: StorymaticActionDict<Node> = {
       output += text[0].toUpperCase() + text.slice(1);
     }
 
-    return createNode(`${output}`);
+    return makeNode`${output}`;
   },
   LiteralExp_parenthesized(_0, node, _1) {
     let js = node.js();
-    return createNode(`(${js})`, js);
+    return makeNode`(${js})`;
   },
   LogicalAndExp_logical_and(nodeA, _0, _1, _2, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} && ${b}`, a, b);
+    return makeNode`${a} && ${b}`;
   },
   LogicalOrExp_logical_nullish_coalescing(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} ?? ${b}`, a, b);
+    return makeNode`${a} ?? ${b}`;
   },
   LogicalOrExp_logical_or(nodeA, _0, _1, _2, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} || ${b}`, a, b);
+    return makeNode`${a} || ${b}`;
   },
   MulExp_division(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} / ${b}`, a, b);
+    return makeNode`${a} / ${b}`;
   },
   MulExp_modulus(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} % ${b}`, a, b);
+    return makeNode`${a} % ${b}`;
   },
   MulExp_multiplication(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
-    return createNode(`${a} * ${b}`, a, b);
+    return makeNode`${a} * ${b}`;
   },
   NotExp_await(_0, _1, node) {
     let js = node.js();
@@ -226,23 +247,23 @@ let actions: StorymaticActionDict<Node> = {
   },
   NotExp_logical_not_symbolic(_0, node) {
     let js = node.js();
-    return createNode(`!${js}`, js);
+    return makeNode`!${js}`;
   },
   NotExp_logical_not_worded(_0, _1, node) {
     let js = node.js();
-    return createNode(`!${js}`, js);
+    return makeNode`!${js}`;
   },
   NotExp_typeof(_0, _1, _2, node) {
     let js = node.js();
-    return createNode(`typeof ${js}`, js);
+    return makeNode`typeof ${js}`;
   },
   NotExp_unary_minus(_0, node) {
     let js = node.js();
-    return createNode(`-${js}`, js);
+    return makeNode`-${js}`;
   },
   NotExp_unary_plus(_0, node) {
     let js = node.js();
-    return createNode(`+${js}`, js);
+    return makeNode`+${js}`;
   },
   number(node) {
     return createNode(node.sourceString);
@@ -281,12 +302,12 @@ let actions: StorymaticActionDict<Node> = {
       params: ident,
     };
 
+    let funcNode = makeFunction(func);
+
     return createNode(
       `(async function ($expr) {
-  ${indent(`(${makeFunction(func)})(await $expr);\n`)}})(${expr});`,
-      ident,
-      expr,
-      statement
+  ${indent(`(${funcNode})(await $expr);\n`)}})(${expr});`,
+      funcNode
     );
   },
   Statement_expression(node, _) {
@@ -297,12 +318,7 @@ let actions: StorymaticActionDict<Node> = {
     let condition = conditionNode.js();
     let [ifTrue, ifFalse] = createNodes(trueNode, falseNode);
 
-    return createNode(
-      `${condition} ? ${ifTrue} : ${ifFalse}`,
-      condition,
-      ifTrue,
-      ifFalse
-    );
+    return makeNode`${condition} ? ${ifTrue} : ${ifFalse}`;
   },
   UnprefixedSingleStatementBlock_single_statement(statementNode) {
     let js = statementNode.js();
