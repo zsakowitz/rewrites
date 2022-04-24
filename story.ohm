@@ -370,5 +370,5 @@ Storymatic {
 
   space += block_comment | line_comment
   block_comment = "/*" (~"*/" any)* "*/"
-  line_comment = "//" (~("\r\n" | "\n") any)* &("\r\n" | "\n" | end)
+  line_comment = "//" (~("\r" | "\n") any)* &("\r" | "\n" | end)
 }
