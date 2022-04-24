@@ -387,6 +387,36 @@ let actions: StorymaticActionDict<Node> = {
     let js = node.js();
     return createNode(js.output + ";", js);
   },
+  string_bit_character(char) {
+    if (char.sourceString == "$") return createNode("\\$");
+    if (char.sourceString == "\n") return createNode("\\n");
+    if (char.sourceString == "\r") return createNode("\\r");
+    return createNode(char.sourceString);
+  },
+  string_bit_escape(_0, _1) {
+    return createNode(this.sourceString);
+  },
+  string_bit_escape_sequence(_0, _1) {
+    return createNode(this.sourceString);
+  },
+  string_bit_hex_sequence(_0, _1, _2) {
+    return createNode(this.sourceString);
+  },
+  string_bit_unicode_code_point_sequence(_0, _1, _2) {
+    return createNode(this.sourceString);
+  },
+  string_bit_unicode_sequence(_0, _1, _2, _3, _4) {
+    return createNode(this.sourceString);
+  },
+  string_full(delim, bits, _) {
+    return createNode(`${delim.sourceString}${bits.js()}${delim.sourceString}`);
+  },
+  string_interpolatable(_0, bits, _1) {
+    return createNode(`\`${bits.js()}\``);
+  },
+  string_interpolatable_bit_interpolated(_0, expr, _1) {
+    return createNode(`\${${expr.js()}}`);
+  },
   SymbolKey_computed(_0, node, _1) {
     return node.js();
   },
