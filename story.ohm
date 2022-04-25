@@ -126,8 +126,8 @@ Storymatic {
     | hexNumber
     | bigint
     | identifier
-    | staticProperty
-    | property
+    | StaticProperty
+    | Property
     | undefined
     | boolean
     | Symbol
@@ -297,8 +297,8 @@ Storymatic {
 
   AccessorBase
     = identifier
-    | property
-    | staticProperty
+    | Property
+    | StaticProperty
 
   AccessorAddon
     = "." identOrWord -- member_access
@@ -357,8 +357,13 @@ Storymatic {
   identifier = identifierWords
   identOrWord = identifier | word
 
-  property = "@" spaces identOrWord
-  staticProperty = "@@" spaces identOrWord
+  Property
+    = "@" identOrWord -- identifier
+    | "@" symbol -- symbol
+
+  StaticProperty
+    = "@@" identOrWord -- identifier
+    | "@@" symbol -- symbol
 
   Symbol
     = "#" SymbolKey -- symbol_for
