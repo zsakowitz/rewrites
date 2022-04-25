@@ -17,8 +17,8 @@ interface Node {
   readonly scopedVariables: string[];
   readonly isAsync: boolean;
   readonly isGenerator: boolean;
-  toString(): string;
-  trim(): Node;
+  toString(this: Node): string;
+  trim(this: Node): Node;
 }
 
 interface PartialNode extends Partial<Node> {
@@ -131,7 +131,7 @@ function joinWithComma(ohm: ohm.Node[]) {
   return createNode(output, ...js);
 }
 
-function iterToCommaList(node: ohm.NonterminalNode) {
+function sepByComma(node: ohm.NonterminalNode) {
   return joinWithComma(node.asIteration().children);
 }
 
@@ -333,9 +333,6 @@ let actions: StorymaticActionDict<Node> = {
     let body = makeNode`return ${js};\n`;
     return makeNode`{\n  ${indent(body)}}\n`;
   },
-  IdentifierWithDefault_with_default(ident, _, expr) {
-    return makeNode`${ident.js()} = ${expr.js()}`;
-  },
   IfStatement(ifUnless, _0, conditionNode, block, elseifs, elseBlock) {
     let condition: Node;
     if (ifUnless.sourceString == "unless") {
@@ -397,6 +394,16 @@ let actions: StorymaticActionDict<Node> = {
   },
   NonAssignableAccessor(base, addons) {
     return makeNode`${base.js()}${addons.js()}`;
+  },
+  NonCapturingAssignable_array(_0, varNodes, _1, _2, spreadNode, _3, _4) {
+    let nodes = createNodes(...varNodes.asIteration().children);
+    if (spreadNode.sourceString) nodes.push(makeNode`...${spreadNode.js()}`);
+    return createNode(`[${nodes.join(", ")}]`, ...nodes);
+  },
+  NonCapturingAssignable_object(_0, varNodes, _1, _2, spreadNode, _3, _4) {
+    let nodes = createNodes(...varNodes.asIteration().children);
+    if (spreadNode.sourceString) nodes.push(makeNode`...${spreadNode.js()}`);
+    return createNode(`{ ${nodes.join(", ")} }`, ...nodes);
   },
   NotExp_await(_0, _1, node) {
     let js = node.js();
@@ -504,13 +511,79 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`import ${filename.js()};`;
   },
   Statement_export(_0, _1, exports, _2) {
-    return makeNode`export { ${iterToCommaList(exports)} };`;
+    return makeNode`export { ${sepByComma(exports)} };`;
   },
   Statement_export_all_from(_0, _1, _2, _3, filename, _4) {
     return makeNode`export * from ${filename.js()};`;
   },
   Statement_export_class(_0, _1, block) {
     return makeNode`export ${block.js()}`;
+  },
+  Statement_export_default(_0, _1, expr, _2) {
+    return makeNode`export default ${expr.js()};`;
+  },
+  Statement_export_from(_0, _1, exports, _2, _3, _4, filename, _5) {
+    return makeNode`export { ${sepByComma(exports)} } from ${filename.js()};`;
+  },
+  Statement_export_function(_0, _1, block) {
+    return makeNode`export ${block.js()}`;
+  },
+  Statement_export_variable(_0, _1, expr) {
+    return makeNode`export let ${expr.js()};`;
+  },
+  Statement_for_await_of(_0, _1, _2, _3, assignable, _4, _5, _6, expr, block) {
+    let node = makeNode`for await (let ${assignable.js()} of ${expr.js()}) ${block.js()}`;
+    return { ...node, isAsync: true };
+  },
+  Statement_for_in(_0, _1, assignable, _2, _3, _4, expression, block) {
+    return makeNode`for (let ${assignable.js()} in ${expression.js()}) ${block.js()}`;
+  },
+  Statement_for_of(_0, _1, assignable, _2, _3, _4, expression, block) {
+    return makeNode`for (let ${assignable.js()} of ${expression.js()}) ${block.js()}`;
+  },
+  Statement_for_range(
+    _0,
+    _1,
+    identNode,
+    _2,
+    _3,
+    _4,
+    fromNode,
+    _5,
+    down,
+    _6,
+    toThrough,
+    _7,
+    toNode,
+    _8,
+    _9,
+    _10,
+    stepNode,
+    block
+  ) {
+    let ident = identNode.js();
+    let isDown = down.sourceString.startsWith(" down");
+
+    let to: Node | string = toNode.js();
+    if (!to.output) to = isDown ? "-Infinity" : "Infinity";
+
+    let from: Node | string = fromNode.js();
+    if (!from.output) from = "0";
+
+    let step: Node | string = stepNode.js();
+    if (!step.output) step = "1";
+
+    let condition = toThrough.sourceString.startsWith(" through")
+      ? isDown
+        ? makeNode`${ident.output} >= ${to}`
+        : makeNode`${ident} <= ${to}`
+      : isDown
+      ? makeNode`${ident.output} > ${to}`
+      : makeNode`${ident.output} < ${to}`;
+
+    let dir = isDown ? "-" : "+";
+
+    return makeNode`for (let ${ident} = ${from}; ${condition}; ${ident} ${dir}= ${step}) ${block.js()}`;
   },
   Statement_print(_0, _1, expr, _2) {
     return makeNode`console.log(${expr.js()});`;
@@ -585,6 +658,9 @@ let actions: StorymaticActionDict<Node> = {
     let js = statementNode.js();
     return makeNode`{\n  ${indent(js)}}\n`;
   },
+  VariableAssignment(assignable, _, expr) {
+    return makeNode`${assignable.js()} = ${expr.js()}`;
+  },
   whitespace(_) {
     return createNode(" ");
   },
@@ -600,15 +676,6 @@ let actions: StorymaticActionDict<Node> = {
 semantics.addOperation<Node>("js", actions);
 
 type SMNode = Node;
-
-declare global {
-  var story: StorymaticGrammar;
-  var toAST: (text: string) => {};
-  var match: (text: string) => ohm.MatchResult;
-  var semantics: StorymaticSemantics;
-  var js: (text: string) => SMNode;
-  var cjs: (text: string) => void;
-}
 
 declare module "ohm-js" {
   export interface Node {
