@@ -130,6 +130,7 @@ Storymatic {
     = "(" Expression ")" -- parenthesized
     | "[" listOf<ArrayEntry, expressionTerminator> ","? "]" -- array
     | "{" listOf<ObjectEntry, expressionTerminator> ","? "}" -- object
+    | InlineClassDeclaration
     | InlineFunction
     | decimalNumber
     | unitNumber
@@ -144,6 +145,8 @@ Storymatic {
     | string_non_interpolatable
     | string
     | null
+
+  InlineClassDeclaration = "class" (#(space+) "extends" #(space+) Expression)? "{" ClassElement* "}"
 
   ArrayEntry
     = Expression
