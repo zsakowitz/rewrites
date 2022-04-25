@@ -284,7 +284,7 @@ Storymatic {
 
   VariableAssignment = NonCapturingAssignable "=" Expression
 
-  AssignableOrAccessor = NonAssignableAccessor | Assignable ~("." | "[")
+  AssignableOrAccessor = NonAssignableAccessor | ~"@" Assignable ~("." | "[")
 
   AssignableWithDefault<AssignableType>
     = AssignableType "=" Expression -- with_default
@@ -317,13 +317,18 @@ Storymatic {
     | Property
     | StaticProperty
 
+  AccessorPropertyBase = Property | StaticProperty
+
   AccessorAddon
     = "." identOrWord -- member_access
     | "." Symbol -- symbol_access
     | "[" Expression "]" -- computed_member_access
 
   Accessor = AccessorBase AccessorAddon*
-  NonAssignableAccessor = AccessorBase AccessorAddon+
+
+  NonAssignableAccessor
+    = ~"@" AccessorBase AccessorAddon+
+    | AccessorPropertyBase AccessorAddon*
 
   whitespace = (~("\r\n" | "\n") space)+
 
