@@ -39,7 +39,7 @@ Storymatic {
     | "elif" -- elif
 
   Statement
-    = Expression #statementTerminator -- expression
+    = ~("{" "}") Expression #statementTerminator -- expression
     | IfStatement
     | TryStatement
     | BlockFunction
