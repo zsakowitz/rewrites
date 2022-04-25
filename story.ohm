@@ -198,7 +198,7 @@ Storymatic {
     | MemberAccessExp "?." "[" MemberAccessExp "]" -- optional_chaining_computed_member_access
     | MemberAccessExp "(" ArgumentList ")" -- function_call
     | MemberAccessExp "?." "(" ArgumentList ")" -- optional_chaining_function_call
-    | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier ~StatementBlock NonEmptyArgumentList -- function_call_implied
+    | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier NonEmptyArgumentList -- function_call_implied
     | ClassCreationExp
 
   ArgumentList = ListOf<Argument, ",">
