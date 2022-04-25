@@ -75,6 +75,7 @@ Storymatic {
     | "export" #(space+) VariableAssignment -- export_variable
     | "export" #(space+) BlockFunction -- export_function
     | "rescope" #(space+) ListOf<identifier, ","> #statementTerminator -- rescope
+    | "rescope" #(space+) VariableAssignment #statementTerminator -- rescope_assign
 
   ClassDeclaration = "class" #(space+) identifier (#(space+) "extends" #(space+) Expression)? "{" ClassElement* "}"
 
@@ -261,7 +262,6 @@ Storymatic {
 
   AssignmentExp
     = AssignableOrAccessor "=" AssignmentExp -- assignment
-    | "rescope" #(space+) identifier "=" AssignmentExp -- assignment_rescoped
     | "yield" #(space+) AssignmentExp -- yield
     | "yield" #(space+ "from" space+ | "*") AssignmentExp -- yield_from
     | TernaryExp
@@ -288,7 +288,7 @@ Storymatic {
     | "[" Expression "]" ":" AssignableWithDefault -- computed_rewrite
     | IdentifierWithDefault
 
-  AssignableOrAccessor = Accessor | Assignable ~("." | "[")
+  AssignableOrAccessor = NonAssignableAccessor | Assignable ~("." | "[")
 
   Assignable
     = identifier -- identifier
@@ -306,6 +306,7 @@ Storymatic {
     | "[" Expression "]" -- computed_member_access
 
   Accessor = AccessorBase AccessorAddon*
+  NonAssignableAccessor = AccessorBase AccessorAddon+
 
   whitespace = (~("\r\n" | "\n") space)+
 
@@ -341,7 +342,7 @@ Storymatic {
 
   reserved_block = ("if" | "elif" | ("else" ~"if") | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally" | "switch" | "case") ~id_continue
   reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("new" | "in" | ("type" ~"of") | "of" | "from" | "typeof" | "as" | "extends" | "await" | "rescope") ~id_continue
+  reserved_inline = ("new" | "in" | ("type" ~"of") | "of" | "from" | "typeof" | "as" | "extends" | "await") ~id_continue
   reserved_primitive = ("true" | "false" | "null" | "undefined") ~id_continue
 
   // `super` and `this` are omitted because they are valid names and used often.
