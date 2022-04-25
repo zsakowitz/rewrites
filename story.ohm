@@ -35,6 +35,7 @@ Storymatic {
 
   ElseIfKeyword
     = "else" "if" -- else_if
+    | "else" #(space+) "unless" -- else_unless
     | "elif" -- elif
 
   Statement
