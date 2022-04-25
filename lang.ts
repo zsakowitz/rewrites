@@ -83,9 +83,16 @@ function indent(item: string | Node): string | Node {
 
 interface Function {
   identifier?: Node;
-  isMethod?: "class" | "object";
+  type?: FunctionType;
   params?: Node;
   body: Node;
+}
+
+const enum FunctionType {
+  Function,
+  ClassMethod,
+  ClassStaticMethod,
+  ObjectMethod,
 }
 
 function makeScopedVars(scoped: string[], exclude?: string[]) {
@@ -95,7 +102,9 @@ function makeScopedVars(scoped: string[], exclude?: string[]) {
   return sorted.length ? `let ${sorted.join(", ")};\n` : "";
 }
 
-function makeFunction({ identifier, isMethod, params, body }: Function): Node {
+function makeFunction({ identifier, type, params, body }: Function): Node {
+  if (!type) type = FunctionType.Function;
+
   // Remove wrapping block of functions
   let output = body.output
     .split("\n")
@@ -108,16 +117,21 @@ function makeFunction({ identifier, isMethod, params, body }: Function): Node {
 
   let async = body.isAsync ? "async " : "";
   let gen = body.isGenerator ? "*" : "";
-  let self = isMethod == "class" ? "let $self = this;\n  " : "";
+
+  let self = "";
+  if (type == FunctionType.ClassMethod) self = "let $self = this;\n  ";
+  else if (type == FunctionType.ClassStaticMethod)
+    self =
+      "let $self = Object.create(null, { constructor: { get: () => this } });\n  ";
 
   let ident = identifier || "";
 
-  if (isMethod) {
-    return createNode(`${async}${gen}${ident}(${params || ""}) {
-  ${self}${scoped}${indent(output)}}`);
-  } else {
+  if (type == FunctionType.Function) {
     return createNode(`${async}function${gen} ${ident}(${params || ""}) {
   ${scoped}${indent(output)}}`);
+  } else {
+    return createNode(`${async}${gen}${ident}(${params || ""}) {
+  ${self}${scoped}${indent(output)}}`);
   }
 }
 
@@ -253,7 +267,8 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`${sepBy(clauses, "\n")} ${block.js()}`;
   },
   CatchStatement(_0, _1, ident, _2, _3, _4, block) {
-    return makeNode`catch (${ident.js() || "$"}) ${block.js()}`;
+    let js = ident.js();
+    return makeNode`catch (${js.output ? js : "$"}) ${block.js()}`;
   },
   ClassCreationExp_class_creation_implied(_0, _1, target, _2, args) {
     return makeNode`new ${target.js()}(${args.js()})`;
@@ -263,6 +278,15 @@ let actions: StorymaticActionDict<Node> = {
   },
   ClassCreationExp_class_creation_symbolic(_0, _1, target, _2, args, _3) {
     return makeNode`new ${target.js()}(${args.js()})`;
+  },
+  ClassDeclaration(_0, _1, ident, _2, _3, _4, extendsNode, _5, elements, _6) {
+    let _extends = extendsNode.sourceString
+      ? makeNode` extends ${extendsNode.js()}`
+      : "";
+
+    let body = indent(sepBy(elements, "\n"));
+
+    return makeNode`class ${ident.js()}${_extends} {\n  ${body}\n}`;
   },
   CompareExp_greater_than(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
@@ -573,7 +597,11 @@ let actions: StorymaticActionDict<Node> = {
   Statement_expression(node, _) {
     let js = node.js();
 
-    if (js.output.startsWith("{") || js.output.startsWith("function")) {
+    if (
+      js.output.startsWith("{") ||
+      js.output.startsWith("function") ||
+      js.output.startsWith("class")
+    ) {
       return makeNode`(${js});`;
     } else return makeNode`${js};`;
   },
@@ -772,6 +800,21 @@ let actions: StorymaticActionDict<Node> = {
     let [ifTrue, ifFalse] = createNodes(trueNode, falseNode);
 
     return makeNode`${condition} ? ${ifTrue} : ${ifFalse}`;
+  },
+  TryStatement(_0, _1, block, catchNode, finallyNode) {
+    let _try = block.js().trim();
+    let _catch = catchNode.js().trim();
+    let _finally = finallyNode.js().trim();
+
+    if (_catch.output && _finally.output) {
+      return makeNode`try ${_try} ${_catch} ${_finally}\n`;
+    } else if (_catch.output) {
+      return makeNode`try ${_try} ${_catch}\n`;
+    } else if (_finally.output) {
+      return makeNode`try ${_try} ${_finally}\n`;
+    } else {
+      return makeNode`try ${_try} catch ($) {}\n`;
+    }
   },
   UnprefixedSingleStatementBlock_single_statement(statementNode) {
     let js = statementNode.js();
