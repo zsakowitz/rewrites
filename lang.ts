@@ -1,11 +1,7 @@
 // To make this work, run `npm run build-ohm` in the console.
 
 import ohm from "ohm-js";
-import story, {
-  StorymaticActionDict,
-  StorymaticGrammar,
-  StorymaticSemantics,
-} from "./story.ohm-bundle.js";
+import story, { StorymaticActionDict } from "./story.ohm-bundle.js";
 
 let semantics = story.createSemantics();
 export function js(text: string) {
@@ -415,6 +411,21 @@ let actions: StorymaticActionDict<Node> = {
   },
   MemberAccessExp_symbol_access(target, _, symbol) {
     return makeNode`${target.js()}[${symbol.js()}]`;
+  },
+  MethodName_Symbol(symbol) {
+    return makeNode`[${symbol.js()}]`;
+  },
+  MethodName_computed_key(_0, expr, _1) {
+    return makeNode`[${expr.js()}]`;
+  },
+  MethodName_computed_string_key(string) {
+    return makeNode`[${string.js()}]`;
+  },
+  MethodName_identifier(ident) {
+    return ident.js();
+  },
+  MethodName_string_key(string) {
+    return string.js();
   },
   MulExp_division(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
