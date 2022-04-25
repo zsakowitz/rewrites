@@ -18,6 +18,7 @@ interface Node {
   readonly isAsync: boolean;
   readonly isGenerator: boolean;
   toString(): string;
+  trim(): Node;
 }
 
 interface PartialNode extends Partial<Node> {
@@ -26,6 +27,10 @@ interface PartialNode extends Partial<Node> {
 
 function toString(this: Node) {
   return this.output;
+}
+
+function trim(this: Node) {
+  return createNode(this.output.trim(), this);
 }
 
 function createNode(options: string | PartialNode, ...parents: Node[]): Node {
@@ -39,6 +44,7 @@ function createNode(options: string | PartialNode, ...parents: Node[]): Node {
   let output = typeof options == "string" ? options : options.output;
 
   return {
+    trim,
     output,
     toString,
     isAsync: parents.some((e) => e.isAsync),
@@ -108,7 +114,7 @@ function makeFunction({ identifier, isMethod, params, body }: Function): Node {
   let gen = body.isGenerator ? "*" : "";
   let self = isMethod == "class" ? "let $self = this;\n  " : "";
 
-  let ident = identifier || `$${Math.random().toString().slice(2, 8)}`;
+  let ident = identifier || "";
 
   if (isMethod) {
     return createNode(`${async}${gen}${ident}(${params || ""}) {
@@ -117,6 +123,16 @@ function makeFunction({ identifier, isMethod, params, body }: Function): Node {
     return createNode(`${async}function${gen} ${ident}(${params || ""}) {
   ${scoped}${indent(output)}}`);
   }
+}
+
+function joinWithComma(ohm: ohm.Node[]) {
+  let js = ohm.map((e) => e.js());
+  let output = js.map((e) => e.output).join(", ");
+  return createNode(output, ...js);
+}
+
+function iterToCommaList(node: ohm.NonterminalNode) {
+  return joinWithComma(node.asIteration().children);
 }
 
 let actions: StorymaticActionDict<Node> = {
@@ -273,6 +289,26 @@ let actions: StorymaticActionDict<Node> = {
     if (node.sourceString == "isnt") return createNode("!=");
     return createNode("==");
   },
+  ElseIfKeyword_elif(_) {
+    return createNode("else if");
+  },
+  ElseIfKeyword_else_if(_0, _1) {
+    return createNode("else if");
+  },
+  ElseIfKeyword_else_unless(_0, _1, _2) {
+    return createNode("else unless");
+  },
+  ElseIfStatement(ifUnless, _, conditionNode, block) {
+    let condition: Node;
+    if (ifUnless.sourceString == "unless") {
+      condition = makeNode`!(${conditionNode.js()})`;
+    } else condition = conditionNode.js();
+
+    return makeNode` else if (${condition}) ${block.js().trim()}`;
+  },
+  ElseStatement(_0, _1, node) {
+    return makeNode` else ${node.js().trim()}`;
+  },
   EqualityExp_equal_to(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} === ${b}`;
@@ -285,6 +321,9 @@ let actions: StorymaticActionDict<Node> = {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} ** ${b}`;
   },
+  ExportableItemName_rewrite(first, _0, _1, _2, second) {
+    return makeNode`${first.js()} as ${second.js()}`;
+  },
   FinallyStatement(_0, _1, node) {
     let js = node.js();
     return makeNode`finally ${js}`;
@@ -293,6 +332,21 @@ let actions: StorymaticActionDict<Node> = {
     let js = node.js();
     let body = makeNode`return ${js};\n`;
     return makeNode`{\n  ${indent(body)}}\n`;
+  },
+  IdentifierWithDefault_with_default(ident, _, expr) {
+    return makeNode`${ident.js()} = ${expr.js()}`;
+  },
+  IfStatement(ifUnless, _0, conditionNode, block, elseifs, elseBlock) {
+    let condition: Node;
+    if (ifUnless.sourceString == "unless") {
+      condition = makeNode`!(${conditionNode.js()})`;
+    } else condition = conditionNode.js();
+
+    let node = block.js().trim();
+    return makeNode`if (${condition}) ${node}${elseifs.js()}${elseBlock.js()}\n`;
+  },
+  ImportableItemName_rewrite(first, _0, _1, _2, second) {
+    return makeNode`${first.js()} as ${second.js()}`;
   },
   identifier(node) {
     return node.js();
@@ -426,7 +480,46 @@ let actions: StorymaticActionDict<Node> = {
   },
   Statement_expression(node, _) {
     let js = node.js();
-    return createNode(js.output + ";", js);
+
+    if (js.output.startsWith("{") || js.output.startsWith("function")) {
+      return makeNode`(${js});`;
+    } else return makeNode`${js};`;
+  },
+  Statement_break(_0, _1) {
+    return createNode("break;");
+  },
+  Statement_continue(_0, _1) {
+    return createNode("continue;");
+  },
+  Statement_do_until(_0, _1, block, _2, _3, _4, expr, _5) {
+    return makeNode`do ${block.js()} while (!(${expr.js()}))`;
+  },
+  Statement_do_while(_0, _1, block, _2, _3, _4, expr, _5) {
+    return makeNode`do ${block.js()} while (${expr.js()})`;
+  },
+  Statement_empty_export(_0, _1) {
+    return makeNode`export {};`;
+  },
+  Statement_empty_import(_0, _1, filename, _2) {
+    return makeNode`import ${filename.js()};`;
+  },
+  Statement_export(_0, _1, exports, _2) {
+    return makeNode`export { ${iterToCommaList(exports)} };`;
+  },
+  Statement_export_all_from(_0, _1, _2, _3, filename, _4) {
+    return makeNode`export * from ${filename.js()};`;
+  },
+  Statement_export_class(_0, _1, block) {
+    return makeNode`export ${block.js()}`;
+  },
+  Statement_print(_0, _1, expr, _2) {
+    return makeNode`console.log(${expr.js()});`;
+  },
+  Statement_repeat(_0, _1, expr, block) {
+    return makeNode`for (let $ = 0; $ < ${expr.js()}; $++) ${block.js()}`;
+  },
+  Statement_throw(_0, _1, expr, _2) {
+    return makeNode`throw ${expr.js()};`;
   },
   StaticProperty_computed(_0, _1, node, _2) {
     return makeNode`self.constructor[${node.js()}]`;
