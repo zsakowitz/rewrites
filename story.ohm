@@ -206,7 +206,7 @@ Storymatic {
   NonEmptyParameterList = NonemptyListOf<Parameter, ","> ","?
 
   Parameter
-    = AssignableWithDefault
+    = AssignableWithDefault<Assignable>
     | "..." Assignable -- rest_operator
 
   NotExp
@@ -276,28 +276,33 @@ Storymatic {
 
   VariableAssignment = Assignable "=" Expression
 
-  AssignableWithDefault
-    = Assignable "=" Expression -- with_default
-    | Assignable
-
-  IdentifierWithDefault
-    = identifier "=" Expression -- with_default
-    | identifier
-
-  AssignableKeyWithRewrite
-    = identOrWord ":" AssignableWithDefault -- standard_rewrite
-    | Symbol ":" AssignableWithDefault -- symbol_rewrite
-    | string_non_interpolatable ":" AssignableWithDefault -- string_rewrite
-    | string ":" AssignableWithDefault -- computed_string_rewrite
-    | "[" Expression "]" ":" AssignableWithDefault -- computed_rewrite
-    | IdentifierWithDefault
-
   AssignableOrAccessor = NonAssignableAccessor | Assignable ~("." | "[")
+
+  AssignableWithDefault<AssignableType>
+    = AssignableType "=" Expression -- with_default
+    | AssignableType
+
+  AssignableKeyWithRewrite<AssignableType>
+    = identOrWord ":" AssignableWithDefault<AssignableType> -- standard_rewrite
+    | Symbol ":" AssignableWithDefault<AssignableType> -- symbol_rewrite
+    | string_non_interpolatable ":" AssignableWithDefault<AssignableType> -- string_rewrite
+    | string ":" AssignableWithDefault<AssignableType> -- computed_string_rewrite
+    | "[" Expression "]" ":" AssignableWithDefault<AssignableType> -- computed_rewrite
+    | AssignableWithDefault<AssignableType>
 
   Assignable
     = identifier -- identifier
-    | "[" listOf<AssignableWithDefault, expressionTerminator> ("," "..." Assignable)? ","? "]" -- array
-    | "{" listOf<AssignableKeyWithRewrite, expressionTerminator> ("," "..." Assignable)? ","? "}" -- object
+    | "[" listOf<AssignableWithDefault<Assignable>, expressionTerminator>
+      ("," "..." Assignable)? ","? "]" -- array
+    | "{" listOf<AssignableKeyWithRewrite<Assignable>, expressionTerminator>
+      ("," "..." Assignable)? ","? "}" -- object
+
+  NonCapturingAssignable
+    = identifier
+    | "[" listOf<AssignableWithDefault<NonCapturingAssignable>, expressionTerminator>
+      ("," "..." NonCapturingAssignable)? ","? "]" -- array
+    | "{" listOf<AssignableKeyWithRewrite<NonCapturingAssignable>, expressionTerminator>
+      ("," "..." NonCapturingAssignable)? ","? "}" -- object
 
   AccessorBase
     = identifier
