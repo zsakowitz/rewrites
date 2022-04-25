@@ -364,6 +364,9 @@ let actions: StorymaticActionDict<Node> = {
 
     return makeNode`${output}`;
   },
+  importLocation_filename(filename, _) {
+    return makeNode`"${filename.sourceString}"`;
+  },
   LiteralExp_parenthesized(_0, node, _1) {
     let js = node.js();
     return makeNode`(${js})`;
@@ -379,6 +382,39 @@ let actions: StorymaticActionDict<Node> = {
   LogicalOrExp_logical_or(nodeA, _0, _1, _2, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} || ${b}`;
+  },
+  MemberAccessExp_computed_member_access(target, _0, expr, _1) {
+    return makeNode`${target.js()}[${expr.js()}]`;
+  },
+  MemberAccessExp_function_call(target, _0, args, _1) {
+    return makeNode`${target.js()}(${args.js()})`;
+  },
+  MemberAccessExp_function_call_implied(target, _0, args) {
+    return makeNode`${target.js()}(${args.js()})`;
+  },
+  MemberAccessExp_member_access(target, _0, ident) {
+    return makeNode`${target.js()}.${ident.js()}`;
+  },
+  MemberAccessExp_optional_chaining_computed_member_access(
+    target,
+    _0,
+    _1,
+    expr,
+    _2
+  ) {
+    return makeNode`${target.js()}?.[${expr.js()}]`;
+  },
+  MemberAccessExp_optional_chaining_function_call(target, _0, _1, args, _2) {
+    return makeNode`${target.js()}?.(${args.js()})`;
+  },
+  MemberAccessExp_optional_chaining_member_access(target, _, ident) {
+    return makeNode`${target.js()}?.${ident.js()}`;
+  },
+  MemberAccessExp_optional_chaining_symbol_access(target, _, symbol) {
+    return makeNode`${target.js()}?.[${symbol.js()}]`;
+  },
+  MemberAccessExp_symbol_access(target, _, symbol) {
+    return makeNode`${target.js()}[${symbol.js()}]`;
   },
   MulExp_division(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
@@ -585,14 +621,48 @@ let actions: StorymaticActionDict<Node> = {
 
     return makeNode`for (let ${ident} = ${from}; ${condition}; ${ident} ${dir}= ${step}) ${block.js()}`;
   },
+  Statement_import(_0, _1, imports, _2, _3, _4, filename, _5) {
+    return makeNode`import { ${sepByComma(imports)} } from ${filename.js()};`;
+  },
+  Statement_import_all(_0, _1, _2, _3, ident, _4, _5, _6, filename, _7) {
+    return makeNode`import * as ${ident.js()} from ${filename.js()};`;
+  },
+  Statement_import_default(_0, _1, ident, _2, _3, _4, filename, _5) {
+    return makeNode`import ${ident.js()} from ${filename.js()};`;
+  },
   Statement_print(_0, _1, expr, _2) {
     return makeNode`console.log(${expr.js()});`;
   },
   Statement_repeat(_0, _1, expr, block) {
     return makeNode`for (let $ = 0; $ < ${expr.js()}; $++) ${block.js()}`;
   },
+  Statement_rescope(_0, _1, idents, _2) {
+    return makeNode`let ${sepByComma(idents)};`;
+  },
+  Statement_rescope_assign(_0, _1, declaration, _2) {
+    return makeNode`let ${declaration.js()};`;
+  },
+  Statement_return(_0, _1, expr, _2) {
+    return makeNode`return ${expr.js()}`;
+  },
   Statement_throw(_0, _1, expr, _2) {
     return makeNode`throw ${expr.js()};`;
+  },
+  Statement_until(_0, _1, expr, block) {
+    return makeNode`while (!(${expr.js()})) ${block.js()}`;
+  },
+  Statement_when_callback(_0, _1, targetNode, _2, _3, _4, params, block) {
+    let js = { ...targetNode.js() };
+    let func = makeFunction({
+      body: block.js(),
+      params: params.js(),
+    });
+
+    if (js.output.endsWith(")")) {
+      js.output = `${js.output.slice(0, -1)}, ${func.output});`;
+    } else js.output += `(${func.output});`;
+
+    return createNode(js, func);
   },
   StaticProperty_computed(_0, _1, node, _2) {
     return makeNode`self.constructor[${node.js()}]`;
