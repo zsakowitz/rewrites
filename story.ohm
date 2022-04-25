@@ -56,8 +56,9 @@ Storymatic {
     | "for" #(space+) NonCapturingAssignable #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- for_of
     | "for" #(space+) "await" #(space+) NonCapturingAssignable #(space+) "of" #(space+) Expression SingleStatementBlock<"do"> -- for_await_of
     | "for" #(space+) identifier
-      (#(space+) "from" #(space+) Expression)? (#(space+) ("to" | "through") #(space+) Expression)?
-      (#(space+) "step" (#(space+) "down")? #(space+) Expression)? SingleStatementBlock<"do"> -- for_range
+      (#(space+) "from" #(space+) Expression)? (#(space+) "down")?
+      (#(space+) ("to" | "through") #(space+) Expression)?
+      (#(space+) "step" #(space+) Expression)? SingleStatementBlock<"do"> -- for_range
     | "break" #statementTerminator -- break
     | "continue" #statementTerminator -- continue
     | "return" #(space+) Expression #statementTerminator -- return
@@ -349,9 +350,9 @@ Storymatic {
   string = string_interpolatable<"\""> | string_interpolatable<"'">
   string_non_interpolatable = string_full<"\""> | string_full<"'">
 
-  reserved_block = ("if" | "elif" | ("else" ~"if") | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally" | "switch" | "case" | "rescope") ~id_continue
-  reserved_operators = ("and" | "or" | "not" | ("is" ~"nt") | "isnt" | "with") ~id_continue
-  reserved_inline = ("new" | "in" | ("type" ~"of") | "of" | "from" | "typeof" | "as" | "extends" | "await" | "down") ~id_continue
+  reserved_block = ("if" | "elif" | "else" ~"if" | "elseif" | "then" | "print" | "throw" | "for" | "while" | "until" | "unless" | "do" ~"wn" | "repeat" | "step" | "to" | "through" | "return" | "break" | "continue" | "fn" | "when" | "import" | "export" | "class" | "try" | "catch" | "finally" | "switch" | "case" | "rescope" | "down") ~id_continue
+  reserved_operators = ("and" | "or" | "not" | "is" ~"nt" | "isnt" | "with") ~id_continue
+  reserved_inline = ("new" | "in" | "type" ~"of" | "of" | "from" | "typeof" | "as" | "extends" | "await") ~id_continue
   reserved_primitive = ("true" | "false" | "null" | "undefined") ~id_continue
 
   // `super` and `this` are omitted because they are valid names and used often.
