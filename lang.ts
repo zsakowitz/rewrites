@@ -86,6 +86,13 @@ interface Function {
   body: Node;
 }
 
+function makeScopedVars(scoped: string[], exclude?: string[]) {
+  let vars = new Set(scoped);
+  for (let name of exclude || []) vars.delete(name);
+  let sorted = [...vars].sort();
+  return sorted.length ? `let ${sorted.join(", ")};\n` : "";
+}
+
 function makeFunction({ identifier, isMethod, params, body }: Function): Node {
   // Remove wrapping block of functions
   let output = body.output
@@ -94,10 +101,8 @@ function makeFunction({ identifier, isMethod, params, body }: Function): Node {
     .map((e) => e.slice(2))
     .join("\n");
 
-  let vars = new Set(body.scopedVariables);
-  for (let name of params?.scopedVariables || []) vars.delete(name);
-  let scoped = [...vars].sort();
-  let scopedText = scoped.length ? `let ${scoped.join(", ")};\n  ` : "";
+  let scoped = makeScopedVars(body.scopedVariables, params?.scopedVariables);
+  scoped = scoped && scoped + "  ";
 
   let async = body.isAsync ? "async " : "";
   let gen = body.isGenerator ? "*" : "";
@@ -107,10 +112,10 @@ function makeFunction({ identifier, isMethod, params, body }: Function): Node {
 
   if (isMethod) {
     return createNode(`${async}${gen}${ident}(${params || ""}) {
-  ${self}${scopedText}${indent(output)}}`);
+  ${self}${scoped}${indent(output)}}`);
   } else {
     return createNode(`${async}function${gen} ${ident}(${params || ""}) {
-  ${scopedText}${indent(output)}}`);
+  ${scoped}${indent(output)}}`);
   }
 }
 
@@ -124,6 +129,18 @@ let actions: StorymaticActionDict<Node> = {
     return createNode(output, ...js);
   },
 
+  Accessor(base, addons) {
+    return makeNode`${base.js()}${addons.js()}`;
+  },
+  AccessorAddon_computed_member_access(_0, node, _1) {
+    return makeNode`[${node.js()}]`;
+  },
+  AccessorAddon_member_access(_0, node) {
+    return makeNode`.${node.js()}`;
+  },
+  AccessorAddon_symbol_access(_0, node) {
+    return makeNode`[${node.js()}]`;
+  },
   AddExp_addition(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} + ${b}`;
@@ -135,6 +152,9 @@ let actions: StorymaticActionDict<Node> = {
   ArgumentList(node) {
     let js = createNodes(...node.asIteration().children);
     return createNode(js.map((e) => e.output).join(", "), ...js);
+  },
+  Argument_spread_operator(_, node) {
+    return makeNode`...${node.js()}`;
   },
   AssignableWithDefault_with_default(assignable, _, expression) {
     return makeNode`${assignable.js()} = ${expression.js()}`;
@@ -321,6 +341,9 @@ let actions: StorymaticActionDict<Node> = {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} * ${b}`;
   },
+  NonAssignableAccessor(base, addons) {
+    return makeNode`${base.js()}${addons.js()}`;
+  },
   NotExp_await(_0, _1, node) {
     let js = node.js();
     return createNode({ output: `await ${js}`, isAsync: true }, js);
@@ -355,12 +378,20 @@ let actions: StorymaticActionDict<Node> = {
   Parameter_rest_operator(_, node) {
     return makeNode`...${node.js()}`;
   },
+  Property_computed(_0, _1, node, _2) {
+    return makeNode`self[${node.js()}]`;
+  },
+  Property_identifier(_, node) {
+    return makeNode`self.${node.js()}`;
+  },
+  Property_symbol(_, node) {
+    return makeNode`self[${node.js()}]`;
+  },
   Script(node) {
     let js = node.js();
     let output = js.output;
 
-    if (js.scopedVariables.length > 1)
-      output = `let ${js.scopedVariables.join(", ")};\n` + output;
+    output = makeScopedVars(js.scopedVariables) + output;
 
     if (js.isAsync) output += `\nexport {};`;
 
@@ -396,6 +427,15 @@ let actions: StorymaticActionDict<Node> = {
   Statement_expression(node, _) {
     let js = node.js();
     return createNode(js.output + ";", js);
+  },
+  StaticProperty_computed(_0, _1, node, _2) {
+    return makeNode`self.constructor[${node.js()}]`;
+  },
+  StaticProperty_identifier(_, node) {
+    return makeNode`self.constructor.${node.js()}`;
+  },
+  StaticProperty_symbol(_, node) {
+    return makeNode`self.constructor[${node.js()}]`;
   },
   string_bit_character(char) {
     if (char.sourceString == "$") return createNode("\\$");
