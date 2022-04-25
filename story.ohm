@@ -64,18 +64,18 @@ Storymatic {
     | "await" #(space+) (Assignable "=")? Expression SingleStatementBlock<"do"> -- await_new_thread
     | "when" #(space+) Expression ("with" ArgumentList)? SingleStatementBlock<"do"> -- when_callback
     | "import" #(space+) string_non_interpolatable #statementTerminator -- empty_import
-    | "import" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import
+    | "import" #(space+) NonemptyListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import
     | "import" "*" "as" #(space+) identifier #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import_all
     | "import" "*" identifier #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- import_default
-    | "export" #statementTerminator -- empty_export
-    | "export" #(space+) ListOf<ImportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- export_from
+    | "export" ~(ClassDeclaration | VariableAssignment | BlockFunction) #statementTerminator -- empty_export
+    | "export" #(space+) NonemptyListOf<ExportableItemName, ","> #(space+) "from" #(space+) string_non_interpolatable #statementTerminator -- export_from
     | "export" "*" "from" #(space+) string_non_interpolatable #statementTerminator -- export_all_from
-    | "export" #(space+) ListOf<ImportableItemName, ","> #statementTerminator -- export
+    | "export" #(space+) NonemptyListOf<ExportableItemName, ","> #statementTerminator -- export
     | "export" "*" Expression #statementTerminator -- export_default
     | "export" #(space+) ClassDeclaration -- export_class
     | "export" #(space+) VariableAssignment -- export_variable
     | "export" #(space+) BlockFunction -- export_function
-    | "rescope" #(space+) ListOf<identifier, ","> #statementTerminator -- rescope
+    | "rescope" #(space+) NonemptyListOf<identifier, ","> #statementTerminator -- rescope
     | "rescope" #(space+) VariableAssignment #statementTerminator -- rescope_assign
 
   ClassDeclaration = "class" #(space+) identifier (#(space+) "extends" #(space+) Expression)? "{" ClassElement* "}"
@@ -87,8 +87,11 @@ Storymatic {
     | "@@" MethodName "=" Expression #statementTerminator -- static_property
 
   ImportableItemName
-    = identifier #(space+) "as" #(space+) identifier -- identifier_rewrite
-    | string_non_interpolatable #(space+) "as" #(space+) identifier -- string_rewrite
+    = (identifier | string_non_interpolatable) #(space+) "as" #(space+) identifier -- rewrite
+    | identifier
+
+  ExportableItemName
+    = identifier #(space+) "as" #(space+) (identifier | string_non_interpolatable) -- rewrite
     | identifier
 
   statementTerminator
