@@ -185,7 +185,7 @@ Storymatic {
 
   ClassCreationExp
     = "new" #(space+) ClassCreationExp "(" ArgumentList ")" -- class_creation_symbolic
-    | "new" #(space+) ClassCreationExp ~"(" #((~("\r\n" | "\n") space)+) ~identifier ArgumentList -- class_creation_implied
+    | "new" #(space+) ClassCreationExp ~"(" #((~("\r\n" | "\n") space)+) ~(identifier | "+" | "-") ArgumentList -- class_creation_implied
     | "new" #(space+) ClassCreationExp -- class_creation_no_args
     | LiteralExp
 
@@ -198,7 +198,7 @@ Storymatic {
     | MemberAccessExp "?." "[" MemberAccessExp "]" -- optional_chaining_computed_member_access
     | MemberAccessExp "(" ArgumentList ")" -- function_call
     | MemberAccessExp "?." "(" ArgumentList ")" -- optional_chaining_function_call
-    | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier NonEmptyArgumentList -- function_call_implied
+    | MemberAccessExp #((~("\r\n" | "\n") space)+) ~(identifier | "+" | "-") NonEmptyArgumentList -- function_call_implied
     | ClassCreationExp
 
   ArgumentList = ListOf<Argument, ",">
@@ -209,11 +209,10 @@ Storymatic {
     | "..." Expression -- spread_operator
 
   ParameterList = ListOf<Parameter, ","> ","?
-  NonEmptyParameterList = NonemptyListOf<Parameter, ","> ","?
 
   Parameter
-    = AssignableWithDefault<Assignable>
-    | "..." Assignable -- rest_operator
+    = AssignableWithDefault<NonCapturingAssignable>
+    | "..." NonCapturingAssignable -- rest_operator
 
   NotExp
     = "!" NotExp -- logical_not_symbolic
