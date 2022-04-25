@@ -359,11 +359,13 @@ Storymatic {
 
   Property
     = "@" identOrWord -- identifier
-    | "@" symbol -- symbol
+    | "@" Symbol -- symbol
+    | "@" "[" Expression "]" -- computed
 
   StaticProperty
     = "@@" identOrWord -- identifier
-    | "@@" symbol -- symbol
+    | "@@" Symbol -- symbol
+    | "@@" "[" Expression "]" -- computed
 
   Symbol
     = "#" SymbolKey -- symbol_for
