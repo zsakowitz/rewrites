@@ -63,7 +63,7 @@ Storymatic {
     | "continue" #statementTerminator -- continue
     | "return" #(space+) Expression #statementTerminator -- return
     | "await" #(space+) (Assignable "=")? Expression SingleStatementBlock<"do"> -- await_new_thread
-    | "when" #(space+) Expression ("with" ArgumentList)? SingleStatementBlock<"do"> -- when_callback
+    | "when" #(space+) Expression (#(space+) "with" #(space+) ParameterList)? SingleStatementBlock<"do"> -- when_callback
     | "import" #(space+) importLocation #statementTerminator -- empty_import
     | "import" #(space+) NonemptyListOf<ImportableItemName, ","> #(space+) "from" #(space+) importLocation #statementTerminator -- import
     | "import" "*" "as" #(space+) identifier #(space+) "from" #(space+) importLocation #statementTerminator -- import_all
@@ -197,6 +197,7 @@ Storymatic {
     | MemberAccessExp "[" MemberAccessExp "]" -- computed_member_access
     | MemberAccessExp "?." "[" MemberAccessExp "]" -- optional_chaining_computed_member_access
     | MemberAccessExp "(" ArgumentList ")" -- function_call
+    | MemberAccessExp "?." "(" ArgumentList ")" -- optional_chaining_function_call
     | MemberAccessExp #((~("\r\n" | "\n") space)+) ~identifier ~StatementBlock NonEmptyArgumentList -- function_call_implied
     | ClassCreationExp
 
