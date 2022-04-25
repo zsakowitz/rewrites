@@ -121,14 +121,14 @@ function makeFunction({ identifier, isMethod, params, body }: Function): Node {
   }
 }
 
-function joinWithComma(ohm: ohm.Node[]) {
+function joinWith(ohm: ohm.Node[], text = ", ") {
   let js = ohm.map((e) => e.js());
-  let output = js.map((e) => e.output).join(", ");
+  let output = js.map((e) => e.output).join(text);
   return createNode(output, ...js);
 }
 
-function sepByComma(node: ohm.NonterminalNode) {
-  return joinWithComma(node.asIteration().children);
+function sepBy(node: ohm.NonterminalNode, text = ", ") {
+  return joinWith(node.asIteration().children, text);
 }
 
 let actions: StorymaticActionDict<Node> = {
@@ -160,6 +160,9 @@ let actions: StorymaticActionDict<Node> = {
   AddExp_subtraction(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} - ${b}`;
+  },
+  ArrayEntry_spread_operator(_, expr) {
+    return makeNode`...${expr.js()}`;
   },
   ArgumentList(node) {
     let js = createNodes(...node.asIteration().children);
@@ -203,6 +206,12 @@ let actions: StorymaticActionDict<Node> = {
   AssignmentExp_assignment(assignable, _, expression) {
     return makeNode`${assignable.js()} = ${expression.js()}`;
   },
+  AssignmentExp_yield(_0, _1, expr) {
+    return { ...makeNode`yield ${expr.js()}`, isGenerator: true };
+  },
+  AssignmentExp_yield_from(_0, _1, _2, _3, expr) {
+    return { ...makeNode`yield* ${expr.js()}`, isGenerator: true };
+  },
   bigint(_0, _1, _2) {
     return createNode(this.sourceString);
   },
@@ -236,6 +245,15 @@ let actions: StorymaticActionDict<Node> = {
   },
   char(node) {
     return createNode(node.sourceString);
+  },
+  CaseClause(_0, _1, expr, _2) {
+    return makeNode`case ${expr.js()}:`;
+  },
+  CaseStatement(clauses, block) {
+    return makeNode`${sepBy(clauses, "\n")} ${block.js()}`;
+  },
+  CatchStatement(_0, _1, ident, _2, _3, _4, block) {
+    return makeNode`catch (${ident.js() || "$"}) ${block.js()}`;
   },
   ClassCreationExp_class_creation_implied(_0, _1, target, _2, args) {
     return makeNode`new ${target.js()}(${args.js()})`;
@@ -338,6 +356,17 @@ let actions: StorymaticActionDict<Node> = {
     let node = block.js().trim();
     return makeNode`if (${condition}) ${node}${elseifs.js()}${elseBlock.js()}\n`;
   },
+  InlineFunction_no_params(_0, funcBody) {
+    return makeNode`${makeFunction({
+      body: funcBody.js(),
+    })}`;
+  },
+  InlineFunction_with_params(_0, _1, _2, _3, paramListNode, funcBody) {
+    return makeNode`${makeFunction({
+      body: funcBody.js(),
+      params: paramListNode.js(),
+    })}`;
+  },
   ImportableItemName_rewrite(first, _0, _1, _2, second) {
     return makeNode`${first.js()} as ${second.js()}`;
   },
@@ -363,9 +392,15 @@ let actions: StorymaticActionDict<Node> = {
   importLocation_filename(filename, _) {
     return makeNode`"${filename.sourceString}"`;
   },
+  LiteralExp_array(_0, entries, _1, _2) {
+    return makeNode`[${sepBy(entries)}]`;
+  },
   LiteralExp_parenthesized(_0, node, _1) {
     let js = node.js();
     return makeNode`(${js})`;
+  },
+  LiteralExp_object(_0, entries, _1, _2) {
+    return makeNode`{ ${sepBy(entries)} }`;
   },
   LogicalAndExp_logical_and(nodeA, _0, _1, _2, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
@@ -452,6 +487,10 @@ let actions: StorymaticActionDict<Node> = {
     if (spreadNode.sourceString) nodes.push(makeNode`...${spreadNode.js()}`);
     return createNode(`{ ${nodes.join(", ")} }`, ...nodes);
   },
+  NonEmptyArgumentList(node) {
+    let js = createNodes(...node.asIteration().children);
+    return createNode(js.map((e) => e.output).join(", "), ...js);
+  },
   NotExp_await(_0, _1, node) {
     let js = node.js();
     return createNode({ output: `await ${js}`, isAsync: true }, js);
@@ -480,8 +519,7 @@ let actions: StorymaticActionDict<Node> = {
     return createNode(node.sourceString);
   },
   ParameterList(node, _) {
-    let nodes = createNodes(...node.asIteration().children);
-    return createNode(nodes.map((e) => e.output).join(", "), ...nodes);
+    return sepBy(node);
   },
   Parameter_rest_operator(_, node) {
     return makeNode`...${node.js()}`;
@@ -558,7 +596,7 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`import ${filename.js()};`;
   },
   Statement_export(_0, _1, exports, _2) {
-    return makeNode`export { ${sepByComma(exports)} };`;
+    return makeNode`export { ${sepBy(exports)} };`;
   },
   Statement_export_all_from(_0, _1, _2, _3, filename, _4) {
     return makeNode`export * from ${filename.js()};`;
@@ -570,7 +608,7 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`export default ${expr.js()};`;
   },
   Statement_export_from(_0, _1, exports, _2, _3, _4, filename, _5) {
-    return makeNode`export { ${sepByComma(exports)} } from ${filename.js()};`;
+    return makeNode`export { ${sepBy(exports)} } from ${filename.js()};`;
   },
   Statement_export_function(_0, _1, block) {
     return makeNode`export ${block.js()}`;
@@ -633,7 +671,7 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`for (let ${ident} = ${from}; ${condition}; ${ident} ${dir}= ${step}) ${block.js()}`;
   },
   Statement_import(_0, _1, imports, _2, _3, _4, filename, _5) {
-    return makeNode`import { ${sepByComma(imports)} } from ${filename.js()};`;
+    return makeNode`import { ${sepBy(imports)} } from ${filename.js()};`;
   },
   Statement_import_all(_0, _1, _2, _3, ident, _4, _5, _6, filename, _7) {
     return makeNode`import * as ${ident.js()} from ${filename.js()};`;
@@ -648,7 +686,7 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`for (let $ = 0; $ < ${expr.js()}; $++) ${block.js()}`;
   },
   Statement_rescope(_0, _1, idents, _2) {
-    return makeNode`let ${sepByComma(idents)};`;
+    return makeNode`let ${sepBy(idents)};`;
   },
   Statement_rescope_assign(_0, _1, declaration, _2) {
     return makeNode`let ${declaration.js()};`;

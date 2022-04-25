@@ -272,7 +272,7 @@ Storymatic {
   AssignmentExp
     = AssignableOrAccessor "=" AssignmentExp -- assignment
     | "yield" #(space+) AssignmentExp -- yield
-    | "yield" #(space+ "from" space+ | "*") AssignmentExp -- yield_from
+    | "yield" #(space+ "from" space+ | spaces "*" spaces) AssignmentExp -- yield_from
     | TernaryExp
 
   SuperOrThis
