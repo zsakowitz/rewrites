@@ -185,6 +185,7 @@ Storymatic {
     | "[" Expression "]" ":" Expression -- computed_key
     | "..." Expression -- spread_operator
     | Method<""> -- object_method
+    | Method<"@"> -- object_method_with_self
 
   ClassCreationExp
     = "new" #(space+) ClassCreationExp "(" ArgumentList ")" -- class_creation_symbolic
