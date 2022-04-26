@@ -33,15 +33,16 @@ if (process.argv[2] == "-c" || process.argv[2] == "--compile") {
   });
 } else if (process.argv[2] == "-i" || process.argv.length == 2) {
   console.log("Welcome to the Storymatic REPL.");
-  console.log("Enter any expression to compile it and output the result.");
+  console.log("Enter any expression to run it and output the result.");
 
   let repl = start({
-    prompt: "\n> ",
+    prompt: "> ",
     eval(cmd, context, _file, cb) {
       try {
         let match = story.match(cmd);
         if (match.failed()) {
           cb(new Recoverable(new Error(match.shortMessage)), null);
+          return;
         }
 
         let { output } = semantics(match).js();
@@ -59,6 +60,6 @@ if (process.argv[2] == "-c" || process.argv[2] == "--compile") {
     console.clear();
     console.log("Welcome to the Storymatic REPL.");
     console.log("Enter any expression to run it and output the result.");
-    process.stdout.write("\n> ");
+    process.stdout.write("> ");
   });
 }
