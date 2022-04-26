@@ -1,6 +1,6 @@
 import { Recoverable, start } from "repl";
-import { createContext, runInContext } from "vm";
-import { story, semantics } from "./lang.js";
+import { runInContext } from "vm";
+import { semantics, story } from "./lang.js";
 
 if (process.argv[2] == "-c" || process.argv[2] == "--compile") {
   console.log("Welcome to the Storymatic compiler REPL.");

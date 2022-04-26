@@ -1,8 +1,9 @@
 {
-  "type": "module",
+  "name": "zwrites",
+  "type": "commonjs",
   "scripts": {
     "test-promises": "node -e \"import('./dist/deferred.js').then(p => p.test())\"",
-    "build-ohm": "ohm generateBundles --esm --withTypes story.ohm; mv story.ohm-bundle.js dist/story.ohm-bundle.js",
+    "build-ohm": "ohm generateBundles --withTypes story.ohm; mv story.ohm-bundle.js dist/story.ohm-bundle.js",
     "ohm-cli": "clear; node dist/cli.js"
   },
   "bin": {

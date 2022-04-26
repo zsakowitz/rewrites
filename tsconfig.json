@@ -3,7 +3,7 @@
     "strict": true,
     "target": "ES6",
     "lib": ["ES6", "DOM"],
-    "module": "ES6",
+    "module": "CommonJS",
     "outDir": "./dist",
     "allowJs": true,
     "moduleResolution": "node",

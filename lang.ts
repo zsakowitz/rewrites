@@ -906,8 +906,14 @@ let actions: StorymaticActionDict<Node> = {
     return createNode(this.sourceString);
   },
   WrappedStatementBlock(_0, node, _1) {
+    let scoped = makeScopedVars(
+      node.scopedVariables,
+      this.args[0]?.scopedVariables
+    );
+    scoped = scoped && scoped + "  ";
+
     let js = node.js();
-    return makeNode`{\n  ${indent(js).trim()}\n}\n`;
+    return makeNode`{\n  ${scoped}${indent(js).trim()}\n}\n`;
   },
 };
 
@@ -917,14 +923,15 @@ type SMNode = Node;
 
 declare module "ohm-js" {
   export interface Node {
-    js(): SMNode;
+    js(parent?: Node): SMNode;
     asIteration(): ohm.IterationNode;
+    args: [parent?: Node];
   }
 }
 
 declare module "./story.ohm-bundle.js" {
   export interface StorymaticDict {
-    js(): SMNode;
+    js(parent?: Node): SMNode;
   }
 
   export interface StorymaticSemantics {
