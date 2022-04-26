@@ -1,8 +1,9 @@
 import { Recoverable, start } from "repl";
+import { createContext, runInContext } from "vm";
 import { story, semantics } from "./lang.js";
 
-if (process.argv[2] == "-i" || process.argv.length == 2) {
-  console.log("Welcome to the Storymatic compile REPL.");
+if (process.argv[2] == "-c" || process.argv[2] == "--compile") {
+  console.log("Welcome to the Storymatic compiler REPL.");
   console.log("Enter any expression to compile it and output the result.");
 
   let repl = start({
@@ -26,8 +27,38 @@ if (process.argv[2] == "-i" || process.argv.length == 2) {
 
   repl.defineCommand("clear", () => {
     console.clear();
-    console.log("Welcome to the Storymatic compile REPL.");
+    console.log("Welcome to the Storymatic compiler REPL.");
     console.log("Enter any expression to compile it and output the result.");
+    process.stdout.write("\n> ");
+  });
+} else if (process.argv[2] == "-i" || process.argv.length == 2) {
+  console.log("Welcome to the Storymatic REPL.");
+  console.log("Enter any expression to compile it and output the result.");
+
+  let repl = start({
+    prompt: "\n> ",
+    eval(cmd, context, _file, cb) {
+      try {
+        let match = story.match(cmd);
+        if (match.failed()) {
+          throw new Recoverable(new Error(match.shortMessage));
+        }
+
+        let { output } = semantics(match).js();
+        let result = runInContext(output, context);
+        cb(null, result);
+      } catch (e: any) {
+        let err = e as Error;
+        err.stack = "";
+        throw err;
+      }
+    },
+  });
+
+  repl.defineCommand("clear", () => {
+    console.clear();
+    console.log("Welcome to the Storymatic REPL.");
+    console.log("Enter any expression to run it and output the result.");
     process.stdout.write("\n> ");
   });
 }
