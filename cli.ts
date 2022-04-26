@@ -41,7 +41,7 @@ if (process.argv[2] == "-c" || process.argv[2] == "--compile") {
       try {
         let match = story.match(cmd);
         if (match.failed()) {
-          throw new Recoverable(new Error(match.shortMessage));
+          cb(new Recoverable(new Error(match.shortMessage)), null);
         }
 
         let { output } = semantics(match).js();
