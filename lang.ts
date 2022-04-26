@@ -1,5 +1,6 @@
 // To make this work, run `npm run build-ohm` in the console.
 
+import { randomUUID } from "crypto";
 import ohm from "ohm-js";
 import story, { StorymaticActionDict } from "./story.ohm-bundle.js";
 
@@ -9,12 +10,14 @@ export function js(text: string) {
 }
 
 interface Node {
-  readonly output: string;
-  readonly scopedVariables: string[];
-  readonly isAsync: boolean;
-  readonly isGenerator: boolean;
+  output: string;
+  scopedVariables: string[];
+  scopes: string[];
+  isAsync: boolean;
+  isGenerator: boolean;
   toString(this: Node): string;
   trim(this: Node): Node;
+  noVars(this: Node): Node;
 }
 
 interface PartialNode extends Partial<Node> {
@@ -29,6 +32,10 @@ function trim(this: Node) {
   return createNode(this.output.trim(), this);
 }
 
+function noVars(this: Node) {
+  return { ...this, scopedVariables: [] };
+}
+
 function createNode(options: string | PartialNode, ...parents: Node[]): Node {
   // The type assertion here ensures that the `options` node is included as a standard node.
   if (typeof options == "object") {
@@ -41,11 +48,13 @@ function createNode(options: string | PartialNode, ...parents: Node[]): Node {
 
   return {
     trim,
-    output,
+    noVars,
     toString,
+    output,
     isAsync: parents.some((e) => e.isAsync),
     isGenerator: parents.some((e) => e.isGenerator),
     scopedVariables: parents.flatMap((e) => e.scopedVariables || []),
+    scopes: parents.flatMap((e) => e.scopes || []),
   };
 }
 
@@ -95,11 +104,25 @@ const enum FunctionType {
   ObjectMethod,
 }
 
-function makeScopedVars(scoped: string[], exclude?: string[]) {
-  let vars = new Set(scoped);
-  for (let name of exclude || []) vars.delete(name);
-  let sorted = [...vars].sort();
-  return sorted.length ? `let ${sorted.join(", ")};\n` : "";
+interface Scope {
+  vars: Set<string>;
+  contains: string[];
+}
+
+let scopeMap: Record<string, Scope> = Object.create(null);
+
+function scopeVars(node: Node) {
+  let uuid = randomUUID();
+  let scope: Scope = {
+    vars: new Set(node.scopedVariables.sort()),
+    contains: node.scopes,
+  };
+
+  scopeMap[uuid] = scope;
+  return createNode({
+    output: `%${uuid}%`,
+    scopes: [uuid, ...node.scopes],
+  });
 }
 
 function makeFunction({ identifier, type, params, body }: Function): Node {
@@ -111,9 +134,6 @@ function makeFunction({ identifier, type, params, body }: Function): Node {
     .slice(1, -1)
     .map((e) => e.slice(2))
     .join("\n");
-
-  let scoped = makeScopedVars(body.scopedVariables, params?.scopedVariables);
-  scoped = scoped && scoped + "  ";
 
   let async = body.isAsync ? "async " : "";
   let gen = body.isGenerator ? "*" : "";
@@ -127,12 +147,27 @@ function makeFunction({ identifier, type, params, body }: Function): Node {
   let ident = identifier || "";
 
   if (type == FunctionType.Function) {
-    return createNode(`${async}function${gen} ${ident}(${params || ""}) {
-  ${scoped}${indent(output).trim()}\n}`);
+    return createNode(
+      `${async}function${gen} ${ident}(${params || ""}) {
+  ${indent(output).trim()}\n}`,
+      body,
+      params || ({} as any)
+    );
   } else {
-    return createNode(`${async}${gen}${ident}(${params || ""}) {
-  ${self}${scoped}${indent(output).trim()}\n}`);
+    return createNode(
+      `${async}${gen}${ident}(${params || ""}) {
+  ${self}${indent(output).trim()}\n}`,
+      body,
+      params || ({} as any)
+    );
   }
+}
+
+function makeWrappedBlock(node: ohm.Node) {
+  let js = node.js();
+  let scoped = scopeVars(js);
+
+  return makeNode`{\n  ${scoped}${indent(js).noVars().trim()}\n}\n`;
 }
 
 function joinWith(ohm: ohm.Node[], text = ", ") {
@@ -252,7 +287,7 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`case ${expr.js()}:`;
   },
   CaseStatement(clauses, blockNode) {
-    let block = { ...blockNode.js().trim() };
+    let block = blockNode.js().trim();
     block.output = block.output.slice(0, -1) + "\n  break;\n}";
 
     return makeNode`${joinWith(clauses.children, "\n")} ${block}`;
@@ -368,7 +403,7 @@ let actions: StorymaticActionDict<Node> = {
   FunctionBody_expression(_, node) {
     let js = node.js();
     let body = makeNode`return ${js};`;
-    return makeNode`{\n  ${indent(body)}\n}`;
+    return makeNode`{\n  ${scopeVars(body)}${indent(body).noVars().trim()}\n}`;
   },
   fullNumber(_0, _1, _2, _3, _4, _5, _6) {
     return createNode(this.sourceString);
@@ -624,21 +659,49 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`$self[${node.js()}]`;
   },
   Script(node) {
+    scopeMap = Object.create(null);
+
     let js = node.js();
     let output = js.output;
 
-    output = makeScopedVars(js.scopedVariables) + output;
+    output = scopeVars(js) + output;
 
-    if (js.isAsync) output += `\nexport {};`;
+    if (js.isAsync) {
+      output += `\nexport {};`;
+    }
 
-    if (js.isGenerator)
+    if (js.isGenerator) {
       output = `throw new SyntaxError('Yield statements may not appear in the top level of a script.');`;
+    }
 
+    for (let uuid in scopeMap) {
+      let scope = scopeMap[uuid];
+
+      // prettier-ignore
+      for (let ident of scope.vars)
+        for (let uuid of scope.contains)
+          scopeMap[uuid].vars.delete(ident);
+    }
+
+    for (let uuid in scopeMap) {
+      let vars = [...scopeMap[uuid].vars];
+      let regex = new RegExp(`( *)(%${uuid}%)`);
+
+      if (vars.length) {
+        output = output.replace(regex, (text) => {
+          let space = text.split("%")[0];
+          return `${space}let ${vars.join(", ")};\n${space}`;
+        });
+      } else {
+        output = output.replace(`%${uuid}%`, "");
+      }
+    }
+
+    scopeMap = Object.create(null);
     return createNode(`"use strict";\n${output}`);
   },
   SingleStatementBlock_single_statement(_0, _1, statementNode) {
-    let js = statementNode.js();
-    return makeNode`{\n  ${indent(js)}\n}\n`;
+    return makeWrappedBlock(statementNode);
   },
   StatementBlock_statements(node) {
     let nodes = createNodes(...node.children);
@@ -795,7 +858,7 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`while (!(${expr.js()})) ${block.js()}`;
   },
   Statement_when_callback(_0, _1, targetNode, _2, _3, _4, params, block) {
-    let js = { ...targetNode.js() };
+    let js = targetNode.js();
     let func = makeFunction({
       body: block.js(),
       params: params.js(),
@@ -893,8 +956,7 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`${unit.js()}({ number: ${num.js()}, string: "${num.js()}" })`;
   },
   UnprefixedSingleStatementBlock_single_statement(statementNode) {
-    let js = statementNode.js();
-    return makeNode`{\n  ${indent(js)}}\n`;
+    return makeWrappedBlock(statementNode);
   },
   VariableAssignment(assignable, _, expr) {
     return makeNode`${assignable.js()} = ${expr.js()}`;
@@ -906,14 +968,7 @@ let actions: StorymaticActionDict<Node> = {
     return createNode(this.sourceString);
   },
   WrappedStatementBlock(_0, node, _1) {
-    let scoped = makeScopedVars(
-      node.scopedVariables,
-      this.args[0]?.scopedVariables
-    );
-    scoped = scoped && scoped + "  ";
-
-    let js = node.js();
-    return makeNode`{\n  ${scoped}${indent(js).trim()}\n}\n`;
+    return makeWrappedBlock(node);
   },
 };
 
@@ -923,15 +978,14 @@ type SMNode = Node;
 
 declare module "ohm-js" {
   export interface Node {
-    js(parent?: Node): SMNode;
+    js(): SMNode;
     asIteration(): ohm.IterationNode;
-    args: [parent?: Node];
   }
 }
 
 declare module "./story.ohm-bundle.js" {
   export interface StorymaticDict {
-    js(parent?: Node): SMNode;
+    js(): SMNode;
   }
 
   export interface StorymaticSemantics {
