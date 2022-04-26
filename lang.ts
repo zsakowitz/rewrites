@@ -78,7 +78,7 @@ function indent(item: string | Node): string | Node {
     .map((e) => e && "  " + e)
     .join("\n");
 
-  return split[0] + "\n" + indented;
+  return split[0] + (indented && "\n" + indented);
 }
 
 interface Function {
@@ -128,10 +128,10 @@ function makeFunction({ identifier, type, params, body }: Function): Node {
 
   if (type == FunctionType.Function) {
     return createNode(`${async}function${gen} ${ident}(${params || ""}) {
-  ${scoped}${indent(output)}}`);
+  ${scoped}${indent(output).trim()}\n}`);
   } else {
     return createNode(`${async}${gen}${ident}(${params || ""}) {
-  ${self}${scoped}${indent(output)}}`);
+  ${self}${scoped}${indent(output).trim()}\n}`);
   }
 }
 
@@ -188,20 +188,8 @@ let actions: StorymaticActionDict<Node> = {
   AssignableWithDefault_with_default(assignable, _, expression) {
     return makeNode`${assignable.js()} = ${expression.js()}`;
   },
-  AssignableKeyWithRewrite_computed_rewrite(_0, expr, _1, _2, assignable) {
-    return makeNode`[${expr.js()}]: ${assignable.js()}`;
-  },
-  AssignableKeyWithRewrite_computed_string_rewrite(string, _, assignable) {
-    return makeNode`[${string.js()}]: ${assignable.js()}`;
-  },
-  AssignableKeyWithRewrite_standard_rewrite(ident, _, assignable) {
-    return makeNode`${ident.js()}: ${assignable.js()}`;
-  },
-  AssignableKeyWithRewrite_string_rewrite(string, _, assignable) {
-    return makeNode`${string.js()}: ${assignable.js()}`;
-  },
-  AssignableKeyWithRewrite_symbol_rewrite(symbol, _, assignable) {
-    return makeNode`[${symbol.js()}]: ${assignable.js()}`;
+  AssignableKeyWithRewrite_rewrite(key, _, assignable) {
+    return makeNode`${key.js()}: ${assignable.js()}`;
   },
   Assignable_array(_0, varNodes, _1, _2, spreadNode, _3, _4) {
     let nodes = createNodes(...varNodes.asIteration().children);
@@ -263,8 +251,11 @@ let actions: StorymaticActionDict<Node> = {
   CaseClause(_0, _1, expr, _2) {
     return makeNode`case ${expr.js()}:`;
   },
-  CaseStatement(clauses, block) {
-    return makeNode`${sepBy(clauses, "\n")} ${block.js()}`;
+  CaseStatement(clauses, blockNode) {
+    let block = { ...blockNode.js().trim() };
+    block.output = block.output.slice(0, -1) + "\n  break;\n}";
+
+    return makeNode`${joinWith(clauses.children, "\n")} ${block}`;
   },
   CatchStatement(_0, _1, ident, _2, _3, _4, block) {
     let js = ident.js();
@@ -284,9 +275,14 @@ let actions: StorymaticActionDict<Node> = {
       ? makeNode` extends ${extendsNode.js()}`
       : "";
 
-    let body = indent(sepBy(elements, "\n"));
-
+    let body = indent(joinWith(elements.children, "\n"));
     return makeNode`class ${ident.js()}${_extends} {\n  ${body}\n}`;
+  },
+  ClassElement_property(_0, ident, _1, expr, _2) {
+    return makeNode`${ident.js()} = ${expr.js()};`;
+  },
+  ClassElement_static_property(_0, ident, _1, expr, _2) {
+    return makeNode`static ${ident.js()} = ${expr.js()}`;
   },
   CompareExp_greater_than(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
@@ -320,12 +316,11 @@ let actions: StorymaticActionDict<Node> = {
     let [a, b] = createNodes(nodeA, nodeB);
     return makeNode`${a} in Object(${b})`;
   },
-  decimalNumber(_0, _1, _2, _3, _4, _5, _6) {
-    return createNode(this.sourceString);
+  DefaultStatement(_0, _1, block) {
+    return makeNode`default: ${block.js()}`;
   },
-  equalityExpWords(_0, node, _1) {
-    if (node.sourceString == "isnt") return createNode("!=");
-    return createNode("==");
+  decimalNumber(num) {
+    return num.js();
   },
   ElseIfKeyword_elif(_) {
     return createNode("else if");
@@ -362,14 +357,24 @@ let actions: StorymaticActionDict<Node> = {
   ExportableItemName_rewrite(first, _0, _1, _2, second) {
     return makeNode`${first.js()} as ${second.js()}`;
   },
+  equalityExpWords(_0, node, _1) {
+    if (node.sourceString == "isnt") return createNode("!=");
+    return createNode("==");
+  },
   FinallyStatement(_0, _1, node) {
     let js = node.js();
     return makeNode`finally ${js}`;
   },
   FunctionBody_expression(_, node) {
     let js = node.js();
-    let body = makeNode`return ${js};\n`;
-    return makeNode`{\n  ${indent(body)}}\n`;
+    let body = makeNode`return ${js};`;
+    return makeNode`{\n  ${indent(body)}\n}`;
+  },
+  fullNumber(_0, _1, _2, _3, _4, _5, _6) {
+    return createNode(this.sourceString);
+  },
+  hexNumber(_0, _1, _2) {
+    return createNode(this.sourceString);
   },
   IfStatement(ifUnless, _0, conditionNode, block, elseifs, elseBlock) {
     let condition: Node;
@@ -379,6 +384,14 @@ let actions: StorymaticActionDict<Node> = {
 
     let node = block.js().trim();
     return makeNode`if (${condition}) ${node}${elseifs.js()}${elseBlock.js()}\n`;
+  },
+  InlineClassDeclaration(_0, _1, _2, _3, extendsNode, _4, elements, _5) {
+    let _extends = extendsNode.sourceString
+      ? makeNode` extends ${extendsNode.js()}`
+      : "";
+
+    let body = indent(joinWith(elements.children, "\n"));
+    return makeNode`class${_extends} {\n  ${body}\n}`;
   },
   InlineFunction_no_params(_0, funcBody) {
     return makeNode`${makeFunction({
@@ -424,7 +437,7 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`(${js})`;
   },
   LiteralExp_object(_0, entries, _1, _2) {
-    return makeNode`{ ${sepBy(entries)} }`;
+    return makeNode`{\n  ${indent(sepBy(entries, ",\n"))}\n}`;
   },
   LogicalAndExp_logical_and(nodeA, _0, _1, _2, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
@@ -471,7 +484,7 @@ let actions: StorymaticActionDict<Node> = {
   MemberAccessExp_symbol_access(target, _, symbol) {
     return makeNode`${target.js()}[${symbol.js()}]`;
   },
-  MethodName_Symbol(symbol) {
+  MethodName_symbol(symbol) {
     return makeNode`[${symbol.js()}]`;
   },
   MethodName_computed_key(_0, expr, _1) {
@@ -485,6 +498,44 @@ let actions: StorymaticActionDict<Node> = {
   },
   MethodName_string_key(string) {
     return string.js();
+  },
+  MethodName_numerical_key(number) {
+    return createNode(number.sourceString);
+  },
+  Method_no_params(_0, _1, type, identNode, funcBody) {
+    return makeNode`${makeFunction({
+      identifier: identNode.js(),
+      body: funcBody.js(),
+      type:
+        type.sourceString == "@@"
+          ? FunctionType.ClassStaticMethod
+          : type.sourceString == "@"
+          ? FunctionType.ClassMethod
+          : FunctionType.ObjectMethod,
+    })}\n`;
+  },
+  Method_with_params(
+    _0,
+    _1,
+    type,
+    identNode,
+    _3,
+    _4,
+    _5,
+    paramListNode,
+    funcBody
+  ) {
+    return makeNode`${makeFunction({
+      identifier: identNode.js(),
+      body: funcBody.js(),
+      params: paramListNode.js(),
+      type:
+        type.sourceString == "@@"
+          ? FunctionType.ClassStaticMethod
+          : type.sourceString == "@"
+          ? FunctionType.ClassMethod
+          : FunctionType.ObjectMethod,
+    })}\n`;
   },
   MulExp_division(nodeA, _, nodeB) {
     let [a, b] = createNodes(nodeA, nodeB);
@@ -542,6 +593,21 @@ let actions: StorymaticActionDict<Node> = {
   number(node) {
     return createNode(node.sourceString);
   },
+  ObjectEntry_key_value(key, _, value) {
+    return makeNode`${key.js()}: ${value.js()}`;
+  },
+  ObjectEntry_object_method(method) {
+    return method.js().trim();
+  },
+  ObjectEntry_object_method_with_self(method) {
+    return method.js().trim();
+  },
+  ObjectEntry_restructure(ident) {
+    return ident.js();
+  },
+  ObjectEntry_spread_operator(_, expr) {
+    return makeNode`...${expr.js()}`;
+  },
   ParameterList(node, _) {
     return sepBy(node);
   },
@@ -549,13 +615,13 @@ let actions: StorymaticActionDict<Node> = {
     return makeNode`...${node.js()}`;
   },
   Property_computed(_0, _1, node, _2) {
-    return makeNode`self[${node.js()}]`;
+    return makeNode`$self[${node.js()}]`;
   },
   Property_identifier(_, node) {
-    return makeNode`self.${node.js()}`;
+    return makeNode`$self.${node.js()}`;
   },
   Property_symbol(_, node) {
-    return makeNode`self[${node.js()}]`;
+    return makeNode`$self[${node.js()}]`;
   },
   Script(node) {
     let js = node.js();
@@ -572,7 +638,7 @@ let actions: StorymaticActionDict<Node> = {
   },
   SingleStatementBlock_single_statement(_0, _1, statementNode) {
     let js = statementNode.js();
-    return makeNode`{\n  ${indent(js)}}\n`;
+    return makeNode`{\n  ${indent(js)}\n}\n`;
   },
   StatementBlock_statements(node) {
     let nodes = createNodes(...node.children);
@@ -742,13 +808,17 @@ let actions: StorymaticActionDict<Node> = {
     return createNode(js, func);
   },
   StaticProperty_computed(_0, _1, node, _2) {
-    return makeNode`self.constructor[${node.js()}]`;
+    return makeNode`$self.constructor[${node.js()}]`;
   },
   StaticProperty_identifier(_, node) {
-    return makeNode`self.constructor.${node.js()}`;
+    return makeNode`$self.constructor.${node.js()}`;
   },
   StaticProperty_symbol(_, node) {
-    return makeNode`self.constructor[${node.js()}]`;
+    return makeNode`$self.constructor[${node.js()}]`;
+  },
+  SwitchStatement(_0, _1, expr, _2, cases, defaultNode, _3) {
+    let js = joinWith(cases.children.concat(defaultNode.children), "\n");
+    return makeNode`switch (${expr.js()}) {\n  ${indent(js)}\n}`;
   },
   string_bit_character(char) {
     if (char.sourceString == "$") return createNode("\\$");
@@ -816,6 +886,9 @@ let actions: StorymaticActionDict<Node> = {
       return makeNode`try ${_try} catch ($) {}\n`;
     }
   },
+  unitNumber(num, unit) {
+    return makeNode`${unit.js()}({ number: ${num.js()}, string: "${num.js()}" })`;
+  },
   UnprefixedSingleStatementBlock_single_statement(statementNode) {
     let js = statementNode.js();
     return makeNode`{\n  ${indent(js)}}\n`;
@@ -831,7 +904,7 @@ let actions: StorymaticActionDict<Node> = {
   },
   WrappedStatementBlock(_0, node, _1) {
     let js = node.js();
-    return makeNode`{\n  ${indent(js)}}\n`;
+    return makeNode`{\n  ${indent(js).trim()}\n}\n`;
   },
 };
 

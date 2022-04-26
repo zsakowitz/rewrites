@@ -23,7 +23,7 @@ Storymatic {
   SwitchStatement = "switch" #(space+) Expression "{" CaseStatement* DefaultStatement? "}"
   CaseClause = "case" #(space+) Expression CaseTerminator
   CaseStatement = CaseClause+ UnprefixedSingleStatementBlock
-  DefaultStatement = "default" UnprefixedSingleStatementBlock
+  DefaultStatement = "default" #(space+) UnprefixedSingleStatementBlock
 
   CaseTerminator
     = #colonTerminator -- terminator
@@ -170,19 +170,15 @@ Storymatic {
 
   MethodName
     = identOrWord -- identifier
-    | Symbol -- Symbol
+    | Symbol -- symbol
     | string_non_interpolatable -- string_key
     | string -- computed_string_key
+    | digit+ -- numerical_key
     | "[" Expression "]" -- computed_key
 
   ObjectEntry
     = identifier ~":" -- restructure
-    | identOrWord ":" Expression -- key_value
-    | Symbol ":" Expression -- symbol_value
-    | string_non_interpolatable ":" Expression -- string_key
-    | string ":" Expression -- computed_string_key
-    | digit+ ":" Expression -- numerical_key
-    | "[" Expression "]" ":" Expression -- computed_key
+    | MethodName ":" Expression -- key_value
     | "..." Expression -- spread_operator
     | Method<""> -- object_method
     | Method<"@"> -- object_method_with_self
@@ -279,10 +275,6 @@ Storymatic {
     | "yield" #(space+ "from" space+ | spaces "*" spaces) AssignmentExp -- yield_from
     | TernaryExp
 
-  SuperOrThis
-    = "super" ~id_continue -- super
-    | "this" "=" -- this
-
   VariableAssignment = NonCapturingAssignable "=" Expression
 
   AssignableOrAccessor = NonAssignableAccessor | ~"@" Assignable ~("." | "[")
@@ -292,11 +284,7 @@ Storymatic {
     | AssignableType
 
   AssignableKeyWithRewrite<AssignableType>
-    = identOrWord ":" AssignableWithDefault<AssignableType> -- standard_rewrite
-    | Symbol ":" AssignableWithDefault<AssignableType> -- symbol_rewrite
-    | string_non_interpolatable ":" AssignableWithDefault<AssignableType> -- string_rewrite
-    | string ":" AssignableWithDefault<AssignableType> -- computed_string_rewrite
-    | "[" Expression "]" ":" AssignableWithDefault<AssignableType> -- computed_rewrite
+    = MethodName ":" AssignableWithDefault<AssignableType> -- rewrite
     | AssignableWithDefault<AssignableType>
 
   Assignable
@@ -335,8 +323,9 @@ Storymatic {
 
   sign = ("+" | "-")?
   number = digit+
-  unitNumber = ~"0x" sign digit+ ("." digit+)? ("e" sign digit+)? ~("n" ~id_continue) identifierWord
-  decimalNumber = ~"0x" sign digit+ ("." digit+)? ("e" sign digit+)? ~char
+  fullNumber = sign digit+ ("." digit+)? ("e" sign digit+)?
+  unitNumber = ~"0x" fullNumber ~("n" ~id_continue) identifierWord
+  decimalNumber = ~"0x" fullNumber ~char
   hexNumber = sign "0x" hexDigit+
   bigint = ~"0x" sign digit+ "n"
 
