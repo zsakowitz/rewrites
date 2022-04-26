@@ -807,6 +807,9 @@ let actions: StorymaticActionDict<Node> = {
 
     return createNode(js, func);
   },
+  Statement_while(_0, _1, expr, block) {
+    return makeNode`while (${expr.js()}) ${block.js()}`;
+  },
   StaticProperty_computed(_0, _1, node, _2) {
     return makeNode`$self.constructor[${node.js()}]`;
   },
