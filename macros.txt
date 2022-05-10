@@ -1,0 +1,77 @@
+Throughout this file, macros show their arguments and cells they use.
+
+Cell modification types:
+  "pops N values"      a macro modifies the current cell and (n-1) previous cells.
+  "uses this cell"     a macro modifies the current cell.
+  "uses next N cells"  a macro modifies the next (n) cells, not including the current one.
+
+Instruction types:
+  "go to cell X"       a line of code moves the pointer to cell X
+  "de/increment X"     a line of code decrements or increments cell X
+  "move cell X to Y"   a line of code moves the value of cell X to cell Y
+  "copy cell X to Y"   a line of code copies the value of cell X to cell Y
+
+@add           pops 2 values
+  [-<+>]<
+
+@copyfrom(from)
+  &0
+  reset
+  [-&-0>+&0<]&-0>
+  [-<+&0+&-0>]<
+
+@copyto(to)
+  &0
+  reset
+  &-0[-&0>+&-0<]&0>
+  [-<+&-0+&0>]<
+  &-0
+
+@movefrom(from)
+  reset
+  &0[-&-0+&0]&-0
+
+@moveto(to)
+  &0
+  reset
+  &-0[-&0+&-0]
+
+@multiply      pops 2 values, uses next 2 cells
+  // In this script, cell A is the multiplicand. Cell B is the multiplier,
+  // cell C is the temporary output, and cell D is used during the copy process.
+
+  push 0       reset next cell
+  <<[-         decrement cell A
+  >            go to cell B
+  moveto 2     move cell B to D
+  >>[-<+<+>>]  copy cell D to B and C
+  <<<          go to cell A
+  ]
+  >
+  reset        reset cell B
+  <
+  movefrom 2   move cell C to A
+
+@popchar
+  .
+
+@push(value)   uses next cell
+  >
+  set $0
+
+@pushchar
+  >
+  ,
+
+@pushinput
+  >,[>,]
+
+@reset         uses this cell
+  [-]
+
+@set(value)    uses this cell
+  reset
+  #0
+
+@subtract      pops 2 values
+  [-<->]<
