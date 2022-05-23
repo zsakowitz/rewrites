@@ -30,7 +30,7 @@ class Facet<State, Input, Output = readonly Input[]> {
   }
 
   compute(
-    deps: (Facet<any, any> | StateField<any>)[],
+    deps: (Facet<State, any, any> | Field<State, any>)[],
     get: (state: State) => Input
   ) {
     return this.toExtension();
