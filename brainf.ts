@@ -94,7 +94,8 @@ function expand(macro: string, ...args: string[]): string {
       } else return "";
     })
     .join("")
-    .replace(/[^-+<>[\],.]/g, "");
+    .replace(/[^-+<>[\],.]/g, "")
+    .replace(/\[-]\[-]/g, "[-]");
 }
 
 function number(text: string, multiplier = 1) {
@@ -125,13 +126,11 @@ let macros: Record<string, string> = Object.fromEntries(
 );
 
 let source = `
-pushinput
-
-<
-[
-  popchar
-  <
-]
+push 4
+push 7
+multiply
+push 3
+multiply
 `;
 
 source = expand(source);
