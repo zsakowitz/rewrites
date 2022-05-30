@@ -2,7 +2,7 @@
   "compilerOptions": {
     "strict": true,
     "target": "ES6",
-    "lib": ["ES6", "DOM"],
+    "lib": ["ES6", "DOM", "DOM.Iterable"],
     "module": "ES6",
     "outDir": "./dist",
     "allowJs": true,
