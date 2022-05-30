@@ -24,7 +24,7 @@ function handler(event: KeyboardEvent) {
     );
 
     if (currentTab) {
-      (currentTab.children[1] as any)?.click?.();
+      (currentTab.children[1] as any).click();
     }
 
     event.preventDefault();
