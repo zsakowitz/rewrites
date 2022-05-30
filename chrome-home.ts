@@ -15,20 +15,28 @@ function getActiveShortcuts(event: KeyboardEvent) {
   return { altOnly, cmdOnly, ctrlOnly, metaOnly };
 }
 
-if (location.host.includes('stackblitz.com')) {
-  window.addEventListener('keydown', (event) => {
-    let { cmdOnly } = getActiveShortcuts(event);
+function handler(event: KeyboardEvent) {
+  let { cmdOnly } = getActiveShortcuts(event);
 
-    if (cmdOnly && event.key === 'w') {
-      let currentTab = document.querySelector(
-        '[class*="Editor-module-panel"]:focus-within #editor-tabbar-0 > [class*=focused]'
-      );
+  if (cmdOnly && event.key === 'w') {
+    let currentTab = document.querySelector(
+      '[class*="Editor-module-panel"]:focus-within #editor-tabbar-0 > [class*=focused]'
+    );
 
-      if (currentTab) {
-        (currentTab.children[1] as any)?.click?.();
-      }
-
-      event.preventDefault();
+    if (currentTab) {
+      (currentTab.children[1] as any)?.click?.();
     }
+
+    event.preventDefault();
+  }
+}
+
+if (location.host.includes('stackblitz.com')) {
+  window.dispatchEvent(new Event('new-chrome-home'));
+
+  window.addEventListener('keydown', handler);
+
+  window.addEventListener('new-chrome-home', () => {
+    window.removeEventListener('keydown', handler);
   });
 }
