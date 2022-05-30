@@ -71,15 +71,14 @@ namespace StackBlitz {
     };
   }
 
-  if (StackBlitz.PreviousHandler) {
-    window.removeEventListener('keydown', StackBlitz.PreviousHandler);
+  if (window.__stackblitzPreviousHandler) {
+    window.removeEventListener('keydown', window.__stackblitzPreviousHandler);
   }
 
   export function Initialize() {
+    window.__stackblitzPreviousHandler = Handler;
     window.addEventListener('keydown', Handler);
   }
-
-  export let PreviousHandler = Handler;
 }
 
 if (location.host.includes('stackblitz.com')) {
@@ -87,3 +86,5 @@ if (location.host.includes('stackblitz.com')) {
 } else if (document.querySelector('video')) {
   VideoPlayer.Initialize();
 }
+
+declare var __stackblitzPreviousHandler: typeof StackBlitz.Handler;
