@@ -31,12 +31,14 @@ function handler(event: KeyboardEvent) {
   }
 }
 
+window.oldChromeHome = handler;
+
 if (location.host.includes('stackblitz.com')) {
-  window.dispatchEvent(new Event('new-chrome-home'));
+  if (oldChromeHome) {
+    window.removeEventListener('keydown', oldChromeHome);
+  }
 
   window.addEventListener('keydown', handler);
-
-  window.addEventListener('new-chrome-home', () => {
-    window.removeEventListener('keydown', handler);
-  });
 }
+
+declare var oldChromeHome: typeof handler | undefined;
