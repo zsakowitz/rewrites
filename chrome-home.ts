@@ -36,18 +36,39 @@ namespace VideoPlayer {
 namespace StackBlitz {
   export function Handler(event: KeyboardEvent) {
     let { cmdOnly, ctrlOnly } = Keyboard.Keys(event);
+    let { editorBar, editorCloseButton, terminalCloseButton } = GetFocused();
 
     if (event.key === 'w' && ((Device.isPWA() && cmdOnly) || ctrlOnly)) {
-      let currentTab = document.querySelector(
-        '[class*="Editor-module-panel"]:focus-within #editor-tabbar-0 > [class*=focused]'
-      );
-
-      if (currentTab) {
-        (currentTab.children[1] as any).click();
+      if (terminalCloseButton) {
+        (terminalCloseButton as any).click();
+      } else if (editorCloseButton) {
+        (editorCloseButton as any).click();
+      } else if (!editorBar) {
+        // close window
+        return;
       }
 
       event.preventDefault();
     }
+  }
+
+  export function GetFocused() {
+    let editorTab =
+      document.querySelector(
+        '[class*="Editor-module-panel"]:focus-within #editor-tabbar-0 > [class*=focused]'
+      ) || undefined;
+
+    let terminal =
+      document.querySelector('.terminal-tile:focus-within') || undefined;
+
+    return {
+      terminal,
+      terminalCloseButton:
+        terminal?.querySelector('.Action:last-of-type') ?? undefined,
+      editorTab,
+      editorCloseButton: editorTab?.children[1]!,
+      editorBar: document.querySelector('#editor-tabbar-0') ?? undefined,
+    };
   }
 
   if (StackBlitz.PreviousHandler) {
