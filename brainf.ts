@@ -1,38 +1,38 @@
 // @ts-check
 
-import { readFileSync } from "fs";
+import { readFileSync } from 'fs';
 
 class Runner {
   brackets: Record<number, number> = Object.create(null);
   memory = new Uint8Array(30000);
   pointer = 0;
   index = 0;
-  stdout = "";
+  stdout = '';
 
   stdin: string[];
   source: string;
 
-  constructor(source = "", stdin = "") {
+  constructor(source = '', stdin = '') {
     this.source = source;
-    this.stdin = stdin.split("");
+    this.stdin = stdin.split('');
 
     let brackets = [];
     for (let index = 0; index < source.length; index++) {
       let char = source[index];
 
-      if (char == "[") {
+      if (char == '[') {
         brackets.push(index);
       }
 
-      if (char == "]") {
+      if (char == ']') {
         let open = brackets.pop();
-        if (!open) throw new Error("Unmatched closing bracket");
+        if (!open) throw new Error('Unmatched closing bracket');
         this.brackets[index] = open;
         this.brackets[open] = index;
       }
     }
 
-    if (brackets.length) throw new Error("Unmatched opening bracket");
+    if (brackets.length) throw new Error('Unmatched opening bracket');
   }
 
   execute() {
@@ -41,22 +41,22 @@ class Runner {
     while (index < this.source.length) {
       let char = this.source[index];
 
-      if (char == ",") {
+      if (char == ',') {
         memory[pointer] = stdin.shift()?.charCodeAt(0) || 0;
-      } else if (char == ".") {
+      } else if (char == '.') {
         stdout += String.fromCharCode(memory[pointer]);
-      } else if (char == "+") {
+      } else if (char == '+') {
         memory[pointer]++;
-      } else if (char == "-") {
+      } else if (char == '-') {
         memory[pointer]--;
-      } else if (char == "<") {
+      } else if (char == '<') {
         pointer -= 1;
         if (pointer < 0) pointer = 29999;
-      } else if (char == ">") {
+      } else if (char == '>') {
         pointer = (pointer + 1) % 30000;
-      } else if (char == "[") {
+      } else if (char == '[') {
         if (!memory[pointer]) index = this.brackets[index];
-      } else if (char == "]") {
+      } else if (char == ']') {
         if (memory[pointer]) index = this.brackets[index];
       }
 
@@ -82,40 +82,40 @@ function expand(macro: string, ...args: string[]): string {
     .replace(/\$\d+/g, (match) => args[+match.slice(1)]);
 
   return macro
-    .split("\n")
+    .split('\n')
     .map((e) => e.trim())
     .map((e) => {
       let match = e.match(/^((?!\d)\w+)(.*)$/);
 
       if (match) {
         return expand(macros[match[1]], ...match[2].split(/;\s*/));
-      } else if (!e.startsWith("//")) {
+      } else if (!e.startsWith('//')) {
         return e;
-      } else return "";
+      } else return '';
     })
-    .join("")
-    .replace(/[^-+<>[\],.]/g, "")
-    .replace(/\[-]\[-]/g, "[-]");
+    .join('')
+    .replace(/[^-+<>[\],.]/g, '')
+    .replace(/\[-]\[-]/g, '[-]');
 }
 
 function number(text: string, multiplier = 1) {
   let value = parseInt(text) * multiplier;
-  if (!Number.isSafeInteger(value)) return "";
-  if (value > 0) return "+".repeat(value);
-  if (value < 0) return "-".repeat(-value);
-  return "";
+  if (!Number.isSafeInteger(value)) return '';
+  if (value > 0) return '+'.repeat(value);
+  if (value < 0) return '-'.repeat(-value);
+  return '';
 }
 
 function position(text: string, multiplier = 1) {
   let value = parseInt(text) * multiplier;
-  if (!Number.isSafeInteger(value)) return "";
-  if (value > 0) return ">".repeat(value);
-  if (value < 0) return "<".repeat(-value);
-  return "";
+  if (!Number.isSafeInteger(value)) return '';
+  if (value > 0) return '>'.repeat(value);
+  if (value < 0) return '<'.repeat(-value);
+  return '';
 }
 
 let macros: Record<string, string> = Object.fromEntries(
-  readFileSync("./macros.txt", "utf-8")
+  readFileSync('./macros.txt', 'utf-8')
     .trim()
     .match(/@\w+.*\n[\s\S]+?(?=@|$)/g)!
     .map((macro) => {
@@ -136,7 +136,7 @@ multiply
 source = expand(source);
 console.log(source);
 
-let runner = new Runner(source, "My name is Zachary.").execute();
+let runner = new Runner(source, 'My name is Zachary.').execute();
 console.log(runner.memory);
 console.log(runner.pointer);
 console.log(runner.stdout);
