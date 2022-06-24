@@ -1,0 +1,11 @@
+{
+  "overrides": [
+    {
+      "files": "lambda.js",
+      "options": {
+        "arrowParens": "avoid",
+        "semi": false
+      }
+    }
+  ]
+}
