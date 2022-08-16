@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "strict": true,
-    "target": "ES6",
-    "lib": ["ES6", "DOM", "DOM.Iterable"],
-    "module": "ES6",
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "outDir": "./dist",
     "allowJs": true,
     "moduleResolution": "node",

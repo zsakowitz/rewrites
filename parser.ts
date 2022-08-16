@@ -1,0 +1,60 @@
+abstract class Parser {
+  index = 0;
+
+  constructor(public readonly source: string) {}
+
+  trim(this: Parser) {
+    while (this.source[this.index].trimStart() == "") {
+      this.index++;
+    }
+  }
+
+  match(text: string | RegExp, trim = true) {
+    if (trim) this.trim();
+
+    if (typeof text == "string") {
+      if (this.source.slice(this.index, this.index + text.length) == text) {
+        this.index += text.length;
+        return Result.ok(this, text);
+      }
+    } else {
+      if (!text.source.startsWith("^")) {
+        throw new Error("A matching regex must have a ^ assertion.")
+      }
+
+      const match = text.exec(this.source);
+
+      if (match) {
+        this.source = this.source.slice(match[0].length);
+        return new Result<void>(this, true, match[0], void 0);
+      }
+    }
+
+    return new Result<void>(this, false, "");
+
+    function a(b: void) {}
+
+    a();
+  }
+}
+
+class Result<D> {
+  static error(parser: Parser) {
+    return new Result<void>(parser, false, "", void 0);
+  }
+
+  static ok(parser: Parser, source: string,): Result<void>;
+  static ok<D>(parser: Parser, source: string, data: D): Result<D>;
+  static ok<D>(parser: Parser, source: string, data?: D) {
+    return new Result(parser, true, source, data);
+  }
+
+  private constructor(
+    public readonly parser: Parser,
+    public readonly ok: boolean,
+    public readonly source: string,
+    public readonly data: D
+  ) {}
+}
+
+export { Parser, Result };

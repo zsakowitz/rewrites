@@ -9,8 +9,8 @@ namespace String {
 
   type JoinRest<
     Array extends readonly any[],
-    Joiner extends string = '',
-    Output extends string = ''
+    Joiner extends string = "",
+    Output extends string = ""
   > = Array extends readonly [infer Element, ...infer Rest]
     ? Element extends Embeddable
       ? JoinRest<Rest, Joiner, `${Output}${Joiner}${Element}`>
@@ -19,9 +19,9 @@ namespace String {
 
   export type Join<
     Array extends readonly any[],
-    Joiner extends string = ''
+    Joiner extends string = ""
   > = Array extends []
-    ? ''
+    ? ""
     : Array extends [infer Element]
     ? Element extends Embeddable
       ? `${Element}`
@@ -38,12 +38,12 @@ namespace String {
     Arr extends string[] = []
   > = Text extends `${infer First}${Splitter}${infer Rest}`
     ? Split<Rest, Splitter, [...Arr, First]>
-    : Splitter extends ''
+    : Splitter extends ""
     ? Arr
     : [...Arr, Text];
 
-  export type Character<T extends string> = T extends ''
-    ? [char: undefined, rest: '']
+  export type Character<T extends string> = T extends ""
+    ? [char: undefined, rest: ""]
     : T extends `${infer Char}${infer Rest}`
     ? [char: Char, rest: Rest]
     : never;
@@ -57,6 +57,7 @@ namespace String {
 }
 
 interface String {
+  split(splitter: "", limit?: number): string[];
   split<This extends string, Splitter extends string>(
     this: This,
     splitter: Splitter,
@@ -64,4 +65,4 @@ interface String {
   ): String.Split<This, Splitter>;
 }
 
-let a = 'fdvadhsk jkdfsh'.split<'fdvadhsk jkdfsh', ' '>(' ');
+let a = "fdvadhsk jkdfsh".split<"fdvadhsk jkdfsh", " ">(" ");
