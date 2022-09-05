@@ -126,7 +126,7 @@ export class Sandpile extends Array<number[]> {
       for (let col = 0; col < numCols; col++) {
         let val = original[row][col];
 
-        while (val >= 4) {
+        if (val >= 4) {
           val -= 4;
 
           if (row !== 0) {
