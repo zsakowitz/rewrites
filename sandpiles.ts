@@ -182,6 +182,32 @@ export class Sandpile extends Array<number[]> {
 
     return result.topple();
   }
+
+  private static characters = [" ", "░", "▒", "▓", "█"];
+
+  ascii() {
+    return this.map((row) =>
+      row
+        .map((cell) =>
+          (Sandpile.characters[cell] ?? Sandpile.characters[4]).repeat(2)
+        )
+        .join("")
+    ).join("\n");
+  }
+
+  async toppleVisually(fps = 10) {
+    while (this.willTopple()) {
+      this.toppleOnce();
+      console.log(this.ascii());
+      await wait(1000 / fps);
+    }
+
+    console.log(this.ascii());
+  }
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export const magic3x3 = Sandpile.from([
