@@ -65,4 +65,4 @@ interface String {
   ): String.Split<This, Splitter>;
 }
 
-let a = "fdvadhsk jkdfsh".split(" ");
+let testString = "fdvadhsk jkdfsh".split(" ");
