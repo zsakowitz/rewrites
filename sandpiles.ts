@@ -1,112 +1,191 @@
 // https://www.youtube.com/watch?v=1MtEUErz7Gg
 
-export type Sandpile = number[][];
+export type SandpileLike = ArrayLike<ArrayLike<number>>;
 
-export function isNestedArray(array: unknown): array is unknown[][] {
-  if (!Array.isArray(array)) {
-    return false;
+export class Sandpile extends Array<number[]> {
+  static isSandpile(pile: unknown): pile is Sandpile {
+    return pile instanceof Sandpile;
   }
 
-  for (const row of array) {
-    if (!Array.isArray(row)) {
-      return false;
+  static isSandpileLike(pile: SandpileLike) {
+    if (this.isSandpile(pile)) {
+      return true;
     }
-  }
 
-  return true;
-}
-
-export function isSandpile(pile: unknown): pile is Sandpile {
-  if (!isNestedArray(pile) || !pile.length || !pile[0].length) {
-    return false;
-  }
-
-  const size = pile[0].length;
-  if (!size) {
-    return false;
-  }
-
-  for (const row of pile) {
-    if (!row.every((value): value is number => typeof value === "number")) {
+    if (!pile.length || !pile[0].length) {
       return false;
     }
 
-    if (row.length !== size) {
+    const size = pile[0].length;
+    if (!size) {
       return false;
     }
-  }
 
-  return true;
-}
-
-export function needsPropogation(pile: Sandpile) {
-  return pile.some((row) => row.some((cell) => cell > 3));
-}
-
-export function propogateOnce(pile: Sandpile) {
-  const array: Sandpile = [];
-
-  const numRows = pile.length;
-  const numCols = pile[0].length;
-
-  for (let row = 0; row < numRows; row++) {
-    const subarray: number[] = Array<number>(numCols).fill(0);
-    array[row] = subarray;
-  }
-
-  for (let row = 0; row < numRows; row++) {
-    for (let col = 0; col < numCols; col++) {
-      let val = pile[row][col];
-
-      while (val >= 4) {
-        val -= 4;
-
-        if (row !== 0) {
-          array[row - 1][col]++;
-        }
-
-        if (row !== numRows - 1) {
-          array[row + 1][col]++;
-        }
-
-        if (col !== 0) {
-          array[row][col - 1]++;
-        }
-
-        if (col !== numCols - 1) {
-          array[row][col + 1]++;
-        }
+    for (let i = 0; i < pile.length; i++) {
+      if (pile[i].length !== size) {
+        return false;
       }
+    }
 
-      array[row][col] += val;
+    return true;
+  }
+
+  static from(pile: SandpileLike) {
+    if (!this.isSandpileLike(pile)) {
+      throw new Error("pile is not a properly formed SandpileLike.");
+    }
+
+    const numRows = pile.length;
+    const numCols = pile[0].length;
+
+    const realPile = new this(numRows, numCols);
+
+    for (let row = 0; row < numRows; row++) {
+      for (let col = 0; col < numCols; col++) {
+        realPile[row][col] = pile[row][col];
+      }
+    }
+
+    return realPile;
+  }
+
+  static fillWith(value: number, numRows?: number, numCols?: number) {
+    return new this(numRows, numCols).fill(value);
+  }
+
+  static empty(numRows?: number, numCols?: number) {
+    return this.fillWith(0, numRows, numCols);
+  }
+
+  static min(numRows?: number, numCols?: number) {
+    return this.fillWith(0, numRows, numCols);
+  }
+
+  static max(numRows?: number, numCols?: number) {
+    return this.fillWith(3, numRows, numCols);
+  }
+
+  constructor(numRows = 1, numCols = 1) {
+    if (!numRows || !numCols) {
+      throw new Error("A sandpile must have positive and nonzero dimensions.");
+    }
+
+    super(numRows);
+
+    for (let row = 0; row < numRows; row++) {
+      this[row] = Array<number>(numCols).fill(0);
     }
   }
 
-  return array;
-}
-
-export function propogate(pile: Sandpile) {
-  while (needsPropogation(pile)) {
-    pile = propogateOnce(pile);
+  get numRows() {
+    return this.length;
   }
 
-  return pile;
-}
+  get numCols() {
+    return this[0].length;
+  }
 
-export function addPiles(a: Sandpile, b: Sandpile) {
-  const array: Sandpile = [];
+  clone() {
+    return Sandpile.from(this);
+  }
 
-  const numRows = a.length;
-  const numCols = a[0].length;
-
-  for (let row = 0; row < numRows; row++) {
-    const subarray: number[] = [];
-    array.push(subarray);
-
-    for (let col = 0; col < numCols; col++) {
-      subarray[col] = a[row][col] + b[row][col];
+  fill(value: number): this;
+  fill(value: number[], start?: number, end?: number): this;
+  fill(value: number | number[], start?: number, end?: number) {
+    if (value instanceof Array) {
+      return super.fill(value, start, end);
     }
+
+    const { numRows, numCols } = this;
+
+    for (let row = 0; row < numRows; row++) {
+      for (let col = 0; col < numCols; col++) {
+        this[row][col] = value;
+      }
+    }
+
+    return this;
   }
 
-  return propogate(array);
+  willTopple() {
+    return this.some((row) => row.some((cell) => cell > 3));
+  }
+
+  toppleOnce() {
+    const original = this.clone();
+    const { numRows, numCols } = original;
+
+    this.fill(0);
+
+    for (let row = 0; row < numRows; row++) {
+      const subarray: number[] = Array<number>(numCols).fill(0);
+      this[row] = subarray;
+    }
+
+    for (let row = 0; row < numRows; row++) {
+      for (let col = 0; col < numCols; col++) {
+        let val = original[row][col];
+
+        while (val >= 4) {
+          val -= 4;
+
+          if (row !== 0) {
+            this[row - 1][col]++;
+          }
+
+          if (row !== numRows - 1) {
+            this[row + 1][col]++;
+          }
+
+          if (col !== 0) {
+            this[row][col - 1]++;
+          }
+
+          if (col !== numCols - 1) {
+            this[row][col + 1]++;
+          }
+        }
+
+        this[row][col] += val;
+      }
+    }
+
+    return this;
+  }
+
+  topple() {
+    while (this.willTopple()) {
+      this.toppleOnce();
+    }
+
+    return this;
+  }
+
+  add(other: SandpileLike) {
+    const { numRows, numCols } = this;
+
+    if (!Sandpile.isSandpileLike(other)) {
+      throw new Error("The item being added is not a proper SandpileLike.");
+    }
+
+    if (other.length !== numRows || other[0].length !== numCols) {
+      throw new Error("When adding sandpiles, their dimensions must match.");
+    }
+
+    const result = new Sandpile(numRows, numCols);
+
+    for (let row = 0; row < numRows; row++) {
+      for (let col = 0; col < numCols; col++) {
+        result[row][col] = this[row][col] + other[row][col];
+      }
+    }
+
+    return result.topple();
+  }
 }
+
+export const magic3x3 = Sandpile.from([
+  [2, 1, 2],
+  [1, 0, 1],
+  [2, 1, 2],
+]);
