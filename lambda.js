@@ -42,3 +42,5 @@ const isZero = n => n(K(F))(T)
 const leq = x => y => isZero(sub(x)(y))
 const eq = x => y => and(leq(x)(y))(leq(y)(x))
 const gt = B1(not)(leq)
+
+export {}
