@@ -195,6 +195,20 @@ export class Sandpile extends Array<number[]> {
     ).join("\n");
   }
 
+  randomize(chance = 0.05, max = 3) {
+    const { numRows, numCols } = this;
+
+    for (let row = 0; row < numRows; row++) {
+      for (let col = 0; col < numCols; col++) {
+        if (Math.random() < chance) {
+          this[row][col] = Math.floor(max * Math.random()) + 1;
+        }
+      }
+    }
+
+    return this;
+  }
+
   async toppleVisually(fps = 10) {
     while (this.willTopple()) {
       this.toppleOnce();
