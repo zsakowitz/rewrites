@@ -77,7 +77,7 @@ function setupInstantShare() {
       }
     }
 
-    title = document.title.slice(0, -" - Google Docs".length);
+    title = document.title.split(" - ").slice(0, -1).join(" - ");
 
     const shareUrl = new URL(`./copy?userstoinvite=${email}`, location.href);
     showResult(name, title, shareUrl.href);
