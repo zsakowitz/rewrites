@@ -17,10 +17,6 @@ export type LinkedListLike<T> = {
 };
 
 export class LinkedList<T> {
-  static toIterable<T>(value: LinkedListLike<T>) {
-    return LinkedList.prototype[Symbol.iterator].call(value);
-  }
-
   static from<T>(value: LinkedListLike<T>) {
     return LinkedList.of(...LinkedList.toIterable(value));
   }
@@ -31,6 +27,23 @@ export class LinkedList<T> {
 
   static of<T>(...values: T[]) {
     return new LinkedList<T>().pushAll(...values);
+  }
+
+  static split(
+    text: string,
+    separator:
+      | string
+      | RegExp
+      | {
+          [Symbol.split](string: string, limit?: number | undefined): string[];
+        },
+    limit?: number
+  ) {
+    return LinkedList.of(...text.split(separator as any, limit));
+  }
+
+  static toIterable<T>(value: LinkedListLike<T>) {
+    return LinkedList.prototype[Symbol.iterator].call(value);
   }
 
   readonly empty: boolean;
@@ -59,6 +72,24 @@ export class LinkedList<T> {
     }
   }
 
+  every<U extends T>(
+    fn: (head: T, tail: LinkedList<T>) => head is U
+  ): this is LinkedList<U>;
+  every(fn: (head: T, tail: LinkedList<T>) => unknown): boolean;
+  every(fn: (head: T, tail: LinkedList<T>) => unknown): boolean {
+    const { empty, head, tail } = this.data;
+
+    if (empty) {
+      return true;
+    }
+
+    if (fn(head, tail)) {
+      return tail.every(fn);
+    }
+
+    return false;
+  }
+
   filter<U extends T>(
     fn: (head: T, tail: LinkedList<T>) => head is U
   ): LinkedList<U>;
@@ -84,6 +115,20 @@ export class LinkedList<T> {
       fn(list.head, list.tail);
       list = list.tail.data;
     }
+  }
+
+  join(separator = ","): string {
+    const { empty, head, tail } = this.data;
+
+    if (empty) {
+      return "";
+    }
+
+    if (tail.empty) {
+      return String(head);
+    }
+
+    return String(head) + separator + tail.join(separator);
   }
 
   map<U>(fn: (head: T, tail: LinkedList<T>) => U): LinkedList<U> {
@@ -136,13 +181,18 @@ export class LinkedList<T> {
     return result;
   }
 
-  *[Symbol.iterator](this: LinkedListLike<T>): Generator<T> {
-    let list = this;
+  some(fn: (head: T, tail: LinkedList<T>) => unknown): boolean {
+    const { empty, head, tail } = this.data;
 
-    while (!list.empty) {
-      yield list.head!;
-      list = list.tail!;
+    if (empty) {
+      return false;
     }
+
+    if (fn(head, tail)) {
+      return true;
+    }
+
+    return tail.some(fn);
   }
 
   toArray(): T[] {
@@ -155,5 +205,14 @@ export class LinkedList<T> {
     }
 
     return result;
+  }
+
+  *[Symbol.iterator](this: LinkedListLike<T>): Generator<T> {
+    let list = this;
+
+    while (!list.empty) {
+      yield list.head!;
+      list = list.tail!;
+    }
   }
 }
