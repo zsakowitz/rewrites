@@ -12,6 +12,7 @@
     "@ohm-js/cli": "^1.1.0",
     "@types/node": "^17.0.25",
     "arcsecond": "^4.1.0",
+    "esbuild": "^0.15.10",
     "html5parser": "^2.0.2",
     "ohm-js": "^16.3.2",
     "promises-aplus-tests": "^1.2.0",
