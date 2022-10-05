@@ -15,42 +15,88 @@ export class Iterator<T, TReturn = any, TNext = undefined>
     return this;
   }
 
-  take(count: number) {
-    const result: T[] = [];
+  *take(count: number): Generator<T, TReturn | undefined, TNext> {
+    let sent: TNext | undefined;
 
     for (let i = 0; i < count; i++) {
-      const { value, done } = this.next();
+      const { value, done } = this.next(sent!);
+      if (done) return value;
+      sent = yield value;
+    }
+  }
 
-      if (done) return result;
-      result.push(value);
+  drop(count: number): Iterator<T, TReturn, TNext> {
+    for (let i = 0; i < count; i++) {
+      const { done } = this.next();
+      if (done) return this;
     }
 
-    return result;
+    return this;
   }
 
-  map<U>(fn: (value: T) => U) {
-    return new Iterator({
-      next: (val: TNext) => {
-        const { value, done } = this.next(val);
-        if (done) return { value, done };
-        return { value: fn(value), done };
-      },
-      return:
-        this.return &&
-        ((val: TReturn) => {
-          const { value, done } = this.return!(val);
-          if (done) return { value, done };
-          return { value: fn(value), done };
-        }),
-      throw:
-        this.throw &&
-        ((val) => {
-          const { value, done } = this.throw!(val);
-          if (done) return { value, done };
-          return { value: fn(value), done };
-        }),
-    });
+  *map<U>(fn: (value: T) => U): Generator<U, TReturn, TNext> {
+    let sent: TNext | undefined;
+
+    while (true) {
+      const { value, done } = this.next(sent!);
+      if (done) return value;
+      yield fn(value);
+    }
+  }
+
+  *filter(fn: (value: T) => unknown): Generator<T, TReturn, TNext> {
+    let sent: TNext | undefined;
+
+    while (true) {
+      const { value, done } = this.next(sent!);
+      if (done) return value;
+      if (fn(value)) sent = yield value;
+    }
+  }
+
+  some(fn: (value: T) => unknown): boolean {
+    while (true) {
+      const { value, done } = this.next();
+      if (done) return false;
+      if (fn(value)) return true;
+    }
+  }
+
+  every(fn: (value: T) => unknown): boolean {
+    while (true) {
+      const { value, done } = this.next();
+      if (done) return true;
+      if (!fn(value)) return false;
+    }
+  }
+
+  forEach(fn: (value: T) => void): void {
+    while (true) {
+      const { value, done } = this.next();
+      if (done) return;
+      fn(value);
+    }
+  }
+
+  reduce(fn: (oldValue: T, value: T) => T): T;
+  reduce<U>(fn: (oldValue: U, value: T) => U, initialValue?: U): U;
+  reduce<U>(fn: (oldValue: U, value: T) => U, initialValue?: U): U {
+    if (initialValue === undefined) {
+      const { value, done } = this.next();
+
+      if (done) {
+        throw new Error(
+          "When initialValue is not passed, the underlying iterator must have at least one element."
+        );
+      }
+
+      initialValue = value as any;
+    }
+
+    while (true) {
+      const { value, done } = this.next();
+      if (done) return initialValue!;
+      initialValue = fn(initialValue!, value);
+    }
   }
 }
-
-export {};
