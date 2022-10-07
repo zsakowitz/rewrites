@@ -151,7 +151,7 @@ declare global {
   var hasShareWithStudents: boolean | undefined;
 
   interface HTMLDialogElement {
-    oncancel?: ((event: Event) => void) | null;
+    oncancel: ((event: Event) => void) | null;
   }
 }
 
