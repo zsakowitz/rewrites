@@ -24,7 +24,7 @@ export class Quaternion implements QuaternionLike {
       part = part.replace(/\s+/g, "");
       const numeric = parseFloat(part);
 
-      if (numeric === NaN) {
+      if (Number.isNaN(numeric)) {
         continue;
       }
 
