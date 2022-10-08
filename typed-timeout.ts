@@ -1,3 +1,5 @@
+// A typed setTimeout function and class. #rewrite
+
 export function setTimeout<T extends (...args: any) => any>(
   handler: T,
   timeout?: number,

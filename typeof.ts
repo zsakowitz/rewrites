@@ -1,21 +1,23 @@
-type TypeOf<T> = T extends null
-  ? 'null'
+// Converts TS types into string representations. #typesystem
+
+export type TypeOf<T> = T extends null
+  ? "null"
   : T extends undefined
-  ? 'undefined'
+  ? "undefined"
   : T extends number | Number
-  ? 'number'
+  ? "number"
   : T extends string | String
-  ? 'string'
+  ? "string"
   : T extends boolean | Boolean
-  ? 'boolean'
+  ? "boolean"
   : T extends bigint | BigInt
-  ? 'bigint'
+  ? "bigint"
   : T extends symbol | Symbol
-  ? 'symbol'
+  ? "symbol"
   : T extends readonly (infer U)[]
   ? `array of ${TypeOf<U>}`
   : T extends (...args: any[]) => any
-  ? 'function'
+  ? "function"
   : T extends {}
-  ? 'object'
+  ? "object"
   : string;

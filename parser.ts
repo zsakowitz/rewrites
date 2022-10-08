@@ -1,3 +1,5 @@
+// A general Parser and Result class that can be used to parse languages.
+
 abstract class Parser {
   index = 0;
 

@@ -1,3 +1,5 @@
+// A type-first validator with full typing support.
+
 type MakeUndefinedOptional<T> = {
   [K in keyof T as undefined extends T[K] ? never : K]: T[K];
 } & {
@@ -57,7 +59,11 @@ export class ArrayValidator<T> extends Validator<T[]> {
 
 export class ObjectValidator<
   T extends Record<string | number | symbol, Validator<unknown>>
-> extends Validator<MakeUndefinedOptional<UnwrapValidatorRecord<T>>> {
+> extends Validator<{
+  [K in keyof MakeUndefinedOptional<
+    UnwrapValidatorRecord<T>
+  >]: MakeUndefinedOptional<UnwrapValidatorRecord<T>>[K];
+}> {
   protected object: [string | number | symbol, Validator<unknown>][];
 
   constructor(object: T) {
@@ -136,13 +142,13 @@ export function object<
   return new ObjectValidator(object);
 }
 
-const myobj = object({
+const myObj = object({
   a: is(2).optional(),
   b: string(),
   c: array(boolean()),
 });
 
 const b = null! as any;
-if (myobj.check(b)) {
+if (myObj.check(b)) {
   b.a;
 }

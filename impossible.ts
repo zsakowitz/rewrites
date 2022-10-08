@@ -1,3 +1,5 @@
+// Separates call and construct signatures of an object using proxies. #proxy
+
 const fnKeys = [
   "apply",
   "arguments",

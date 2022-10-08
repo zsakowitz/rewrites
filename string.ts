@@ -1,3 +1,5 @@
+// String.split and Array.join, but in the TS typesystem. #typesystem
+
 namespace String {
   export type Embeddable =
     | string

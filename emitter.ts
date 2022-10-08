@@ -1,3 +1,6 @@
+// A typed event emitter that uses promises and async iterables instead of
+// callbacks to manage event listeners. #events #promise #rewrite
+
 export class Emitter<T extends EventMap = EventMap> {
   readonly listeners = new Map<string, Set<(data: any) => void> | undefined>();
 
@@ -14,8 +17,14 @@ export class Emitter<T extends EventMap = EventMap> {
   }
 
   async *on<K extends keyof T & string>(event: K) {
-    while (true) {
-      yield await this.once(event);
+    try {
+      while (true) {
+        yield await this.once(event);
+      }
+    } finally {
+      if (this.listeners.get(event)?.size === 0) {
+        this.listeners.delete(event);
+      }
     }
   }
 

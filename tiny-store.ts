@@ -1,3 +1,5 @@
+// A simple signal, effect, memo, and computed library based on SolidJS.
+
 let currentScope: Effect;
 
 class Effect {

@@ -1,3 +1,5 @@
+// A typed promisify function. #promise #rewrite
+
 function promisify<I extends any[], O>(
   func: (...args: [...args: I, cb: (err: unknown, value: O) => void]) => void
 ) {

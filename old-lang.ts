@@ -1,3 +1,5 @@
+// An attempt to parse a language using the arcsecond library. #parser
+
 import * as A from "arcsecond";
 
 type Coroutine<T> = Generator<A.Parser<any>, T, any>;

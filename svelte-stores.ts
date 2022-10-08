@@ -1,3 +1,5 @@
+// An implementation of Svelte stores. #rewrite
+
 export type StopFunction = () => void;
 export type Subscriber<T> = (value: T) => void;
 export type UpdateFunction<T> = (value: T) => T;

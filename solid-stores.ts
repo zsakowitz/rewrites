@@ -1,3 +1,5 @@
+// An implementation of SolidJS's signals, effects, and memos. #rewrite
+
 export type Read<T> = () => T;
 
 export type Write<T> = (value: T) => void;

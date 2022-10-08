@@ -1,10 +1,13 @@
+// A JS shortcut that adds proper keyboard shortcuts to StackBlitz and doubles
+// the speed of a video in YouTube when activated. #bookmarklet
+
 namespace Device {
   export function isPWA() {
-    return window.matchMedia('(display-mode: standalone)').matches;
+    return window.matchMedia("(display-mode: standalone)").matches;
   }
 
   export function isMac() {
-    return navigator.platform.includes('Mac');
+    return navigator.platform.includes("Mac");
   }
 }
 
@@ -27,7 +30,7 @@ namespace Keyboard {
 
 namespace VideoPlayer {
   export function Initialize() {
-    for (let video of document.querySelectorAll('video')) {
+    for (let video of document.querySelectorAll("video")) {
       video.playbackRate = 2;
     }
   }
@@ -38,7 +41,7 @@ namespace StackBlitz {
     let { cmdOnly, ctrlOnly } = Keyboard.Keys(event);
     let { editorBar, editorCloseButton, terminalCloseButton } = GetFocused();
 
-    if (event.key === 'w' && ((Device.isPWA() && cmdOnly) || ctrlOnly)) {
+    if (event.key === "w" && ((Device.isPWA() && cmdOnly) || ctrlOnly)) {
       if (terminalCloseButton) {
         (terminalCloseButton as any).click();
       } else if (editorCloseButton) {
@@ -59,31 +62,31 @@ namespace StackBlitz {
       ) || undefined;
 
     let terminal =
-      document.querySelector('.terminal-tile:focus-within') || undefined;
+      document.querySelector(".terminal-tile:focus-within") || undefined;
 
     return {
       terminal,
       terminalCloseButton:
-        terminal?.querySelector('.Action:last-of-type') ?? undefined,
+        terminal?.querySelector(".Action:last-of-type") ?? undefined,
       editorTab,
       editorCloseButton: editorTab?.children[1]!,
-      editorBar: document.querySelector('#editor-tabbar-0') ?? undefined,
+      editorBar: document.querySelector("#editor-tabbar-0") ?? undefined,
     };
   }
 
   if (window.__stackblitzPreviousHandler) {
-    window.removeEventListener('keydown', window.__stackblitzPreviousHandler);
+    window.removeEventListener("keydown", window.__stackblitzPreviousHandler);
   }
 
   export function Initialize() {
     window.__stackblitzPreviousHandler = Handler;
-    window.addEventListener('keydown', Handler);
+    window.addEventListener("keydown", Handler);
   }
 }
 
-if (location.host.includes('stackblitz.com')) {
+if (location.host.includes("stackblitz.com")) {
   StackBlitz.Initialize();
-} else if (document.querySelector('video')) {
+} else if (document.querySelector("video")) {
   VideoPlayer.Initialize();
 }
 

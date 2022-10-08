@@ -1,3 +1,5 @@
+// Lambda calculus functions in JavaScript. #untyped
+
 /** identity */
 const I = x => x
 

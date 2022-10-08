@@ -1,3 +1,5 @@
+// A test implementation of the "Share with Students" chrome extension.
+
 function setupInstantShare() {
   const buttons = document.getElementsByClassName("docs-titlebar-buttons")[0];
 

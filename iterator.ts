@@ -1,3 +1,5 @@
+// An implementation of the Iterator Helpers proposal. #iterator #rewrite
+
 export class Iterator<T, TReturn = any, TNext = undefined>
   implements globalThis.Iterator<T, TReturn, TNext>
 {

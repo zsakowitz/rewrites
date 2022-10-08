@@ -1,3 +1,6 @@
+// A parser for a programming language where every instruction is a single
+// symbol. #parser
+
 class Parser {
   constructor(public source: string) {}
 

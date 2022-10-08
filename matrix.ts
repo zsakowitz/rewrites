@@ -1,3 +1,5 @@
+// A Matrix class that can be added, subtracted, and multiplied.
+
 export type MatrixLike = ArrayLike<ArrayLike<number>>;
 
 export class Matrix {

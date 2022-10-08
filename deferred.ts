@@ -1,3 +1,6 @@
+// A library for creating Deferred objects. Compatible with the Promises A+
+// specification. #promise #rewrite
+
 import tests from "promises-aplus-tests";
 
 type PendingState = { readonly type: "pending" };

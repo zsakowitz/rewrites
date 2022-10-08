@@ -1,3 +1,6 @@
+// Captures clicks on AirPods 3 or AirPods Pro using a video and the mediaSession
+// API.
+
 (async () => {
   const video = document.createElement("video");
   document.body.prepend(video);

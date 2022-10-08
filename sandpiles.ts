@@ -1,3 +1,4 @@
+// A library for adding sand piles as described in a Numberphile video.
 // https://www.youtube.com/watch?v=1MtEUErz7Gg
 
 export type SandpileLike = ArrayLike<ArrayLike<number>>;

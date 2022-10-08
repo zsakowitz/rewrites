@@ -1,3 +1,5 @@
+// A library for adding, subtracting, and multiplying quaternions.
+
 interface QuaternionLike {
   n: number;
   i: number;

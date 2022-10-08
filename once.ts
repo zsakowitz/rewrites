@@ -1,3 +1,5 @@
+// Wraps a function and only allows it to be called once.
+
 export function once<F extends (this: any, ...args: any) => any>(cb: F): F {
   let called = false;
 

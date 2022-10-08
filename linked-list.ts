@@ -1,3 +1,5 @@
+// An immutable linked list implementation. #immutable
+
 export type TypeSafeLinkedList<T> =
   | {
       empty: true;

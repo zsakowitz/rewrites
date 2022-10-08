@@ -1,3 +1,6 @@
+// Runs a generator function with async/await semantics in place of fn*/yield
+// keywords. #iterator #promise #rewrite
+
 import { Deferred } from "./deferred";
 
 export function asyncFn<T, P extends any[], R>(

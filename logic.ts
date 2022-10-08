@@ -1,3 +1,6 @@
+// Boolean operations implemented in the TS type system from a single NAND gate.
+// #typesystem
+
 declare function assert<T>(_: T): void;
 
 export type Nand<A extends boolean, B extends boolean> = A extends true

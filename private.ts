@@ -1,3 +1,5 @@
+// A class that stores private data.
+
 const data = new WeakMap<PrivateData<any, any>, WeakMap<any, any>>();
 
 export class PrivateData<K = unknown, V = unknown> {

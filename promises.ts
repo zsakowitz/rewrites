@@ -1,3 +1,5 @@
+// A promise extension with more methods. #promise
+
 export class zPromise<T> {
   static resolve<T>(value: T | PromiseLike<T>): zPromise<T> {
     return new zPromise<T>((resolve) => resolve(value));

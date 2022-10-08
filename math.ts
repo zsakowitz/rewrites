@@ -1,3 +1,5 @@
+// Mathematical functions implemented in the TS typesystem. #typesystem
+
 declare function assert<T>(_: T): void;
 
 export type Array = any[];

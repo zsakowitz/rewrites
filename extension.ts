@@ -1,8 +1,10 @@
-interface Extension<State> {
+// An implementation of the new Facet library for CodeMirror v6. #rewrite
+
+export interface Extension<State> {
   (state: State): void | PromiseLike<void>;
 }
 
-interface FacetConfig<State, Input, Output = readonly Input[]> {
+export interface FacetConfig<State, Input, Output = readonly Input[]> {
   combine?(value: readonly Input[]): Output;
   compare?(a: Output, b: Output): boolean;
   compareInput?(a: Input, b: Input): boolean;
@@ -10,7 +12,7 @@ interface FacetConfig<State, Input, Output = readonly Input[]> {
   enables?: Extension<State>;
 }
 
-class Facet<State, Input, Output = readonly Input[]> {
+export class Facet<State, Input, Output = readonly Input[]> {
   combine: (values: readonly Input[]) => Output;
   compare: (a: Output, b: Output) => boolean;
   compareInput: (a: Input, b: Input) => boolean;
@@ -37,4 +39,4 @@ class Facet<State, Input, Output = readonly Input[]> {
   }
 }
 
-class Field<State, Value> {}
+export class Field<State, Value> {}

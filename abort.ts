@@ -1,3 +1,6 @@
+// A rewrite of AbortSignals with Promise-like syntax and then-chaining.
+// #promise #rewrite
+
 export interface AbortSignalLike<T = any> {
   readonly aborted: boolean;
   readonly reason: T;

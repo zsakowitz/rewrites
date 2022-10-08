@@ -1,3 +1,5 @@
+// A Map implementation that stores its values as symbols. #rewrite #symbol
+
 export class zMap<K, V> implements Map<K, V> {
   private static readonly key: unique symbol = Symbol("zMap.key");
 

@@ -1,3 +1,5 @@
+// An engine that automatically runs dominoes games. #game
+
 function shuffle<T>(arr: T[]): T[] {
   return arr.sort(() => (Math.random() < 0.5 ? -1 : 0));
 }
