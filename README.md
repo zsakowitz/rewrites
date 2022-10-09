@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 43 files this repository has to offer.
+in the TS type system. Enjoy the 44 files this repository has to offer.
 
 # File listing
 
@@ -13,7 +13,7 @@ A parser for a programming language where every instruction is a single symbol.
 
 <br>
 
-**[README.js](./README.js)**
+**[README.js](./README.js)** 
 
 The README generator for this repo.
 
@@ -27,7 +27,7 @@ A rewrite of AbortSignals with Promise-like syntax and then-chaining.
 
 **[await-with-generators.ts](./await-with-generators.ts)** #iterator #promise #rewrite
 
-Runs a generator function with async/await semantics in place of fn\*/yield keywords.
+Runs a generator function with async/await semantics in place of fn*/yield keywords.
 
 <br>
 
@@ -45,7 +45,7 @@ Makes a javascript: bookmarklet with URI safety from a string of JS code.
 
 **[brainf.ts](./brainf.ts)** #parser
 
-A brainf\*\*\* implementation and macro expander.
+A brainf*** implementation and macro expander.
 
 <br>
 
@@ -73,7 +73,9 @@ A typed event emitter that uses promises and async iterables instead of callback
 
 <br>
 
-**[env.d.ts](./env.d.ts)**
+**[env.d.ts](./env.d.ts)** 
+
+
 
 <br>
 
@@ -83,7 +85,7 @@ An implementation of the new Facet library for CodeMirror v6.
 
 <br>
 
-**[imply.ts](./imply.ts)**
+**[imply.ts](./imply.ts)** 
 
 All boolean operations implemented from a single IMPLY gate.
 
@@ -95,7 +97,7 @@ Separates call and construct signatures of an object using proxies.
 
 <br>
 
-**[instant-share.ts](./instant-share.ts)**
+**[instant-share.ts](./instant-share.ts)** 
 
 A test implementation of the "Share with Students" chrome extension.
 
@@ -137,31 +139,31 @@ Mathematical functions implemented in the TS typesystem.
 
 <br>
 
-**[matrix.ts](./matrix.ts)**
+**[matrix.ts](./matrix.ts)** 
 
 A Matrix class that can be added, subtracted, and multiplied.
 
 <br>
 
-**[media.js](./media.js)**
+**[media.js](./media.js)** 
 
 Captures clicks on AirPods 3 or AirPods Pro using a video and the mediaSession API.
 
 <br>
 
-**[nand.ts](./nand.ts)**
+**[nand.ts](./nand.ts)** 
 
 All boolean logic gates implemented from a single NAND gate.
 
 <br>
 
-**[nullclass.ts](./nullclass.ts)**
+**[nullclass.ts](./nullclass.ts)** 
 
 A class that has no members to get around the issues with `class extends null` in browsers.
 
 <br>
 
-**[numerical-stack.ts](./numerical-stack.ts)**
+**[numerical-stack.ts](./numerical-stack.ts)** 
 
 A Stack implementation that only accepts numbers.
 
@@ -173,19 +175,19 @@ An attempt to parse a language using the arcsecond library.
 
 <br>
 
-**[once.ts](./once.ts)**
+**[once.ts](./once.ts)** 
 
 Wraps a function and only allows it to be called once.
 
 <br>
 
-**[parser.ts](./parser.ts)**
+**[parser.ts](./parser.ts)** 
 
 A general Parser and Result class that can be used to parse languages.
 
 <br>
 
-**[private.ts](./private.ts)**
+**[private.ts](./private.ts)** 
 
 A class that stores private data.
 
@@ -203,13 +205,19 @@ A typed promisify function.
 
 <br>
 
-**[quaternions.ts](./quaternions.ts)**
+**[quaternions.ts](./quaternions.ts)** 
 
 A library for adding, subtracting, and multiplying quaternions.
 
 <br>
 
-**[sandpiles.ts](./sandpiles.ts)**
+**[random-path.ts](./random-path.ts)** 
+
+Makes a random path in 1D, 2D, or 3D.
+
+<br>
+
+**[sandpiles.ts](./sandpiles.ts)** 
 
 A library for adding sand piles as described in a Numberphile video. https://www.youtube.com/watch?v=1MtEUErz7Gg
 
@@ -221,7 +229,7 @@ An implementation of SolidJS's signals, effects, and memos.
 
 <br>
 
-**[stack.ts](./stack.ts)**
+**[stack.ts](./stack.ts)** 
 
 A generic Stack in JavaScript.
 
@@ -239,7 +247,7 @@ An implementation of Svelte stores.
 
 <br>
 
-**[tiny-store.ts](./tiny-store.ts)**
+**[tiny-store.ts](./tiny-store.ts)** 
 
 A simple signal, effect, memo, and computed library based on SolidJS.
 
@@ -257,6 +265,6 @@ Converts TS types into string representations.
 
 <br>
 
-**[validator.ts](./validator.ts)**
+**[validator.ts](./validator.ts)** 
 
 A type-first validator with full typing support.
