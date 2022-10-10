@@ -20,7 +20,7 @@ const bodies = files.map(async (path) => {
 
   let body = info.join(" ").replace(/#\w+/g, "").replace(/\s+/g, " ").trim();
 
-  return `**[${path}](./${path})** ${tags}
+  return `**[${path}](./${path})**${tags ? " " + tags : ""}
 
 ${body}`;
 });
