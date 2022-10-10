@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 44 files this repository has to offer.
+in the TS type system. Enjoy the 46 files this repository has to offer.
 
 # File listing
 
@@ -217,6 +217,12 @@ Makes a random path in 1D, 2D, or 3D.
 
 <br>
 
+**[result.ts](./result.ts)** 
+
+
+
+<br>
+
 **[sandpiles.ts](./sandpiles.ts)** 
 
 A library for adding sand piles as described in a Numberphile video. https://www.youtube.com/watch?v=1MtEUErz7Gg
@@ -268,3 +274,9 @@ Converts TS types into string representations.
 **[validator.ts](./validator.ts)** 
 
 A type-first validator with full typing support.
+
+<br>
+
+**[worker.ts](./worker.ts)** 
+
+A simple way to run functions off the main thread with one-way or bi-directional communication.
