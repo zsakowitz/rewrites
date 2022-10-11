@@ -185,6 +185,23 @@ export function regex<T>(pattern: RegExp, data?: Transformer<T>): Parser<T> {
   });
 }
 
+export function char(): Parser<void>;
+export function char<T>(data: (character: string) => T): Parser<T>;
+export function char<T>(data?: (character: string) => T): Parser<T> {
+  return new Parser((result) => {
+    if (!result.ok) return result.fail();
+
+    const { source, index } = result;
+    const character = source.slice(index, index + 1);
+
+    if (character.length == 1) {
+      return result.succeed(index + 1, data?.(character)!);
+    }
+
+    return result.fail();
+  });
+}
+
 export function optional<T>(parser: Parser<T>): Parser<T | undefined> {
   return new Parser((result) => {
     if (!result.ok) return result.fail();
