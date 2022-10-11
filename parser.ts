@@ -1,3 +1,5 @@
+// An improved version of old-parser.ts. #parser
+
 export class Parser<T> {
   static ok(source: string, index: number, match: string): Parser<never>;
   static ok<T>(
