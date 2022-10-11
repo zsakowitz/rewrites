@@ -69,13 +69,16 @@ export class Parser<T> {
   }
 
   except(exception: Parser<unknown>): Parser<T> {
-    return this.chain<T>((result) => {
+    return new Parser((result) => {
       if (!result.ok) return result.fail();
+
+      const output = this.parse(result);
+      if (!output.ok) return result.fail();
 
       const next = exception.parse(result);
       if (next.ok) return result.fail();
 
-      return result;
+      return output;
     });
   }
 }
