@@ -2,14 +2,22 @@
 
 import {
   any,
+  char,
   deferred,
+  many,
   Number as Number2,
   OptionalWhitespace,
   Parser,
   regex,
+  Result,
+  sepBy,
   sequence,
   text,
-} from "./parser";
+} from "./parser.js";
+
+function indent(text: string) {
+  return text.split("\n").join("\n  ");
+}
 
 const Expression: Parser<string> = deferred(() =>
   any<string[]>(
@@ -23,7 +31,17 @@ const Expression: Parser<string> = deferred(() =>
     Addition,
     Subtraction,
     Multiplication,
-    Division
+    Division,
+    Not,
+    Apply,
+    Function,
+    Condition,
+    Undefined,
+    Array,
+    Object,
+    Await,
+    Yield,
+    String
   )
 );
 
@@ -53,7 +71,7 @@ const StatementList = sequence(
   Expression,
   OptionalWhitespace,
   Expression
-).map(([, , left, , right]) => `(${left}, ${right})`);
+).map(([, , left, , right]) => `((${left}, ${right}))`);
 
 const Assignment = sequence(
   text("="),
@@ -101,3 +119,132 @@ const Division = sequence(
   OptionalWhitespace,
   Expression
 ).map(([, , left, , right]) => `(${left} / ${right})`);
+
+const Not = sequence(text("!"), OptionalWhitespace, Expression)
+  .key(2)
+  .map((data) => `(!${data})`);
+
+const Apply = sequence(
+  text("("),
+  OptionalWhitespace,
+  Expression,
+  OptionalWhitespace,
+  sepBy(Expression, OptionalWhitespace),
+  OptionalWhitespace,
+  text(")")
+).map(([, , target, , args]) => `(${target}(${args.join(", ")}))`);
+
+const Function = sequence(
+  text("\\"),
+  OptionalWhitespace,
+  regex(/^~\s*@|@\s*~|@|~|/, (data) => ({
+    async: data.includes("@"),
+    generator: data.includes("~"),
+  })),
+  OptionalWhitespace,
+  text("("),
+  OptionalWhitespace,
+  sepBy(Expression, OptionalWhitespace),
+  OptionalWhitespace,
+  text(")"),
+  OptionalWhitespace,
+  Expression
+).map(
+  ([, , { async, generator }, , , , params, , , , value]) =>
+    `(${async ? "async " : ""}function${generator ? "*" : ""} (${params
+      .map((e) => (e.startsWith("(") && e.endsWith(")") ? e.slice(1, -1) : e))
+      .join(", ")}) {
+  return ${indent(value)};
+}.bind(this))`
+);
+
+const Condition = sequence(
+  text("?"),
+  OptionalWhitespace,
+  Expression,
+  OptionalWhitespace,
+  Expression,
+  OptionalWhitespace,
+  Expression
+).map(
+  ([, , condition, , left, , right]) => `(${condition} ? ${left} : ${right})`
+);
+
+const Undefined = text("x", "undefined");
+
+const Array = sequence(
+  text("["),
+  OptionalWhitespace,
+  sepBy(Expression, OptionalWhitespace),
+  OptionalWhitespace,
+  text("]")
+).map(([, , data]) => `[\n  ${indent(data.join(",\n"))}\n]`);
+
+const Object = sequence(
+  text("{"),
+  OptionalWhitespace,
+  sepBy(
+    sequence(ExpressionOrProperty, OptionalWhitespace, Expression),
+    OptionalWhitespace
+  ),
+  OptionalWhitespace,
+  text("}")
+).map(
+  ([, , props]) =>
+    `{\n  ${indent(
+      props
+        .map(
+          ([key, , value]) =>
+            `${key.isProp ? key.data : `[${key.data}]`}: ${
+              value.startsWith("(") && value.endsWith(")")
+                ? value.slice(1, -1)
+                : value
+            }`
+        )
+        .join(",\n")
+    )}\n}`
+);
+
+const Await = sequence(text("@"), OptionalWhitespace, Expression).map(
+  ([, , data]) => `(await ${data})`
+);
+
+const Yield = sequence(text("~"), OptionalWhitespace, Expression).map(
+  ([, , data]) => `(yield ${data})`
+);
+
+const Character = char((char) =>
+  char == "$" || char == '"'
+    ? `\\${char}`
+    : char == "\n"
+    ? "\\n"
+    : char == "\r"
+    ? "\\r"
+    : char
+).except(any(text("\\"), text('"')));
+
+const EscapedCharacter = any(text("\\\\", "\\\\"), text('\\"', '\\"'));
+
+const Interpolation = sequence(
+  text("\\"),
+  OptionalWhitespace,
+  text("{"),
+  OptionalWhitespace,
+  Expression,
+  OptionalWhitespace,
+  text("}")
+).map(([, , , , data]) => `\${${data}}`);
+
+const String = sequence(
+  text('"'),
+  many(any(Character, EscapedCharacter, Interpolation)),
+  text('"')
+).map(([, data]) => `\`${data.join("")}\``);
+
+function compile(text: string) {
+  return Expression.parse(Result.of(text)).data;
+}
+
+function evaluate(text: string) {
+  return (0, eval)(compile(text));
+}
