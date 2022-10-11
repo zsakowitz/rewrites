@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 47 files this repository has to offer.
+in the TS type system. Enjoy the 48 files this repository has to offer.
 
 # File listing
 
@@ -27,7 +27,7 @@ A rewrite of AbortSignals with Promise-like syntax and then-chaining.
 
 **[await-with-generators.ts](./await-with-generators.ts)** #iterator #promise #rewrite
 
-Runs a generator function with async/await semantics in place of fn\*/yield keywords.
+Runs a generator function with async/await semantics in place of fn*/yield keywords.
 
 <br>
 
@@ -45,7 +45,7 @@ Makes a javascript: bookmarklet with URI safety from a string of JS code.
 
 **[brainf.ts](./brainf.ts)** #parser
 
-A brainf\*\*\* implementation and macro expander.
+A brainf*** implementation and macro expander.
 
 <br>
 
@@ -175,6 +175,12 @@ An attempt to parse a language using the arcsecond library.
 
 <br>
 
+**[old-parser.ts](./old-parser.ts)**
+
+A general Parser and Result class that can be used to parse languages.
+
+<br>
+
 **[once.ts](./once.ts)**
 
 Wraps a function and only allows it to be called once.
@@ -189,7 +195,7 @@ An Option monad.
 
 **[parser.ts](./parser.ts)**
 
-A general Parser and Result class that can be used to parse languages.
+
 
 <br>
 
