@@ -1,3 +1,5 @@
+// An engine that can look through Wikipedia links.
+
 export function getContentBody(element: Element): Element | undefined {
   // .mw-parser-output directly has all body elements.
   let bodies = [...element.getElementsByClassName("mw-parser-output")];
@@ -60,6 +62,10 @@ export function linksToObjects(
   }));
 }
 
+/**
+ * Call this with extract(1, document) to get the links in the current document,
+ * then use `subtreeAll` to search those links.
+ */
 export function extract(level: number, element: Element): Link[] {
   const body = getContentBody(element);
   const paragraphs = filterCitations(body);

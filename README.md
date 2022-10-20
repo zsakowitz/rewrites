@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 48 files this repository has to offer.
+in the TS type system. Enjoy the 52 files this repository has to offer.
 
 # File listing
 
@@ -70,6 +70,12 @@ An engine that automatically runs dominoes games.
 **[emitter.ts](./emitter.ts)** #events #promise #rewrite
 
 A typed event emitter that uses promises and async iterables instead of callbacks to manage event listeners.
+
+<br>
+
+**[engine.ts](./engine.ts)**
+
+@ts-ignore
 
 <br>
 
@@ -175,6 +181,12 @@ An attempt to parse a language using the arcsecond library.
 
 <br>
 
+**[old-parser-2.ts](./old-parser-2.ts)** #parser
+
+An improved system for parsing text.
+
+<br>
+
 **[old-parser.ts](./old-parser.ts)**
 
 A general Parser and Result class that can be used to parse languages.
@@ -193,9 +205,15 @@ An Option monad.
 
 <br>
 
+**[parser.test.ts](./parser.test.ts)** #parser #test
+
+The test script for parser.ts.
+
+<br>
+
 **[parser.ts](./parser.ts)** #parser
 
-An improved version of old-parser.ts.
+Another improved system for parsing text. Slightly based on Arcsecond.
 
 <br>
 
@@ -286,6 +304,12 @@ Converts TS types into string representations.
 **[validator.ts](./validator.ts)**
 
 A type-first validator with full typing support.
+
+<br>
+
+**[wikipedia.ts](./wikipedia.ts)**
+
+An engine that can look through Wikipedia links.
 
 <br>
 
