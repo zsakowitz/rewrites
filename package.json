@@ -9,6 +9,7 @@
     "sm": "./bin/sm"
   },
   "dependencies": {
+    "@engine262/engine262": "^0.0.1-4cad21cf5b7d2a773c08ad0c996ae119cfd05820",
     "@ohm-js/cli": "^1.1.0",
     "@types/node": "^17.0.45",
     "arcsecond": "^4.1.0",
