@@ -84,10 +84,43 @@ namespace StackBlitz {
   }
 }
 
+namespace GoogleDocs {
+  function createFrame() {
+    const frame = document.createElement("iframe");
+    frame.style.display = "block";
+    frame.style.position = "fixed";
+    frame.style.zIndex = "1000000";
+    frame.style.top = "122.5px";
+    frame.style.right = "72px";
+    frame.style.width = "420px";
+    frame.style.height = "calc(100vh - 185px)";
+    frame.style.border = "none";
+    frame.setAttribute("crossorigin", "anonymous");
+    frame.src = "https://zsnout.com/";
+    return frame;
+  }
+
+  export function Initialize() {
+    const frame = createFrame();
+    window.frame = frame;
+    document.body.appendChild(frame);
+  }
+}
+
 if (location.host.includes("stackblitz.com")) {
   StackBlitz.Initialize();
+} else if (
+  location.host.includes("docs.google.com") &&
+  location.pathname.startsWith("/document")
+) {
+  GoogleDocs.Initialize();
 } else if (document.querySelector("video")) {
   VideoPlayer.Initialize();
 }
 
-declare var __stackblitzPreviousHandler: typeof StackBlitz.Handler;
+declare global {
+  var __stackblitzPreviousHandler: typeof StackBlitz.Handler;
+  var frame: HTMLIFrameElement;
+}
+
+export {};
