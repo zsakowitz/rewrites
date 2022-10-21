@@ -73,12 +73,6 @@ A typed event emitter that uses promises and async iterables instead of callback
 
 <br>
 
-**[engine.ts](./engine.ts)**
-
-@ts-ignore
-
-<br>
-
 **[env.d.ts](./env.d.ts)**
 
 Declares the promises-aplus-tests module.
@@ -118,6 +112,12 @@ An implementation of the Iterator Helpers proposal.
 **[lambda.js](./lambda.js)** #untyped
 
 Lambda calculus functions in JavaScript.
+
+<br>
+
+**[light-the-bulbs.ts](./light-the-bulbs.ts)**
+
+An engine to discover solutions to "Light the Bulbs" on zSnout.
 
 <br>
 
