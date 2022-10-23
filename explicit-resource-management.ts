@@ -1,8 +1,8 @@
-export interface Disposable {
+export interface DisposableResource {
   [Symbol.dispose](): void;
 }
 
-export interface AsyncDisposable {
+export interface AsyncDisposableResource {
   [Symbol.asyncDispose](): void;
 }
 
@@ -108,7 +108,7 @@ export async function asyncUsingBlock<T>(fn: () => T): Promise<Awaited<T>> {
   return value;
 }
 
-export function using<T extends Disposable | null | undefined>(
+export function using<T extends DisposableResource | null | undefined>(
   disposable: T
 ): T {
   if (!disposables) {
@@ -120,7 +120,7 @@ export function using<T extends Disposable | null | undefined>(
 }
 
 export function asyncUsing<
-  T extends AsyncDisposable | Disposable | null | undefined
+  T extends AsyncDisposableResource | DisposableResource | null | undefined
 >(disposable: T): T {
   if (!disposables) {
     throw new Error("Cannot call 'usingAsync' outside of a using {} block.");
@@ -128,6 +128,28 @@ export function asyncUsing<
 
   disposables.push(disposable);
   return disposable;
+}
+
+export class Disposable {
+  static from(disposables: Iterable<DisposableResource | null | undefined>) {
+    disposables = [...disposables];
+
+    return new Disposable(() => {
+      for (const disposable of disposables) {
+        disposable?.[Symbol.dispose]();
+      }
+    });
+  }
+
+  #dispose: () => void;
+
+  constructor(dispose: () => void) {
+    this.#dispose = dispose;
+  }
+
+  [Symbol.dispose]() {
+    this.#dispose();
+  }
 }
 
 declare global {
