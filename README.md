@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 52 files this repository has to offer.
+in the TS type system. Enjoy the 54 files this repository has to offer.
 
 # File listing
 
@@ -73,9 +73,21 @@ A typed event emitter that uses promises and async iterables instead of callback
 
 <br>
 
+**[encode-uri.js](./encode-uri.js)**
+
+Encodes standard input into a javascript: bookmark.
+
+<br>
+
 **[env.d.ts](./env.d.ts)**
 
 Declares the promises-aplus-tests module.
+
+<br>
+
+**[explicit-resource-management.ts](./explicit-resource-management.ts)**
+
+
 
 <br>
 

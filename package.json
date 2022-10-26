@@ -3,7 +3,8 @@
   "type": "module",
   "scripts": {
     "test-promises": "node -e \"import('./dist/deferred.js').then(p => p.test())\"",
-    "dev": "tsc -w"
+    "dev": "tsc -w",
+    "copy-chrome-home": "esbuild chrome-home.ts | node encode-uri.js | pbcopy"
   },
   "bin": {
     "sm": "./bin/sm"
