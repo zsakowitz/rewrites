@@ -107,6 +107,28 @@ namespace GoogleDocs {
   }
 }
 
+namespace MySchoolApp {
+  export function SignIn() {
+    const field = document.getElementById("Username");
+    const next = document.getElementById("nextBtn");
+
+    if (!(field instanceof HTMLInputElement)) return;
+    if (!next) return;
+
+    field.value = "zsakowitz@sfbrandeis.org";
+    next.click();
+  }
+}
+
+namespace BlackBaud {
+  export function ClickGoogleSignIn() {
+    const el = document.getElementById("googleButtonLabel");
+    if (!el) return;
+
+    el.click();
+  }
+}
+
 if (location.host.includes("stackblitz.com")) {
   StackBlitz.Initialize();
 } else if (
@@ -114,6 +136,10 @@ if (location.host.includes("stackblitz.com")) {
   location.pathname.startsWith("/document")
 ) {
   GoogleDocs.Initialize();
+} else if (location.host == "sfbrandeis.myschoolapp.com") {
+  MySchoolApp.SignIn();
+} else if (location.host == "app.blackbaud.com") {
+  BlackBaud.ClickGoogleSignIn();
 } else if (document.querySelector("video")) {
   VideoPlayer.Initialize();
 }
