@@ -4,7 +4,7 @@
   "scripts": {
     "test-promises": "node -e \"import('./dist/deferred.js').then(p => p.test())\"",
     "dev": "tsc -w",
-    "copy-chrome-home": "esbuild chrome-home.ts | node encode-uri.js | pbcopy"
+    "copy-chrome-home": "esbuild --bundle chrome-home.ts | node encode-uri.js | pbcopy"
   },
   "bin": {
     "sm": "./bin/sm"
