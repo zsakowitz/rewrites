@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 54 files this repository has to offer.
+in the TS type system. Enjoy the 55 files this repository has to offer.
 
 # File listing
 
@@ -193,18 +193,6 @@ An attempt to parse a language using the arcsecond library.
 
 <br>
 
-**[old-parser-2.ts](./old-parser-2.ts)** #parser
-
-An improved system for parsing text.
-
-<br>
-
-**[old-parser.ts](./old-parser.ts)**
-
-A general Parser and Result class that can be used to parse languages.
-
-<br>
-
 **[once.ts](./once.ts)**
 
 Wraps a function and only allows it to be called once.
@@ -217,15 +205,33 @@ An Option monad.
 
 <br>
 
-**[parser.test.ts](./parser.test.ts)** #parser #test
+**[parser-1.ts](./parser-1.ts)**
+
+A general Parser and Result class that can be used to parse languages.
+
+<br>
+
+**[parser-2.ts](./parser-2.ts)** #parser
+
+An improved system for parsing text.
+
+<br>
+
+**[parser-3.test.ts](./parser-3.test.ts)** #parser #test
 
 The test script for parser.ts.
 
 <br>
 
-**[parser.ts](./parser.ts)** #parser
+**[parser-3.ts](./parser-3.ts)** #parser
 
 Another improved system for parsing text. Slightly based on Arcsecond.
+
+<br>
+
+**[parser-4.ts](./parser-4.ts)**
+
+
 
 <br>
 

@@ -13,7 +13,7 @@ import {
   sepBy,
   sequence,
   text,
-} from "./parser.js";
+} from "./parser-3.js";
 
 function indent(text: string) {
   return text.split("\n").join("\n  ");
