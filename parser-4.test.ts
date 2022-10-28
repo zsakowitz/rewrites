@@ -25,7 +25,7 @@ const Division = Z.sequence(Z.text("/"), Z.OptionalWhitespace, Atom);
 const Level2 = Z.sequence(
   Number,
   Z.OptionalWhitespace,
-  Z.many(Z.any(Multiplication, Division))
+  Z.sepBy(Z.any(Multiplication, Division), Z.OptionalWhitespace)
 ).map(([number, , mappers]) =>
   mappers.reduce((a, [type, , b]) => (type == "*" ? a * b : a / b), number)
 );
@@ -37,7 +37,7 @@ const Subtraction = Z.sequence(Z.text("-"), Z.OptionalWhitespace, Level2);
 const Level1 = Z.sequence(
   Number,
   Z.OptionalWhitespace,
-  Z.many(Z.any(Addition, Subtraction))
+  Z.sepBy(Z.any(Addition, Subtraction), Z.OptionalWhitespace)
 ).map(([number, , mappers]) =>
   mappers.reduce((a, [type, , b]) => (type == "+" ? a + b : a - b), number)
 );
