@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 55 files this repository has to offer.
+in the TS type system. Enjoy the 58 files this repository has to offer.
 
 # File listing
 
@@ -112,6 +112,12 @@ Separates call and construct signatures of an object using proxies.
 **[instant-share.ts](./instant-share.ts)**
 
 A test implementation of the "Share with Students" chrome extension.
+
+<br>
+
+**[inventory.ts](./inventory.ts)**
+
+Calculates the inventory sequence as described in https://www.youtube.com/watch?v=rBU9E-ZOZAI.
 
 <br>
 
@@ -229,9 +235,15 @@ Another improved system for parsing text. Slightly based on Arcsecond.
 
 <br>
 
+**[parser-4.test.ts](./parser-4.test.ts)**
+
+
+
+<br>
+
 **[parser-4.ts](./parser-4.ts)**
 
-Yet another system for parsing ... well, anything.
+Yet another system for parsing text.
 
 <br>
 
@@ -298,6 +310,12 @@ String.split and Array.join, but in the TS typesystem.
 **[svelte-stores.ts](./svelte-stores.ts)** #rewrite
 
 An implementation of Svelte stores.
+
+<br>
+
+**[tick-oat-two.ts](./tick-oat-two.ts)**
+
+/ An AI for the TickoaTTwo game created by Oats Jenkins: / https://www.youtube.com/watch?v=ePxrVU4M9uA
 
 <br>
 
