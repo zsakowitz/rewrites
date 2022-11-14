@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 58 files this repository has to offer.
+in the TS type system. Enjoy the 59 files this repository has to offer.
 
 # File listing
 
@@ -52,6 +52,12 @@ A brainf*** implementation and macro expander.
 **[chrome-home.ts](./chrome-home.ts)** #bookmarklet
 
 A JS shortcut that adds proper keyboard shortcuts to StackBlitz and doubles the speed of a video in YouTube when activated.
+
+<br>
+
+**[curry.ts](./curry.ts)** #typesystem
+
+A TypeScript type for currying functions.
 
 <br>
 

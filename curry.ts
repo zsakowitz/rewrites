@@ -1,3 +1,5 @@
+// A TypeScript type for currying functions. #typesystem
+
 export type Curried_<P extends readonly any[], R> = P extends readonly []
   ? R
   : <A extends Partial<P>>(
