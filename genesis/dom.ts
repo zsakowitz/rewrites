@@ -41,9 +41,7 @@ export function fragment(
     children.forEach((child) => child.remove()),
     nodes.forEach((node) =>
       render(node, {
-        append: (node) => (
-          children.delete(node), anchor.after(node), children.add(node)
-        ),
+        append: (node) => (anchor.after(node), children.add(node)),
       })
     )
   );
