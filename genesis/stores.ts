@@ -2,13 +2,13 @@
 
 import { effect, event } from "./core";
 
-export type Store<T> = readonly [get: () => T, set: (newValue: T) => void];
+export type Signal<T> = readonly [get: () => T, set: (newValue: T) => void];
 
 /**
  * Creates a tuple that can get and set a given value. If `get` is called from
  * within an effect, the effect will be re-run when `set` is called.
  */
-export function value<T>(value: T): Store<T> {
+export function signal<T>(value: T): Signal<T> {
   const [track, trigger] = event();
 
   return [
@@ -19,7 +19,7 @@ export function value<T>(value: T): Store<T> {
 
 /** Creates a memo that is only updated when its dependencies change. */
 export function memo<T>(fn: () => T): () => T {
-  const [get, set] = value<T>(null!);
+  const [get, set] = signal<T>(null!);
 
   effect(() => set(fn()));
 
@@ -29,7 +29,7 @@ export function memo<T>(fn: () => T): () => T {
 /** Creates a memo that updates asynchronously. */
 export function async<T>(initial: T, fn: () => T | PromiseLike<T>): () => T {
   let asyncId = 0;
-  const [get, set] = value<T>(initial);
+  const [get, set] = signal<T>(initial);
 
   effect(async () => {
     const myId = asyncId++;
