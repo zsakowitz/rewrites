@@ -1,4 +1,5 @@
 // An attempt to rewrite many of the core JavaScript operations using only the
+// TypeScript typesystem. #typesystem
 
 declare function assert<A, B>(value: Boolean.Equal<A, B> & true): void;
 

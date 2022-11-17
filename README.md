@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 59 files this repository has to offer.
+in the TS type system. Enjoy the 61 files this repository has to offer.
 
 # File listing
 
@@ -46,6 +46,12 @@ Makes a javascript: bookmarklet with URI safety from a string of JS code.
 **[brainf.ts](./brainf.ts)** #parser
 
 A brainf*** implementation and macro expander.
+
+<br>
+
+**[checker.ts](./checker.ts)** #parser #typesystem
+
+A system that parses a TypeScript string literal into an arithmetic expression and evaluates it. Incomplete.
 
 <br>
 
@@ -130,6 +136,12 @@ Calculates the inventory sequence as described in https://www.youtube.com/watch?
 **[iterator.ts](./iterator.ts)** #iterator #rewrite
 
 An implementation of the Iterator Helpers proposal.
+
+<br>
+
+**[js-in-ts.ts](./js-in-ts.ts)** #typesystem
+
+An attempt to rewrite many of the core JavaScript operations using only the TypeScript typesystem.
 
 <br>
 
