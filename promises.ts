@@ -86,7 +86,7 @@ export class zPromise<T> {
   ): zPromise<(T extends any[] ? TResult1 : T) | TResult2> {
     return this.then<T extends any[] ? TResult1 : T, TResult2>((value) => {
       if (typeof onfulfilled == "function" && Array.isArray(value))
-        return onfulfilled(...value);
+        return onfulfilled(...(value as any));
 
       return value as any;
     }, onrejected);

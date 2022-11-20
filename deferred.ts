@@ -170,7 +170,7 @@ export class Deferred<T> {
     onfulfilled: (...value: T & any[]) => TResult | PromiseLike<T>
   ): Deferred<T extends any[] ? TResult : T> {
     return this.then<T extends any[] ? TResult : T>((value) => {
-      if (Array.isArray(value)) return onfulfilled(...value) as any;
+      if (Array.isArray(value)) return onfulfilled(...(value as any)) as any;
       else return value as any;
     });
   }
