@@ -1,4 +1,4 @@
-// Makes any text look sArCaStIc.
+// Makes text look sArCaStIc.
 
 export function sArCaStIcIfY(text: string) {
   let result = "";

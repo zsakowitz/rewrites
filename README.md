@@ -321,7 +321,7 @@ A library for adding sand piles as described in a Numberphile video. https://www
 
 **[sarcastic-text.ts](./sarcastic-text.ts)**
 
-Makes any text look sArCaStIc.
+Makes text look sArCaStIc.
 
 <br>
 
