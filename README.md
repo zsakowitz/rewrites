@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 61 files this repository has to offer.
+in the TS type system. Enjoy the 64 files this repository has to offer.
 
 # File listing
 
@@ -34,6 +34,12 @@ Runs a generator function with async/await semantics in place of fn*/yield keywo
 **[binary.ts](./binary.ts)** #typesystem
 
 A typed container for holding binary data that can be sliced.
+
+<br>
+
+**[bookmark.ts](./bookmark.ts)**
+
+
 
 <br>
 
@@ -93,7 +99,7 @@ Encodes standard input into a javascript: bookmark.
 
 **[env.d.ts](./env.d.ts)**
 
-Declares the promises-aplus-tests module.
+Declares modules without @types/... declarations.
 
 <br>
 
@@ -211,6 +217,12 @@ A Stack implementation that only accepts numbers.
 
 <br>
 
+**[observable.ts](./observable.ts)** #rewrite #proposal
+
+The [ES Observable](https://github.com/tc39/proposal-observable) proposal, implemented in standard JavaScript. Incomplete.
+
+<br>
+
 **[old-lang.ts](./old-lang.ts)** #parser
 
 An attempt to parse a language using the arcsecond library.
@@ -304,6 +316,12 @@ A Result monad.
 **[sandpiles.ts](./sandpiles.ts)**
 
 A library for adding sand piles as described in a Numberphile video. https://www.youtube.com/watch?v=1MtEUErz7Gg
+
+<br>
+
+**[sarcastic-text.ts](./sarcastic-text.ts)**
+
+Makes any text look sArCaStIc.
 
 <br>
 
