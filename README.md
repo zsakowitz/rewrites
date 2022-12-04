@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 64 files this repository has to offer.
+in the TS type system. Enjoy the 65 files this repository has to offer.
 
 # File listing
 
@@ -322,6 +322,12 @@ A library for adding sand piles as described in a Numberphile video. https://www
 **[sarcastic-text.ts](./sarcastic-text.ts)**
 
 Makes text look sArCaStIc.
+
+<br>
+
+**[secrets.ts](./secrets.ts)**
+
+Sample code that is a mockup for chapter 1 of Brilliant's cryptocurrency course.
 
 <br>
 
