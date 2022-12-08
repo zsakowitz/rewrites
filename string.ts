@@ -1,13 +1,7 @@
 // String.split and Array.join, but in the TS typesystem. #typesystem
 
 namespace String {
-  export type Embeddable =
-    | string
-    | number
-    | bigint
-    | boolean
-    | null
-    | undefined;
+  export type Embeddable = string | number | bigint | boolean | null | undefined
 
   type JoinRest<
     Array extends readonly any[],
@@ -17,7 +11,7 @@ namespace String {
     ? Element extends Embeddable
       ? JoinRest<Rest, Joiner, `${Output}${Joiner}${Element}`>
       : never
-    : Output;
+    : Output
 
   export type Join<
     Array extends readonly any[],
@@ -32,7 +26,7 @@ namespace String {
     ? Element extends Embeddable
       ? `${Element}${JoinRest<Rest, Joiner>}`
       : never
-    : never;
+    : never
 
   export type Split<
     Text extends string,
@@ -42,29 +36,29 @@ namespace String {
     ? Split<Rest, Splitter, [...Arr, First]>
     : Splitter extends ""
     ? Arr
-    : [...Arr, Text];
+    : [...Arr, Text]
 
   export type Character<T extends string> = T extends ""
     ? [char: undefined, rest: ""]
     : T extends `${infer Char}${infer Rest}`
     ? [char: Char, rest: Rest]
-    : never;
+    : never
 
   export type SliceFromStart<
     String extends string,
     End extends number = number
-  > = never;
+  > = never
 
-  type ArrayOfLength<T extends number, A extends any[]> = never;
+  type ArrayOfLength<T extends number, A extends any[]> = never
 }
 
 interface String {
-  split(splitter: "", limit?: number): string[];
+  split(splitter: "", limit?: number): string[]
   split<This extends string, Splitter extends string>(
     this: This,
     splitter: Splitter,
     limit?: number
-  ): String.Split<This, Splitter>;
+  ): String.Split<This, Splitter>
 }
 
-let testString = "fdvadhsk jkdfsh".split(" ");
+let testString = "fdvadhsk jkdfsh".split(" ")

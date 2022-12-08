@@ -1,19 +1,19 @@
 // An attempt to parse a language using the arcsecond library. #parser
 
-import * as A from "arcsecond";
+import * as A from "arcsecond"
 
-type Coroutine<T> = Generator<A.Parser<any>, T, any>;
+type Coroutine<T> = Generator<A.Parser<any>, T, any>
 
 export interface Node<T extends string> {
-  nodeType: T;
-  output: string;
-  variables?: string[];
+  nodeType: T
+  output: string
+  variables?: string[]
 }
 
 // LineTerminatorNode
 
 export interface LineTerminatorNode extends Node<"LineTerminatorNode"> {
-  type: "semicolon" | "newline";
+  type: "semicolon" | "newline"
 }
 
 export let LineTerminatorNode: A.Parser<LineTerminatorNode> = A.anyOfString(
@@ -22,7 +22,7 @@ export let LineTerminatorNode: A.Parser<LineTerminatorNode> = A.anyOfString(
   nodeType: "LineTerminatorNode",
   output: ";",
   type: x == ";" ? "semicolon" : "newline",
-}));
+}))
 
 // IntegerNode
 
@@ -33,7 +33,7 @@ export let IntegerNode: A.Parser<IntegerNode> = A.regex(/^[+-]?\d+n/).map(
     nodeType: "IntegerNode",
     output: x,
   })
-);
+)
 
 // NumberNode
 
@@ -44,7 +44,7 @@ export let NumberNode: A.Parser<NumberNode> = A.regex(
 ).map((x) => ({
   nodeType: "NumberNode",
   output: x,
-}));
+}))
 
 // StringNode
 
@@ -52,10 +52,10 @@ export interface StringNode extends Node<"StringNode"> {}
 
 export let StringNode: A.Parser<StringNode> = A.coroutine(
   function* (): Coroutine<StringNode> {
-    let variables: string[] = [];
-    let output = "";
+    let variables: string[] = []
+    let output = ""
 
-    yield A.char('"');
+    yield A.char('"')
 
     let all: (string | ExpressionNode)[] = yield A.many(
       A.choice([
@@ -63,9 +63,9 @@ export let StringNode: A.Parser<StringNode> = A.coroutine(
         // returns a number when it actually returns a string, so we have
         // to do a small fix for TypeScript purposes. Ugh.
         A.anyCharExcept(A.anyOfString('"\\{')).map((x) => {
-          if ((x as any) == "`") return "\\`";
-          if ((x as any) == "$") return "\\$";
-          return "" + x;
+          if ((x as any) == "`") return "\\`"
+          if ((x as any) == "$") return "\\$"
+          return "" + x
         }),
         A.sequenceOf([A.char("\\"), A.anyChar]).map(([, x]) => `\\${x}`),
         A.recursiveParser(() =>
@@ -74,26 +74,26 @@ export let StringNode: A.Parser<StringNode> = A.coroutine(
           )
         ),
       ])
-    );
+    )
 
     for (let result of all) {
       if (typeof result == "string") {
-        output += result;
+        output += result
       } else {
-        variables.push(...result.variables);
-        output += "${" + result.output + "}";
+        variables.push(...result.variables)
+        output += "${" + result.output + "}"
       }
     }
 
-    yield A.char('"');
+    yield A.char('"')
 
     return {
       nodeType: "StringNode",
       output: "`" + output + "`",
       variables,
-    };
+    }
   }
-);
+)
 
 // BooleanNode
 
@@ -104,7 +104,7 @@ export let BooleanNode: A.Parser<BooleanNode> = A.regex(
 ).map((x) => ({
   nodeType: "BooleanNode",
   output: x == "yes" || x == "true" ? "true" : "false",
-}));
+}))
 
 // SymbolNode
 
@@ -115,7 +115,7 @@ export let SymbolNode: A.Parser<SymbolNode> = A.regex(
 ).map((x) => ({
   nodeType: "SymbolNode",
   output: `Symbol.for(${x.slice(1)})`,
-}));
+}))
 
 // IdentifierNode
 
@@ -127,12 +127,12 @@ export let IdentifierNode: A.Parser<IdentifierNode> = A.regex(
   nodeType: "IdentifierNode",
   output: x,
   variables: [x],
-}));
+}))
 
 // ExpressionNode
 
 export interface ExpressionNode extends Node<"ExpressionNode"> {
-  variables: string[];
+  variables: string[]
 }
 
 export let ExpressionNode: A.Parser<ExpressionNode> = A.recursiveParser(() =>
@@ -165,7 +165,7 @@ export let ExpressionNode: A.Parser<ExpressionNode> = A.recursiveParser(() =>
     ...x,
     nodeType: "ExpressionNode",
   }))
-);
+)
 
 // ScriptNode
 
@@ -176,11 +176,11 @@ export let ScriptNode: A.Parser<ScriptNode> = A.sequenceOf([
   ExpressionNode,
   A.optionalWhitespace,
   A.endOfInput,
-]).map(([, x]) => ({ ...x, nodeType: "ScriptNode" }));
+]).map(([, x]) => ({ ...x, nodeType: "ScriptNode" }))
 
 // Type augmentations
 
 declare module "arcsecond" {
   // @ts-ignore
-  export function str<T extends string>(str: T): A.Parser<T>;
+  export function str<T extends string>(str: T): A.Parser<T>
 }

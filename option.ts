@@ -3,18 +3,18 @@
 export class Option<T> {
   static from<T>(optionLike: { ok: boolean; value?: T }): Option<T> {
     if (optionLike.ok) {
-      return Option.some(optionLike.value!);
+      return Option.some(optionLike.value!)
     } else {
-      return Option.none();
+      return Option.none()
     }
   }
 
   static some<T>(value: T): Option<T> {
-    return new Option(true, value);
+    return new Option(true, value)
   }
 
   static none(): Option<never> {
-    return new Option(false);
+    return new Option(false)
   }
 
   private constructor(
@@ -24,25 +24,25 @@ export class Option<T> {
 
   map<U>(fn: (value: T) => U): Option<U> {
     if (this.ok) {
-      return Option.some(fn(this.value!));
+      return Option.some(fn(this.value!))
     } else {
-      return Option.none();
+      return Option.none()
     }
   }
 
   flatMap<U>(fn: (value: T) => Option<U>): Option<U> {
     if (this.ok) {
-      return fn(this.value!);
+      return fn(this.value!)
     } else {
-      return Option.none();
+      return Option.none()
     }
   }
 
   handle<U>(handler: { some(value: T): U; none(): U }): U {
     if (this.ok) {
-      return handler.some(this.value!);
+      return handler.some(this.value!)
     } else {
-      return handler.none();
+      return handler.none()
     }
   }
 }

@@ -2,33 +2,33 @@
 
 export type TypeSafeLinkedList<T> =
   | {
-      empty: true;
-      head: never;
-      tail: never;
+      empty: true
+      head: never
+      tail: never
     }
   | {
-      empty: false;
-      head: T;
-      tail: LinkedList<T>;
-    };
+      empty: false
+      head: T
+      tail: LinkedList<T>
+    }
 
 export type LinkedListLike<T> = {
-  empty: boolean;
-  head?: T;
-  tail?: LinkedList<T>;
-};
+  empty: boolean
+  head?: T
+  tail?: LinkedList<T>
+}
 
 export class LinkedList<T> {
   static from<T>(value: LinkedListLike<T>) {
-    return LinkedList.of(...LinkedList.toIterable(value));
+    return LinkedList.of(...LinkedList.toIterable(value))
   }
 
   static fromIterable<T>(value: Iterable<T>) {
-    return LinkedList.of(...value);
+    return LinkedList.of(...value)
   }
 
   static of<T>(...values: T[]) {
-    return new LinkedList<T>().pushAll(...values);
+    return new LinkedList<T>().pushAll(...values)
   }
 
   static split(
@@ -37,184 +37,184 @@ export class LinkedList<T> {
       | string
       | RegExp
       | {
-          [Symbol.split](string: string, limit?: number | undefined): string[];
+          [Symbol.split](string: string, limit?: number | undefined): string[]
         },
     limit?: number
   ) {
-    return LinkedList.of(...text.split(separator as any, limit));
+    return LinkedList.of(...text.split(separator as any, limit))
   }
 
   static toIterable<T>(value: LinkedListLike<T>) {
-    return LinkedList.prototype[Symbol.iterator].call(value);
+    return LinkedList.prototype[Symbol.iterator].call(value)
   }
 
-  readonly empty: boolean;
-  readonly length: number;
+  readonly empty: boolean
+  readonly length: number
 
   get data(): TypeSafeLinkedList<T> {
-    return this as any;
+    return this as any
   }
 
-  constructor();
-  constructor(head: T, tail: LinkedList<T>);
+  constructor()
+  constructor(head: T, tail: LinkedList<T>)
   constructor(readonly head?: T, readonly tail?: LinkedList<T>) {
-    this.empty = !tail;
-    this.length = (tail?.length || 0) + 1;
+    this.empty = !tail
+    this.length = (tail?.length || 0) + 1
   }
 
   at(index: number): T | undefined {
     if (index < 0) {
-      index = this.length + index;
+      index = this.length + index
     }
 
     if (index === 0) {
-      return this.head;
+      return this.head
     } else {
-      return this.tail?.at(index - 1);
+      return this.tail?.at(index - 1)
     }
   }
 
   every<U extends T>(
     fn: (head: T, tail: LinkedList<T>) => head is U
-  ): this is LinkedList<U>;
-  every(fn: (head: T, tail: LinkedList<T>) => unknown): boolean;
+  ): this is LinkedList<U>
+  every(fn: (head: T, tail: LinkedList<T>) => unknown): boolean
   every(fn: (head: T, tail: LinkedList<T>) => unknown): boolean {
-    const { empty, head, tail } = this.data;
+    const { empty, head, tail } = this.data
 
     if (empty) {
-      return true;
+      return true
     }
 
     if (fn(head, tail)) {
-      return tail.every(fn);
+      return tail.every(fn)
     }
 
-    return false;
+    return false
   }
 
   filter<U extends T>(
     fn: (head: T, tail: LinkedList<T>) => head is U
-  ): LinkedList<U>;
-  filter(fn: (head: T, tail: LinkedList<T>) => unknown): LinkedList<T>;
+  ): LinkedList<U>
+  filter(fn: (head: T, tail: LinkedList<T>) => unknown): LinkedList<T>
   filter(fn: (head: T, tail: LinkedList<T>) => unknown): LinkedList<T> {
-    const { empty, head, tail } = this.data;
+    const { empty, head, tail } = this.data
 
     if (empty) {
-      return this;
+      return this
     }
 
     if (fn(head, tail)) {
-      return new LinkedList<T>(head, tail.filter(fn));
+      return new LinkedList<T>(head, tail.filter(fn))
     } else {
-      return tail.filter(fn);
+      return tail.filter(fn)
     }
   }
 
   forEach(fn: (head: T, tail: LinkedList<T>) => void): void {
-    let list = this.data;
+    let list = this.data
 
     while (!list.empty) {
-      fn(list.head, list.tail);
-      list = list.tail.data;
+      fn(list.head, list.tail)
+      list = list.tail.data
     }
   }
 
   join(separator = ","): string {
-    const { empty, head, tail } = this.data;
+    const { empty, head, tail } = this.data
 
     if (empty) {
-      return "";
+      return ""
     }
 
     if (tail.empty) {
-      return String(head);
+      return String(head)
     }
 
-    return String(head) + separator + tail.join(separator);
+    return String(head) + separator + tail.join(separator)
   }
 
   map<U>(fn: (head: T, tail: LinkedList<T>) => U): LinkedList<U> {
-    const { empty, head, tail } = this.data;
+    const { empty, head, tail } = this.data
 
     if (empty) {
-      return new LinkedList<U>();
+      return new LinkedList<U>()
     }
 
-    return new LinkedList<U>(fn(head, tail), tail.map(fn));
+    return new LinkedList<U>(fn(head, tail), tail.map(fn))
   }
 
   pop(): LinkedList<T> {
-    return this.tail || this;
+    return this.tail || this
   }
 
   push(element: T): LinkedList<T> {
-    return new LinkedList<T>(element, this);
+    return new LinkedList<T>(element, this)
   }
 
   pushAll(...elements: T[]): LinkedList<T> {
-    let list: LinkedList<T> = this;
+    let list: LinkedList<T> = this
 
     for (const el of elements.reverse()) {
-      list.push(el);
+      list.push(el)
     }
 
-    return list;
+    return list
   }
 
   reduce<U>(fn: (value: U, head: T, tail: LinkedList<T>) => U, value: U): U {
-    const { empty, head, tail } = this.data;
+    const { empty, head, tail } = this.data
 
     if (empty) {
-      return value;
+      return value
     }
 
-    return tail.reduce<U>(fn, fn(value, head, tail));
+    return tail.reduce<U>(fn, fn(value, head, tail))
   }
 
   reverse(): LinkedList<T> {
-    let list: LinkedList<T> = this;
-    let result = new LinkedList<T>();
+    let list: LinkedList<T> = this
+    let result = new LinkedList<T>()
 
     while (!list.empty) {
-      result = new LinkedList<T>(list.head!, result);
-      list = list.tail!;
+      result = new LinkedList<T>(list.head!, result)
+      list = list.tail!
     }
 
-    return result;
+    return result
   }
 
   some(fn: (head: T, tail: LinkedList<T>) => unknown): boolean {
-    const { empty, head, tail } = this.data;
+    const { empty, head, tail } = this.data
 
     if (empty) {
-      return false;
+      return false
     }
 
     if (fn(head, tail)) {
-      return true;
+      return true
     }
 
-    return tail.some(fn);
+    return tail.some(fn)
   }
 
   toArray(): T[] {
-    const result: T[] = [];
-    let list: LinkedList<T> = this;
+    const result: T[] = []
+    let list: LinkedList<T> = this
 
     while (!list.empty) {
-      result.push(list.head!);
-      list = list.tail!;
+      result.push(list.head!)
+      list = list.tail!
     }
 
-    return result;
+    return result
   }
 
   *[Symbol.iterator](this: LinkedListLike<T>): Generator<T> {
-    let list = this;
+    let list = this
 
     while (!list.empty) {
-      yield list.head!;
-      list = list.tail!;
+      yield list.head!
+      list = list.tail!
     }
   }
 }

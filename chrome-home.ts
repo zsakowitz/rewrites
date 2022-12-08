@@ -3,20 +3,20 @@
 
 namespace Device {
   export function isPWA() {
-    return window.matchMedia("(display-mode: standalone)").matches;
+    return window.matchMedia("(display-mode: standalone)").matches
   }
 
   export function isMac() {
-    return navigator.platform.includes("Mac");
+    return navigator.platform.includes("Mac")
   }
 }
 
 namespace Keyboard {
   export function Keys({ altKey, ctrlKey, metaKey, shiftKey }: KeyboardEvent) {
-    let altOnly = altKey && !metaKey && !ctrlKey;
-    let ctrlOnly = ctrlKey && !metaKey && !altKey;
-    let metaOnly = metaKey && !ctrlKey && !altKey;
-    let cmdOnly = Device.isMac() ? metaOnly : ctrlOnly;
+    let altOnly = altKey && !metaKey && !ctrlKey
+    let ctrlOnly = ctrlKey && !metaKey && !altKey
+    let metaOnly = metaKey && !ctrlKey && !altKey
+    let cmdOnly = Device.isMac() ? metaOnly : ctrlOnly
 
     return {
       altOnly,
@@ -24,34 +24,34 @@ namespace Keyboard {
       ctrlOnly,
       metaOnly,
       shift: shiftKey,
-    };
+    }
   }
 }
 
 namespace VideoPlayer {
   export function Initialize() {
     for (let video of document.querySelectorAll("video")) {
-      video.playbackRate = 2;
+      video.playbackRate = 2
     }
   }
 }
 
 namespace StackBlitz {
   export function Handler(event: KeyboardEvent) {
-    let { cmdOnly, ctrlOnly } = Keyboard.Keys(event);
-    let { editorBar, editorCloseButton, terminalCloseButton } = GetFocused();
+    let { cmdOnly, ctrlOnly } = Keyboard.Keys(event)
+    let { editorBar, editorCloseButton, terminalCloseButton } = GetFocused()
 
     if (event.key === "w" && ((Device.isPWA() && cmdOnly) || ctrlOnly)) {
       if (terminalCloseButton) {
-        (terminalCloseButton as any).click();
+        ;(terminalCloseButton as any).click()
       } else if (editorCloseButton) {
-        (editorCloseButton as any).click();
+        ;(editorCloseButton as any).click()
       } else if (!editorBar) {
         // close window
-        return;
+        return
       }
 
-      event.preventDefault();
+      event.preventDefault()
     }
   }
 
@@ -59,10 +59,10 @@ namespace StackBlitz {
     let editorTab =
       document.querySelector(
         '[class*="Editor-module-panel"]:focus-within #editor-tabbar-0 > [class*=focused]'
-      ) || undefined;
+      ) || undefined
 
     let terminal =
-      document.querySelector(".terminal-tile:focus-within") || undefined;
+      document.querySelector(".terminal-tile:focus-within") || undefined
 
     return {
       terminal,
@@ -71,82 +71,82 @@ namespace StackBlitz {
       editorTab,
       editorCloseButton: editorTab?.children[1]!,
       editorBar: document.querySelector("#editor-tabbar-0") ?? undefined,
-    };
+    }
   }
 
   if (window.__stackblitzPreviousHandler) {
-    window.removeEventListener("keydown", window.__stackblitzPreviousHandler);
+    window.removeEventListener("keydown", window.__stackblitzPreviousHandler)
   }
 
   export function Initialize() {
-    window.__stackblitzPreviousHandler = Handler;
-    window.addEventListener("keydown", Handler);
+    window.__stackblitzPreviousHandler = Handler
+    window.addEventListener("keydown", Handler)
   }
 }
 
 namespace GoogleDocs {
   function createFrame() {
-    const frame = document.createElement("iframe");
-    frame.style.display = "block";
-    frame.style.position = "fixed";
-    frame.style.zIndex = "1000000";
-    frame.style.top = "122.5px";
-    frame.style.right = "72px";
-    frame.style.width = "420px";
-    frame.style.height = "calc(100vh - 185px)";
-    frame.style.border = "none";
-    frame.setAttribute("crossorigin", "anonymous");
-    frame.src = "https://zsnout.com/";
-    return frame;
+    const frame = document.createElement("iframe")
+    frame.style.display = "block"
+    frame.style.position = "fixed"
+    frame.style.zIndex = "1000000"
+    frame.style.top = "122.5px"
+    frame.style.right = "72px"
+    frame.style.width = "420px"
+    frame.style.height = "calc(100vh - 185px)"
+    frame.style.border = "none"
+    frame.setAttribute("crossorigin", "anonymous")
+    frame.src = "https://zsnout.com/"
+    return frame
   }
 
   export function Initialize() {
-    const frame = createFrame();
-    window.frame = frame;
-    document.body.appendChild(frame);
+    const frame = createFrame()
+    window.frame = frame
+    document.body.appendChild(frame)
   }
 }
 
 namespace MySchoolApp {
   export function SignIn() {
-    const field = document.getElementById("Username");
-    const next = document.getElementById("nextBtn");
+    const field = document.getElementById("Username")
+    const next = document.getElementById("nextBtn")
 
-    if (!(field instanceof HTMLInputElement)) return;
-    if (!next) return;
+    if (!(field instanceof HTMLInputElement)) return
+    if (!next) return
 
-    field.value = "zsakowitz@sfbrandeis.org";
-    next.click();
+    field.value = "zsakowitz@sfbrandeis.org"
+    next.click()
   }
 }
 
 namespace BlackBaud {
   export function ClickGoogleSignIn() {
-    const el = document.getElementById("googleButtonLabel");
-    if (!el) return;
+    const el = document.getElementById("googleButtonLabel")
+    if (!el) return
 
-    el.click();
+    el.click()
   }
 }
 
 if (location.host.includes("stackblitz.com")) {
-  StackBlitz.Initialize();
+  StackBlitz.Initialize()
 } else if (
   location.host.includes("docs.google.com") &&
   location.pathname.startsWith("/document")
 ) {
-  GoogleDocs.Initialize();
+  GoogleDocs.Initialize()
 } else if (location.host == "sfbrandeis.myschoolapp.com") {
-  MySchoolApp.SignIn();
+  MySchoolApp.SignIn()
 } else if (location.host == "app.blackbaud.com") {
-  BlackBaud.ClickGoogleSignIn();
+  BlackBaud.ClickGoogleSignIn()
 } else if (document.querySelector("video")) {
-  VideoPlayer.Initialize();
+  VideoPlayer.Initialize()
 }
 
 declare global {
-  var __stackblitzPreviousHandler: typeof StackBlitz.Handler;
-  var frame: HTMLIFrameElement;
+  var __stackblitzPreviousHandler: typeof StackBlitz.Handler
+  var frame: HTMLIFrameElement
 }
 
-export {};
+export {}

@@ -1,50 +1,50 @@
 // A simple signal, effect, memo, and computed library based on SolidJS.
 
-let currentScope: Effect;
+let currentScope: Effect
 
 class Effect {
   constructor(readonly u: () => void) {}
 
   r() {
-    const parent = currentScope;
-    currentScope = this;
-    this.u();
-    currentScope = parent;
+    const parent = currentScope
+    currentScope = this
+    this.u()
+    currentScope = parent
   }
 }
 
 export function createEffect(update: () => void) {
-  new Effect(update).r();
+  new Effect(update).r()
 }
 
 export function createSignal<T>(value: T) {
-  const tracking = new Set<Effect>();
+  const tracking = new Set<Effect>()
 
   const get = () => {
     if (currentScope) {
-      tracking.add(currentScope);
+      tracking.add(currentScope)
     }
 
-    return value;
-  };
+    return value
+  }
 
   const set = (val: T) => {
-    value = val;
+    value = val
 
-    tracking.forEach((effect) => effect.r());
-  };
+    tracking.forEach((effect) => effect.r())
+  }
 
-  return [get, set] as const;
+  return [get, set] as const
 }
 
 export function createMemo<T>(compute: () => T) {
-  const [get, set] = createSignal(null! as T);
-  createEffect(() => set(compute()));
-  return get;
+  const [get, set] = createSignal(null! as T)
+  createEffect(() => set(compute()))
+  return get
 }
 
 export function createComputed<T>(value: T, compute: (oldValue: T) => T) {
-  const [get, set] = createSignal(null! as T);
-  createEffect(() => set((value = compute(value))));
-  return get;
+  const [get, set] = createSignal(null! as T)
+  createEffect(() => set((value = compute(value))))
+  return get
 }

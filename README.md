@@ -27,7 +27,7 @@ A rewrite of AbortSignals with Promise-like syntax and then-chaining.
 
 **[await-with-generators.ts](./await-with-generators.ts)** #iterator #promise #rewrite
 
-Runs a generator function with async/await semantics in place of fn*/yield keywords.
+Runs a generator function with async/await semantics in place of fn\*/yield keywords.
 
 <br>
 
@@ -39,8 +39,6 @@ A typed container for holding binary data that can be sliced.
 
 **[bookmark.ts](./bookmark.ts)**
 
-
-
 <br>
 
 **[bookmarklet.ts](./bookmarklet.ts)** #bookmarklet
@@ -51,7 +49,7 @@ Makes a javascript: bookmarklet with URI safety from a string of JS code.
 
 **[brainf.ts](./brainf.ts)** #parser
 
-A brainf*** implementation and macro expander.
+A brainf\*\*\* implementation and macro expander.
 
 <br>
 
@@ -104,8 +102,6 @@ Declares modules without @types/... declarations.
 <br>
 
 **[explicit-resource-management.ts](./explicit-resource-management.ts)**
-
-
 
 <br>
 
@@ -266,8 +262,6 @@ Another improved system for parsing text. Slightly based on Arcsecond.
 <br>
 
 **[parser-4.test.ts](./parser-4.test.ts)**
-
-
 
 <br>
 

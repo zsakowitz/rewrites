@@ -5,46 +5,46 @@ class Parser {
   constructor(public source: string) {}
 
   trim() {
-    this.source = this.source.trimStart();
-    return this;
+    this.source = this.source.trimStart()
+    return this
   }
 
   match(text: string | RegExp, trim = true) {
-    if (trim) this.trim();
+    if (trim) this.trim()
 
     if (typeof text == "string") {
       if (this.source.slice(0, text.length) == text) {
-        this.source = this.source.slice(text.length);
-        return new ParseResult(this, true, text);
+        this.source = this.source.slice(text.length)
+        return new ParseResult(this, true, text)
       }
     } else {
-      const match = text.exec(this.source);
+      const match = text.exec(this.source)
 
       if (match) {
-        this.source = this.source.slice(match[0].length);
-        return new ParseResult(this, true, match[0]);
+        this.source = this.source.slice(match[0].length)
+        return new ParseResult(this, true, match[0])
       }
     }
 
-    return new ParseResult(this, false, "");
+    return new ParseResult(this, false, "")
   }
 
   /** Matches exprs. */
   script() {
     const result = this.exprs("execute").error(
       "A # script must be a list of expressions."
-    );
+    )
 
     if (this.source.trim().length !== 0) {
-      throw new SyntaxError("A # script must be a list of expressions.");
+      throw new SyntaxError("A # script must be a list of expressions.")
     }
 
-    return result;
+    return result
   }
 
   /** Matches an expression. */
   expr(): ParseResult {
-    let result: ParseResult;
+    let result: ParseResult
 
     return (result = this.assignable()).ok
       ? result
@@ -94,45 +94,45 @@ class Parser {
       ? result
       : (result = this.stdOut()).ok
       ? result
-      : new ParseResult(this, false, "");
+      : new ParseResult(this, false, "")
   }
 
   /** Matches expr*. */
   exprs(mode: "return" | "execute" | "comma") {
-    const js: string[] = [];
-    let source = "";
-    let result: ParseResult;
+    const js: string[] = []
+    let source = ""
+    let result: ParseResult
 
     while (((result = this.expr()), result.ok)) {
-      js.push(result.js);
-      source += result.source;
+      js.push(result.js)
+      source += result.source
     }
 
     if (mode == "comma") {
       return new ParseResult(this, true, source).setJs(
         () => `(${js.join(", ")})`
-      );
+      )
     }
 
     if (mode == "execute") {
       if (js.length == 0) {
-        return new ParseResult(this, true, source).setJs(() => "");
+        return new ParseResult(this, true, source).setJs(() => "")
       } else if (js.length == 1) {
-        return new ParseResult(this, true, source).setJs(() => js[0] + ";\n");
+        return new ParseResult(this, true, source).setJs(() => js[0] + ";\n")
       } else {
         return new ParseResult(this, true, source).setJs(
           () => js.join(";\n\n") + ";\n"
-        );
+        )
       }
     }
 
     if (mode == "return") {
       if (js.length == 0) {
-        return new ParseResult(this, true, source).setJs(() => "");
+        return new ParseResult(this, true, source).setJs(() => "")
       } else if (js.length == 1) {
         return new ParseResult(this, true, source).setJs(
           () => `return ${js[0]};\n`
-        );
+        )
       } else if (js.length == 2) {
         return new ParseResult(this, true, source).setJs(
           () =>
@@ -140,18 +140,18 @@ class Parser {
             ";\n\nreturn " +
             js[js.length - 1] +
             ";\n"
-        );
+        )
       }
     }
 
-    return new ParseResult(this, false, source);
+    return new ParseResult(this, false, source)
   }
 
   /** Matches { exprs }. */
   block() {
     return this.match("{")
       .map(() => this.exprs("comma").setJs((result) => `(${result.js})`))
-      .lookahead("}");
+      .lookahead("}")
   }
 
   /** Matches $(\w+) or `\w+`. */
@@ -169,26 +169,26 @@ class Parser {
               .map((x) => "_" + x.codePointAt(0))
               .join("")
           )
-      );
+      )
   }
 
   /** Matches #(\d+). */
   number() {
     return this.match("#")
       .chain(/\d+/)
-      .setJs((result) => result.source);
+      .setJs((result) => result.source)
   }
 
   /** Matches ^ or v. */
   bool() {
     return this.match("^")
       .setJs(() => "true")
-      .or(() => this.match("v").setJs(() => "false"));
+      .or(() => this.match("v").setJs(() => "false"))
   }
 
   /** Matches name | prop. */
   assignable() {
-    return this.name().or(() => this.prop());
+    return this.name().or(() => this.prop())
   }
 
   /** Matches . expr (propName | expr). */
@@ -199,7 +199,7 @@ class Parser {
         this.propName()
           .setJs((result) => `${path.js}.${result.js}`)
           .or(() => this.expr().setJs((result) => `${path.js}[${result.js}]`))
-      );
+      )
   }
 
   /** Matches ,(\w+) or ,`.+`. */
@@ -218,7 +218,7 @@ class Parser {
                 .join("")
             )
         )
-    );
+    )
   }
 
   /** Matches ? expr expr expr. */
@@ -229,7 +229,7 @@ class Parser {
         this.expr().map((yes) =>
           this.expr().setJs((no) => `(${cond.js} ? ${yes.js} : ${no.js})`)
         )
-      );
+      )
   }
 
   /** Matches = assignable expr. */
@@ -238,61 +238,61 @@ class Parser {
       .map(() => this.assignable())
       .map((assignable) =>
         this.expr().setJs((expr) => `(${assignable.js} = ${expr.js})`)
-      );
+      )
   }
 
   /** Matches | expr expr. */
   or() {
     return this.match("|")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} || ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} || ${b.js})`))
   }
 
   /** Matches & expr expr. */
   and() {
     return this.match("&")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} && ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} && ${b.js})`))
   }
 
   /** Matches ! expr. */
   not() {
-    return this.match("!").map(() => this.expr().setJs((a) => `(!${a.js})`));
+    return this.match("!").map(() => this.expr().setJs((a) => `(!${a.js})`))
   }
 
   /** Matches + expr expr. */
   add() {
     return this.match("+")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} + ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} + ${b.js})`))
   }
 
   /** Matches - expr expr. */
   subtract() {
     return this.match("-")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} - ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} - ${b.js})`))
   }
 
   /** Matches * expr expr. */
   multiply() {
     return this.match("*")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} * ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} * ${b.js})`))
   }
 
   /** Matches / expr expr. */
   divide() {
     return this.match("/")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} / ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} / ${b.js})`))
   }
 
   /** Matches % expr expr. */
   mod() {
     return this.match("%")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} % ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} % ${b.js})`))
   }
 
   /** Matches == expr expr. */
@@ -300,60 +300,60 @@ class Parser {
     return this.match("=")
       .chain("=")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} === ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} === ${b.js})`))
   }
 
   /** Matches < expr expr. */
   lt() {
     return this.match("<")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} < ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} < ${b.js})`))
   }
 
   /** Matches > expr expr. */
   gt() {
     return this.match(">")
       .map(() => this.expr())
-      .map((a) => this.expr().setJs((b) => `(${a.js} > ${b.js})`));
+      .map((a) => this.expr().setJs((b) => `(${a.js} > ${b.js})`))
   }
 
   /** Matches ; expr. */
   void() {
     return this.match(";")
       .map(() => this.expr())
-      .setJs((expr) => `(void ${expr})`);
+      .setJs((expr) => `(void ${expr})`)
   }
 
   /** Matches "textInner". */
   text() {
     return this.match('"')
       .map(() => this.textInner())
-      .lookahead('"');
+      .lookahead('"')
   }
 
   /** Matches char+. */
   textInner() {
-    let js = "";
-    let source = "";
-    let result: ParseResult;
-    let isTemplate = false;
+    let js = ""
+    let source = ""
+    let result: ParseResult
+    let isTemplate = false
 
     while (((result = this.char()), result.ok)) {
-      js += result.js;
-      source += result.source;
-      if (result.js.startsWith("$")) isTemplate = true;
+      js += result.js
+      source += result.source
+      if (result.js.startsWith("$")) isTemplate = true
     }
 
     return new ParseResult(this, true, source).setJs(() =>
       isTemplate ? `\`${js}\`` : `"${js}"`
-    );
+    )
   }
 
   /** Matches rawChar | escape | interpolate. */
   char() {
     return this.rawChar()
       .or(() => this.escape())
-      .or(() => this.interpolate());
+      .or(() => this.interpolate())
   }
 
   /** Matches ^ "{\. */
@@ -364,14 +364,14 @@ class Parser {
         : result.source == "`"
         ? "\\`"
         : result.source
-    );
+    )
   }
 
   /** Matches \({"\0bfnrtv). */
   escape() {
     return this.match(/^\\/, false)
       .chain(/[{"\\0bfnrtv]/, false)
-      .setJs((result) => (result.source == "{" ? "{" : `\\${result.source}`));
+      .setJs((result) => (result.source == "{" ? "{" : `\\${result.source}`))
   }
 
   /** Matches { expr }. */
@@ -379,7 +379,7 @@ class Parser {
     return this.match("{", false)
       .map(() => this.expr())
       .lookahead("}")
-      .setJs((result) => `\${${result.js}}`);
+      .setJs((result) => `\${${result.js}}`)
   }
 
   /** Matches ( expr exprs ). */
@@ -388,38 +388,38 @@ class Parser {
       .map(() => this.expr())
       .map((target) =>
         this.exprs("comma").setJs((args) => `(${target.js}(${args.js}))`)
-      );
+      )
   }
 
   /** Matches ~ expr. */
   spread() {
     return this.match("~")
       .map(() => this.expr())
-      .setJs((expr) => `...${expr.js}`);
+      .setJs((expr) => `...${expr.js}`)
   }
 
   /** Matches \ params* \ expr. */
   function() {
-    const fst = this.match("\\");
-    if (!fst.ok) return fst;
+    const fst = this.match("\\")
+    if (!fst.ok) return fst
 
-    const args: ParseResult[] = [];
-    let result: ParseResult;
+    const args: ParseResult[] = []
+    let result: ParseResult
 
     while (((result = this.param()), result.ok)) {
-      args.push(result);
+      args.push(result)
     }
 
     const snd = this.match("\\")
       .map(() => this.expr())
-      .setJs((expr) => `(${args.map((x) => x.js).join(", ")}) => ${expr.js}`);
+      .setJs((expr) => `(${args.map((x) => x.js).join(", ")}) => ${expr.js}`)
 
     if (!snd.ok) {
-      args.reverse().forEach((arg) => arg.undo());
-      fst.undo();
+      args.reverse().forEach((arg) => arg.undo())
+      fst.undo()
     }
 
-    return snd;
+    return snd
   }
 
   /** Returns pattern | ~ pattern | = pattern expr. */
@@ -434,12 +434,12 @@ class Parser {
           )
         )
       )
-      .or(() => this.pattern());
+      .or(() => this.pattern())
   }
 
   /** Matches name | arrayPattern | objectPattern. */
   pattern() {
-    return this.name();
+    return this.name()
   }
 
   /** Matches $> expr. */
@@ -447,7 +447,7 @@ class Parser {
     return this.match("$")
       .chain(">")
       .map(() => this.expr())
-      .setJs((expr) => `console.log(${expr.js})`);
+      .setJs((expr) => `console.log(${expr.js})`)
   }
 
   /** Matches $..?.?< */
@@ -462,12 +462,12 @@ class Parser {
             "console.input.line()",
             "console.input.rest()",
           ][dots.source.match(/\./g)!.length]
-      );
+      )
   }
 }
 
 class ParseResult {
-  js = "";
+  js = ""
 
   constructor(
     public readonly parser: Parser,
@@ -477,26 +477,26 @@ class ParseResult {
 
   error(error: string) {
     if (!this.ok) {
-      throw new SyntaxError(error);
+      throw new SyntaxError(error)
     }
 
-    return this;
+    return this
   }
 
   chain(text: string | RegExp, trim = true) {
-    if (!this.ok) return this;
+    if (!this.ok) return this
 
-    const match = this.parser.match(text, trim);
-    if (match.ok) return match;
-    else return this.undo();
+    const match = this.parser.match(text, trim)
+    if (match.ok) return match
+    else return this.undo()
   }
 
   map(fn: (result: ParseResult) => ParseResult) {
-    if (!this.ok) return this;
+    if (!this.ok) return this
 
-    const match = fn(this);
-    if (match.ok) return match;
-    else return this.undo();
+    const match = fn(this)
+    if (match.ok) return match
+    else return this.undo()
   }
 
   /**
@@ -505,31 +505,31 @@ class ParseResult {
    * Otherwise, a failed ParseResult is returned.
    */
   lookahead(text: string | RegExp, trim = true) {
-    if (!this.ok) return this;
+    if (!this.ok) return this
 
-    const match = this.parser.match(text, trim);
-    if (match.ok) return this;
-    else return this.undo();
+    const match = this.parser.match(text, trim)
+    if (match.ok) return this
+    else return this.undo()
   }
 
   setJs(fn: (result: ParseResult) => string) {
     if (this.ok) {
-      this.js = fn(this);
+      this.js = fn(this)
     }
 
-    return this;
+    return this
   }
 
   or(fn: () => ParseResult) {
-    return this.ok ? this : fn();
+    return this.ok ? this : fn()
   }
 
   undo() {
     if (this.ok) {
-      this.parser.source = this.source + this.parser.source;
-      return new ParseResult(this.parser, false, "");
-    } else return this;
+      this.parser.source = this.source + this.parser.source
+      return new ParseResult(this.parser, false, "")
+    } else return this
   }
 }
 
-export {};
+export {}

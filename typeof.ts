@@ -20,4 +20,4 @@ export type TypeOf<T> = T extends null
   ? "function"
   : T extends {}
   ? "object"
-  : string;
+  : string
