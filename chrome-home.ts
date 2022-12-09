@@ -162,7 +162,8 @@ namespace Blooket {
         })
       }
 
-      const reactRoot = Object.values(root)[1]?.children[1]._owner
+      const values = Object.values(root)[1].children
+      const reactRoot = (values[1] || values[0])._owner
       Object.assign(window, { react: reactRoot })
 
       const stateNode = reactRoot.stateNode
