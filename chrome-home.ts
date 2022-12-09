@@ -157,7 +157,7 @@ namespace Blooket {
           },
           set(_target, property, newValue, _receiver) {
             set(property, newValue)
-            return true
+            return Reflect.set(_target, property, newValue, _receiver)
           },
         })
       }
