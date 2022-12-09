@@ -145,7 +145,7 @@ namespace Blooket {
       const stateNode = reactRoot.stateNode
       Object.assign(window, { sn: stateNode })
 
-      Object.defineProperty(window, "state", {
+      Object.defineProperty(window, "s", {
         configurable: true,
         get() {
           return stateNode.state
