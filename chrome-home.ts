@@ -138,6 +138,30 @@ namespace Blooket {
     if (!root) {
       console.error("no root found on this page")
     } else {
+      function proxy<T>(
+        object: T,
+        set: (key: PropertyKey, value: any) => unknown = (key, value) =>
+          stateNode.setState(
+            produce((object: any) => {
+              object[key] = value
+            })
+          )
+      ): T {
+        if (typeof object != "object" || object == null) {
+          return object
+        }
+
+        return new Proxy(object, {
+          get(...args) {
+            return proxy(Reflect.get(...args))
+          },
+          set(_target, property, newValue, _receiver) {
+            set(property, newValue)
+            return true
+          },
+        })
+      }
+
       const reactRoot = Object.values(root)[1]?.children[1]._owner
       Object.assign(window, { react: reactRoot })
 
@@ -147,7 +171,7 @@ namespace Blooket {
       Object.defineProperty(window, "state", {
         configurable: true,
         get() {
-          return stateNode.state
+          return proxy(stateNode.state)
         },
         set(value) {
           if (typeof value == "function") {
