@@ -18,6 +18,7 @@
     "es-observable-tests": "^0.3.0",
     "esbuild": "^0.15.10",
     "html5parser": "^2.0.2",
+    "immer": "^9.0.16",
     "ohm-js": "^16.3.2",
     "promises-aplus-tests": "1.2.0",
     "typescript": "^5.0.0-dev.20221119"

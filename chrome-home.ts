@@ -1,6 +1,8 @@
 // A JS shortcut that adds proper keyboard shortcuts to StackBlitz and doubles
 // the speed of a video in YouTube when activated. #bookmarklet
 
+import { produce } from "immer"
+
 namespace Device {
   export function isPWA() {
     return window.matchMedia("(display-mode: standalone)").matches
@@ -129,6 +131,36 @@ namespace BlackBaud {
   }
 }
 
+namespace Blooket {
+  export function Initialize() {
+    const root = document.querySelector("#app > div > div")
+
+    if (!root) {
+      console.error("no root found on this page")
+    } else {
+      const reactRoot = Object.values(root)[1]?.children[1]._owner
+      Object.assign(window, { react: reactRoot })
+
+      const stateNode = reactRoot.stateNode
+      Object.assign(window, { sn: stateNode })
+
+      Object.defineProperty(window, "state", {
+        configurable: true,
+        get() {
+          return stateNode.state
+        },
+        set(value) {
+          if (typeof value == "function") {
+            stateNode.setState(produce(value))
+          } else {
+            stateNode.setState(value)
+          }
+        },
+      })
+    }
+  }
+}
+
 if (location.host.includes("stackblitz.com")) {
   StackBlitz.Initialize()
 } else if (
@@ -140,6 +172,8 @@ if (location.host.includes("stackblitz.com")) {
   MySchoolApp.SignIn()
 } else if (location.host == "app.blackbaud.com") {
   BlackBaud.ClickGoogleSignIn()
+} else if (location.host.includes("blooket.com")) {
+  Blooket.Initialize()
 } else if (document.querySelector("video")) {
   VideoPlayer.Initialize()
 }
