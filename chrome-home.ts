@@ -162,6 +162,14 @@ namespace Blooket {
   }
 }
 
+namespace YouTube {
+  export function Initialize() {
+    location.href =
+      "https://zsnout.com/youtube-downloader?url=" +
+      encodeURIComponent(location.href)
+  }
+}
+
 if (location.host.includes("stackblitz.com")) {
   StackBlitz.Initialize()
 } else if (
@@ -175,6 +183,8 @@ if (location.host.includes("stackblitz.com")) {
   BlackBaud.ClickGoogleSignIn()
 } else if (location.host.includes("blooket.com")) {
   Blooket.Initialize()
+} else if (location.host.includes("youtube.com")) {
+  YouTube.Initialize()
 } else if (document.querySelector("video")) {
   VideoPlayer.Initialize()
 }
