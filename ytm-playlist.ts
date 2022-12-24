@@ -1,10 +1,9 @@
 // Downloads a YouTube playlist as MP3 files.
 
-import lamejs from "lamejs"
-import { mkdir, readFile, rm, writeFile } from "fs/promises"
+import ffmpeg from "ffmpeg"
+import { mkdir, rm, writeFile } from "fs/promises"
 import ytdl from "ytdl-core"
 import ytpl from "ytpl"
-import { AudioContext } from "web-audio-api"
 
 interface VideoInfo {
   readonly title: string
@@ -160,90 +159,6 @@ function log(...data: readonly unknown[]) {
 
 function error(...data: readonly unknown[]) {
   console.error(data.join("") + colors.reset)
-}
-
-// https://stackoverflow.com/a/62733965
-function audioBufferToMP3(aBuffer: AudioBuffer) {
-  let numOfChan = aBuffer.numberOfChannels
-  let btwLength = aBuffer.length * numOfChan * 2 + 44
-  let btwArrBuff = new ArrayBuffer(btwLength)
-  let btwView = new DataView(btwArrBuff)
-  let btwChannels = []
-  let btwIndex
-  let btwSample
-  let btwOffset = 0
-  let btwPos = 0
-
-  setUint32(0x46464952) // "RIFF"
-  setUint32(btwLength - 8) // file length - 8
-  setUint32(0x45564157) // "WAVE"
-  setUint32(0x20746d66) // "fmt " chunk
-  setUint32(16) // length = 16
-  setUint16(1) // PCM (uncompressed)
-  setUint16(numOfChan)
-  setUint32(aBuffer.sampleRate)
-  setUint32(aBuffer.sampleRate * 2 * numOfChan) // avg. bytes/sec
-  setUint16(numOfChan * 2) // block-align
-  setUint16(16) // 16-bit
-  setUint32(0x61746164) // "data" - chunk
-  setUint32(btwLength - btwPos - 4) // chunk length
-
-  for (btwIndex = 0; btwIndex < aBuffer.numberOfChannels; btwIndex++) {
-    btwChannels.push(aBuffer.getChannelData(btwIndex))
-  }
-
-  while (btwPos < btwLength) {
-    for (btwIndex = 0; btwIndex < numOfChan; btwIndex++) {
-      // interleave btwChannels
-      btwSample = Math.max(-1, Math.min(1, btwChannels[btwIndex][btwOffset])) // clamp
-      btwSample =
-        (0.5 + btwSample < 0 ? btwSample * 32768 : btwSample * 32767) | 0 // scale to 16-bit signed int
-      btwView.setInt16(btwPos, btwSample, true) // write 16-bit sample
-      btwPos += 2
-    }
-
-    btwOffset++ // next source sample
-  }
-
-  let wavHdr = lamejs.WavHeader.readHeader(new DataView(btwArrBuff))
-  let wavSamples = new Int16Array(
-    btwArrBuff,
-    wavHdr.dataOffset,
-    wavHdr.dataLen / 2
-  )
-
-  return wavToMp3(wavHdr.channels, wavHdr.sampleRate, wavSamples)
-
-  function setUint16(data: number) {
-    btwView.setUint16(btwPos, data, true)
-    btwPos += 2
-  }
-
-  function setUint32(data: number) {
-    btwView.setUint32(btwPos, data, true)
-    btwPos += 4
-  }
-}
-
-function wavToMp3(channels: any, sampleRate: any, samples: any) {
-  var buffer = []
-  var mp3enc = new lamejs.Mp3Encoder(channels, sampleRate, 128)
-  var remaining = samples.length
-  var samplesPerFrame = 1152
-  for (var i = 0; remaining >= samplesPerFrame; i += samplesPerFrame) {
-    var mono = samples.subarray(i, i + samplesPerFrame)
-    var mp3buf = mp3enc.encodeBuffer(mono)
-    if (mp3buf.length > 0) {
-      buffer.push(new Int8Array(mp3buf))
-    }
-    remaining -= samplesPerFrame
-  }
-  var d = mp3enc.flush()
-  if (d.length > 0) {
-    buffer.push(new Int8Array(d))
-  }
-
-  return new Blob(buffer, { type: "audio/mp3" })
 }
 
 /** Run by `npm run ytm-playlist`. */
@@ -425,16 +340,13 @@ async function cli() {
   const mp3pathResults = await Promise.allSettled(
     webmPaths.map(async (webmPath) => {
       try {
+        const video = await new ffmpeg(webmPath)
+
         const mp3Path = webmPath
           .replace("ytm/webm/audio", "ytm/mp3")
           .replace(/\.webm$/, ".mp3")
 
-        const file = await readFile(webmPath)
-        const audio = new AudioContext()
-        const buffer = await audio.decodeAudioData(file)
-        const mp3 = audioBufferToMP3(buffer)
-        await writeFile(mp3Path, new DataView(await mp3.arrayBuffer()))
-
+        await video.fnExtractSoundToMP3(mp3Path)
         return mp3Path
       } catch (e) {
         error(e)
