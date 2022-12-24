@@ -3,9 +3,11 @@
   "type": "module",
   "scripts": {
     "copy-chrome-home": "esbuild --bundle chrome-home.ts | node encode-uri.js | pbcopy",
-    "test:observable": "node -e \"import('./dist/observable.js').then(p => p.test())\"",
+    "dev": "tsc -w",
     "test:deferred": "node -e \"import('./dist/deferred.js').then(p => p.test())\"",
-    "dev": "tsc -w"
+    "test:observable": "node -e \"import('./dist/observable.js').then(p => p.test())\"",
+    "ytm-build": "esbuild ytm-playlist.ts --bundle --define:RUN_CLI=true --external:ffmpeg --platform=node > ./dist/ytm.js",
+    "ytm": "node - < ./dist/ytm.js"
   },
   "bin": {
     "sm": "./bin/sm"
@@ -13,15 +15,19 @@
   "dependencies": {
     "@engine262/engine262": "^0.0.1-4cad21cf5b7d2a773c08ad0c996ae119cfd05820",
     "@ohm-js/cli": "^1.1.0",
+    "@types/ffmpeg": "^1.0.4",
     "@types/node": "^17.0.45",
     "arcsecond": "^4.1.0",
     "es-observable-tests": "^0.3.0",
     "esbuild": "^0.15.10",
+    "ffmpeg": "^0.0.4",
     "html5parser": "^2.0.2",
     "immer": "^9.0.16",
     "ohm-js": "^16.3.2",
     "promises-aplus-tests": "1.2.0",
     "socket.io": "^4.5.4",
-    "typescript": "^5.0.0-dev.20221119"
+    "typescript": "^5.0.0-dev.20221119",
+    "ytdl-core": "^4.11.2",
+    "ytpl": "^2.3.0"
   }
 }
