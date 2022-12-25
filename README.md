@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 65 files this repository has to offer.
+in the TS type system. Enjoy the 70 files this repository has to offer.
 
 # File listing
 
@@ -25,9 +25,21 @@ A rewrite of AbortSignals with Promise-like syntax and then-chaining.
 
 <br>
 
+**[animation.ts](./animation.ts)**
+
+
+
+<br>
+
+**[any.ts](./any.ts)**
+
+
+
+<br>
+
 **[await-with-generators.ts](./await-with-generators.ts)** #iterator #promise #rewrite
 
-Runs a generator function with async/await semantics in place of fn\*/yield keywords.
+Runs a generator function with async/await semantics in place of fn*/yield keywords.
 
 <br>
 
@@ -39,6 +51,8 @@ A typed container for holding binary data that can be sliced.
 
 **[bookmark.ts](./bookmark.ts)**
 
+
+
 <br>
 
 **[bookmarklet.ts](./bookmarklet.ts)** #bookmarklet
@@ -49,7 +63,7 @@ Makes a javascript: bookmarklet with URI safety from a string of JS code.
 
 **[brainf.ts](./brainf.ts)** #parser
 
-A brainf\*\*\* implementation and macro expander.
+A brainf*** implementation and macro expander.
 
 <br>
 
@@ -103,11 +117,19 @@ Declares modules without @types/... declarations.
 
 **[explicit-resource-management.ts](./explicit-resource-management.ts)**
 
+
+
 <br>
 
 **[extension.ts](./extension.ts)** #rewrite
 
 An implementation of the new Facet library for CodeMirror v6.
+
+<br>
+
+**[hooks.ts](./hooks.ts)** #rewrite
+
+An implementation of React Hooks.
 
 <br>
 
@@ -263,6 +285,8 @@ Another improved system for parsing text. Slightly based on Arcsecond.
 
 **[parser-4.test.ts](./parser-4.test.ts)**
 
+
+
 <br>
 
 **[parser-4.ts](./parser-4.ts)**
@@ -322,6 +346,12 @@ Makes text look sArCaStIc.
 **[secrets.ts](./secrets.ts)**
 
 Sample code that is a mockup for chapter 1 of Brilliant's cryptocurrency course.
+
+<br>
+
+**[sequent.ts](./sequent.ts)**
+
+A parser and evaluator for boolean logic and sequent calculus.
 
 <br>
 
@@ -388,3 +418,9 @@ An engine that can look through Wikipedia links.
 **[worker.ts](./worker.ts)**
 
 A simple way to run functions off the main thread with one-way or bi-directional communication.
+
+<br>
+
+**[ytm-playlist.ts](./ytm-playlist.ts)**
+
+Downloads a YouTube playlist as MP3 files.
