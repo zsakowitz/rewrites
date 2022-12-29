@@ -6,6 +6,7 @@
     "module": "ESNext",
     "outDir": "./dist",
     "allowJs": true,
+    "checkJs": true,
     "moduleResolution": "node",
     "jsx": "react",
     "jsxFactory": "h",

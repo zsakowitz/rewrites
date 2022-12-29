@@ -4,7 +4,6 @@
 export interface AbortSignalLike<T = any> {
   readonly aborted: boolean
   readonly reason: T
-
   addEventListener(event: "abort", listener: () => void): void
 }
 
@@ -12,7 +11,7 @@ export type AbortFn<T> = T extends undefined
   ? (reason?: T) => void
   : (reason: T) => void
 
-export class Signal<T> implements AbortSignalLike<T> {
+export class Signal<T> implements AbortSignalLike<T>, PromiseLike<T> {
   static any<T extends readonly unknown[]>(
     ...signals: { readonly [K in keyof T]: AbortSignalLike<T[K]> }
   ): Signal<T[number]> {
@@ -62,14 +61,14 @@ export class Signal<T> implements AbortSignalLike<T> {
     })
   }
 
-  static of<T>(): Signal<T | undefined>
-  static of<T>(reason: T): Signal<T>
-  static of<T>(reason?: T) {
+  static abort<T>(): Signal<T | undefined>
+  static abort<T>(reason: T): Signal<T>
+  static abort<T>(reason?: T) {
     return new Signal((abort) => abort(reason))
   }
 
-  static from(signal: AbortSignalLike) {
-    return new Signal((abort) => {
+  static from<T = any>(signal: AbortSignalLike<T>) {
+    return new Signal<T>((abort) => {
       if (signal.aborted) {
         abort(signal.reason)
       } else {
@@ -89,6 +88,7 @@ export class Signal<T> implements AbortSignalLike<T> {
     return [new Signal<T>((_abort) => (abort = _abort)), abort!]
   }
 
+  static timeout(ms: number): Signal<void>
   static timeout<T>(ms: number, reason: T): Signal<T>
   static timeout<T>(ms: number, reason?: T): Signal<T | undefined>
   static timeout<T>(ms: number, reason?: T) {
@@ -107,7 +107,6 @@ export class Signal<T> implements AbortSignalLike<T> {
     executor(((reason?: T) => {
       if (didAbort) return
       didAbort = true
-
       ;(this as any).aborted = true
       ;(this as any).reason = reason
       this.listeners.forEach((fn) => fn(reason!))
@@ -115,12 +114,22 @@ export class Signal<T> implements AbortSignalLike<T> {
   }
 
   // Yo, we're a thenable!
-  then(listener: (reason: T) => void) {
-    if (this.aborted) {
-      listener(this.reason!)
-    } else {
-      this.listeners.add(listener)
+  then<U>(
+    listener: ((reason: T) => U | PromiseLike<U>) | null | undefined
+  ): Signal<U> {
+    if (!listener) {
+      return new Signal(() => {})
     }
+
+    return new Signal(async (abort) => {
+      if (this.aborted) {
+        abort(await listener(this.reason))
+      } else {
+        this.listeners.add(async (reason) => {
+          abort(await listener(reason))
+        })
+      }
+    })
   }
 
   addEventListener(_type: "abort", listener: () => void) {
@@ -131,14 +140,9 @@ export class Signal<T> implements AbortSignalLike<T> {
     this.listeners.delete(listener)
   }
 
-  toPromise() {
-    return new Promise<T>((resolve) => this.then(resolve))
-  }
-
   toNative() {
     const controller = new AbortController()
     this.then((reason) => controller.abort(reason))
-
     return controller.signal
   }
 

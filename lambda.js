@@ -1,5 +1,7 @@
 // Lambda calculus functions in JavaScript. #untyped
 
+// @ts-nocheck
+
 /** identity */
 const I = x => x
 

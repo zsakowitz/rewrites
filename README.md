@@ -1,9 +1,10 @@
 # zsakowitz/rewrites
 
 This repository contains lots of test projects that I've created. The name is a
-relic of its initial creation, because I used it to rewrite the Iterator Helpers
-library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 72 files this repository has to offer.
+relic from its initial creation, when I used it to rewrite the Iterator Helpers
+proposal. Now it contains everything from stacks to language parsers to the JS
+standard library implemented solely in the TS type system. Enjoy the 72 files
+this repository has to offer.
 
 # File listing
 
@@ -27,19 +28,15 @@ A rewrite of AbortSignals with Promise-like syntax and then-chaining.
 
 **[animation.ts](./animation.ts)**
 
-
-
 <br>
 
 **[any.ts](./any.ts)**
-
-
 
 <br>
 
 **[await-with-generators.ts](./await-with-generators.ts)** #iterator #promise #rewrite
 
-Runs a generator function with async/await semantics in place of fn*/yield keywords.
+Runs a generator function with async/await semantics in place of fn\*/yield keywords.
 
 <br>
 
@@ -51,8 +48,6 @@ A typed container for holding binary data that can be sliced.
 
 **[bookmark.ts](./bookmark.ts)**
 
-
-
 <br>
 
 **[bookmarklet.ts](./bookmarklet.ts)** #bookmarklet
@@ -63,7 +58,7 @@ Makes a javascript: bookmarklet with URI safety from a string of JS code.
 
 **[brainf.ts](./brainf.ts)** #parser
 
-A brainf*** implementation and macro expander.
+A brainf\*\*\* implementation and macro expander.
 
 <br>
 
@@ -122,8 +117,6 @@ Declares modules without @types/... declarations.
 <br>
 
 **[explicit-resource-management.ts](./explicit-resource-management.ts)**
-
-
 
 <br>
 
@@ -290,8 +283,6 @@ Another improved system for parsing text. Slightly based on Arcsecond.
 <br>
 
 **[parser-4.test.ts](./parser-4.test.ts)**
-
-
 
 <br>
 

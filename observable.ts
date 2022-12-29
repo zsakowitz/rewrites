@@ -2,7 +2,6 @@
 // implemented in standard JavaScript. Incomplete. #rewrite #proposal
 
 import { runTests } from "es-observable-tests"
-
 ;(Symbol as any).observable = Symbol.observable || Symbol("Symbol.observable")
 
 export interface Observer<T> {
