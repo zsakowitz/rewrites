@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic of its initial creation, because I used it to rewrite the Iterator Helpers
 library. Now it contains everything from stacks to language parsers to arithmetic
-in the TS type system. Enjoy the 70 files this repository has to offer.
+in the TS type system. Enjoy the 72 files this repository has to offer.
 
 # File listing
 
@@ -64,6 +64,12 @@ Makes a javascript: bookmarklet with URI safety from a string of JS code.
 **[brainf.ts](./brainf.ts)** #parser
 
 A brainf*** implementation and macro expander.
+
+<br>
+
+**[cancel.ts](./cancel.ts)**
+
+A signal that can be used to cancel things.
 
 <br>
 
@@ -403,9 +409,15 @@ Converts TS types into string representations.
 
 <br>
 
-**[validator.ts](./validator.ts)**
+**[validator-1.ts](./validator-1.ts)**
 
 A type-first validator with full typing support.
+
+<br>
+
+**[validator-2.ts](./validator-2.ts)**
+
+An item validator with static typing support.
 
 <br>
 
