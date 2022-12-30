@@ -25,10 +25,14 @@
     "immer": "^9.0.16",
     "ohm-js": "^16.3.2",
     "promises-aplus-tests": "1.2.0",
+    "react": "^18.2.0",
     "socket.io": "^4.5.4",
     "typescript": "^5.0.0-dev.20221119",
     "ytdl-core": "^4.11.2",
     "ytpl": "^2.3.0",
     "zod": "^3.20.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.26"
   }
 }
