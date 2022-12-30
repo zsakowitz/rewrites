@@ -315,14 +315,17 @@ class ArrayValidator<T, NonEmpty extends boolean = false> extends Validator<
 
 export const array = new ArrayValidator([])
 
-class TupleValidator<T extends readonly unknown[] = []> extends Validator<T> {
+class TupleValidator<
+  I extends readonly unknown[] = [],
+  R extends readonly unknown[] = []
+> extends Validator<[...I, ...R]> {
   protected readonly core = [
     refine(
       (data): data is readonly unknown[] => Array.isArray(data),
       `Expected an array.`
     ),
     transform((data: readonly unknown[]) => [...data]),
-    (data: readonly unknown[]): Result<T> => {
+    (data: readonly unknown[]): Result<[...I, ...R]> => {
       let ok = true
       const errors: string[] = []
       const value = []
@@ -345,11 +348,21 @@ class TupleValidator<T extends readonly unknown[] = []> extends Validator<T> {
       }
 
       if (this.tupleRest) {
-        for (
-          let index = this.tupleItems.length;
-          index < data.length;
-          index++
-        ) {}
+        for (let index = this.tupleItems.length; index < data.length; index++) {
+          const result = this.tupleRest.parse(data[index])
+
+          if (!result.ok) {
+            ok = false
+            errors.push(
+              ...joinErrors(
+                `Found error at index ${index} of array: `,
+                result.errors
+              )
+            )
+          } else {
+            value.push(result.value)
+          }
+        }
       } else if (data.length > this.tupleItems.length) {
         return {
           ok: false,
@@ -360,7 +373,7 @@ class TupleValidator<T extends readonly unknown[] = []> extends Validator<T> {
       }
 
       return ok
-        ? { ok, value: value as readonly unknown[] as T }
+        ? { ok, value: value as readonly unknown[] as [...I, ...R] }
         : { ok, errors }
     },
   ] as any
@@ -373,12 +386,22 @@ class TupleValidator<T extends readonly unknown[] = []> extends Validator<T> {
     super(modifiers)
   }
 
-  protected duplicate(newModifiers: readonly Modifier<any, any>[]): this {
+  protected duplicate(
+    newModifiers: readonly Modifier<any, any>[],
+    newTupleRest = this.tupleRest
+  ): this {
     return new (this.constructor as typeof TupleValidator)(
       newModifiers,
       this.tupleItems,
-      this.tupleRest
+      newTupleRest
     ) as this
+  }
+
+  rest<U>(rest: Validator<U>): TupleValidator<I, readonly U[]> {
+    return this.duplicate(this.modifiers, rest) as TupleValidator<
+      I,
+      readonly U[]
+    >
   }
 }
 
