@@ -33,10 +33,6 @@ abstract class Parser {
     }
 
     return Result.error(this)
-
-    function a(b: void) {}
-
-    a()
   }
 }
 
