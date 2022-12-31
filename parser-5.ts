@@ -64,6 +64,10 @@ export class Parser<T> {
     return this.p(initial(source))
   }
 
+  void(): Parser<undefined> {
+    return this.map(() => undefined)
+  }
+
   map<U>(fn: (value: T) => U): Parser<U> {
     return new Parser((state) => {
       if (!state.ok) {
@@ -162,7 +166,7 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
     const match = state.source.slice(state.index).match(regex)
 
     if (match) {
-      return ok(state, state.index + length, match)
+      return ok(state, state.index + match[0].length, match)
     }
 
     return error(
@@ -358,4 +362,26 @@ export function lazy<T>(parser: () => Parser<T>): Parser<T> {
 
     return cached.p(state)
   })
+}
+
+/** Repeatedly matches a parser with a separator between each match. */
+export function sepBy<T>(
+  parser: Parser<T>,
+  separator: Parser<unknown>
+): Parser<readonly T[]> {
+  return optional(
+    seq(parser, many(seq(separator, parser).map((match) => match[1]))).map(
+      ([first, rest]) => [first].concat(rest)
+    )
+  ).map((match) => match || [])
+}
+
+/** Repeatedly matches a parser with a separator between each match. Requires at least one match. */
+export function sepBy1<T>(
+  parser: Parser<T>,
+  separator: Parser<unknown>
+): Parser<readonly T[] & { readonly 0: T }> {
+  return seq(parser, many(seq(separator, parser).map((match) => match[1]))).map(
+    ([first, rest]) => [first, ...rest] as const
+  )
 }
