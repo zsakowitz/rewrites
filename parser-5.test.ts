@@ -1,236 +1,155 @@
-import { isDeepStrictEqual } from "util"
 import * as Z from "./parser-5"
-import { expect } from "@jest/globals"
 
-// #region toBeOk, toBeErrored, toBeOkWith, toBeAt
-expect.extend({
-  toBeOk: function (actual: unknown) {
-    if (
-      typeof actual != "object" ||
-      actual == null ||
-      !("index" in actual) ||
-      typeof actual.index != "number" ||
-      !("source" in actual) ||
-      typeof actual.source != "string" ||
-      !("ok" in actual) ||
-      typeof actual.ok != "boolean" ||
-      !("value" in actual)
-    ) {
-      throw new Error("The passed state must be a State!")
-    }
-
-    if (actual.ok) {
-      return {
-        message: () =>
-          `expected State.Ok(${this.utils.printReceived(
-            actual.value
-          )}) to be errored`,
-        pass: true,
-      }
-    } else {
-      return {
-        message: () =>
-          `expected State.Error(${this.utils.printReceived(
-            actual.value
-          )}) to be ok`,
-        pass: false,
-      }
-    }
-  },
-  toBeErrored: function (actual: unknown) {
-    if (
-      typeof actual != "object" ||
-      actual == null ||
-      !("index" in actual) ||
-      typeof actual.index != "number" ||
-      !("source" in actual) ||
-      typeof actual.source != "string" ||
-      !("ok" in actual) ||
-      typeof actual.ok != "boolean" ||
-      !("value" in actual)
-    ) {
-      throw new Error("The passed state must be a State!")
-    }
-
-    if (actual.ok) {
-      return {
-        message: () =>
-          `expected State.Ok(${this.utils.printReceived(
-            actual.value
-          )}) to be errored`,
-        pass: false,
-      }
-    } else {
-      return {
-        message: () =>
-          `expected State.Error(${this.utils.printReceived(
-            actual.value
-          )}) to be ok`,
-        pass: true,
-      }
-    }
-  },
-  toBeOkWith: function (actual: unknown, value: unknown) {
-    if (
-      typeof actual != "object" ||
-      actual == null ||
-      !("index" in actual) ||
-      typeof actual.index != "number" ||
-      !("source" in actual) ||
-      typeof actual.source != "string" ||
-      !("ok" in actual) ||
-      typeof actual.ok != "boolean" ||
-      !("value" in actual)
-    ) {
-      throw new Error("The passed state must be a State!")
-    }
-
-    if (actual.ok && isDeepStrictEqual(actual.value, value)) {
-      return {
-        message: () =>
-          `expected State.Ok(${this.utils.printReceived(
-            actual.value
-          )}) to be errored or have a value other than ${this.utils.printExpected(
-            value
-          )}`,
-        pass: true,
-      }
-    } else {
-      return {
-        message: () =>
-          `expected State.Error(${this.utils.printReceived(
-            actual.value
-          )}) to be State.Ok(${this.utils.printExpected(value)})`,
-        pass: false,
-      }
-    }
-  },
-  toBeAt: function (actual: unknown, index: unknown) {
-    if (
-      typeof actual != "object" ||
-      actual == null ||
-      !("index" in actual) ||
-      typeof actual.index != "number" ||
-      !("source" in actual) ||
-      typeof actual.source != "string" ||
-      !("ok" in actual) ||
-      typeof actual.ok != "boolean" ||
-      !("value" in actual)
-    ) {
-      throw new Error("The passed state must be a State!")
-    }
-
-    if (typeof index != "number") {
-      throw new Error("The passed index must be a number!")
-    }
-
-    if (actual.ok && actual.index == index) {
-      return {
-        message: () =>
-          `expected State.${
-            actual.ok ? "Ok" : "Error"
-          }(#${this.utils.printReceived(
-            actual.index
-          )}) to have an index other than #${this.utils.printExpected(
-            actual.index
-          )}`,
-        pass: true,
-      }
-    } else {
-      return {
-        message: () =>
-          `expected State.${
-            actual.ok ? "Ok" : "Error"
-          }(#${this.utils.printReceived(
-            actual.index
-          )}) to have an index of #${this.utils.printExpected(actual.index)}`,
-        pass: false,
-      }
-    }
-  },
-})
-
-declare module "expect" {
-  interface AsymmetricMatchers {
-    toBeOk(): void
-    toBeErrored(): void
-    toBeOkWith(value: unknown): void
-    toBeAt(index: number): void
-  }
-
-  interface Matchers<R> {
-    toBeOk(): R
-    toBeErrored(): R
-    toBeOkWith(value: unknown): R
-    toBeAt(index: number): R
-  }
+function indent(text: string) {
+  return text.split("\n").join("\n  ")
 }
-// #endregion
 
-describe("Z.initial", () => {
-  test("creates an Ok state", () => {
-    expect(Z.initial("")).toBeOk()
-    expect(Z.initial("Hello world!")).toBeOk()
-  })
+const Identifier = Z.regex(/^[A-Za-z0-9_-]+/).map((value) => "$" + value[0])
 
-  test("with no value", () => {
-    expect(Z.initial("")).toBeOkWith(undefined)
-    expect(Z.initial("Hello world!")).toBeOkWith(undefined)
-  })
+const Whitespace = Z.regex(/^\s+/).void()
 
-  test("at index 0", () => {
-    expect(Z.initial("")).toBeAt(0)
-    expect(Z.initial("Hello world!")).toBeAt(0)
-  })
+const OptionalWhitespace = Whitespace.optional()
+
+const CommaWithWhitespace = Z.regex(/^\s*,\s*/).void()
+
+const BarWithWhitespace = Z.regex(/^\s+\|\s+/).void()
+
+const Literal = Z.seq(Z.text('"'), Z.regex(/^[^"\n\r]+/), Z.text('"')).map(
+  (value) => `Z.text(${JSON.stringify(value[1][0])})`
+)
+
+const ReferenceWithArgs: Z.Parser<string> = Z.seq(
+  Identifier,
+  OptionalWhitespace,
+  Z.text("<"),
+  OptionalWhitespace,
+  Z.sepBy1(
+    Z.lazy(() => Sequence),
+    CommaWithWhitespace
+  ),
+  OptionalWhitespace,
+  Z.text(">")
+).map((value) => `${value[0]}(${value[4].join(", ")})`)
+
+const Lookahead: Z.Parser<string> = Z.seq(
+  Z.text("&"),
+  OptionalWhitespace,
+  Z.lazy(() => Atom)
+).map((value) => `Z.lookahead(\n  ${indent(value[2])}\n)`)
+
+const Not: Z.Parser<string> = Z.seq(
+  Z.text("!"),
+  OptionalWhitespace,
+  Z.lazy(() => Atom)
+).map((value) => `Z.not(\n  ${indent(value[2])}\n)`)
+
+const Parenthesized: Z.Parser<string> = Z.seq(
+  Z.text("("),
+  OptionalWhitespace,
+  Z.lazy(() => Sequence),
+  OptionalWhitespace,
+  Z.text(")")
+).map((value) => value[2])
+
+const CharacterClass: Z.Parser<string> = Z.seq(
+  Z.text("["),
+  Z.regex(/^[^\n\r\]]+/),
+  Z.text("]")
+).map((e) => `Z.regex(new RegExp(${JSON.stringify("[" + e[1][0] + "]")}))`)
+
+const Atom = Z.seq(
+  Z.any(
+    Literal,
+    ReferenceWithArgs,
+    Identifier,
+    Lookahead,
+    Not,
+    Parenthesized,
+    CharacterClass
+  ),
+  Z.optional(
+    Z.seq(OptionalWhitespace, Z.any(Z.text("?"), Z.text("*"), Z.text("+"))).map(
+      (value) => value[1]
+    )
+  )
+).map(([value, quantifier]) => {
+  if (quantifier == "?") {
+    return `Z.optional(\n  ${indent(value)}\n)`
+  }
+
+  if (quantifier == "*") {
+    return `Z.many(\n  ${indent(value)}\n)`
+  }
+
+  if (quantifier == "+") {
+    return `Z.many1(\n  ${indent(value)}\n)`
+  }
+
+  return value
 })
 
-describe("Z.char", () => {
-  describe("matches any character", () => {
-    test("successfully", () => {
-      expect(Z.char().parse("coding")).toBeOk()
-      expect(Z.char().parse("Hello world!")).toBeOk()
-    })
-
-    test("with the character as its value", () => {
-      expect(Z.char().parse("coding")).toBeOkWith("c")
-      expect(Z.char().parse("Hello world!")).toBeOkWith("H")
-    })
-
-    test("at index 1", () => {
-      expect(Z.char().parse("coding")).toBeAt(1)
-      expect(Z.char().parse("Hello world!")).toBeAt(1)
-    })
-  })
-
-  test("fails on empty strings", () => {
-    expect(Z.char().parse("")).toBeErrored()
-  })
+const Sequence = Z.sepBy1(Atom, Whitespace).map((value) => {
+  if (value.length == 1) {
+    return value[0]
+  } else {
+    return `Z.seq(\n  ${indent(value.join(",\n"))}\n)`
+  }
 })
 
-describe("Z.text", () => {
-  describe("matches the specified text", () => {
-    test("successfully", () => {
-      expect(Z.text("cod").parse("coding")).toBeOk()
-      expect(Z.text("Hello").parse("Hello world!")).toBeOk()
-    })
-
-    test("with the text as its value", () => {
-      expect(Z.text("cod").parse("coding")).toBeOkWith("cod")
-      expect(Z.text("Hello").parse("Hello world!")).toBeOkWith("Hello")
-    })
-
-    test("case sensitively", () => {
-      expect(Z.text("cod").parse("Coding")).toBeErrored()
-      expect(Z.text("Hello").parse("hello world!")).toBeErrored()
-    })
-
-    test("at the beginning", () => {
-      expect(Z.text("cod").parse("I like coding")).toBeErrored()
-      expect(Z.text("hello").parse("I shall say, hello world!")).toBeErrored()
-    })
-  })
-
-  test("fails on empty strings", () => {
-    expect(Z.char().parse("")).toBeErrored()
-  })
+const Choice = Z.sepBy1(Sequence, BarWithWhitespace).map((value) => {
+  if (value.length == 1) {
+    return value[0]
+  } else {
+    return `Z.any(\n  ${indent(value.join(",\n"))}\n)`
+  }
 })
+
+const Assignment = Z.seq(
+  Identifier,
+  OptionalWhitespace,
+  Z.optional(
+    Z.seq(
+      Z.text("<"),
+      OptionalWhitespace,
+      Z.sepBy1(
+        Z.lazy(() => Sequence),
+        CommaWithWhitespace
+      ),
+      OptionalWhitespace,
+      Z.text(">"),
+      OptionalWhitespace
+    ).map((value) => value[2])
+  ),
+  Z.text("="),
+  OptionalWhitespace,
+  Choice,
+  OptionalWhitespace,
+  Z.text(";")
+).map((value) => {
+  const name = value[0]
+  const args = value[2]
+  const expr = value[5]
+
+  if (args) {
+    return (
+      `const ${name}\n  ` +
+      indent(
+        `(${args.join(", ")}) =>\n  ` +
+          indent(`Z.lazy(() =>\n  ${indent(expr)}\n)`)
+      )
+    )
+  }
+
+  return `const ${name} =\n  ` + indent(`Z.lazy(() =>\n  ${indent(expr)}\n)`)
+})
+
+const EOF = Z.not(Z.char)
+
+const Grammar = Z.seq(
+  OptionalWhitespace,
+  Z.many(Assignment),
+  OptionalWhitespace,
+  Sequence,
+  OptionalWhitespace,
+  EOF
+).map((value) => `${value[1].join("\n\n")}\n\n${value[3]}`)

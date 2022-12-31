@@ -64,10 +64,6 @@ export class Parser<T> {
     return this.p(initial(source))
   }
 
-  void(): Parser<undefined> {
-    return this.map(() => undefined)
-  }
-
   map<U>(fn: (value: T) => U): Parser<U> {
     return new Parser((state) => {
       if (!state.ok) {
@@ -82,6 +78,14 @@ export class Parser<T> {
 
       return ok(next, next.index, fn(next.value))
     })
+  }
+
+  value<U>(value: U): Parser<U> {
+    return this.map(() => value)
+  }
+
+  void(): Parser<undefined> {
+    return this.value(undefined)
   }
 
   optional(): Parser<T | undefined> {
@@ -125,7 +129,7 @@ export function text<T extends string>(text: T): Parser<T> {
       `Expected string '${text}'; received '${state.source.slice(
         state.index,
         state.index + 10
-      )}${state.source.length > state.index + 10 ? "..." : ""}.'`
+      )}${state.source.length > state.index + 10 ? "..." : ""}'.`
     )
   })
 }
@@ -174,27 +178,25 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
       `Expected something matching ${regex}; received '${state.source.slice(
         state.index,
         state.index + 10
-      )}${state.source.length > state.index + 10 ? "..." : ""}.'`
+      )}${state.source.length > state.index + 10 ? "..." : ""}'.`
     )
   })
 }
 
 /** Matches any character. */
-export function char(): Parser<string> {
-  return new Parser((state) => {
-    if (!state.ok) {
-      return state
-    }
+export const char = new Parser((state) => {
+  if (!state.ok) {
+    return state
+  }
 
-    const char = state.source[state.index]
+  const char = state.source[state.index]
 
-    if (char) {
-      return ok(state, state.index + 1, char)
-    }
+  if (char) {
+    return ok(state, state.index + 1, char)
+  }
 
-    return error(state, `Expected a character; received EOF.`)
-  })
-}
+  return error(state, `Expected a character; received EOF.`)
+})
 
 /** Matches a sequence of parsers. */
 export function seq<T extends readonly Parser<unknown>[]>(
