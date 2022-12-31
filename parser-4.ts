@@ -1,4 +1,4 @@
-// Yet another system for parsing text.
+// Yet another system for parsing text. #parser
 
 export type ArrayOfLength<
   N extends number,
