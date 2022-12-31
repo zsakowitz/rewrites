@@ -9,7 +9,11 @@ export function createEffect(update: () => void) {
   currentScope = parent
 }
 
-export function createSignal<T>(value: T) {
+export function createSignal<T>(): [() => T | undefined, (value: T) => void]
+export function createSignal<T>(value: T): [() => T, (value: T) => void]
+export function createSignal<T>(
+  value?: T
+): [() => T | undefined, (value: T) => void] {
   const tracking = new Set<() => void>()
 
   const get = () => {
@@ -25,17 +29,17 @@ export function createSignal<T>(value: T) {
     tracking.forEach((effect) => effect())
   }
 
-  return [get, set] as const
+  return [get, set]
 }
 
 export function createMemo<T>(compute: () => T) {
-  const [get, set] = createSignal(null! as T)
+  const [get, set] = createSignal<T>()
   createEffect(() => set(compute()))
-  return get
+  return get as () => T
 }
 
 export function createComputed<T>(value: T, compute: (oldValue: T) => T) {
-  const [get, set] = createSignal(null! as T)
+  const [get, set] = createSignal()
   createEffect(() => set((value = compute(value))))
-  return get
+  return get as () => T
 }
