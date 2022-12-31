@@ -63,6 +63,38 @@ export class Parser<T> {
   parse(source: string): State<T> {
     return this.p(initial(source))
   }
+
+  map<U>(fn: (value: T) => U): Parser<U> {
+    return new Parser((state) => {
+      if (!state.ok) {
+        return state
+      }
+
+      const next = this.p(state)
+
+      if (!next.ok) {
+        return next
+      }
+
+      return ok(next, next.index, fn(next.value))
+    })
+  }
+
+  optional(): Parser<T | undefined> {
+    return optional(this)
+  }
+
+  many(): Parser<readonly T[]> {
+    return many(this)
+  }
+
+  many1(): Parser<readonly T[]> {
+    return many1(this)
+  }
+
+  or<U>(other: Parser<U>): Parser<T | U> {
+    return any(this, other)
+  }
 }
 
 /** Any parser. */
@@ -87,6 +119,55 @@ export function text<T extends string>(text: T): Parser<T> {
     return error(
       state,
       `Expected string '${text}'; received '${state.source.slice(
+        state.index,
+        state.index + 10
+      )}${state.source.length > state.index + 10 ? "..." : ""}.'`
+    )
+  })
+}
+
+/** Matches a regular expression. */
+export function regex(regex: RegExp): Parser<RegExpMatchArray> {
+  if (regex.global) {
+    throw new Error(
+      "The regular expression passed to 'regex' should not be global."
+    )
+  }
+
+  if (regex.sticky) {
+    throw new Error(
+      "The regular expression passed to 'regex' should not be sticky."
+    )
+  }
+
+  if (regex.multiline) {
+    throw new Error(
+      "The regular expression passed to 'regex' should not be multiline."
+    )
+  }
+
+  if (!regex.source.startsWith("^")) {
+    throw new Error(
+      "The regular expression passed to 'regex' should start with a begin assertion (^)."
+    )
+  }
+
+  const { length } = text
+
+  return new Parser((state) => {
+    if (!state.ok) {
+      return state
+    }
+
+    const match = state.source.slice(state.index).match(regex)
+
+    if (match) {
+      return ok(state, state.index + length, match)
+    }
+
+    return error(
+      state,
+      `Expected something matching ${regex}; received '${state.source.slice(
         state.index,
         state.index + 10
       )}${state.source.length > state.index + 10 ? "..." : ""}.'`
@@ -263,5 +344,18 @@ export function many1<T>(
 
       state = next
     }
+  })
+}
+
+/** Delays the construction of a parser until needed. */
+export function lazy<T>(parser: () => Parser<T>): Parser<T> {
+  let cached: Parser<T> | undefined
+
+  return new Parser((state) => {
+    if (!cached) {
+      cached = parser()
+    }
+
+    return cached.p(state)
   })
 }
