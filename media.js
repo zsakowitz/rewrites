@@ -10,7 +10,7 @@
 
   video.loop = true
   video.controls = true
-  video.style.opacity = 0
+  video.style.opacity = "0"
 
   await video.play()
 
