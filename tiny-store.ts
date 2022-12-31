@@ -1,24 +1,16 @@
 // A simple signal, effect, memo, and computed library based on SolidJS.
 
-let currentScope: Effect
-
-class Effect {
-  constructor(readonly u: () => void) {}
-
-  r() {
-    const parent = currentScope
-    currentScope = this
-    this.u()
-    currentScope = parent
-  }
-}
+let currentScope: () => void
 
 export function createEffect(update: () => void) {
-  new Effect(update).r()
+  const parent = currentScope
+  currentScope = update
+  update()
+  currentScope = parent
 }
 
 export function createSignal<T>(value: T) {
-  const tracking = new Set<Effect>()
+  const tracking = new Set<() => void>()
 
   const get = () => {
     if (currentScope) {
@@ -30,8 +22,7 @@ export function createSignal<T>(value: T) {
 
   const set = (val: T) => {
     value = val
-
-    tracking.forEach((effect) => effect.r())
+    tracking.forEach((effect) => effect())
   }
 
   return [get, set] as const
