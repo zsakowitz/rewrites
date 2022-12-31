@@ -147,7 +147,7 @@ const EOF = Z.not(Z.char)
 
 const Grammar = Z.seq(
   OptionalWhitespace,
-  Z.many(Assignment),
+  Z.sepBy(Assignment, Whitespace),
   OptionalWhitespace,
   Sequence,
   OptionalWhitespace,
