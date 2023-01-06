@@ -160,8 +160,6 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
     )
   }
 
-  const { length } = text
-
   return new Parser((state) => {
     if (!state.ok) {
       return state
