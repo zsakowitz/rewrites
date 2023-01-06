@@ -1,5 +1,3 @@
-import { namespace } from "ohm-js"
-
 const call = (fn: () => void) => fn()
 const callAll = (set: Set<() => void>) => set.forEach(call)
 
@@ -293,6 +291,10 @@ declare global {
       [K in keyof HTMLElementTagNameMap]: Partial<
         HTMLProps<HTMLElementTagNameMap[K]>
       >
+    }
+
+    export interface ElementChildrenAttribute {
+      children: {}
     }
   }
 }
