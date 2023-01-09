@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 72 files
+standard library implemented solely in the TS type system. Enjoy the 86 files
 this repository has to offer.
 
 # File listing
@@ -98,9 +98,13 @@ An engine that automatically runs dominoes games.
 
 <br>
 
-**[emitter.ts](./emitter.ts)** #events #promise #rewrite
+**[emitter-1.ts](./emitter-1.ts)** #events #promise #rewrite
 
 A typed event emitter that uses promises and async iterables instead of callbacks to manage event listeners.
+
+<br>
+
+**[emitter-2.ts](./emitter-2.ts)**
 
 <br>
 
@@ -113,6 +117,10 @@ Encodes standard input into a javascript: bookmark.
 **[env.d.ts](./env.d.ts)**
 
 Declares modules without @types/... declarations.
+
+<br>
+
+**[exittable.ts](./exittable.ts)**
 
 <br>
 
@@ -168,9 +176,21 @@ An attempt to rewrite many of the core JavaScript operations using only the Type
 
 <br>
 
+**[lambda.dom.test.ts](./lambda.dom.test.ts)**
+
+Places textareas into a browser that allow for writing and running lambda calculus code.
+
+<br>
+
 **[lambda.js](./lambda.js)** #untyped
 
 Lambda calculus functions in JavaScript.
+
+<br>
+
+**[lambda.ts](./lambda.ts)** #parser
+
+A parser and evaluator for lambda calculus.
 
 <br>
 
@@ -246,6 +266,12 @@ An attempt to parse a language using the arcsecond library.
 
 <br>
 
+**[old-result.ts](./old-result.ts)**
+
+A Result monad.
+
+<br>
+
 **[once.ts](./once.ts)**
 
 Wraps a function and only allows it to be called once.
@@ -258,7 +284,7 @@ An Option monad.
 
 <br>
 
-**[parser-1.ts](./parser-1.ts)**
+**[parser-1.ts](./parser-1.ts)** #parser
 
 A general Parser and Result class that can be used to parse languages.
 
@@ -286,9 +312,45 @@ Another improved system for parsing text. Slightly based on Arcsecond.
 
 <br>
 
-**[parser-4.ts](./parser-4.ts)**
+**[parser-4.ts](./parser-4.ts)** #parser
 
 Yet another system for parsing text.
+
+<br>
+
+**[parser-5.dom.test.ts](./parser-5.dom.test.ts)**
+
+<br>
+
+**[parser-5.jest.test.ts](./parser-5.jest.test.ts)**
+
+@ts-nocheck reinstall jest for this script to work properly
+
+<br>
+
+**[parser-5.peg.test.ts](./parser-5.peg.test.ts)**
+
+<br>
+
+**[parser-5.perchance.test.ts](./parser-5.perchance.test.ts)** #parser #rewrite
+
+A replica of perchance's parser and runner. May have a different feature set.
+
+<br>
+
+**[parser-5.ts](./parser-5.ts)** #parser
+
+A fifth system for parsing text.
+
+<br>
+
+**[parser-6.arithmetic.test.ts](./parser-6.arithmetic.test.ts)**
+
+<br>
+
+**[parser-6.ts](./parser-6.ts)**
+
+A text parser based on results and coroutines.
 
 <br>
 
@@ -316,6 +378,12 @@ A library for adding, subtracting, and multiplying quaternions.
 
 <br>
 
+**[queue.ts](./queue.ts)**
+
+An async generator that yields queued values.
+
+<br>
+
 **[random-path.ts](./random-path.ts)**
 
 Makes a random path in 1D, 2D, or 3D.
@@ -323,8 +391,6 @@ Makes a random path in 1D, 2D, or 3D.
 <br>
 
 **[result.ts](./result.ts)**
-
-A Result monad.
 
 <br>
 
@@ -355,6 +421,12 @@ A parser and evaluator for boolean logic and sequent calculus.
 **[solid-stores.ts](./solid-stores.ts)** #rewrite
 
 An implementation of SolidJS's signals, effects, and memos.
+
+<br>
+
+**[solid.ts](./solid.ts)**
+
+Another reactive library.
 
 <br>
 

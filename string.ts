@@ -61,4 +61,4 @@ interface String {
   ): String.Split<This, Splitter>
 }
 
-let testString = "fdvadhsk jkdfsh".split(" ")
+let testString = "test string".split(" ")

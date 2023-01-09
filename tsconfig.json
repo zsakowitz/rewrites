@@ -6,12 +6,13 @@
     "module": "ESNext",
     "outDir": "./dist",
     "allowJs": true,
+    "allowSyntheticDefaultImports": true,
     "checkJs": true,
     "moduleResolution": "node",
     "jsx": "react",
     "jsxFactory": "h",
     "jsxFragmentFactory": "f",
-    "allowSyntheticDefaultImports": true,
+    "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true
   }
 }
