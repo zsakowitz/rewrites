@@ -450,7 +450,7 @@ An implementation of Svelte stores.
 
 **[tick-oat-two.ts](./tick-oat-two.ts)**
 
-/ An AI for the TickoaTTwo game created by Oats Jenkins: / https://www.youtube.com/watch?v=ePxrVU4M9uA
+An AI for the TickoaTTwo game created by Oats Jenkins: https://www.youtube.com/watch?v=ePxrVU4M9uA
 
 <br>
 
