@@ -1,3 +1,5 @@
+// A generic result type that can express a possibly failed result.
+
 export type Error = {
   readonly ok: false
   readonly error: string

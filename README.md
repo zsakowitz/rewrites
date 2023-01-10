@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 86 files
+standard library implemented solely in the TS type system. Enjoy the 91 files
 this repository has to offer.
 
 # File listing
@@ -28,9 +28,13 @@ A rewrite of AbortSignals with Promise-like syntax and then-chaining.
 
 **[animation.ts](./animation.ts)**
 
+Draws a cool animation with points and lines connecting them.
+
 <br>
 
 **[any.ts](./any.ts)**
+
+A value that returns itself for any and all operations. Type: `any`.
 
 <br>
 
@@ -47,6 +51,8 @@ A typed container for holding binary data that can be sliced.
 <br>
 
 **[bookmark.ts](./bookmark.ts)**
+
+Generates a bookmark file that can be imported into Chrome.
 
 <br>
 
@@ -106,6 +112,8 @@ A typed event emitter that uses promises and async iterables instead of callback
 
 **[emitter-2.ts](./emitter-2.ts)**
 
+A strongly types event emitter that uses async generators.
+
 <br>
 
 **[encode-uri.js](./encode-uri.js)**
@@ -122,15 +130,25 @@ Declares modules without @types/... declarations.
 
 **[exittable.ts](./exittable.ts)**
 
+Runs function that can be exited from using an early return mechanism powered by exceptions.
+
 <br>
 
 **[explicit-resource-management.ts](./explicit-resource-management.ts)**
+
+An implementation of the ECMAScript Explicit Resource Management proposal.
 
 <br>
 
 **[extension.ts](./extension.ts)** #rewrite
 
 An implementation of the new Facet library for CodeMirror v6.
+
+<br>
+
+**[fraction.ts](./fraction.ts)**
+
+Expresses arbitrary precision fractions using bigints.
 
 <br>
 
@@ -203,6 +221,12 @@ An engine to discover solutions to "Light the Bulbs" on zSnout.
 **[linked-list.ts](./linked-list.ts)** #immutable
 
 An immutable linked list implementation.
+
+<br>
+
+**[lock.ts](./lock.ts)**
+
+A lock that can only be used by one activity at a time.
 
 <br>
 
@@ -310,6 +334,8 @@ Another improved system for parsing text. Slightly based on Arcsecond.
 
 **[parser-4.test.ts](./parser-4.test.ts)**
 
+Parses expressions using [parser-4.ts](./parser-4.ts).
+
 <br>
 
 **[parser-4.ts](./parser-4.ts)** #parser
@@ -320,6 +346,8 @@ Yet another system for parsing text.
 
 **[parser-5.dom.test.ts](./parser-5.dom.test.ts)**
 
+Puts textareas into the DOM that can be used to test parser-5.peg.test.ts.
+
 <br>
 
 **[parser-5.jest.test.ts](./parser-5.jest.test.ts)**
@@ -329,6 +357,8 @@ Yet another system for parsing text.
 <br>
 
 **[parser-5.peg.test.ts](./parser-5.peg.test.ts)**
+
+Parsers PEG-style grammars into a parser-5 style grammar.
 
 <br>
 
@@ -345,6 +375,8 @@ A fifth system for parsing text.
 <br>
 
 **[parser-6.arithmetic.test.ts](./parser-6.arithmetic.test.ts)**
+
+Parser arithmetic using parser-6.ts.
 
 <br>
 
@@ -384,6 +416,12 @@ An async generator that yields queued values.
 
 <br>
 
+**[random-item.ts](./random-item.ts)**
+
+Picks a random item from an array.
+
+<br>
+
 **[random-path.ts](./random-path.ts)**
 
 Makes a random path in 1D, 2D, or 3D.
@@ -391,6 +429,8 @@ Makes a random path in 1D, 2D, or 3D.
 <br>
 
 **[result.ts](./result.ts)**
+
+A generic result type that can express a possibly failed result.
 
 <br>
 
@@ -433,6 +473,12 @@ Another reactive library.
 **[stack.ts](./stack.ts)**
 
 A generic Stack in JavaScript.
+
+<br>
+
+**[stores.ts](./stores.ts)**
+
+An implementation and comparison of stores from multiple frameworks, each with: `derived`, which creates a store whose value is computed based on other stores; `effect`, which runs an effect when the values of one or more stores change; `get`, which retrieves the value of a store; `readable`, which creates a store that is read-only; `untrack`, which performs a side effect on multiple stores without subscribing to them; and `writable`, which creates a store that is readable and writable.
 
 <br>
 
@@ -490,9 +536,15 @@ An engine that can look through Wikipedia links.
 
 <br>
 
-**[worker.ts](./worker.ts)**
+**[worker-1.ts](./worker-1.ts)**
 
 A simple way to run functions off the main thread with one-way or bi-directional communication.
+
+<br>
+
+**[worker-2.ts](./worker-2.ts)**
+
+A simple interface for working with web workers.
 
 <br>
 

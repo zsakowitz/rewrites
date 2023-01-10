@@ -1,3 +1,5 @@
+// Generates a bookmark file that can be imported into Chrome.
+
 export function indent(text: string) {
   return text.split("\n").join("\n  ")
 }

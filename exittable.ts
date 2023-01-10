@@ -1,3 +1,6 @@
+// Runs function that can be exited from using an early return mechanism
+// powered by exceptions.
+
 class ExitNotice {
   constructor(readonly key: symbol, readonly value: any) {}
 }

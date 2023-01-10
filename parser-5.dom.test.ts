@@ -1,3 +1,5 @@
+// Puts textareas into the DOM that can be used to test parser-5.peg.test.ts.
+
 import * as Z from "./parser-5"
 import { Grammar } from "./parser-5.peg.test"
 

@@ -1,3 +1,5 @@
+// Parsers PEG-style grammars into a parser-5 style grammar.
+
 import * as Z from "./parser-5"
 
 function indent(text: string) {

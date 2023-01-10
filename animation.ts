@@ -1,3 +1,5 @@
+// Draws a cool animation with points and lines connecting them.
+
 const canvas = document.createElement("canvas")
 canvas.width = innerWidth + 100
 canvas.height = innerHeight + 100

@@ -1,3 +1,5 @@
+// A strongly types event emitter that uses async generators.
+
 import { Queue } from "./queue"
 
 export class Emitter<T extends { [x: keyof any]: (data?: any) => void }> {

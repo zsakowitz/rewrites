@@ -1,4 +1,8 @@
+// A simple interface for working with web workers.
+
+import { namespace } from "ohm-js"
 import { Queue } from "./queue"
+import { randomItem } from "./random-item"
 
 const workerSourceInitial = `
 "use strict";
@@ -36,7 +40,7 @@ globalThis.onmessage = async ({ data }) => {
     globalThis.postMessage({
       id: data.id,
       type: "return-value",
-      value: await (0, eval)(data.fn)(...data.args)
+      value: await (0, eval)("(" + data.fn + ")")(...data.args)
     })
   }
 
@@ -59,7 +63,7 @@ globalThis.onmessage = async ({ data }) => {
       throw new Error("Unexpectedly hit end of queue.")
     }
 
-    ;(0, eval)(data.fn)(send)
+    ;(0, eval)("(" + data.fn + ")")(send)
   }
 
   if (data.type == "two-way-to-worker") {
@@ -179,5 +183,76 @@ export class Worker {
     })
 
     return send as any
+  }
+}
+
+export type WorkerAndJobCount = {
+  jobs: number
+  readonly worker: Worker
+}
+
+export class Pool {
+  private readonly workers: WorkerAndJobCount[]
+
+  constructor(numberOfWorkers = 8) {
+    this.workers = Array.from({ length: numberOfWorkers }, () => ({
+      jobs: 0,
+      worker: new Worker(),
+    }))
+  }
+
+  createWorker(): WorkerAndJobCount {
+    const worker = {
+      jobs: 0,
+      worker: new Worker(),
+    }
+
+    this.workers.push(worker)
+
+    return worker
+  }
+
+  getWorker(): WorkerAndJobCount {
+    const lowestJobCount = this.workers.reduce((a, b) => Math.min(a, b.jobs), 0)
+
+    const leastLoadedWorkers = this.workers.filter(
+      (worker) => worker.jobs == lowestJobCount
+    )
+
+    const worker = randomItem(leastLoadedWorkers)
+
+    if (worker) {
+      return worker
+    }
+
+    return this.createWorker()
+  }
+
+  async run<A extends readonly unknown[], T>(
+    fn: (...args: A) => T,
+    ...args: A
+  ): Promise<T> {
+    const worker = this.getWorker()
+
+    worker.jobs++
+    const value = await worker.worker.run(fn, ...args)
+    worker.jobs--
+
+    return value
+  }
+
+  twoWay<ScriptToWorker, WorkerToScript>(
+    fn: (send: {
+      (data: WorkerToScript): void
+      [Symbol.asyncIterator](): AsyncGenerator<ScriptToWorker, never, unknown>
+    }) => unknown
+  ): {
+    (data: ScriptToWorker): void
+    [Symbol.asyncIterator](): AsyncGenerator<WorkerToScript, never, unknown>
+  } {
+    const worker = this.getWorker()
+
+    worker.jobs++
+    return worker.worker.twoWay(fn)
   }
 }

@@ -1,3 +1,5 @@
+// Expresses arbitrary precision fractions using bigints.
+
 export function gcd(a: bigint, b: bigint): bigint {
   if (b) {
     return gcd(b, a % b)

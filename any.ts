@@ -1,3 +1,5 @@
+// A value that returns itself for any and all operations. Type: `any`.
+
 const toAny = () => any
 const toTrue = () => true
 

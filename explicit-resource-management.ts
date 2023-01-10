@@ -1,3 +1,5 @@
+// An implementation of the ECMAScript Explicit Resource Management proposal.
+
 export interface DisposableResource {
   [Symbol.dispose](): void
 }
