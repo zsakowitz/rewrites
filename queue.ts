@@ -17,7 +17,7 @@ export class Queue<T> {
     })
   }
 
-  async *[Symbol.asyncIterator](): AsyncGenerator<T, void, unknown> {
+  async *[Symbol.asyncIterator](): AsyncGenerator<T, never, unknown> {
     let index = 0
 
     while (true) {
