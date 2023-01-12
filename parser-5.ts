@@ -120,7 +120,7 @@ export function text<T extends string>(text: T): Parser<T> {
       return state
     }
 
-    if (state.source.slice(state.index, state.index + length) == text) {
+    if (state.source.startsWith(text, state.index)) {
       return ok(state, state.index + length, text)
     }
 
@@ -384,4 +384,29 @@ export function sepBy1<T>(
   return seq(parser, many(seq(separator, parser).map((match) => match[1]))).map(
     ([first, rest]) => [first, ...rest] as const
   )
+}
+
+/** Matches any string from an array. */
+export function oneOf<T extends readonly string[]>(
+  values: T
+): Parser<T[number]> {
+  return new Parser((state) => {
+    if (!state.ok) {
+      return state
+    }
+
+    for (const value of values) {
+      if (state.source.startsWith(value, state.index)) {
+        return ok(state, state.index + value.length, value as T[number])
+      }
+    }
+
+    return error(
+      state,
+      `Expected one of ${values.join(", ")}; found ${state.source.slice(
+        state.index,
+        state.index + 10
+      )}.`
+    )
+  })
 }
