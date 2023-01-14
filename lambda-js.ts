@@ -1,4 +1,5 @@
-// A parser and evaluator for lambda calculus. #parser
+// A parser and evaluator for lambda calculus implemented using JavaScript code.
+// #parser
 
 export type Token =
   | { readonly type: "backslash"; readonly name: string }
@@ -11,7 +12,7 @@ const whitespace = /\s/
 export function transform(text: string): string {
   const aliases: [name: string, value: string][] = []
 
-  text = text.replace(/^([^\s()\\]+)\s+=\s+([^;]+);/gm, (_, name, value) => {
+  text = text.replace(/^([^\s()\\λ]+)\s+=\s+([^;]+);/gm, (_, name, value) => {
     aliases.push([name, value])
     return ""
   })
@@ -34,16 +35,22 @@ export function lex(text: string): readonly Token[] {
   let currentWord = ""
 
   for (const char of text) {
-    if (char == "\\" || char == "(" || char == ")" || whitespace.test(char)) {
+    if (
+      char == "\\" ||
+      char == "λ" ||
+      char == "(" ||
+      char == ")" ||
+      whitespace.test(char)
+    ) {
       if (currentWord) {
         tokens.push({ type: "name", name: currentWord })
         currentWord = ""
       }
 
-      if (char == "\\" || char == "(" || char == ")") {
+      if (char == "\\" || char == "λ" || char == "(" || char == ")") {
         tokens.push({
           type:
-            char == "\\"
+            char == "\\" || char == "λ"
               ? "backslash"
               : char == "("
               ? "leftParen"
@@ -90,7 +97,7 @@ export function lex(text: string): readonly Token[] {
 }
 
 export type PartialTree =
-  | Name
+  | Name<string>
   | (readonly PartialTree[] & { type?: undefined })
   | {
       readonly type: "backslash"
@@ -136,7 +143,7 @@ export function partialTree(tokens: readonly Token[]): PartialTree {
 }
 
 export type Tree =
-  | Name
+  | Name<string>
   | readonly Tree[]
   | {
       readonly type: "backslash"
@@ -206,30 +213,84 @@ function indent(text: string): string {
   return text.split("\n").join("\n  ")
 }
 
+function mergeLocals(a: readonly string[], b: readonly string[]): string[] {
+  const output = a.slice()
+
+  for (const word of b) {
+    if (!output.includes(word)) {
+      output.push(word)
+    }
+  }
+
+  return output
+}
+
+export type PartialString = {
+  readonly content: string
+  readonly endsWithLambda: boolean
+  readonly hasTopLevelApplication: boolean
+}
+
+const alphabet = "abcdefghijklmnopqrstuvwxyz"
+
 export abstract class Node {
   declare type?: undefined
 
+  abstract readonly canEval: boolean
+  abstract readonly locals: readonly string[]
+  abstract eval(): Node
   abstract isBound(name: string): boolean
   abstract isFree(name: string): boolean
-  abstract rename(oldName: string, newName: Name): Node
+  abstract rename(oldName: string, newName: Name<string>): Node
   abstract replace(name: string, node: Node): Node
   abstract toJS(): string
-  abstract toString(): string
+  abstract toPartialCompactString(): PartialString
+  abstract toPartialString(): PartialString
+
+  ski(): Node {
+    return this.replace("S", S).replace("K", K).replace("I", I)
+  }
+
+  toCompactString(): string {
+    return this.toPartialCompactString().content
+  }
+
+  toString(): string {
+    return this.toPartialString().content
+  }
+
+  uniqueName(avoid: readonly string[]): string {
+    avoid = mergeLocals(this.locals, avoid)
+
+    for (const letter of alphabet) {
+      if (!avoid.includes(letter)) {
+        return letter
+      }
+    }
+
+    for (let index = 1; ; index++) {
+      if (!avoid.includes("x" + index)) {
+        return "x" + index
+      }
+    }
+  }
 }
 
-export class Name extends Node {
-  private static uniqueId = 0
-
+export class Name<T extends string> extends Node {
   static escape(name: string) {
     return name.replace(/^\d|[^A-Za-z$_]/g, (char) => "_" + char.charCodeAt(0))
   }
 
-  static unique() {
-    return new Name("$__" + ++this.uniqueId)
+  readonly canEval = false
+  readonly locals: readonly string[]
+
+  constructor(readonly name: T) {
+    super()
+    this.locals = [name]
   }
 
-  constructor(readonly name: string) {
-    super()
+  eval(): Node {
+    return this
   }
 
   isBound(): boolean {
@@ -248,7 +309,7 @@ export class Name extends Node {
     return this
   }
 
-  rename(oldName: string, newName: Name): Node {
+  rename(oldName: string, newName: Name<string>): Node {
     if (oldName == this.name) {
       return newName
     }
@@ -260,14 +321,54 @@ export class Name extends Node {
     return `$.lazy(() => ${Name.escape(this.name)})`
   }
 
-  toString(): string {
-    return this.name
+  toPartialCompactString(): PartialString {
+    return {
+      content: this.name,
+      endsWithLambda: false,
+      hasTopLevelApplication: false,
+    }
+  }
+
+  toPartialString(): PartialString {
+    return {
+      content: this.name,
+      endsWithLambda: false,
+      hasTopLevelApplication: false,
+    }
   }
 }
 
-export class Application extends Node {
-  constructor(readonly left: Node, readonly right: Node) {
+export class Application<L extends Node, R extends Node> extends Node {
+  readonly canEval: boolean
+  readonly locals: readonly string[]
+
+  constructor(readonly left: L, readonly right: R) {
     super()
+
+    this.canEval =
+      this.left instanceof Lambda || this.left.canEval || this.right.canEval
+
+    this.locals = mergeLocals(this.left.locals, this.right.locals)
+  }
+
+  eval(): Node {
+    if (!this.canEval) {
+      return this
+    }
+
+    if (this.left instanceof Lambda) {
+      return this.left.apply(this.right)
+    }
+
+    if (this.left.canEval) {
+      return new Application(this.left.eval(), this.right)
+    }
+
+    if (this.right.canEval) {
+      return new Application(this.left, this.right.eval())
+    }
+
+    return this
   }
 
   isBound(name: string): boolean {
@@ -285,7 +386,7 @@ export class Application extends Node {
     )
   }
 
-  rename(oldName: string, newName: Name): Node {
+  rename(oldName: string, newName: Name<string>): Node {
     return new Application(
       this.left.rename(oldName, newName),
       this.right.rename(oldName, newName)
@@ -296,16 +397,62 @@ export class Application extends Node {
     return `$.lazy(() => $.apply(${this.left.toJS()}, ${this.right.toJS()}))`
   }
 
-  toString(): string {
-    return `Application
-  ${indent(this.left.toString())}
-  ${indent(this.right.toString())}`
+  toPartialCompactString(): PartialString {
+    const left = this.left.toPartialCompactString()
+    const right = this.right.toPartialCompactString()
+
+    const content =
+      (left.endsWithLambda ? `(${left.content})` : left.content) +
+      (right.hasTopLevelApplication ? `(${right.content})` : right.content)
+
+    return {
+      content,
+      endsWithLambda: right.endsWithLambda,
+      hasTopLevelApplication: true,
+    }
+  }
+
+  toPartialString(): PartialString {
+    const left = this.left.toPartialString()
+    const right = this.right.toPartialString()
+
+    const content =
+      (left.endsWithLambda ? `(${left.content})` : left.content) +
+      " " +
+      (right.hasTopLevelApplication ? `(${right.content})` : right.content)
+
+    return {
+      content,
+      endsWithLambda: right.endsWithLambda,
+      hasTopLevelApplication: true,
+    }
   }
 }
 
-export class Lambda extends Node {
-  constructor(readonly name: string, readonly body: Node) {
+export class Lambda<T extends Node> extends Node {
+  readonly canEval: boolean
+  readonly locals: readonly string[]
+
+  constructor(readonly name: string, readonly body: T) {
     super()
+
+    this.canEval = body.canEval
+
+    this.locals = this.body.locals
+      .filter((local) => local !== name)
+      .concat(name)
+  }
+
+  apply(value: Node): Node {
+    return this.body.replace(this.name, value)
+  }
+
+  eval(): Node {
+    if (!this.canEval) {
+      return this
+    }
+
+    return new Lambda(this.name, this.body.eval())
   }
 
   isBound(name: string): boolean {
@@ -321,16 +468,18 @@ export class Lambda extends Node {
       return this
     }
 
-    let self: Lambda = this
+    let self: Lambda<Node> = this
 
     if (node.isFree(this.name)) {
-      self = this.shuffle()
+      const newName = this.uniqueName(node.locals)
+
+      self = new Lambda(newName, this.body.rename(this.name, new Name(newName)))
     }
 
     return new Lambda(self.name, self.body.replace(name, node))
   }
 
-  rename(oldName: string, newName: Name): Node {
+  rename(oldName: string, newName: Name<string>): Node {
     if (this.name == oldName) {
       return this
     }
@@ -338,20 +487,53 @@ export class Lambda extends Node {
     return new Lambda(this.name, this.body.rename(oldName, newName))
   }
 
-  shuffle(): Lambda {
-    const newName = Name.unique()
-
-    return new Lambda(newName.name, this.body.rename(this.name, newName))
-  }
-
   toJS(): string {
     return `((${Name.escape(this.name)}) => (${this.body.toJS()}))`
   }
 
-  toString(): string {
-    return `λ${this.name}\n  ${indent(this.body.toString())}`
+  toPartialCompactString(): PartialString {
+    const body = this.body.toPartialCompactString()
+
+    const content = body.content.startsWith("λ")
+      ? "λ" + this.name + body.content.slice(1)
+      : "λ" + this.name + "." + body.content
+
+    return {
+      content,
+      endsWithLambda: true,
+      hasTopLevelApplication: false,
+    }
+  }
+
+  toPartialString(): PartialString {
+    const body = this.body.toPartialString()
+    const content = `λ${this.name} ` + body.content
+
+    return {
+      content,
+      endsWithLambda: true,
+      hasTopLevelApplication: false,
+    }
   }
 }
+
+export const S = new Lambda(
+  "x",
+  new Lambda(
+    "y",
+    new Lambda(
+      "z",
+      new Application(
+        new Application(new Name("x"), new Name("z")),
+        new Application(new Name("y"), new Name("z"))
+      )
+    )
+  )
+)
+
+export const K = new Lambda("x", new Lambda("y", new Name("x")))
+
+export const I = new Lambda("x", new Name("x"))
 
 export namespace $ {
   export class Lazy {

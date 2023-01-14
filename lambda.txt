@@ -1,29 +1,40 @@
+S = \x \y \z x z (y z);
+K = \x \y x;
+I = \x x;
+
+succ = \n \f \x f (n f x);
+prev = \n \f \x n (\a \b b (a f)) (K x) I;
+
 0 = \f \x x;
-S = \n \f \x f (n f x);
-pair = \a \b \f f a b;
-head = \p p \a \b a;
-tail = \p p \a \b b;
-phi = \p pair (tail p) (S (tail p));
-prev = \n head (n phi (pair 0 0));
-+ = \a \b b S a;
+1 = succ 0;
+2 = succ 1;
+3 = succ 2;
+4 = succ 3;
+5 = succ 4;
+6 = succ 5;
+7 = succ 6;
+8 = succ 7;
+9 = succ 8;
+10 = succ 9;
+
+zero? = \n n (\x F) T;
+
+T = \a \b a;
+F = \a \b b;
+
+pair = \x \y \f f x y;
+head = \p p T;
+tail = \p p F;
+
++ = \a \b b succ a;
 - = \a \b b prev a;
 * = \a \b \x b (a x);
 ^ = \a \b b a;
-1 = S 0;
-2 = S 1;
-3 = S 2;
-4 = S 3;
-5 = S 4;
-6 = S 5;
-7 = S 6;
-8 = S 7;
-9 = S 8;
-10 = S 9;
-T = \a \b a;
-F = \a \b b;
+
 nil = \x T;
-empty = \p p \a \b F;
-zero? = \n n (\x F) T;
+empty? = \p p \a \b F;
+
 Y = \f (\x f (x x)) (\x f (x x));
 M = \x x x;
-Y \f 5
+
+prev 4

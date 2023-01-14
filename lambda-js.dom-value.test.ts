@@ -1,7 +1,7 @@
 // Places textareas into a browser that allow for writing and running lambda
 // calculus code.
 
-import * as L from "./lambda"
+import * as L from "./lambda-js"
 
 const code = document.createElement("textarea")
 code.placeholder = "zero = \\f \\x x;\nsucc = \\n \\f \\x f (n f x);\nsucc zero"
