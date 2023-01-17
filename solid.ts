@@ -318,8 +318,12 @@ type MaybeEventMap<Source, Requirement, EventMap> = Source extends Requirement
   : {}
 
 type HTMLProps<T> = OmitFunctionsAndConstantsAndEventsAndReadonly<T> & {
-  children?: Renderable
-  use?: (el: T) => void
+  children: Renderable
+  use: (el: T) => void
+  style:
+    | string
+    | Partial<CSSStyleDeclaration>
+    | (() => string | Partial<CSSStyleDeclaration>)
   [x: `class:${string}`]: boolean | (() => boolean)
   [x: `on:${string}`]: (event: Event) => void
   [x: `style:${string}`]: string | number | (() => string | number)
