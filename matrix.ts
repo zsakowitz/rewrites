@@ -12,7 +12,7 @@ export class Matrix {
       )
     }
 
-    const cols = matrixLike[0].length
+    const cols = matrixLike[0]!.length
 
     if (cols <= 0) {
       throw new Error(
@@ -24,7 +24,7 @@ export class Matrix {
 
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        output.data[row][col] = matrixLike[row][col]
+        output.data[row]![col] = matrixLike[row]![col]!
       }
     }
 
@@ -44,7 +44,7 @@ export class Matrix {
 
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.columns; col++) {
-        output.data[row][col] = this.data[row][col]
+        output.data[row]![col] = this.data[row]![col]!
       }
     }
 
@@ -57,7 +57,7 @@ export class Matrix {
 
       for (let row = 0; row < this.rows; row++) {
         for (let col = 0; col < this.columns; col++) {
-          output.data[row][col] = this.data[row][col] * other
+          output.data[row]![col] = this.data[row]![col]! * other
         }
       }
 
@@ -80,10 +80,10 @@ export class Matrix {
         let sum = 0
 
         for (let index = 0; index < depth; index++) {
-          sum += this.data[row][index] * other.data[index][col]
+          sum += this.data[row]![index]! * other.data[index]![col]!
         }
 
-        output.data[row][col] = sum
+        output.data[row]![col] = sum
       }
     }
 
@@ -95,7 +95,7 @@ export class Matrix {
 
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.columns; col++) {
-        this.data[row][col] = Math.floor(pc * Math.random() + 1)
+        this.data[row]![col] = Math.floor(pc * Math.random() + 1)
       }
     }
 
@@ -108,7 +108,7 @@ export class Matrix {
 
       for (let row = 0; row < this.rows; row++) {
         for (let col = 0; col < this.columns; col++) {
-          output.data[row][col] = this.data[row][col] / other
+          output.data[row]![col] = this.data[row]![col]! / other
         }
       }
 

@@ -13,17 +13,17 @@ export class Sandpile extends Array<number[]> {
       return true
     }
 
-    if (!pile.length || !pile[0].length) {
+    if (!pile.length || !pile[0]!.length) {
       return false
     }
 
-    const size = pile[0].length
+    const size = pile[0]!.length
     if (!size) {
       return false
     }
 
     for (let i = 0; i < pile.length; i++) {
-      if (pile[i].length !== size) {
+      if (pile[i]!.length !== size) {
         return false
       }
     }
@@ -37,13 +37,13 @@ export class Sandpile extends Array<number[]> {
     }
 
     const numRows = pile.length
-    const numCols = pile[0].length
+    const numCols = pile[0]!.length
 
     const realPile = new this(numRows, numCols)
 
     for (let row = 0; row < numRows; row++) {
       for (let col = 0; col < numCols; col++) {
-        realPile[row][col] = pile[row][col]
+        realPile[row]![col] = pile[row]![col]!
       }
     }
 
@@ -83,7 +83,7 @@ export class Sandpile extends Array<number[]> {
   }
 
   get numCols() {
-    return this[0].length
+    return this[0]!.length
   }
 
   clone() {
@@ -101,7 +101,7 @@ export class Sandpile extends Array<number[]> {
 
     for (let row = 0; row < numRows; row++) {
       for (let col = 0; col < numCols; col++) {
-        this[row][col] = value
+        this[row]![col] = value
       }
     }
 
@@ -125,29 +125,29 @@ export class Sandpile extends Array<number[]> {
 
     for (let row = 0; row < numRows; row++) {
       for (let col = 0; col < numCols; col++) {
-        let val = original[row][col]
+        let val = original[row]![col]
 
-        if (val >= 4) {
-          val -= 4
+        if (val! >= 4) {
+          val! -= 4
 
           if (row !== 0) {
-            this[row - 1][col]++
+            this[row - 1]![col]++
           }
 
           if (row !== numRows - 1) {
-            this[row + 1][col]++
+            this[row + 1]![col]++
           }
 
           if (col !== 0) {
-            this[row][col - 1]++
+            this[row]![col - 1]++
           }
 
           if (col !== numCols - 1) {
-            this[row][col + 1]++
+            this[row]![col + 1]++
           }
         }
 
-        this[row][col] += val
+        this[row]![col] += val!
       }
     }
 
@@ -169,7 +169,7 @@ export class Sandpile extends Array<number[]> {
       throw new Error("The item being added is not a proper SandpileLike.")
     }
 
-    if (other.length !== numRows || other[0].length !== numCols) {
+    if (other.length !== numRows || other[0]!.length !== numCols) {
       throw new Error("When adding sandpiles, their dimensions must match.")
     }
 
@@ -177,7 +177,7 @@ export class Sandpile extends Array<number[]> {
 
     for (let row = 0; row < numRows; row++) {
       for (let col = 0; col < numCols; col++) {
-        result[row][col] = this[row][col] + other[row][col]
+        result[row]![col] = this[row]![col]! + other[row]![col]!
       }
     }
 
@@ -190,7 +190,7 @@ export class Sandpile extends Array<number[]> {
     return this.map((row) =>
       row
         .map((cell) =>
-          (Sandpile.characters[cell] ?? Sandpile.characters[4]).repeat(2)
+          (Sandpile.characters[cell] ?? Sandpile.characters[4]!).repeat(2)
         )
         .join("")
     ).join("\n")
@@ -202,7 +202,7 @@ export class Sandpile extends Array<number[]> {
     for (let row = 0; row < numRows; row++) {
       for (let col = 0; col < numCols; col++) {
         if (Math.random() < chance) {
-          this[row][col] = Math.floor(max * Math.random()) + 1
+          this[row]![col] = Math.floor(max * Math.random()) + 1
         }
       }
     }

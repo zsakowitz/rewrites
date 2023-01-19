@@ -44,7 +44,7 @@ class Runner {
       if (char == ",") {
         memory[pointer] = stdin.shift()?.charCodeAt(0) || 0
       } else if (char == ".") {
-        stdout += String.fromCharCode(memory[pointer])
+        stdout += String.fromCharCode(memory[pointer]!)
       } else if (char == "+") {
         memory[pointer]++
       } else if (char == "-") {
@@ -55,9 +55,9 @@ class Runner {
       } else if (char == ">") {
         pointer = (pointer + 1) % 30000
       } else if (char == "[") {
-        if (!memory[pointer]) index = this.brackets[index]
+        if (!memory[pointer]) index = this.brackets[index]!
       } else if (char == "]") {
-        if (memory[pointer]) index = this.brackets[index]
+        if (memory[pointer]) index = this.brackets[index]!
       }
 
       index++
@@ -75,11 +75,11 @@ class Runner {
 
 function expand(macro: string, ...args: string[]): string {
   macro = macro
-    .replace(/#\d+/g, (match) => number(args[+match.slice(1)]))
-    .replace(/#-\d+/g, (match) => number(args[+match.slice(2)], -1))
-    .replace(/&\d+/g, (match) => position(args[+match.slice(1)]))
-    .replace(/&-\d+/g, (match) => position(args[+match.slice(2)], -1))
-    .replace(/\$\d+/g, (match) => args[+match.slice(1)])
+    .replace(/#\d+/g, (match) => number(args[+match.slice(1)]!))
+    .replace(/#-\d+/g, (match) => number(args[+match.slice(2)]!, -1))
+    .replace(/&\d+/g, (match) => position(args[+match.slice(1)]!))
+    .replace(/&-\d+/g, (match) => position(args[+match.slice(2)]!, -1))
+    .replace(/\$\d+/g, (match) => args[+match.slice(1)]!)
 
   return macro
     .split("\n")
@@ -88,7 +88,7 @@ function expand(macro: string, ...args: string[]): string {
       let match = e.match(/^((?!\d)\w+)(.*)$/)
 
       if (match) {
-        return expand(macros[match[1]], ...match[2].split(/;\s*/))
+        return expand(macros[match[1]!]!, ...match[2]!.split(/;\s*/))
       } else if (!e.startsWith("//")) {
         return e
       } else return ""
@@ -121,7 +121,7 @@ let macros: Record<string, string> = Object.fromEntries(
     .map((macro) => {
       let match = macro.match(/@(\w+).*\n([\s\S]+)/)
       if (!match) throw new Error("Regular expressions don't work anymore.")
-      return [match[1], match[2].trim()]
+      return [match[1], match[2]!.trim()]
     })
 )
 

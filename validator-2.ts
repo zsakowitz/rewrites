@@ -39,7 +39,7 @@ function joinErrors(first: string, rest: readonly string[]): readonly string[] {
     return [first]
   }
 
-  return [first + rest[0]].concat(rest.slice(1))
+  return [first + rest[0]]!.concat(rest.slice(1))
 }
 // #endregion
 
@@ -332,7 +332,7 @@ class TupleValidator<
 
       // `for-of` loops skip over empty elements, so we have to use an indexed loop.
       for (let index = 0; index < this.tupleItems.length; index++) {
-        const result = this.tupleItems[index].parse(data[index])
+        const result = this.tupleItems[index]!.parse(data[index])
 
         if (!result.ok) {
           ok = false
@@ -428,7 +428,7 @@ class ObjectValidator<T extends object = {}> extends Validator<T> {
       for (const key in shape) {
         const dataAtKey = data[key as Extract<keyof U, string> & keyof T]
 
-        const result = shape[key].parse(dataAtKey)
+        const result = shape[key]!.parse(dataAtKey)
 
         if (!result.ok) {
           ok = false

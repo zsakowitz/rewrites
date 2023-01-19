@@ -45,7 +45,7 @@ export class LinkedList<T> {
   }
 
   static toIterable<T>(value: LinkedListLike<T>) {
-    return LinkedList.prototype[Symbol.iterator].call(value)
+    return LinkedList.prototype[Symbol.iterator]!.call(value)
   }
 
   readonly empty: boolean

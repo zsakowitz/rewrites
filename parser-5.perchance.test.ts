@@ -56,7 +56,7 @@ namespace $ {
     a(nextWord) {
       const char = nextWord.toLowerCase()[0]
 
-      if ("aàáâäæãåāeèéêëēėęiîïíīįìoôöòóœøōõuûüùúū".includes(char)) {
+      if ("aàáâäæãåāeèéêëēėęiîïíīįìoôöòóœøōõuûüùúū".includes(char!)) {
         return "an"
       } else {
         return "a"
@@ -133,7 +133,7 @@ namespace $ {
 
   /** Randomly picks an item from an array. */
   export function item<T>(array: readonly T[]): T {
-    return array[Math.floor(array.length * Math.random())]
+    return array[Math.floor(array.length * Math.random())]!
   }
 
   /** Resolves a {@link Value} one layer deep. */
@@ -232,7 +232,7 @@ type Suffix = (word: string) => string
 
 export const OptionalWhitespace = Z.regex(/^[ ]*/)
 
-export const Identifier = Z.regex(/^[A-Za-z_][A-Za-z0-9_]*/).map(
+export const Identifier = Z.regex(/^[A-Za-z_]![A-Za-z0-9_]*/).map(
   (value) => value[0]
 )
 
@@ -323,7 +323,7 @@ export const Choice = Z.seq(
     Z.lazy(() => Text),
     Z.text("|")
   )
-).map((value) => `[${value[0]},${value[2].join(",")}]`)
+).map((value) => `[${value[0]},${value[2]!.join(",")}]`)
 
 export const Shorthand = Z.seq(
   Z.text("{"),
@@ -350,7 +350,7 @@ export const ListItem = Z.seq(Whitespace, Text).map((value) => value[1])
 export const Newline = Z.regex(/^\n+/)
 
 export const List = Z.seq(Variable, Newline, Z.sepBy1(ListItem, Newline)).map(
-  (value) => `${value[0]} = [${value[2].join(",")}]`
+  (value) => `${value[0]} = [${value[2]!.join(",")}]`
 )
 
 export const Grammar = Z.seq(
@@ -359,5 +359,5 @@ export const Grammar = Z.seq(
   Z.optional(Newline),
   Z.not(Z.char)
 ).map((value) =>
-  (0, eval)(value[1].join(";") + ";()=>$.resolve($.value.output)")
+  (0, eval)(value[1]!.join(";") + ";()=>$.resolve($.value.output)")
 )

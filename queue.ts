@@ -22,7 +22,7 @@ export class Queue<T> {
 
     while (true) {
       for (; index < this.#queue.length; index++) {
-        yield this.#queue[index]
+        yield this.#queue[index]!
       }
 
       await new Promise<void>((resolve) => this.#waiters.push(resolve))

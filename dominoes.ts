@@ -17,7 +17,7 @@ class Domino {
 
   static of(a: number, b: number) {
     if (a < b) [a, b] = [b, a]
-    return this.index[a][b]
+    return this.index[a]![b]!
   }
 }
 
@@ -87,7 +87,7 @@ class Game {
     const domino = Domino.of(n, n)
 
     for (let i = 0; i < this.players.length; i++) {
-      const player = this.players[i]
+      const player = this.players[i]!
       const index = player.dominoes.indexOf(domino)
 
       if (index !== -1) {
@@ -107,12 +107,12 @@ class Game {
 
     for (let final = 0; final < 112 /* 28 x 4 */; final++) {
       this.turn = (this.turn + 1) % this.players.length
-      const player = this.players[this.turn]
+      const player = this.players[this.turn]!
       this.data.turns++
 
       let didPlay = false
       for (let i = 0; i < player.dominoes.length; i++) {
-        const domino = player.dominoes[i]
+        const domino = player.dominoes[i]!
 
         const a = domino.against(this.a)
         if (a !== undefined) {

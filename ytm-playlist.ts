@@ -181,7 +181,7 @@ async function cli() {
   // #region Get CLI configuration
   log()
   try {
-    var playlistURL = new URL(process.argv[2])
+    var playlistURL = new URL(process.argv[2]!)
     log(colors.magenta, "Playlist URL:   ", colors.reset, playlistURL.href)
   } catch {
     log(colors.magenta, "Playlist URL:   ", colors.red, process.argv[2])

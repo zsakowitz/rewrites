@@ -120,7 +120,7 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
       )
     }
 
-    return ok(source, index + match[0].length, match)
+    return ok(source, index + match[0]!.length, match)
   }
 }
 

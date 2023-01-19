@@ -193,10 +193,10 @@ export function node(tree: Tree): Node {
       throw new Error("Expected token; received rightParen.")
     }
 
-    let output = node(tree[0])
+    let output = node(tree[0]!)
 
     for (let index = 1; index < tree.length; index++) {
-      output = new Application(output, node(tree[index]))
+      output = new Application(output, node(tree[index]!))
     }
 
     return output

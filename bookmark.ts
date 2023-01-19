@@ -35,42 +35,44 @@ export namespace TicTacToe {
 
   export function isFull(board: Board) {
     return !!(
-      board[0][0] &&
-      board[0][1] &&
-      board[0][2] &&
-      board[1][0] &&
-      board[1][1] &&
-      board[1][2] &&
-      board[2][0] &&
-      board[2][1] &&
-      board[2][2]
+      board[0]![0] &&
+      board[0]![1] &&
+      board[0]![2] &&
+      board[1]![0] &&
+      board[1]![1] &&
+      board[1]![2] &&
+      board[2]![0] &&
+      board[2]![1] &&
+      board[2]![2]
     )
   }
 
   export function isWin(board: Board) {
     return (
-      (board[0][0] == board[0][1] &&
-        board[0][0] == board[0][2] &&
-        board[0][0]) ||
-      (board[1][0] == board[1][1] &&
-        board[1][0] == board[1][2] &&
-        board[1][0]) ||
-      (board[2][0] == board[2][1] &&
-        board[2][0] == board[2][2] &&
-        board[2][0]) ||
-      (board[0][0] == board[1][0] &&
-        board[0][0] == board[2][0] &&
-        board[0][0]) ||
-      (board[0][1] == board[1][1] &&
-        board[0][1] == board[2][1] &&
-        board[0][1]) ||
-      (board[0][2] == board[1][2] &&
-        board[0][2] == board[2][2] &&
-        board[0][2]) ||
-      (board[0][0] == board[1][1] &&
-        board[0][0] == board[2][2] &&
-        board[0][0]) ||
-      (board[0][2] == board[1][1] && board[0][2] == board[2][0] && board[0][2])
+      (board[0]![0] == board[0]![1] &&
+        board[0]![0] == board[0]![2] &&
+        board[0]![0]) ||
+      (board[1]![0] == board[1]![1] &&
+        board[1]![0] == board[1]![2] &&
+        board[1]![0]) ||
+      (board[2]![0] == board[2]![1] &&
+        board[2]![0] == board[2]![2] &&
+        board[2]![0]) ||
+      (board[0]![0] == board[1]![0] &&
+        board[0]![0] == board[2]![0] &&
+        board[0]![0]) ||
+      (board[0]![1] == board[1]![1] &&
+        board[0]![1] == board[2]![1] &&
+        board[0]![1]) ||
+      (board[0]![2] == board[1]![2] &&
+        board[0]![2] == board[2]![2] &&
+        board[0]![2]) ||
+      (board[0]![0] == board[1]![1] &&
+        board[0]![0] == board[2]![2] &&
+        board[0]![0]) ||
+      (board[0]![2] == board[1]![1] &&
+        board[0]![2] == board[2]![0] &&
+        board[0]![2])
     )
   }
 
@@ -79,7 +81,7 @@ export namespace TicTacToe {
 
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        if (board[row][col] == 0) {
+        if (board[row]![col] == 0) {
           output.push([row, col])
         }
       }
@@ -97,8 +99,8 @@ export namespace TicTacToe {
       randomIndex = Math.floor(Math.random() * currentIndex)
       currentIndex--
       ;[array[currentIndex], array[randomIndex]] = [
-        array[randomIndex],
-        array[currentIndex],
+        array[randomIndex]!,
+        array[currentIndex]!,
       ]
     }
 
@@ -128,7 +130,7 @@ export namespace TicTacToe {
 
     for (const move of moves) {
       const nextBoard = board.map((row) => row.slice())
-      nextBoard[move[0]][move[1]] = player
+      nextBoard[move[0]]![move[1]] = player
 
       const [, rating] = analyze(nextBoard, (3 - player) as Player)
 
@@ -140,7 +142,7 @@ export namespace TicTacToe {
     }
 
     if (possible.length) {
-      return possible.sort((a, b) => b[1] - a[1])[0]
+      return possible.sort((a, b) => b[1] - a[1])[0]!
     }
 
     return [undefined, -1]

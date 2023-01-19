@@ -179,7 +179,7 @@ export function regex<T>(pattern: RegExp, data?: Transformer<T>): Parser<T> {
 
     if (match) {
       return result.succeed<T>(
-        index + match[0].length,
+        index + match[0]!.length,
         data?.(...(match as [string, ...string[]]))!
       )
     } else {

@@ -13,6 +13,7 @@
     "jsxFactory": "h",
     "jsxFragmentFactory": "f",
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
     "skipLibCheck": true
   }
 }

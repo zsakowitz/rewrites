@@ -26,12 +26,12 @@ export function reset(_size: number) {
 
 function flipOne(row: number, col: number) {
   if (row >= 0 && row < size && col >= 0 && col < size) {
-    lights[row][col] = !lights[row][col]
+    lights[row]![col] = !lights[row]![col]
   }
 }
 
 export function click(row: number, col: number) {
-  clicks[row][col] = !clicks[row][col]
+  clicks[row]![col] = !clicks[row]![col]
   flipOne(row, col)
   flipOne(row - 1, col)
   flipOne(row + 1, col)
@@ -68,7 +68,7 @@ export function solveRow(row: number) {
   if (row <= 0 || row >= size) return
 
   for (let col = 0; col < size; col++) {
-    if (!lights[row - 1][col]) {
+    if (!lights[row - 1]![col]) {
       click(row, col)
     }
   }

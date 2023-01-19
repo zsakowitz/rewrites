@@ -347,5 +347,5 @@ export function sepBy1<T>(
 export const Whitespace = regex(/^\s+/).map<true>((match) => true)
 
 export const OptionalWhitespace = regex(/^\s*/).map(
-  (match) => match[0].length != 0
+  (match) => match[0]!.length != 0
 )

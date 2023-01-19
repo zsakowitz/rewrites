@@ -138,7 +138,7 @@ namespace Blooket {
     if (!root) {
       console.error("no root found on this page")
     } else {
-      const values = Object.values(root)[1].children
+      const values = Object.values(root)[1]!.children
       const reactRoot = (values[1] || values[0])._owner
       Object.assign(window, { react: reactRoot })
 

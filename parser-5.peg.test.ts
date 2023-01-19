@@ -17,7 +17,7 @@ const CommaWithWhitespace = Z.regex(/^\s*,\s*/).void()
 const BarWithWhitespace = Z.regex(/^\s+\|\s+/).void()
 
 const Literal = Z.seq(Z.text('"'), Z.regex(/^[^"\n\r]+/), Z.text('"')).map(
-  (value) => `Z.text(${JSON.stringify(value[1][0])})`
+  (value) => `Z.text(${JSON.stringify(value[1]![0])})`
 )
 
 const ReferenceWithArgs: Z.Parser<string> = Z.seq(
@@ -31,7 +31,7 @@ const ReferenceWithArgs: Z.Parser<string> = Z.seq(
   ),
   OptionalWhitespace,
   Z.text(">")
-).map((value) => `${value[0]}(${value[4].join(", ")})`)
+).map((value) => `${value[0]}(${value[4]!.join(", ")})`)
 
 const Lookahead: Z.Parser<string> = Z.seq(
   Z.text("&"),
@@ -60,7 +60,7 @@ const CharacterClass: Z.Parser<string> = Z.seq(
 ).map(
   (e) =>
     `Z.regex(new RegExp(${JSON.stringify(
-      "^[" + e[1][0] + "]"
+      "^[" + e[1]![0] + "]"
     )})).map(result => result[0])`
 )
 
@@ -78,11 +78,11 @@ const Js: Z.Parser<string> = Z.many(
 const Atom = Z.seq(
   Z.optional(
     Z.seq(
-      Z.regex(/^\$[A-Za-z_][A-Za-z0-9_]*/),
+      Z.regex(/^\$[A-Za-z_]![A-Za-z0-9_]*/),
       OptionalWhitespace,
       Z.text(":"),
       OptionalWhitespace
-    ).map((value) => value[0][0])
+    ).map((value) => value[0]![0])
   ),
   Z.any(
     Literal,
@@ -208,7 +208,7 @@ export const Grammar = Z.seq(
   Sequence,
   OptionalWhitespace,
   EOF
-).map((value) => `${value[1].join("\n\n")}\n\n${value[3]}`)
+).map((value) => `${value[1]!.join("\n\n")}\n\n${value[3]}`)
 
 /** A description of this grammar:
  *
@@ -234,7 +234,7 @@ export const Grammar = Z.seq(
  * Each atom can have a label before it. A label must begin with $.
  *
  *   $name:[\w]+
- *   $number:([123456789][\d]*)
+ *   $number:([123456789]![\d]*)
  *
  * Labels can be used in a JavaScript expressions. JS expressions are surrounded
  * in curly braces and can use nearby labels.
@@ -248,8 +248,8 @@ export const Grammar = Z.seq(
  *   "Hello" [\s]+ "world"
  *
  *   $person:([\w]+ ", " [\d]+):{{
- *     name: $person[0].join(""),
- *     age: Number($person[1].join(""))
+ *     name: $person[0]!.join(""),
+ *     age: Number($person[1]!.join(""))
  *   }}                                    This syntax with double curly braces isn't special; it's just an object.
  *
  * While it is possible to use standard JS expressions with a list, a shorter
@@ -294,7 +294,7 @@ export const Grammar = Z.seq(
  *   age         = [\d]+                                                             ;
  *   space       = " "+                                                              ;
  *   person      = $name:name space $age:age {{ name: $name, age: $age }}            ;
- *   sepBy<a, b> = $head:a $tail:(b $value:a { $value })* { [$head].concat($tail) }  ;
+ *   sepBy<a, b> = $head:a $tail:(b $value:a { $value })* { [$head]!.concat($tail) }  ;
  *   newline     = space? [\n] space?                                                ;
  *
  *   sepBy<person, newline>

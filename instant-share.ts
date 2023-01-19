@@ -64,8 +64,8 @@ function setupInstantShare() {
 
     let email, name, title
     if (account && account.ariaLabel) {
-      name = account.ariaLabel?.match(/:\s+([^)]+)\s+\(/)?.[1].trim()
-      email = account.ariaLabel?.match(/\(([^)]+@[^)]+)\)/)?.[1].trim()
+      name = account.ariaLabel?.match(/:\s+([^)]+)\s+\(/)?.[1]!.trim()
+      email = account.ariaLabel?.match(/\(([^)]+@[^)]+)\)/)?.[1]!.trim()
     }
 
     if (email) {

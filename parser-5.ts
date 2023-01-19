@@ -168,7 +168,7 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
     const match = state.source.slice(state.index).match(regex)
 
     if (match) {
-      return ok(state, state.index + match[0].length, match)
+      return ok(state, state.index + match[0]!.length, match)
     }
 
     return error(
@@ -371,7 +371,7 @@ export function sepBy<T>(
 ): Parser<readonly T[]> {
   return optional(
     seq(parser, many(seq(separator, parser).map((match) => match[1]))).map(
-      ([first, rest]) => [first].concat(rest)
+      ([first, rest]) => [first]!.concat(rest)
     )
   ).map((match) => match || [])
 }

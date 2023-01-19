@@ -6,7 +6,7 @@ abstract class Parser {
   constructor(public source: string) {}
 
   trim(this: Parser) {
-    while (this.source[this.index].trimStart() == "") {
+    while (this.source[this.index]?.trimStart() == "") {
       this.index++
     }
   }
@@ -27,7 +27,7 @@ abstract class Parser {
       const match = text.exec(this.source)
 
       if (match) {
-        this.source = this.source.slice(match[0].length)
+        this.source = this.source.slice(match[0]!.length)
         return Result.ok(this, match[0])
       }
     }

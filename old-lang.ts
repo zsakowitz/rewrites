@@ -111,7 +111,7 @@ export let BooleanNode: A.Parser<BooleanNode> = A.regex(
 export interface SymbolNode extends Node<"SymbolNode"> {}
 
 export let SymbolNode: A.Parser<SymbolNode> = A.regex(
-  /^#[A-Za-z][A-Za-z0-9_]*/
+  /^#[A-Za-z]![A-Za-z0-9_]*/
 ).map((x) => ({
   nodeType: "SymbolNode",
   output: `Symbol.for(${x.slice(1)})`,
@@ -122,7 +122,7 @@ export let SymbolNode: A.Parser<SymbolNode> = A.regex(
 export interface IdentifierNode extends Node<"IdentifierNode"> {}
 
 export let IdentifierNode: A.Parser<IdentifierNode> = A.regex(
-  /^[A-Za-z][A-Za-z0-9_]*/
+  /^[A-Za-z]![A-Za-z0-9_]*/
 ).map((x) => ({
   nodeType: "IdentifierNode",
   output: x,

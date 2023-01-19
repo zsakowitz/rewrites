@@ -48,20 +48,20 @@ export class zMap<K, V> implements Map<K, V> {
     let symbols = Object.getOwnPropertySymbols(this.k)
 
     return symbols
-      .map<[K, V]>((symbol) => [this.k[symbol], this.v[symbol]])
+      .map<[K, V]>((symbol) => [this.k[symbol]!, this.v[symbol]!])
       .values()
   }
 
   keys(): IterableIterator<K> {
     let symbols = Object.getOwnPropertySymbols(this.k)
 
-    return symbols.map<K>((symbol) => this.k[symbol]).values()
+    return symbols.map<K>((symbol) => this.k[symbol]!).values()
   }
 
   values(): IterableIterator<V> {
     let symbols = Object.getOwnPropertySymbols(this.k)
 
-    return symbols.map<V>((symbol) => this.v[symbol]).values()
+    return symbols.map<V>((symbol) => this.v[symbol]!).values()
   }
 
   forEach(
@@ -71,7 +71,7 @@ export class zMap<K, V> implements Map<K, V> {
     let symbols = Object.getOwnPropertySymbols(this.k)
 
     symbols.forEach((symbol) => {
-      callbackfn.call(thisArg, this.v[symbol], this.k[symbol], this)
+      callbackfn.call(thisArg, this.v[symbol]!, this.k[symbol]!, this)
     })
   }
 

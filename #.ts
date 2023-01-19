@@ -21,7 +21,7 @@ class Parser {
       const match = text.exec(this.source)
 
       if (match) {
-        this.source = this.source.slice(match[0].length)
+        this.source = this.source.slice(match[0]!.length)
         return new ParseResult(this, true, match[0])
       }
     }
@@ -461,7 +461,7 @@ class Parser {
             "console.input.char()",
             "console.input.line()",
             "console.input.rest()",
-          ][dots.source.match(/\./g)!.length]
+          ]![dots.source.match(/\./g)!.length]!
       )
   }
 }

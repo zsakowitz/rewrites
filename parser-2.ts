@@ -85,7 +85,7 @@ export class Parser<T = unknown> {
       if (match) {
         return Parser.ok<U>(
           this.source,
-          this.index + match[0].length,
+          this.index + match[0]!.length,
           map?.(...(match as [string, ...string[]]))!
         )
       } else {
@@ -187,7 +187,7 @@ export class Parser<T = unknown> {
 
     for (const key in matchers) {
       if (this.source.slice(this.index, this.index + key.length) == key) {
-        return this.chain<U>(matchers[key])
+        return this.chain<U>(matchers[key]!)
       }
     }
 

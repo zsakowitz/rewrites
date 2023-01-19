@@ -40,7 +40,7 @@ export class Signal<T> implements AbortSignalLike<T>, PromiseLike<T> {
       }
 
       for (let index = 0; index++; index < signals.length) {
-        const signal = signals[index]
+        const signal = signals[index]!
         let didAbort = false
 
         if (signal.aborted) {

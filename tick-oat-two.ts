@@ -28,30 +28,30 @@ export type ReadonlyBoard = readonly (readonly Cell[])[]
 
 export function isWin(board: ReadonlyBoard) {
   return (
-    (board[0][0] == Cell.Both &&
-      board[1][0] == Cell.Both &&
-      board[2][0] == Cell.Both) ||
-    (board[0][1] == Cell.Both &&
-      board[1][1] == Cell.Both &&
-      board[2][1] == Cell.Both) ||
-    (board[0][2] == Cell.Both &&
-      board[1][2] == Cell.Both &&
-      board[2][2] == Cell.Both) ||
-    (board[0][0] == Cell.Both &&
-      board[0][1] == Cell.Both &&
-      board[0][2] == Cell.Both) ||
-    (board[1][0] == Cell.Both &&
-      board[1][1] == Cell.Both &&
-      board[1][2] == Cell.Both) ||
-    (board[2][0] == Cell.Both &&
-      board[2][1] == Cell.Both &&
-      board[2][2] == Cell.Both) ||
-    (board[0][0] == Cell.Both &&
-      board[1][1] == Cell.Both &&
-      board[2][2] == Cell.Both) ||
-    (board[0][2] == Cell.Both &&
-      board[1][1] == Cell.Both &&
-      board[2][0] == Cell.Both)
+    (board[0]![0] == Cell.Both &&
+      board[1]![0] == Cell.Both &&
+      board[2]![0] == Cell.Both) ||
+    (board[0]![1] == Cell.Both &&
+      board[1]![1] == Cell.Both &&
+      board[2]![1] == Cell.Both) ||
+    (board[0]![2] == Cell.Both &&
+      board[1]![2] == Cell.Both &&
+      board[2]![2] == Cell.Both) ||
+    (board[0]![0] == Cell.Both &&
+      board[0]![1] == Cell.Both &&
+      board[0]![2] == Cell.Both) ||
+    (board[1]![0] == Cell.Both &&
+      board[1]![1] == Cell.Both &&
+      board[1]![2] == Cell.Both) ||
+    (board[2]![0] == Cell.Both &&
+      board[2]![1] == Cell.Both &&
+      board[2]![2] == Cell.Both) ||
+    (board[0]![0] == Cell.Both &&
+      board[1]![1] == Cell.Both &&
+      board[2]![2] == Cell.Both) ||
+    (board[0]![2] == Cell.Both &&
+      board[1]![1] == Cell.Both &&
+      board[2]![0] == Cell.Both)
   )
 }
 
@@ -64,7 +64,7 @@ export function possibleMoves(
 
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
-      if ((lastRow != i || lastCol != j) && !(board[i][j] & forPlayer)) {
+      if ((lastRow != i || lastCol != j) && !(board[i]![j]! & forPlayer)) {
         output.push([i, j])
       }
     }
@@ -104,7 +104,7 @@ export function rate(
       // Play each move and get the rating from the other player's POV.
 
       const next: Board = board.map((row) => row.slice())
-      next[move[0]][move[1]] |= forPlayer
+      next[move[0]]![move[1]] |= forPlayer
 
       const [, rating] = rate(next, 3 - forPlayer, move)
 

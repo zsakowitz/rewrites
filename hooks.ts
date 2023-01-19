@@ -123,7 +123,7 @@ export function useElement<K extends keyof HTMLElementTagNameMap>(
     const node = document.createElement(tagName)
 
     for (const key in listeners) {
-      node.addEventListener(key, listeners[key])
+      node.addEventListener(key, listeners[key]!)
     }
 
     return node

@@ -138,15 +138,15 @@ export const Verb: Z.Parser<Verb> = Z.sepBy1(ContentWord, Whitespace).map(
     const preverbs: Word[] = []
 
     while (words.length > 1) {
-      if (Word.Preverb.includes(words[0].word)) {
-        preverbs.push(words[0])
+      if (Word.Preverb.includes(words[0]!.word)) {
+        preverbs.push(words[0]!)
         words.shift()
       }
     }
 
     return {
       type: "verb",
-      head: words[0],
+      head: words[0]!,
       tail: words.slice(1),
       preverbs,
     }
