@@ -198,13 +198,7 @@ export function h(
   if (typeof props == "object" && props && "children" in props) {
     if (children.length == 0) {
       const value = props.children
-
-      children =
-        props.children == null
-          ? []
-          : Array.isArray(props.children)
-          ? props.children
-          : [props.children]
+      children = value == null ? [] : Array.isArray(value) ? value : [value]
     }
   }
 
