@@ -283,18 +283,4 @@ declare global {
     isArray<T extends true>(arg: any): arg is readonly any[]
     isArray<T extends false>(arg: any): arg is any[]
   }
-
-  namespace JSX {
-    type Element = Renderable
-
-    type IntrinsicElements = {
-      [K in keyof HTMLElementTagNameMap]: Partial<
-        HTMLProps<HTMLElementTagNameMap[K]>
-      >
-    }
-
-    export interface ElementChildrenAttribute {
-      children: {}
-    }
-  }
 }
