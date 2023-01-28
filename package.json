@@ -30,7 +30,7 @@
     "promises-aplus-tests": "1.2.0",
     "puppeteer": "^19.5.2",
     "socket.io": "^4.5.4",
-    "typescript": "^5.0.0-dev.20221119",
+    "typescript": "^5.0.0-dev.20230127",
     "ytdl-core": "^4.11.2",
     "ytpl": "^2.3.0",
     "zod": "^3.20.2"
