@@ -7,7 +7,8 @@
     "test:deferred": "node -e \"import('./dist/deferred.js').then(p => p.test())\"",
     "test:observable": "node -e \"import('./dist/observable.js').then(p => p.test())\"",
     "ytm-build": "esbuild ytm-playlist.ts --bundle --define:RUN_CLI=true --external:ffmpeg --platform=node > ./dist/ytm.js",
-    "ytm": "node - < ./dist/ytm.js"
+    "ytm": "node - < ./dist/ytm.js",
+    "webauthn": "esbuild --servedir=. --outdir=dist *.tsx *.ts"
   },
   "bin": {
     "sm": "./bin/sm"

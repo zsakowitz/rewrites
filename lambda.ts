@@ -817,9 +817,10 @@ export namespace Node {
     }
 
     // #region toString
-    toCompactString(): ReturnType<
+    toCompactString(): // prettier-ignore
+    ReturnType<
       B["toCompactString"]
-    > extends infer B extends PartialString
+    > extends (infer B extends PartialString)
       ? IsSingleCharacter<T> extends false
         ? {
             readonly content: `λ${T} ${B["content"]}`
@@ -935,10 +936,11 @@ export namespace Node {
     }
 
     // #region toString
-    toCompactString(): ReturnType<
+    toCompactString(): // prettier-ignore
+    ReturnType<
       L["toCompactString"]
-    > extends infer L extends PartialString
-      ? ReturnType<R["toCompactString"]> extends infer R extends PartialString
+    > extends (infer L extends PartialString)
+      ? ReturnType<R["toCompactString"]> extends (infer R extends PartialString)
         ? {
             readonly content: `${L["endsWithLambda"] extends true
               ? `(${L["content"]})`
@@ -965,10 +967,11 @@ export namespace Node {
       }
     }
 
-    toPartialString(): ReturnType<
+    toPartialString(): // prettier-ignore
+    ReturnType<
       L["toPartialString"]
-    > extends infer L extends PartialString
-      ? ReturnType<R["toPartialString"]> extends infer R extends PartialString
+    > extends (infer L extends PartialString)
+      ? ReturnType<R["toPartialString"]> extends (infer R extends PartialString)
         ? {
             readonly content: `${L["endsWithLambda"] extends true
               ? `(${L["content"]})`

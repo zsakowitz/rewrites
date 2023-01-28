@@ -91,6 +91,8 @@ export function render(parent: JSX.Helpers.Parent, item: JSX.Element) {
     for (const subItem of item) {
       render(parent, subItem)
     }
+  } else if (item instanceof Node) {
+    parent.appendChild(item)
   } else if (item != null) {
     parent.appendChild(document.createTextNode(String(item)))
   }
@@ -211,6 +213,10 @@ export function h(
         ? children[0]
         : children,
   })
+}
+
+export function f({ children }: { children: JSX.Element }) {
+  return children
 }
 
 const svgElements = new Set([

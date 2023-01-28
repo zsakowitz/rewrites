@@ -206,7 +206,8 @@ export type PartialString = {
 export type ToPartialString<T extends Node> = T extends Name<infer U>
   ? { content: U; endsWithLambda: false; hasTopLevelApplication: false }
   : T extends Lambda<infer T, infer B>
-  ? ToPartialString<B> extends infer U extends PartialString
+  ? // prettier-ignore
+    ToPartialString<B> extends (infer U extends PartialString)
     ? {
         content: `λ${T} ${U["content"]}`
         endsWithLambda: true
@@ -214,8 +215,10 @@ export type ToPartialString<T extends Node> = T extends Name<infer U>
       }
     : never
   : T extends Application<infer L, infer R>
-  ? ToPartialString<L> extends infer L extends PartialString
-    ? ToPartialString<R> extends infer R extends PartialString
+  ? // prettier-ignore
+    ToPartialString<L> extends (infer L extends PartialString)
+      // prettier-ignore
+    ? ToPartialString<R> extends (infer R extends PartialString)
       ? {
           content: `${L["endsWithLambda"] extends true
             ? `(${L["content"]})`
@@ -232,7 +235,8 @@ export type ToPartialString<T extends Node> = T extends Name<infer U>
 export type ToPartialCompactString<T extends Node> = T extends Name<infer U>
   ? { content: U; endsWithLambda: false; hasTopLevelApplication: false }
   : T extends Lambda<infer T, infer B>
-  ? ToPartialCompactString<B> extends infer U extends PartialString
+  ? // prettier-ignore
+    ToPartialCompactString<B> extends (infer U extends PartialString)
     ? U["content"] extends `λ${infer R}`
       ? {
           content: `λ${T}${R}`
@@ -246,8 +250,10 @@ export type ToPartialCompactString<T extends Node> = T extends Name<infer U>
         }
     : never
   : T extends Application<infer L, infer R>
-  ? ToPartialCompactString<L> extends infer L extends PartialString
-    ? ToPartialCompactString<R> extends infer R extends PartialString
+  ? // prettier-ignore
+    ToPartialCompactString<L> extends (infer L extends PartialString)
+    ? // prettier-ignore
+      ToPartialCompactString<R> extends (infer R extends PartialString)
       ? {
           content: `${L["endsWithLambda"] extends true
             ? `(${L["content"]})`
