@@ -133,8 +133,9 @@ export function render(
     const render = fragment(parent)
     effect(() => render(node()))
   } else if (Array.isArray<true>(node)) {
-    const render = fragment(parent)
-    effect(() => render(...node))
+    for (const child of node) {
+      render(child, parent)
+    }
   } else if (node != null) {
     parent.append(document.createTextNode(String(node)))
   }
