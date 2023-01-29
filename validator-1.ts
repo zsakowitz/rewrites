@@ -93,7 +93,7 @@ export function primitive(type: "bigint"): Validator<bigint>
 export function primitive(type: "boolean"): Validator<boolean>
 export function primitive(type: "number"): Validator<number>
 export function primitive(type: "string"): Validator<string>
-export function primitive(type: "symbol"): Validator<symbol>
+export function primitive(type: "char"): Validator<symbol>
 export function primitive(type: "undefined"): Validator<undefined>
 export function primitive<T extends keyof Primitives>(type: T) {
   return new Validator((value): value is Primitives[T] => typeof value === type)
@@ -103,7 +103,7 @@ export const bigint = () => primitive("bigint")
 export const boolean = () => primitive("boolean")
 export const number = () => primitive("number")
 export const string = () => primitive("string")
-export const symbol = () => primitive("symbol")
+export const symbol = () => primitive("char")
 export const undefined = () => primitive("undefined")
 
 const _null = () => new Validator((value): value is null => value === null)
