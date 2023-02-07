@@ -1,37 +1,131 @@
-// Experiments with ECMAScript decorators, as they are now stage 3!
+// A reactive system that uses decorators instead of plain values.
 
-function log<P, T extends readonly any[], R>(
-  originalMethod: (this: P, ...args: T) => R,
-  context: ClassMethodDecoratorContext
-) {
-  return function (this: P, ...args: T) {
-    console.log("LOG: Entering method.")
+import { createEffect, createMemo, createSignal } from "./solid"
 
-    const result = originalMethod.call(this, ...args)
+export function signal<This, Value>(
+  value: ClassAccessorDecoratorTarget<This, Value>,
+  _context: ClassAccessorDecoratorContext<This, Value>
+): ClassAccessorDecoratorResult<This, Value> {
+  type Signal = [() => Value, (value: Value) => void]
 
-    if (result instanceof Promise) {
-      return result.finally(() => console.log("LOG: Exiting method."))
+  function getSignalFor(self: This) {
+    let signal = value.get.call(self) as unknown as Signal | undefined
+
+    if (signal) {
+      return signal
     }
 
-    console.log("LOG: Exiting method.")
-    return result
+    signal = createSignal(value.get.call(self))
+    value.set.call(self, signal as any)
+    return signal
+  }
+
+  return {
+    get() {
+      return getSignalFor(this)[0]()
+    },
+    set(newValue) {
+      return getSignalFor(this)[1](newValue)
+    },
   }
 }
 
-function bound<This>(_: unknown, context: ClassMethodDecoratorContext<This>) {
-  console.log(context.name)
-  // const methodName = context.name
+const UNSET = Symbol("unset")
 
-  // context.addInitializer(function () {
-  //   this[methodName] = this[methodName].bind(this)
-  // })
+export function cached<This, Value>(
+  value: (this: This) => Value,
+  _context: ClassGetterDecoratorContext<This, () => Value>
+) {
+  type Cache = [isOutdated: boolean, value: typeof UNSET | Value]
+
+  const caches = new WeakMap<any, Cache>()
+
+  function getCacheFor(self: This) {
+    {
+      const cache = caches.get(self)
+
+      if (cache) {
+        return cache
+      }
+    }
+
+    const cache: Cache = [false, UNSET]
+    caches.set(self, cache)
+
+    let isFirstTime = true
+
+    createEffect(() => {
+      cache[0] = !isFirstTime
+      cache[1] = isFirstTime ? value.call(self) : UNSET
+      isFirstTime = false
+    })
+
+    return cache
+  }
+
+  return function (this: This): Value {
+    const cache = getCacheFor(this)
+
+    if (cache[0] || cache[1] == UNSET) {
+      cache[0] = false
+      return (cache[1] = value.call(this))
+    }
+
+    return cache[1]
+  }
 }
 
-class Person {
-  @log
-  abc() {}
+export function computed<This, Value>(
+  value: (this: This) => Value,
+  _context: ClassGetterDecoratorContext<This, () => Value>
+) {
+  const memos = new WeakMap<any, () => Value>()
+
+  function getMemoFor(self: This) {
+    {
+      const memo = memos.get(self)
+
+      if (memo) {
+        return memo
+      }
+    }
+
+    const memo = createMemo(value.bind(self) as () => Value)
+    memos.set(self, memo)
+    return memo
+  }
+
+  return function (this: This) {
+    return getMemoFor(this)()
+  }
 }
 
-const person = new Person()
+export function effect<Class extends abstract new (...args: any) => any>(
+  fn: (this: InstanceType<Class>) => void
+) {
+  return (value: Class, _context: ClassDecoratorContext<Class>) => {
+    abstract class InnerClass extends value {
+      constructor(...args: any[]) {
+        super(...args)
+        createEffect(fn.bind(this as InstanceType<Class>) as () => void)
+      }
+    }
 
-export {}
+    return InnerClass
+  }
+}
+
+export function untrack<
+  This,
+  Value extends (this: This, ...args: unknown[]) => unknown
+>(
+  value: Value,
+  context:
+    | ClassGetterDecoratorContext<This, Value>
+    | ClassSetterDecoratorContext<This, Value>
+    | ClassMethodDecoratorContext<This, Value>
+) {
+  return function (this: This) {
+    return untrack(() => value.apply(this, arguments as any), context)
+  }
+}

@@ -53,12 +53,11 @@ namespace String {
 }
 
 interface String {
-  split(splitter: "", limit?: number): string[]
   split<This extends string, Splitter extends string>(
     this: This,
     splitter: Splitter,
     limit?: number
-  ): String.Split<This, Splitter>
+  ): string extends This ? string[] : String.Split<This, Splitter>
 }
 
 let testString = "test string".split(" ")

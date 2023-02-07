@@ -27,6 +27,7 @@
     "immer": "^9.0.16",
     "node-notifier": "^10.0.1",
     "ohm-js": "^16.3.2",
+    "prettier": "^2.8.3",
     "promises-aplus-tests": "1.2.0",
     "puppeteer": "^19.5.2",
     "socket.io": "^4.5.4",

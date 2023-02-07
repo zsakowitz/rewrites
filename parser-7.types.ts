@@ -11,7 +11,9 @@ type StringSlice<This extends string, Start extends any[]> = Start extends [
   any,
   ...infer StartTail extends any[]
 ]
-  ? This extends `${string}${infer StringTail}`
+  ? string extends This
+    ? string
+    : This extends `${string}${infer StringTail}`
     ? StringSlice<StringTail, StartTail>
     : ""
   : This
@@ -19,7 +21,9 @@ type StringSlice<This extends string, Start extends any[]> = Start extends [
 type StringLength<
   This extends string,
   Total extends any[]
-> = This extends `${string}${infer Rest}`
+> = string extends This
+  ? number
+  : This extends `${string}${infer Rest}`
   ? StringLength<Rest, [...Total, any]>
   : ToNumber<Total>
 
@@ -43,17 +47,37 @@ declare global {
       This extends string,
       Text extends string,
       Position extends number = 0
-    > = StringSlice<This, ToArray<Position>> extends `${Text}${string}`
+    > = string extends This
+      ? boolean
+      : StringSlice<This, ToArray<Position>> extends `${Text}${string}`
       ? true
       : false
 
     type length<This extends string> = StringLength<This, []>
+
+    type charAt<
+      This extends string,
+      Position extends number
+    > = string extends This
+      ? string
+      : StringSlice<
+          This,
+          ToArray<Position>
+        > extends `${infer Character}${string}`
+      ? Character
+      : ""
   }
 
   namespace Number {
-    type Add<A extends number, B extends number> = ToNumber<
-      [...ToArray<A>, ...ToArray<B>]
-    >
+    type add<A extends number, B extends number> = number extends A
+      ? number
+      : number extends B
+      ? number
+      : ToNumber<[...ToArray<A>, ...ToArray<B>]>
+
+    type plusOne<N extends number> = number extends N
+      ? number
+      : ToNumber<[...ToArray<N>, any]>
   }
 }
 

@@ -1,16 +1,22 @@
 // Another reactive library.
 
+/// <reference types="./jsx.d.ts" />
+
 let currentEffect: (() => void) | undefined
 const toString = String
 
-export function createEffect(fn: () => void) {
-  try {
-    var parentEffect = currentEffect
-    currentEffect = fn
-    fn()
-  } finally {
-    currentEffect = parentEffect
+export function createEffect(fn: (this: void) => void) {
+  function effect() {
+    try {
+      var parentEffect = currentEffect
+      currentEffect = fn
+      fn()
+    } finally {
+      currentEffect = parentEffect
+    }
   }
+
+  effect()
 }
 
 export function createSignal<T>(
@@ -19,12 +25,21 @@ export function createSignal<T>(
   const listeners = new Set<() => void>()
 
   return [
-    () => (currentEffect && listeners.add(currentEffect), value),
-    (val) => ((value = val), listeners.forEach((fn) => fn())),
+    () => {
+      if (currentEffect) {
+        listeners.add(currentEffect)
+      }
+
+      return value
+    },
+    (newValue) => {
+      value = newValue
+      listeners.forEach((fn) => fn())
+    },
   ]
 }
 
-export function createMemo<T>(fn: () => T): () => T {
+export function createMemo<T>(fn: (this: void) => T): () => T {
   const [get, set] = (createSignal as any)() as ReturnType<
     typeof createSignal<T>
   >
@@ -32,6 +47,16 @@ export function createMemo<T>(fn: () => T): () => T {
   createEffect(() => set(fn()))
 
   return get
+}
+
+export function createUntrack<T>(fn: (this: void) => T): T {
+  try {
+    var parentEffect = currentEffect
+    currentEffect = undefined
+    return fn()
+  } finally {
+    currentEffect = parentEffect
+  }
 }
 
 export function render(
