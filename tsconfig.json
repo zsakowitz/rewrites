@@ -15,5 +15,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["node_modules", "dist"],
+  "include": ["*.ts", "*.js", "*.tsx", "genesis/*.ts", "genesis/*.tsx"]
 }
