@@ -1,8 +1,7 @@
 // A signal implementation designed specifically for animations.
 
 import { Action } from "./action"
-import { Interpolator, linear } from "./interpolator"
-import { Timing } from "./timing"
+import { Easer, Interpolator, linear } from "./animation"
 
 let currentEffect: (() => void) | undefined
 let currentTrackedSet: Set<Set<() => void>> | undefined
@@ -57,6 +56,34 @@ export function effect(effect: () => void) {
   return () => tracked.forEach((set) => set.delete(effectFn))
 }
 
+function signalCore<T>(
+  value: T
+): [getUntracked: () => T, get: () => T, set: (value: T) => void] {
+  const tracked = new Set<() => void>()
+
+  return [
+    () => value,
+    () => {
+      if (currentEffect) {
+        tracked.add(currentEffect)
+      }
+
+      currentTrackedSet?.add(tracked)
+
+      return value
+    },
+    (newValue) => {
+      value = newValue
+
+      if (currentBatch) {
+        tracked.forEach((fn) => currentBatch!.add(fn))
+      } else {
+        tracked.forEach((fn) => fn())
+      }
+    },
+  ]
+}
+
 export type SignalLike<T> = T | (() => T)
 
 export type Signal<T> = {
@@ -79,60 +106,40 @@ export type Signal<T> = {
    *
    * @param value - The value to animate to.
    * @param frames - The number of frames to animate over.
-   *
-   * @returns An action that must be consumed to animate the signal.
-   */
-  (
-    value: T & number,
-    frames: number,
-    timing?: Timing,
-    interpolator?: Interpolator<T>
-  ): Action
-
-  /**
-   * Animates the current value over a given number of frames.
-   *
-   * @param value - The value to animate to.
-   * @param frames - The number of frames to animate over.
+   * @param easer - A timing function that accepts a number from 0 to 1 and returns another number.
+   * @param interpolator - A function that interpolates between the start and end points.
    *
    * @returns An action that must be consumed to animate the signal.
    */
   (
     value: T,
     frames: number,
-    timing: Timing | undefined,
-    interpolator: Interpolator<T>
-  ): Action
+    easer?: Easer,
+    interpolator?: Interpolator<T>
+  ): AnimationAction<T>
 }
 
-function isFunction<T>(value: T | (() => T)): value is () => T
-function isFunction<T>(value: T | (() => T)): boolean {
+export function isSignal<T>(value: SignalLike<T>): value is () => T
+export function isSignal<T>(value: SignalLike<T>): boolean {
   return typeof value == "function"
 }
 
-function memo<T>(value: () => T, signal: Signal<T>) {
-  const needsRecomputing: [boolean] = [true]
-  let first = true
+function noop() {}
 
-  effect(() => {
-    if (first) {
-      needsRecomputing[0] = false
-      signal(value())
-    } else {
-      needsRecomputing[0] = true
-    }
-
-    first = false
-  })
-
-  return needsRecomputing
+export type AnimationAction<T> = Action & {
+  to(
+    value: T,
+    frames: number,
+    easer: Easer | undefined,
+    interpolator: Interpolator<T>
+  ): AnimationAction<T>
 }
 
 /**
  * Creates a signal that tracks when it's accessed and runs effect that depend
  * on it when the signal's value changes.
  *
- * @param value - The initial value of the signal.
+ * @param initialValue - The initial value of the signal.
  * @returns A tuple containing a getter and setter for the current value.
  *
  * @example
@@ -155,86 +162,71 @@ function memo<T>(value: () => T, signal: Signal<T>) {
  * name() // "Charlie"
  * ```
  */
-export function signal<T>(initialValue: T | (() => T)): Signal<T> {
-  let value = isFunction(initialValue) ? untrack(initialValue) : initialValue
-  const tracked = new Set<() => void>()
+export function signal<T>(initialValue: SignalLike<T>): Signal<T> {
+  const [getUntracked, get, set] = signalCore<T>(
+    isSignal(initialValue) ? untrack(initialValue) : initialValue
+  )
 
-  let needsRecomputing: [boolean] = isFunction(initialValue)
-    ? memo(initialValue, signalFn)
-    : [false]
+  let unsub = isSignal(initialValue) ? effect(() => set(initialValue())) : noop
 
-  function signalFn(): T
-  function signalFn(value: T): void
-  function signalFn(value: T | (() => T), frames: number): Action
-  function signalFn(newValue?: T | (() => T), frames?: number) {
-    // If we're accessing the current value,
-    if (typeof newValue === "undefined") {
-      if (needsRecomputing[0] && isFunction(initialValue)) {
-        value = untrack(initialValue)
-      }
-
-      if (currentEffect) {
-        tracked.add(currentEffect)
-      }
-
-      currentTrackedSet?.add(tracked)
-
-      return value
+  function signalFn(
+    value?: SignalLike<T>,
+    frames?: number,
+    easer?: Easer,
+    interpolator?: Interpolator<T>
+  ) {
+    if (value === void 0) {
+      return get()
     }
 
-    // If we're setting the current value,
-    if (typeof frames === "undefined") {
-      if (isFunction(newValue)) {
-        needsRecomputing = memo(newValue, signalFn)
-        return
-      }
-
-      value = newValue
-
-      if (currentBatch) {
-        tracked.forEach((fn) => currentBatch!.add(fn))
-      } else {
-        tracked.forEach((fn) => fn())
-      }
-
+    if (frames === void 0) {
+      unsub()
+      unsub = isSignal(value) ? effect(() => set(value())) : (set(value), noop)
       return
     }
 
-    // If we're animating the current value,
-    return animate(isFunction(newValue) ? newValue() : newValue, frames)
+    return toAnimationAction(
+      animate(
+        isSignal(value) ? untrack(value) : value,
+        frames,
+        easer,
+        interpolator
+      )
+    )
   }
-
-  let animationId = 0
-
-  return signalFn
 
   function* animate(
     end: T,
     frames: number,
-    timing: Timing = linear,
-    interpolate: Interpolator<T> = linear as any
+    easer: Easer = linear,
+    interpolator: Interpolator<T> = linear as any
   ): Action {
-    const start = value
-
-    if (frames == 0) {
-      signalFn(interpolate(timing(1), start, end))
-      return
-    }
-
-    const myAnimationId = ++animationId
-
-    signalFn()
+    const start = getUntracked()
+    set(interpolator(easer(0), start, end))
 
     for (let frame = 1; frame <= frames; frame++) {
       yield
-
-      if (animationId != myAnimationId) {
-        return
-      }
-
-      signalFn(interpolate(timing(frame / frames), start, end))
+      set(interpolator(easer(frame / frames), start, end))
     }
+
+    set(end)
   }
+
+  function toAnimationAction(action: Action): AnimationAction<T> {
+    const output = action as AnimationAction<T>
+
+    output.to = (...args) =>
+      toAnimationAction(
+        (function* (): Action {
+          yield* output
+          yield* animate(...args)
+        })()
+      )
+
+    return output
+  }
+
+  return signalFn as Signal<T>
 }
 
 /**

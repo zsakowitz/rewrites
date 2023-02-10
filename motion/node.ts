@@ -1,16 +1,16 @@
 import { Signal, SignalLike, signal, untrack } from "./signal"
 
-export type Style = string | CanvasGradient | CanvasPattern
-
 export interface NodeProps {
   x?: SignalLike<number>
   y?: SignalLike<number>
 
-  fill?: SignalLike<Style>
+  fill?: SignalLike<string>
   fillRule?: SignalLike<CanvasFillRule>
 
-  stroke?: SignalLike<Style>
+  stroke?: SignalLike<string>
   strokeWidth?: SignalLike<number>
+
+  scale?: SignalLike<number>
 
   children?: Node[]
 }
@@ -19,21 +19,25 @@ export abstract class Node {
   readonly x: Signal<number>
   readonly y: Signal<number>
 
-  readonly stroke: Signal<Style | undefined>
+  readonly stroke: Signal<string>
   readonly strokeWidth: Signal<number>
 
-  readonly fill: Signal<Style | undefined>
+  readonly fill: Signal<string>
   readonly fillRule: Signal<CanvasFillRule | undefined>
 
-  readonly children: Node[] = []
+  readonly scale: Signal<number>
+
+  readonly children: Node[]
 
   constructor(props: NodeProps) {
+    this.children = props.children || []
     this.x = signal(props.x || 0)
     this.y = signal(props.y || 0)
-    this.stroke = signal(props.stroke)
+    this.stroke = signal(props.stroke || "transparent")
     this.strokeWidth = signal(props.strokeWidth || 0)
-    this.fill = signal(props.fill)
+    this.fill = signal(props.fill || "transparent")
     this.fillRule = signal(props.fillRule)
+    this.scale = signal(props.scale ?? 1)
   }
 
   abstract draw(path: Path2D): void
@@ -41,13 +45,15 @@ export abstract class Node {
   render(context: CanvasRenderingContext2D) {
     context.save()
 
+    context.scale(this.scale(), this.scale())
+
     const path = new Path2D()
     this.draw(path)
 
     {
       const fill = untrack(this.fill)
 
-      if (fill) {
+      if (fill && fill != "transparent") {
         context.fillStyle = fill
         context.fill(path, untrack(this.fillRule))
       }
@@ -56,7 +62,7 @@ export abstract class Node {
     {
       const stroke = untrack(this.stroke)
 
-      if (stroke) {
+      if (stroke && stroke != "transparent") {
         context.strokeStyle = stroke
         context.stroke(path)
       }
