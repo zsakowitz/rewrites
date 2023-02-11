@@ -1,20 +1,21 @@
 {
   "compilerOptions": {
-    "strict": true,
-    "target": "ESNext",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "outDir": "./dist",
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "checkJs": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "moduleResolution": "node",
     "jsx": "react",
     "jsxFactory": "h",
     "jsxFragmentFactory": "f",
+    "module": "ESNext",
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true
+    "outDir": "./dist",
+    "skipLibCheck": true,
+    "strict": true,
+    "strictFunctionTypes": true,
+    "target": "ES2022"
   },
   "exclude": ["node_modules", "dist"],
   "include": ["*.ts", "*.js", "*.tsx", "genesis/*.ts", "genesis/*.tsx"]

@@ -11,6 +11,10 @@ declare global {
       | null
       | undefined
 
+    type Parent = {
+      appendChild(node: ChildNode): void
+    }
+
     type IntrinsicElements = {
       [K in keyof HTMLElementTagNameMap]: Partial<
         Helpers.HTMLProps<HTMLElementTagNameMap[K]>

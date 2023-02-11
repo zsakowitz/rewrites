@@ -1,4 +1,4 @@
-import colorString from "color-string"
+import { get, to } from "color-string"
 
 export type Easer = (percentage: number) => number
 
@@ -9,10 +9,10 @@ export function linear(percentage: number, start = 0, end = 1) {
 }
 
 export function rgb(percentage: number, start: string, end: string) {
-  const [sR, sG, sB, sA] = colorString.get.rgb(start) || [0, 0, 0, 0]
-  const [eR, eG, eB, eA] = colorString.get.rgb(end) || [0, 0, 0, 0]
+  const [sR, sG, sB, sA] = get.rgb(start) || [0, 0, 0, 0]
+  const [eR, eG, eB, eA] = get.rgb(end) || [0, 0, 0, 0]
 
-  return colorString.to.rgb(
+  return to.rgb(
     linear(percentage, sR, eR),
     linear(percentage, sG, eG),
     linear(percentage, sB, eB),

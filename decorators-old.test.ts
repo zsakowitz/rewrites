@@ -1,4 +1,4 @@
-import { computed } from "./decorators"
+import { computed } from "./decorators-old"
 
 export class Unwrap<T> {
   readonly #signal: T | (() => T)
