@@ -1,3 +1,4 @@
+import { Point, PointLike, point } from "./point"
 import { Signal, SignalLike, signal, untrack } from "./signal"
 
 export interface NodeProps {
@@ -6,6 +7,9 @@ export interface NodeProps {
 
   fill?: SignalLike<string>
   fillRule?: SignalLike<CanvasFillRule>
+
+  origin?: SignalLike<PointLike>
+  translate?: SignalLike<PointLike>
 
   stroke?: SignalLike<string>
   strokeWidth?: SignalLike<number>
@@ -18,6 +22,9 @@ export interface NodeProps {
 export abstract class Node {
   readonly x: Signal<number>
   readonly y: Signal<number>
+
+  readonly origin: Signal<Point>
+  readonly translate: Signal<Point>
 
   readonly stroke: Signal<string>
   readonly strokeWidth: Signal<number>
@@ -33,6 +40,8 @@ export abstract class Node {
     this.children = props.children || []
     this.x = signal(props.x || 0)
     this.y = signal(props.y || 0)
+    this.origin = point(props.origin || 0)
+    this.translate = point(props.translate || 0)
     this.stroke = signal(props.stroke || "transparent")
     this.strokeWidth = signal(props.strokeWidth || 0)
     this.fill = signal(props.fill || "transparent")
@@ -45,7 +54,10 @@ export abstract class Node {
   render(context: CanvasRenderingContext2D) {
     context.save()
 
+    context.translate(this.origin().x, this.origin().y)
     context.scale(this.scale(), this.scale())
+    context.translate(-this.origin().x, -this.origin().y)
+    context.translate(this.translate().x, this.translate().y)
 
     const path = new Path2D()
     this.draw(path)

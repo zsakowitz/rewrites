@@ -5,24 +5,18 @@ import { Rect } from "../rect"
 import { Scene } from "../scene"
 
 const scene = new Scene(function* (view) {
+  const b = new Rect({ fill: "red", x: 800, y: 70, width: 300, height: 300 })
+
   const a = new Rect({
     fill: "red",
     x: 30,
     y: 70,
     width: 300,
     height: 300,
-  })
-
-  const b = new Rect({
-    fill: "red",
-    x: 800,
-    y: 70,
-    width: 300,
-    height: 300,
+    children: [b],
   })
 
   view.add(a)
-  view.add(b)
 
   yield* all(
     a.fill("cyan", 96, undefined, rgb),

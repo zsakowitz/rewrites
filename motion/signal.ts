@@ -86,20 +86,20 @@ function signalCore<T>(
 
 export type SignalLike<T> = T | (() => T)
 
-export type Signal<T> = {
+export type Signal<I, O = I> = {
   /**
    * Gets the current value of this signal.
    *
    * @returns The current value of this signal.
    */
-  (): T
+  (): O
 
   /**
    * Sets the current value of this signal.
    *
    * @param value - The value to set the signal to.
    */
-  (value: T | (() => T)): void
+  (value: I | (() => I)): void
 
   /**
    * Animates the current value over a given number of frames.
@@ -112,11 +112,11 @@ export type Signal<T> = {
    * @returns An action that must be consumed to animate the signal.
    */
   (
-    value: T,
+    value: I,
     frames: number,
     easer?: Easer,
-    interpolator?: Interpolator<T>
-  ): AnimationAction<T>
+    interpolator?: Interpolator<O>
+  ): AnimationAction<O>
 }
 
 export function isSignal<T>(value: SignalLike<T>): value is () => T
@@ -162,7 +162,10 @@ export type AnimationAction<T> = Action & {
  * name() // "Charlie"
  * ```
  */
-export function signal<T>(initialValue: SignalLike<T>): Signal<T> {
+export function signal<T>(
+  initialValue: SignalLike<T>,
+  defaultInterpolator: Interpolator<T> = linear as any
+): Signal<T> {
   const [getUntracked, get, set] = signalCore<T>(
     isSignal(initialValue) ? untrack(initialValue) : initialValue
   )
@@ -199,7 +202,7 @@ export function signal<T>(initialValue: SignalLike<T>): Signal<T> {
     end: T,
     frames: number,
     easer: Easer = linear,
-    interpolator: Interpolator<T> = linear as any
+    interpolator: Interpolator<T> = defaultInterpolator
   ): Action {
     const start = getUntracked()
     set(interpolator(easer(0), start, end))

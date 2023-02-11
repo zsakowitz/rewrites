@@ -107,8 +107,10 @@ gap: 1rem;`,
   )
 }
 
-export function preview(scene: Scene) {
+export async function preview(scene: Scene) {
   const { canvasOuter, context } = makeCanvas()
+
+  await scene.render(context)
 
   const toolbar = makeToolbar({
     scene,
