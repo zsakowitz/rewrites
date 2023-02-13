@@ -17,6 +17,5 @@
     "strictFunctionTypes": true,
     "target": "ES2022"
   },
-  "exclude": ["node_modules", "dist"],
-  "include": ["*.ts", "*.js", "*.tsx", "genesis/*.ts", "genesis/*.tsx"]
+  "exclude": ["node_modules", "dist"]
 }
