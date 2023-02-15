@@ -3,7 +3,7 @@
 const toAny = () => any
 const toTrue = () => true
 
-const any: any = new Proxy(function () {}, {
+export const any: any = new Proxy(function () {}, {
   apply: toAny,
   construct: toAny,
   defineProperty: toTrue,
@@ -14,7 +14,7 @@ const any: any = new Proxy(function () {}, {
   has: toTrue,
   isExtensible: toTrue,
   ownKeys: () => [],
-  preventExtensions: () => {
+  preventExtensions() {
     throw new Error('Cannot prevent extensions on "any."')
   },
   set: toTrue,
