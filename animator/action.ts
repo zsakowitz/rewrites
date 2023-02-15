@@ -1,4 +1,5 @@
 export type Action = Iterable<undefined>
+
 export type ActionIterator = Iterator<undefined>
 
 function toIterator(action: Action): ActionIterator {

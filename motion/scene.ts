@@ -46,3 +46,4 @@ export class Scene {
     this.action = this.initializer(this.view)[Symbol.iterator]()
   }
 }
+ 

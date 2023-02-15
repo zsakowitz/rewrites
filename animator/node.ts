@@ -1,52 +1,70 @@
-import { untrack } from "../signal-decorators"
-import { Signal, SignalLike, toSignal } from "./signal"
-import { VectorLike, VectorSignal, vector } from "./vector"
+import { MaybeValue, get } from "./value"
+import { VectorLike, getVector } from "./vector"
 
 export interface NodeProps {
-  x?: SignalLike<number>
-  y?: SignalLike<number>
+  x?: MaybeValue<number>
+  y?: MaybeValue<number>
 
-  origin?: SignalLike<VectorLike>
-  scale?: SignalLike<VectorLike>
+  origin?: VectorLike
+  translate?: VectorLike
+  scale?: VectorLike
 
-  children?: Node[]
+  fill?: MaybeValue<string | CanvasGradient | CanvasPattern>
+  stroke?: MaybeValue<string | CanvasGradient | CanvasPattern>
+  strokeWidth?: MaybeValue<number>
 }
 
 export class Node {
-  x: Signal<number>
-  y: Signal<number>
+  x
+  y
 
-  origin: VectorSignal
-  scale: VectorSignal
+  origin
+  translate
+  scale
 
-  children: Node[]
+  fill
+  stroke
+  strokeWidth
 
-  constructor(readonly props: NodeProps) {
-    this.x = toSignal(props.x ?? 0)
-    this.y = toSignal(props.y ?? 0)
+  children: Node[] = []
 
-    this.origin = vector(props.origin)
-    this.scale = vector(props.scale)
+  constructor(props: NodeProps = {}) {
+    this.x = props.x
+    this.y = props.y
 
-    this.children = props.children || []
+    this.origin = props.origin
+    this.translate = props.translate
+    this.scale = props.scale || 1
+
+    this.fill = props.fill
+    this.stroke = props.stroke
+    this.strokeWidth = props.strokeWidth
   }
 
-  @untrack
   render(context: CanvasRenderingContext2D) {
-    context.save()
+    context.translate(getVector(this.origin).x, getVector(this.origin).y)
+    context.translate(getVector(this.translate).x, getVector(this.translate).y)
+    context.scale(getVector(this.scale).x, getVector(this.scale).y)
+    context.translate(-getVector(this.origin).x, -getVector(this.origin).y)
 
-    context.translate(this.origin().x, this.origin().y)
-    context.scale(this.scale().x, this.scale().y)
-    context.translate(-this.origin().x, -this.origin().y)
+    context.fillStyle = get(this.fill) || "transparent"
+    context.strokeStyle = get(this.stroke) || "transparent"
+    context.lineWidth = get(this.strokeWidth) || 0
 
-    this.draw(context)
+    this.draw?.(context)
+
+    if (this.path) {
+      const path = new Path2D()
+      this.path(path)
+      context.fill(path)
+      context.stroke(path)
+    }
 
     for (const child of this.children) {
       child.render(context)
     }
-
-    context.restore()
   }
 
-  draw(context: CanvasRenderingContext2D) {}
+  draw?(context: CanvasRenderingContext2D): void
+  path?(path: Path2D): void
 }
