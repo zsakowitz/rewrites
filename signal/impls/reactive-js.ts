@@ -1,6 +1,6 @@
 // A library with reactive primitives
 
-import { cooked } from "./string-cooked"
+import { cooked } from "../../string-cooked"
 
 let currentEffect: (() => void) | undefined
 
