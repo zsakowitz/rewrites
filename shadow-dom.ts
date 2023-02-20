@@ -270,6 +270,30 @@ export function attribute<Value>(name: string, options?: { default?: Value }) {
   }
 }
 
+type OnDecorator<Event> = <This extends ShadowElement>(
+  value: (event: Event) => void,
+  context: ClassMethodDecoratorContext<This, (event: Event) => void>
+) => void
+
+export function on<K extends keyof HTMLElementEventMap>(
+  event: K,
+  options?: AddEventListenerOptions
+): OnDecorator<HTMLElementEventMap[K]>
+
+export function on(
+  event: string,
+  options?: AddEventListenerOptions
+): OnDecorator<Event> {
+  return <This extends ShadowElement>(
+    value: (event: Event) => unknown,
+    context: ClassMethodDecoratorContext<This>
+  ) => {
+    context.addInitializer(function () {
+      this.addEventListener(event, value, options)
+    })
+  }
+}
+
 @customElement("hello-world")
 class HelloWorld extends ShadowElement {
   @attribute("name")
@@ -286,4 +310,7 @@ class HelloWorld extends ShadowElement {
 
   @attribute("checked")
   accessor checked = false
+
+  @on("click")
+  #click(event: MouseEvent) {}
 }

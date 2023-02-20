@@ -3,8 +3,8 @@
 
 // @ts-nocheck
 
-import { Node } from "./lambda";
-import * as Z from "./parser-5";
+import { Node } from "./lambda"
+import * as Z from "./parsers/parser-5"
 
 const Iota = new Node.Lambda(
   "x",

@@ -1,6 +1,6 @@
-import * as Z from "./parser-5"
+import * as Z from "./parsers/parser-5"
 
-declare module "./parser-5" {
+declare module "./parsers/parser-5" {
   export interface Parser<T> {
     asWord<T extends string>(this: Parser<T>): Parser<Word<T>>
   }

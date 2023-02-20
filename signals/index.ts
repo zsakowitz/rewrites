@@ -1,5 +1,4 @@
-// A signal implementation featuring effects, signals, memos, caching,
-// `untrack`, `batch`, and unsubscribing.
+// Another implementation of signals.
 
 let currentEffect: (() => void) | undefined
 let currentBatch: Set<() => void> | undefined
@@ -10,30 +9,34 @@ function safeCall(fn: () => void) {
   } catch {}
 }
 
+function addToCurrentBatch(fn: () => void) {
+  currentBatch?.add(fn)
+}
+
 export function createEffect(effect: () => void) {
-  function effectFn() {
+  function main() {
     const parentEffect = currentEffect
 
     try {
-      currentEffect = effectFn
+      currentEffect = main
       effect()
     } finally {
       currentEffect = parentEffect
     }
   }
 
-  effectFn()
+  main()
 }
 
 export type Signal<T> = [get: () => T, set: (value: T) => void]
 
 export function createSignal<T>(value: T): Signal<T> {
-  const tracked = new Set<() => void>()
+  const trackedEffects = new Set<() => void>()
 
   return [
     () => {
       if (currentEffect) {
-        tracked.add(currentEffect)
+        trackedEffects.add(currentEffect)
       }
 
       return value
@@ -42,40 +45,39 @@ export function createSignal<T>(value: T): Signal<T> {
       value = newValue
 
       if (currentBatch) {
-        tracked.forEach((fn) => currentBatch!.add(fn))
+        trackedEffects.forEach(addToCurrentBatch)
       } else {
-        tracked.forEach(safeCall)
+        trackedEffects.forEach(safeCall)
       }
     },
   ]
 }
 
 export function createMemo<T>(memo: () => T): () => T {
-  const [get, set] = createSignal<T>(null!)
+  const [get, set] = (createSignal as () => Signal<T>)()
   createEffect(() => set(memo()))
   return get
 }
 
-export function useUntrack<T>(get: () => T): T {
+export function useUntrack<T>(fn: () => T): T {
   const parentEffect = currentEffect
+  currentEffect = undefined
 
   try {
-    currentEffect = undefined
-    return get()
+    return fn()
   } finally {
     currentEffect = parentEffect
   }
 }
 
-export function useBatch<T>(get: () => T): T {
+export function useBatch<T>(fn: () => T): T {
   const parentBatch = currentBatch
-  currentBatch = new Set()
-  const batch = currentBatch
+  const batch = (currentBatch = new Set())
 
   try {
-    return get()
+    return fn()
   } finally {
-    currentBatch = parentBatch
     batch.forEach(safeCall)
+    currentBatch = parentBatch
   }
 }

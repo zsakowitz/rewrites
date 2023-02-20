@@ -1,4 +1,4 @@
-import * as Z from "./parser-5"
+import * as Z from "./parsers/parser-5"
 
 type Character = "<" | ">" | "+" | "-" | "[" | "]" | "." | ","
 
