@@ -1,3 +1,5 @@
+// Color type and helpers for Animator.
+
 import { get } from "color-string"
 import { linearMap } from "./transition"
 import { Store, store } from "./value"

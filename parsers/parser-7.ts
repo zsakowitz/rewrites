@@ -147,14 +147,14 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     t(
       state: this["input"]
     ): String.startsWith<
-      typeof state["source"],
+      (typeof state)["source"],
       text,
-      typeof state["index"]
+      (typeof state)["index"]
     > extends infer S
       ? S extends true
         ? ok<
             typeof state,
-            Number.add<typeof state["index"], String.length<text>>,
+            Number.add<(typeof state)["index"], String.length<text>>,
             text
           >
         : error<typeof state, `Expected '${text}'.`>
@@ -223,7 +223,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     ): Parse<Matcher, typeof state> extends infer S
       ? S extends OkState
         ? S
-        : ok<typeof state, typeof state["index"], undefined>
+        : ok<typeof state, (typeof state)["index"], undefined>
       : never
     protected t(state: this["input"]): State {
       const next = this.matcher.p(state)
@@ -308,7 +308,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     ): Parse<Matcher, typeof state> extends infer next
       ? next extends State
         ? next extends OkState
-          ? ok<typeof state, typeof state["index"], next["value"]>
+          ? ok<typeof state, (typeof state)["index"], next["value"]>
           : next extends ErrorState
           ? error<typeof state, next["value"]>
           : never
@@ -377,13 +377,13 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     protected t(
       state: this["input"]
     ): String.charAt<
-      typeof state["source"],
-      typeof state["index"]
+      (typeof state)["source"],
+      (typeof state)["index"]
     > extends infer S
       ? S extends string
         ? S extends ""
           ? error<typeof state, "Found EOF; expected character.">
-          : ok<typeof state, Number.plusOne<typeof state["index"]>, S>
+          : ok<typeof state, Number.plusOne<(typeof state)["index"]>, S>
         : never
       : never
     protected t(state: this["input"]): State {
@@ -410,14 +410,14 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     protected t(
       state: this["input"]
     ): String.charAt<
-      typeof state["source"],
-      typeof state["index"]
+      (typeof state)["source"],
+      (typeof state)["index"]
     > extends infer S
       ? S extends string
         ? S extends ""
           ? error<typeof state, "Found EOF; expected character.">
           : characters extends `${string}${S}${string}`
-          ? ok<typeof state, Number.plusOne<typeof state["index"]>, S>
+          ? ok<typeof state, Number.plusOne<(typeof state)["index"]>, S>
           : error<typeof state, `Found ${S}; expected one of '${characters}'.`>
         : never
       : never

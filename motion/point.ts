@@ -1,3 +1,5 @@
+// A Point type and signal for Motion.
+
 import { linear } from "./animation"
 import { mappedSignal } from "./mapped-signal"
 import { Signal, SignalLike } from "./signal"

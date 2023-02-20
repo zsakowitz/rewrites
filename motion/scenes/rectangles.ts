@@ -1,3 +1,5 @@
+// A Motion scene using rectangles.
+
 import { all } from "../action"
 import { rgb } from "../animation"
 import { preview } from "../preview"

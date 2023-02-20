@@ -1,3 +1,5 @@
+// Extra types for parser-7.
+
 type ToArray<
   Length extends number,
   Accumulator extends any[] = []

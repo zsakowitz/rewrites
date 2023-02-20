@@ -1,3 +1,5 @@
+// A view manager for Motion.
+
 import { Node } from "./node"
 import { Scene } from "./scene"
 

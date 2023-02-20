@@ -1,3 +1,5 @@
+// A short function that constructs HTML elements for Animator.
+
 type IfEquals<X, Y, A, B> = (<T>() => T extends X ? 1 : 2) extends <
   T
 >() => T extends Y ? 1 : 2

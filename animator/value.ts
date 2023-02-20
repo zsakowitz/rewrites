@@ -1,3 +1,5 @@
+// Stores and store getters for Animator.
+
 import { Action } from "./action"
 import { Interpolator, Timing, linearMap } from "./transition"
 

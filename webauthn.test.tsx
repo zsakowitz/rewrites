@@ -1,3 +1,5 @@
+// An HTML page that experiments with the WebAuthn API.
+
 import { f, h, render, signal } from "./easy-jsx.js"
 
 const [emailEl, setEmailEl] = signal<HTMLInputElement>(null!)

@@ -1,3 +1,5 @@
+// A drawable node for Motion scenes.
+
 import { Point, PointLike, point } from "./point"
 import { Signal, SignalLike, signal, untrack } from "./signal"
 

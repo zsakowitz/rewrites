@@ -1,3 +1,6 @@
+// A class that unwraps its value, whether it be a signal or plain value. Used
+// to test `decorators`.
+
 import { computed } from "./decorators-old"
 
 export class Unwrap<T> {

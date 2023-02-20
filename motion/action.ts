@@ -1,3 +1,5 @@
+// An action type and helpers for Motion.
+
 export type Action = Iterable<undefined>
 export type ActionIterator = Iterator<undefined>
 

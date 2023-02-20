@@ -1,3 +1,5 @@
+// A rectangle node for Motion.
+
 import { Node, NodeProps } from "./node"
 import { Signal, SignalLike, signal } from "./signal"
 

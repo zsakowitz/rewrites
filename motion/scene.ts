@@ -1,3 +1,5 @@
+// A scene runner for Motion.
+
 import { Action, ActionIterator } from "./action"
 import { signal, untrack } from "./signal"
 import { View } from "./view"
@@ -46,4 +48,3 @@ export class Scene {
     this.action = this.initializer(this.view)[Symbol.iterator]()
   }
 }
- 

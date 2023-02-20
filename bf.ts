@@ -1,3 +1,5 @@
+// A brainf**k parser, executor, and macro transformer.
+
 import * as Z from "./parsers/parser-5"
 
 type Character = "<" | ">" | "+" | "-" | "[" | "]" | "." | ","
@@ -115,7 +117,7 @@ move_right ${value}
   },
 }
 
-function expand(_tokens: readonly Token[]) {
+export function expand(_tokens: readonly Token[]) {
   const tokens = _tokens.slice()
 
   for (let index = 0; index < tokens.length; index++) {
@@ -153,7 +155,7 @@ function expand(_tokens: readonly Token[]) {
   })
 }
 
-function compile(script: readonly Character[]): (input: string) => {
+export function compile(script: readonly Character[]): (input: string) => {
   index: number
   input: string
   memory: number[]
@@ -226,7 +228,7 @@ return { index, input, memory, output }`
   ) as any
 }
 
-function parse(text: string) {
+export function parse(text: string) {
   const state = Script.parse(text)
 
   if (!state.ok) {
@@ -235,5 +237,3 @@ function parse(text: string) {
 
   return compile(expand(state.value))
 }
-
-export {}

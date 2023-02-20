@@ -1,4 +1,7 @@
+// Tests for parser-5.
+
 // @ts-nocheck
+
 // reinstall jest for this script to work properly
 
 import { isDeepStrictEqual } from "util"

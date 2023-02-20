@@ -1,11 +1,12 @@
 // The README generator for this repo.
 
 import { spawn } from "child_process"
-import { readdir, readFile, writeFile } from "fs/promises"
+import glob from "fast-glob"
+import { readFile, writeFile } from "fs/promises"
 
-const files = (await readdir(".")).filter(
-  (path) => path.endsWith(".js") || path.endsWith(".ts")
-)
+const files = await glob(["**/*.js", "**/*.ts", "**/*.tsx"], {
+  ignore: ["dist", "node_modules"],
+})
 
 const bodies = files.map(async (path) => {
   const contents = await readFile(path, { encoding: "utf8" })
@@ -17,11 +18,18 @@ const bodies = files.map(async (path) => {
     } else break
   }
 
-  const tags = (info.join(" ").match(/#\w+/g) || []).join(" ")
+  if (info.length == 0) {
+    console.log("no info for: ", path)
+  }
+
+  const tags = (info.join(" ").match(/#\w+/g) || [])
+    .map((tag) => tag.slice(1))
+    .join(", ")
+
   const body = info.join(" ").replace(/#\w+/g, "").replace(/\s+/g, " ").trim()
 
-  return `**[${path}](./${path})**${tags ? " " + tags : ""}${
-    body ? "\n\n" + body : ""
+  return `**[${path}](./${path})**${tags ? " (" + tags + ")" : ""}${
+    body ? ": " + body : ""
   }`
 })
 
@@ -45,4 +53,4 @@ ${result.join("\n\n<br>\n\n")}
 `.trim()
 )
 
-spawn("npx", ["prettier", "--write", "."])
+spawn("npx", ["prettier", "--write", "./README.md"])

@@ -26,6 +26,7 @@
     "color-string": "^1.9.1",
     "es-observable-tests": "^0.3.0",
     "esbuild": "^0.15.10",
+    "fast-glob": "^3.2.12",
     "ffmpeg": "^0.0.4",
     "html5parser": "^2.0.2",
     "immer": "^9.0.16",

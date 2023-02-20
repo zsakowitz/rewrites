@@ -1,3 +1,5 @@
+// A previewer for Motion scenes.
+
 import { html } from "./html"
 import { Scene } from "./scene"
 import { effect } from "./signal"

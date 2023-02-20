@@ -1,3 +1,5 @@
+// A test file for the @logged decorator.
+
 import { logged } from "./logged"
 
 @logged

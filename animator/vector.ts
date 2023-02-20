@@ -1,3 +1,5 @@
+// A Vector type and helpers for it for Animator.
+
 import { MaybeValue, get } from "./value"
 
 export type Vector = { readonly x: number; readonly y: number }

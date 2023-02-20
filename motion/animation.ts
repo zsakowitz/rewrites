@@ -1,3 +1,5 @@
+// Basic animation functions for Motion.
+
 import { get, to } from "color-string"
 
 export type Easer = (percentage: number) => number

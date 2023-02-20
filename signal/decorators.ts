@@ -1,3 +1,5 @@
+// Decorators that make working with signals in classes easy.
+
 import { Signal, createMemo, createSignal, useBatch, useUntrack } from "."
 
 export function untrack<This, Value extends (this: This, ...args: any) => any>(

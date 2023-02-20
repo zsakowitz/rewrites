@@ -1,3 +1,5 @@
+// A rectangle renderer for Animator.
+
 import { Node, NodeProps } from "./node"
 import { MaybeValue, get } from "./value"
 

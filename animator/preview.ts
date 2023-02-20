@@ -1,3 +1,5 @@
+// A previewer for Animator.
+
 import { html } from "./html"
 import { Scene } from "./scene"
 

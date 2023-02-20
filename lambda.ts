@@ -1,3 +1,5 @@
+// A lambda calculus parser that runs at compile time and runtime. #typesystem
+
 export function parse<T extends string>(
   text: T
 ): parse.ToNode<parse.ToTree<parse.Lex<parse.PreLex<T>>>> {

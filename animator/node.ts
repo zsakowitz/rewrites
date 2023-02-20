@@ -1,3 +1,5 @@
+// A renderable Node used in Animator.
+
 import { MaybeValue, get } from "./value"
 import { VectorLike, getVector } from "./vector"
 

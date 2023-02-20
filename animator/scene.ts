@@ -1,3 +1,5 @@
+// View and Scene classes for Animator.
+
 import { Action, ActionIterator } from "./action"
 import { Node } from "./node"
 

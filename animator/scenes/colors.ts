@@ -1,3 +1,5 @@
+// An Animator scene with colored rectangles.
+
 import { color } from "../color"
 import { preview } from "../preview"
 import { Rect } from "../rect"

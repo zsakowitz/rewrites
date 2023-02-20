@@ -1,3 +1,5 @@
+// A simple JSX implementation.
+
 let currentEffect: (() => void) | undefined
 
 export function effect(fn: () => void) {

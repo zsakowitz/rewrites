@@ -1,3 +1,5 @@
+// A wrapper for puppeteer.
+
 import * as P from "puppeteer"
 
 export const browser = P.launch()

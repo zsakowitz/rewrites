@@ -1,3 +1,5 @@
+// `Action` type and helpers such as `all` and `sequence` for Animator.
+
 export type Action = Iterable<undefined>
 
 export type ActionIterator = Iterator<undefined>

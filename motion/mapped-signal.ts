@@ -1,3 +1,5 @@
+// A mapped signal type for Motion.
+
 import { Easer, Interpolator } from "./animation"
 import { Signal, SignalLike, isSignal, signal, untrack } from "./signal"
 

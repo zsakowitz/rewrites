@@ -1,3 +1,5 @@
+// JSX types that all JSX libraries in this project use.
+
 declare global {
   namespace JSX {
     type Element =

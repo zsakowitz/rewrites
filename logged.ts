@@ -1,3 +1,5 @@
+// A decorator that logs all kinds of events.
+
 export function logged(value: any, context: DecoratorContext): any {
   const name = String(context.name)
   console.group(`${context.kind} decorator on ${name}`)

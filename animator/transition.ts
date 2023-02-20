@@ -1,3 +1,5 @@
+// Basic timing functions and interpolators for Animator.
+
 export type Timing = (percentage: number) => number
 export type Interpolator<T> = (percentage: number, start: T, end: T) => T
 

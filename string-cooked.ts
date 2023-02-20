@@ -1,3 +1,5 @@
+// A String.cooked function for use until the proposal is implemented.
+
 export function cooked(
   strings: readonly string[],
   ...interpolations: readonly unknown[]

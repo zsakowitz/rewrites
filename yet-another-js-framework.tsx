@@ -1,3 +1,5 @@
+// Yet another JS framework.
+
 const call = (fn: () => void) => fn()
 const callAll = (set: Set<() => void>) => set.forEach(call)
 

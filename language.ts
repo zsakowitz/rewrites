@@ -1,3 +1,5 @@
+// A parser for a custom language.
+
 import * as Z from "./parsers/parser-5"
 
 declare module "./parsers/parser-5" {

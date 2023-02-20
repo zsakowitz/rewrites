@@ -1,3 +1,5 @@
+// A library of functions that run at compile time and runtime.
+
 export namespace Uint {
   export function add<A extends number, B extends number>(
     a: A,
