@@ -235,7 +235,8 @@ failed result.
 **[sandpiles.ts](./sandpiles.ts)**: A library for adding sand piles as described
 in a Numberphile video. https://www.youtube.com/watch?v=1MtEUErz7Gg
 
-**[sarcastic-text.test.tsx](./sarcastic-text.test.tsx)**
+**[sarcastic-text.test.tsx](./sarcastic-text.test.tsx)**: An HTML page that
+shows a demo of the sArCaStIcIfY function.
 
 **[sarcastic-text.ts](./sarcastic-text.ts)**: Makes text look sArCaStIc.
 
@@ -324,25 +325,6 @@ Animator.
 **[animator/vector.ts](./animator/vector.ts)**: A Vector type and helpers for it
 for Animator.
 
-**[genesis/core.ts](./genesis/core.ts)**: The core of a fine-grained reactivity
-library.
-
-**[genesis/derived.ts](./genesis/derived.ts)**: Derived Genesis stores.
-
-**[genesis/dom.ts](./genesis/dom.ts)**: Reactive DOM components.
-
-**[genesis/for.ts](./genesis/for.ts)**: A Genesis component that renders a list
-of items.
-
-**[genesis/index.ts](./genesis/index.ts)**: A next-gen fine-grained reactivity
-system and component library.
-
-**[genesis/maybe.ts](./genesis/maybe.ts)**: A Genesis component to conditionally
-render an object.
-
-**[genesis/stores.ts](./genesis/stores.ts)**: Genesis stores to track values,
-objects, and computed properties.
-
 **[motion/action.ts](./motion/action.ts)**: An action type and helpers for
 Motion.
 
@@ -420,6 +402,25 @@ parser-7.
 with signals in classes easy.
 
 **[signal/index.ts](./signal/index.ts)**: Another implementation of signals.
+
+**[genesis/core.ts](./genesis/core.ts)**: The core of a fine-grained reactivity
+library.
+
+**[genesis/derived.ts](./genesis/derived.ts)**: Derived Genesis stores.
+
+**[genesis/dom.ts](./genesis/dom.ts)**: Reactive DOM components.
+
+**[genesis/for.ts](./genesis/for.ts)**: A Genesis component that renders a list
+of items.
+
+**[genesis/index.ts](./genesis/index.ts)**: A next-gen fine-grained reactivity
+system and component library.
+
+**[genesis/maybe.ts](./genesis/maybe.ts)**: A Genesis component to conditionally
+render an object.
+
+**[genesis/stores.ts](./genesis/stores.ts)**: Genesis stores to track values,
+objects, and computed properties.
 
 **[animator/scenes/colors.ts](./animator/scenes/colors.ts)**: An Animator scene
 with colored rectangles.
