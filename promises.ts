@@ -13,15 +13,15 @@ export class zPromise<T> {
     return new zPromise<T>((resolve) => resolve(fn()))
   }
 
-  private promise: globalThis.Promise<T>
+  #promise: Promise<T>
 
   constructor(
     executor: (
       resolve: (value: T | PromiseLike<T>) => void,
-      reject: (reason: any) => void
+      reject: (reason?: any) => void
     ) => void
   ) {
-    this.promise = new globalThis.Promise<T>((resolve, reject) => {
+    this.#promise = new Promise<T>((resolve, reject) => {
       executor(resolve, reject)
     })
   }
@@ -36,7 +36,7 @@ export class zPromise<T> {
       | undefined
       | null
   ): zPromise<TResult1 | TResult2> {
-    return zPromise.resolve(this.promise.then(onfulfilled, onrejected))
+    return zPromise.resolve(this.#promise.then(onfulfilled, onrejected))
   }
 
   catch<TResult = never>(

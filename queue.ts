@@ -1,20 +1,13 @@
 // An async generator that yields queued values.
 
-if (!globalThis.queueMicrotask) {
-  globalThis.queueMicrotask = (fn) => {
-    Promise.resolve().then(fn)
-  }
-}
-
 export class Queue<T> {
   #queue: T[] = []
   #waiters: (() => void)[] = []
 
   queue(value: T) {
-    queueMicrotask(() => {
-      this.#queue.push(value)
-      this.#waiters.forEach((fn) => fn())
-    })
+    this.#queue.push(value)
+    this.#waiters.forEach((fn) => fn())
+    this.#waiters.length = 0
   }
 
   async *[Symbol.asyncIterator](): AsyncGenerator<T, never, unknown> {

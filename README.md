@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 154 files
+standard library implemented solely in the TS type system. Enjoy the 157 files
 this repository has to offer.
 
 # File listing
@@ -223,6 +223,9 @@ function.
 **[quaternions.ts](./quaternions.ts)**: A library for adding, subtracting, and
 multiplying quaternions.
 
+**[queue-2.ts](./queue-2.ts)**: Another async generator that yields queued
+values.
+
 **[queue.ts](./queue.ts)**: An async generator that yields queued values.
 
 **[random-item.ts](./random-item.ts)**: Picks a random item from an array.
@@ -258,6 +261,12 @@ until the proposal is implemented.
 
 **[string.ts](./string.ts)** (typesystem): String.split and Array.join, but in
 the TS typesystem.
+
+**[tee-2.ts](./tee-2.ts)**: Tees an iterable into two iterables while keeping
+memory costs low. OOP style.
+
+**[tee.ts](./tee.ts)**: Tees an iterable into two iterables while keeping memory
+costs low. Functional style.
 
 **[tick-oat-two.ts](./tick-oat-two.ts)**: An AI for the TickoaTTwo game created
 by Oats Jenkins: https://www.youtube.com/watch?v=ePxrVU4M9uA
@@ -325,6 +334,25 @@ Animator.
 **[animator/vector.ts](./animator/vector.ts)**: A Vector type and helpers for it
 for Animator.
 
+**[genesis/core.ts](./genesis/core.ts)**: The core of a fine-grained reactivity
+library.
+
+**[genesis/derived.ts](./genesis/derived.ts)**: Derived Genesis stores.
+
+**[genesis/dom.ts](./genesis/dom.ts)**: Reactive DOM components.
+
+**[genesis/for.ts](./genesis/for.ts)**: A Genesis component that renders a list
+of items.
+
+**[genesis/index.ts](./genesis/index.ts)**: A next-gen fine-grained reactivity
+system and component library.
+
+**[genesis/maybe.ts](./genesis/maybe.ts)**: A Genesis component to conditionally
+render an object.
+
+**[genesis/stores.ts](./genesis/stores.ts)**: Genesis stores to track values,
+objects, and computed properties.
+
 **[motion/action.ts](./motion/action.ts)**: An action type and helpers for
 Motion.
 
@@ -351,6 +379,11 @@ for Motion.
 specifically for animations.
 
 **[motion/view.ts](./motion/view.ts)**: A view manager for Motion.
+
+**[signal/decorators.ts](./signal/decorators.ts)**: Decorators that make working
+with signals in classes easy.
+
+**[signal/index.ts](./signal/index.ts)**: Another implementation of signals.
 
 **[parsers/parser-1.ts](./parsers/parser-1.ts)** (parser): A general Parser and
 Result class that can be used to parse languages.
@@ -397,30 +430,6 @@ type safe system for parsing text. Works with `--noEmit`.
 
 **[parsers/parser-7.types.ts](./parsers/parser-7.types.ts)**: Extra types for
 parser-7.
-
-**[signal/decorators.ts](./signal/decorators.ts)**: Decorators that make working
-with signals in classes easy.
-
-**[signal/index.ts](./signal/index.ts)**: Another implementation of signals.
-
-**[genesis/core.ts](./genesis/core.ts)**: The core of a fine-grained reactivity
-library.
-
-**[genesis/derived.ts](./genesis/derived.ts)**: Derived Genesis stores.
-
-**[genesis/dom.ts](./genesis/dom.ts)**: Reactive DOM components.
-
-**[genesis/for.ts](./genesis/for.ts)**: A Genesis component that renders a list
-of items.
-
-**[genesis/index.ts](./genesis/index.ts)**: A next-gen fine-grained reactivity
-system and component library.
-
-**[genesis/maybe.ts](./genesis/maybe.ts)**: A Genesis component to conditionally
-render an object.
-
-**[genesis/stores.ts](./genesis/stores.ts)**: Genesis stores to track values,
-objects, and computed properties.
 
 **[animator/scenes/colors.ts](./animator/scenes/colors.ts)**: An Animator scene
 with colored rectangles.

@@ -10,13 +10,15 @@ interface QuaternionLike {
 type QuaternionTuple = [n: number, i: number, j: number, k: number]
 
 export class Quaternion implements QuaternionLike {
-  static from(like: QuaternionLike | QuaternionTuple) {
+  static from(like: QuaternionLike | QuaternionTuple): Quaternion {
     if (Array.isArray(like)) {
       return new Quaternion(like[0], like[1], like[2], like[3])
     }
+
+    return new Quaternion(like.n, like.i, like.j, like.k)
   }
 
-  static of(text: string) {
+  static of(text: string): Quaternion {
     let n = 0
     let i = 0
     let j = 0
