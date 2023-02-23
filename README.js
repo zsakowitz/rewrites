@@ -49,7 +49,7 @@ this repository has to offer.
 
 # File listing
 
-${result.join("\n\n<br>\n\n")}
+${result.join("\n\n")}
 `.trim()
 )
 

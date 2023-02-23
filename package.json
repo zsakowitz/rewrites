@@ -16,9 +16,8 @@
   "dependencies": {
     "@engine262/engine262": "^0.0.1-4cad21cf5b7d2a773c08ad0c996ae119cfd05820",
     "@faker-js/faker": "^7.6.0",
-    "@motion-canvas/2d": "^2.1.0",
-    "@motion-canvas/core": "^2.1.0",
     "@ohm-js/cli": "^1.1.0",
+    "@total-typescript/ts-reset": "^0.3.7",
     "@types/color-string": "^1.5.2",
     "@types/ffmpeg": "^1.0.4",
     "@types/node": "^17.0.45",

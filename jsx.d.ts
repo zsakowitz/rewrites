@@ -1,5 +1,7 @@
 // JSX types that all JSX libraries in this project use.
 
+// @ts-check
+
 declare global {
   namespace JSX {
     type Element =
@@ -51,14 +53,19 @@ declare global {
             >]: T[K] | (() => T[K])
       }
 
-      type EventMapToProps<T> = {
-        [K in keyof T & string as `on:${K}`]: (event: T[K]) => void
+      type EventMapToProps<T, E extends Element> = {
+        [K in keyof T & string as `on:${K}`]: (
+          event: T[K] & { currentTarget: E }
+        ) => void
       }
 
-      type MaybeEventMap<Source, Requirement, EventMap> =
-        Source extends Requirement
-          ? EventMapToProps<Omit<EventMap, keyof HTMLElementEventMap>>
-          : {}
+      type MaybeEventMap<
+        Source extends Element,
+        Requirement extends Element,
+        EventMap
+      > = Source extends Requirement
+        ? EventMapToProps<Omit<EventMap, keyof HTMLElementEventMap>, Source>
+        : {}
 
       type HTMLProps<T> = OmitFunctionsAndConstantsAndEventsAndReadonly<T> & {
         children: Element
@@ -68,9 +75,9 @@ declare global {
           | Partial<CSSStyleDeclaration>
           | (() => string | Partial<CSSStyleDeclaration>)
         [x: `class:${string}`]: boolean | (() => boolean)
-        [x: `on:${string}`]: (event: Event) => void
+        [x: `on:${string}`]: (event: Event & { currentTarget: T }) => void
         [x: `style:${string}`]: string | number | (() => string | number)
-      } & EventMapToProps<HTMLElementEventMap> &
+      } & EventMapToProps<HTMLElementEventMap, T> &
         MaybeEventMap<T, HTMLBodyElement, HTMLBodyElementEventMap> &
         MaybeEventMap<T, HTMLMediaElement, HTMLMediaElementEventMap> &
         MaybeEventMap<T, HTMLVideoElement, HTMLVideoElementEventMap> &

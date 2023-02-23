@@ -1,6 +1,5 @@
 // A simple interface for working with web workers.
 
-import { namespace } from "ohm-js"
 import { Queue } from "./queue"
 import { randomItem } from "./random-item"
 
