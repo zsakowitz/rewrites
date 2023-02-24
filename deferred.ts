@@ -1,15 +1,13 @@
 // A library for creating Deferred objects. Compatible with the Promises A+
 // specification. #promise #rewrite
 
-import tests from "promises-aplus-tests"
-
 type PendingState = { readonly type: "pending" }
 type FulfilledState<T> = { readonly type: "fulfilled"; readonly value: T }
 type RejectedState = { readonly type: "rejected"; readonly reason: any }
 type ResolvedState<T> = FulfilledState<T> | RejectedState
 type PromiseState<T> = ResolvedState<T> | PendingState
 
-let microtask = globalThis.queueMicrotask || setTimeout
+const microtask = globalThis.queueMicrotask || setTimeout
 
 export class Deferred<T> {
   private state: PromiseState<T> = { type: "pending" }
@@ -61,7 +59,7 @@ export class Deferred<T> {
         }
       }
     } else {
-      this.fulfill(x)
+      this.fulfill(x as T)
     }
   }
 
@@ -174,8 +172,4 @@ export class Deferred<T> {
       else return value as any
     })
   }
-}
-
-export function test() {
-  tests({ deferred: () => new Deferred() }, console.error)
 }

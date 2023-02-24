@@ -51,11 +51,11 @@ maybe() {
 ## Conditionally echoes a build flag in tsc style (--flag value). Note that the
 ## echoed output contains " ".
 ##
-##     maybe-space $USER_SPECIFIED_FLAGS --flag default_value
-##     maybe-space $USER_SPECIFIED_FLAGS --format esm
-##     maybe-space $USER_SPECIFIED_FLAGS --platform node
+##     maybe_space $USER_SPECIFIED_FLAGS --flag default_value
+##     maybe_space $USER_SPECIFIED_FLAGS --format esm
+##     maybe_space $USER_SPECIFIED_FLAGS --platform node
 
-maybe-space() {
+maybe_space() {
   if [[ "$1" != *"$2"* ]]; then
     echo "$2 $3"
   fi
@@ -153,6 +153,23 @@ use() {
   node -i -e "import('$NAME').then(module => global.M = module)"
 }
 
+## Minifies an input file into an ES module using esbuild, then opens NodeJS
+## and imports the module.
+##
+##     run [options] <entry>
+##     run src/index.ts
+
+run() {
+  if [[ -z $1 ]]; then
+    echo "usage:   run [options] <entry>"
+    echo "example: run src/index.ts"
+    return
+  fi
+
+  NAME=$(bundle $@)
+  node -e "import('$NAME')"
+}
+
 ## Bundles an input file using TSC, then puts the output file into a given
 ## esbuild function, such as bundle, copy, minify, serve, or use.
 ##   Alternatively, run `tsc pure` to bundle the input files and output the names
@@ -161,13 +178,13 @@ use() {
 ## as proper ES decorators, which were released in the TSC 5.0 beta long before
 ## esbuild added them.
 ##
-##     tsc (bundle|copy|minify|pure|serve|use) [tsc-options] <entry>
+##     tsc (bundle|copy|minify|pure|run|serve|use) [tsc-options] <entry>
 ##     tsc bundle src/index.ts
 ##     tsc pure src/index.ts
 
 tsc() {
   if [[ -z "$2" ]]; then
-    echo "usage:   tsc (bundle|copy|minify|pure|serve|use) [tsc-options] <file>"
+    echo "usage:   tsc (bundle|copy|minify|pure|run|serve|use) [tsc-options] <file>"
     echo "example: tsc bundle src/index.ts"
     return
   fi
@@ -176,20 +193,20 @@ tsc() {
   rm -rf "$HOME/tmp"
   mkdir -p "$HOME/tmp"
   npx tsc \
-    $(maybe-space $args --allowJs true) \
-    $(maybe-space $args --allowSyntheticDefaultImports true) \
-    $(maybe-space $args --checkJs true) \
-    $(maybe-space $args --moduleResolution node) \
-    $(maybe-space $args --jsx react) \
-    $(maybe-space $args --jsxFactory h) \
-    $(maybe-space $args --jsxFragmentFactory f) \
-    $(maybe-space $args --module esnext) \
-    $(maybe-space $args --noFallthroughCasesInSwitch true) \
-    $(maybe-space $args --noUncheckedIndexedAccess true) \
-    $(maybe-space $args --skipLibCheck true) \
-    $(maybe-space $args --strict true) \
-    $(maybe-space $args --strictFunctionTypes true) \
-    $(maybe-space $args --target es2022) \
+    $(maybe_space $args --allowJs true) \
+    $(maybe_space $args --allowSyntheticDefaultImports true) \
+    $(maybe_space $args --checkJs true) \
+    $(maybe_space $args --moduleResolution node) \
+    $(maybe_space $args --jsx react) \
+    $(maybe_space $args --jsxFactory h) \
+    $(maybe_space $args --jsxFragmentFactory f) \
+    $(maybe_space $args --module esnext) \
+    $(maybe_space $args --noFallthroughCasesInSwitch true) \
+    $(maybe_space $args --noUncheckedIndexedAccess true) \
+    $(maybe_space $args --skipLibCheck true) \
+    $(maybe_space $args --strict true) \
+    $(maybe_space $args --strictFunctionTypes true) \
+    $(maybe_space $args --target es2022) \
     --outDir "$HOME/tmp" ${@:2}
 
   if [[ $1 == "pure" ]]; then
@@ -204,3 +221,5 @@ tsc() {
 prisma() {
   node -i -e "import('@prisma/client').then(module => (global.M = new module.PrismaClient, M.\$connect()))"
 }
+
+node -e "import('$(bundle deferred.ts)').then(p => p.test())"

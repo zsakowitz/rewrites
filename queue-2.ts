@@ -4,7 +4,7 @@ const noop = () => {}
 
 export function createQueue<T>(): [
   enqueue: (value: T) => void,
-  queue: AsyncGenerator<T, unknown, undefined>
+  queue: AsyncGenerator<T>
 ] {
   let wake = noop
   const queued: T[] = []

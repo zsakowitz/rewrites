@@ -4,8 +4,6 @@
   "scripts": {
     "copy-chrome-home": "esbuild --bundle chrome-home.ts | node encode-uri.js | pbcopy",
     "dev": "tsc -w",
-    "test:deferred": "node -e \"import('./dist/deferred.js').then(p => p.test())\"",
-    "test:observable": "node -e \"import('./dist/observable.js').then(p => p.test())\"",
     "ytm-build": "esbuild ytm-playlist.ts --bundle --define:RUN_CLI=true --external:ffmpeg --platform=node > ./dist/ytm.js",
     "ytm": "node - < ./dist/ytm.js",
     "webauthn": "esbuild --servedir=. --outdir=dist *.tsx *.ts"
@@ -33,12 +31,15 @@
     "node-notifier": "^10.0.1",
     "ohm-js": "^16.3.2",
     "prettier": "^2.8.3",
-    "promises-aplus-tests": "1.2.0",
+    "promises-aplus-tests": "1.2.1",
     "puppeteer": "^19.5.2",
     "socket.io": "^4.5.4",
     "typescript": "^5.0.0-dev.20230127",
     "ytdl-core": "^4.11.2",
     "ytpl": "^2.3.0",
     "zod": "^3.20.2"
-  }
+  },
+  "$comments": [
+    "`promises-aplus-tests` is meant to be 1.2.1. Do not upgrade it."
+  ]
 }
