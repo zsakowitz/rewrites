@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 170 files
+standard library implemented solely in the TS type system. Enjoy the 171 files
 this repository has to offer.
 
 # File listing
@@ -363,6 +363,10 @@ render an object.
 
 **[genesis/stores.ts](./genesis/stores.ts)**: Genesis stores to track values,
 objects, and computed properties.
+
+**[javascript-weirdness/missing-private-fields.ts](./javascript-weirdness/missing-private-fields.ts)**:
+Creates a class object with only one of the private fields it's supposed to
+have.
 
 **[motion/action.ts](./motion/action.ts)**: An action type and helpers for
 Motion.
