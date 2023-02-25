@@ -1,3 +1,5 @@
+// #::exclude
+
 import { SubscriberFunction, SubscriptionObserver } from "."
 import { getMethod } from "./get-method"
 import { throwTypeError } from "./throw-type-error"

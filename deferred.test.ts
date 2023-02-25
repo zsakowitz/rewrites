@@ -1,3 +1,5 @@
+// Tests for deferred.ts.
+
 import tests from "promises-aplus-tests"
 import { Deferred } from "./deferred"
 

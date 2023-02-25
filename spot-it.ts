@@ -1,3 +1,8 @@
+// Generates Spot It! decks mathematically.
+
+// All `size` parameters are assumed to be prime numbers. If not, the scripts
+// will produce unexpected and incorrect results.
+
 import JSZip from "jszip"
 import { shuffle } from "./shuffle"
 

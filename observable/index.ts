@@ -1,3 +1,5 @@
+// An implementation of the Observable proposal.
+
 import { executeSubscriber } from "./execute-subscriber"
 import { getAsyncIterator } from "./get-async-iterator"
 import { getIterator } from "./get-iterator"

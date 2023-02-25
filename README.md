@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 157 files
+standard library implemented solely in the TS type system. Enjoy the 170 files
 this repository has to offer.
 
 # File listing
@@ -11,7 +11,7 @@ this repository has to offer.
 **[#.ts](./#.ts)** (parser): A parser for a programming language where every
 instruction is a single symbol.
 
-**[README.js](./README.js)**: The README generator for this repo.
+**[README.ts](./README.ts)**: The README generator for this repo.
 
 **[abort.ts](./abort.ts)** (promise, rewrite): A rewrite of AbortSignals with
 Promise-like syntax and then-chaining.
@@ -67,6 +67,8 @@ value, whether it be a signal or plain value. Used to test `decorators`.
 
 **[decorators-old.ts](./decorators-old.ts)**: A reactive system that uses
 decorators instead of plain values.
+
+**[deferred.test.ts](./deferred.test.ts)**: Tests for deferred.ts.
 
 **[deferred.ts](./deferred.ts)** (promise, rewrite): A library for creating
 Deferred objects. Compatible with the Promises A+ specification.
@@ -197,10 +199,6 @@ the issues with `class extends null` in browsers.
 **[numerical-stack.ts](./numerical-stack.ts)**: A Stack implementation that only
 accepts numbers.
 
-**[observable.ts](./observable.ts)** (rewrite, proposal): The
-[ES Observable](https://github.com/tc39/proposal-observable) proposal,
-implemented in standard JavaScript. Incomplete.
-
 **[old-lang.ts](./old-lang.ts)** (parser): An attempt to parse a language using
 the arcsecond library.
 
@@ -225,6 +223,9 @@ multiplying quaternions.
 
 **[queue-2.ts](./queue-2.ts)**: Another async generator that yields queued
 values.
+
+**[queue-sync.ts](./queue-sync.ts)**: A queue that holds values until they're
+ready to be released.
 
 **[queue.ts](./queue.ts)**: An async generator that yields queued values.
 
@@ -252,7 +253,11 @@ sequent calculus.
 **[shadow-dom.ts](./shadow-dom.ts)**: A library for working with the shadow DOM
 using decorators.
 
+**[shuffle.ts](./shuffle.ts)**: Utility function that shuffles an array.
+
 **[solid.ts](./solid.ts)**: Another reactive library.
+
+**[spot-it.ts](./spot-it.ts)**: Generates Spot It! decks mathematically.
 
 **[stack.ts](./stack.ts)**: A generic Stack in JavaScript.
 
@@ -285,6 +290,9 @@ support.
 
 **[validator-2.ts](./validator-2.ts)**: An item validator with static typing
 support.
+
+**[validator-3.ts](./validator-3.ts)**: Another validator. This one doesn't
+really support anything.
 
 **[webauthn.test.tsx](./webauthn.test.tsx)**: An HTML page that experiments with
 the WebAuthn API.
@@ -334,6 +342,9 @@ Animator.
 **[animator/vector.ts](./animator/vector.ts)**: A Vector type and helpers for it
 for Animator.
 
+**[animator/scenes/colors.ts](./animator/scenes/colors.ts)**: An Animator scene
+with colored rectangles.
+
 **[genesis/core.ts](./genesis/core.ts)**: The core of a fine-grained reactivity
 library.
 
@@ -380,10 +391,14 @@ specifically for animations.
 
 **[motion/view.ts](./motion/view.ts)**: A view manager for Motion.
 
-**[signal/decorators.ts](./signal/decorators.ts)**: Decorators that make working
-with signals in classes easy.
+**[motion/scenes/rectangles.ts](./motion/scenes/rectangles.ts)**: A Motion scene
+using rectangles.
 
-**[signal/index.ts](./signal/index.ts)**: Another implementation of signals.
+**[observable/index.ts](./observable/index.ts)**: An implementation of the
+Observable proposal.
+
+**[observable/test.ts](./observable/test.ts)**: Runs es-observable-tests on the
+Observable implementation.
 
 **[parsers/parser-1.ts](./parsers/parser-1.ts)** (parser): A general Parser and
 Result class that can be used to parse languages.
@@ -431,11 +446,10 @@ type safe system for parsing text. Works with `--noEmit`.
 **[parsers/parser-7.types.ts](./parsers/parser-7.types.ts)**: Extra types for
 parser-7.
 
-**[animator/scenes/colors.ts](./animator/scenes/colors.ts)**: An Animator scene
-with colored rectangles.
+**[signal/decorators.ts](./signal/decorators.ts)**: Decorators that make working
+with signals in classes easy.
 
-**[motion/scenes/rectangles.ts](./motion/scenes/rectangles.ts)**: A Motion scene
-using rectangles.
+**[signal/index.ts](./signal/index.ts)**: Another implementation of signals.
 
 **[signal/impls/reactive-js.ts](./signal/impls/reactive-js.ts)**: A library with
 reactive primitives
