@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 171 files
+standard library implemented solely in the TS type system. Enjoy the 175 files
 this repository has to offer.
 
 # File listing
@@ -276,6 +276,9 @@ costs low. Functional style.
 **[tick-oat-two.ts](./tick-oat-two.ts)**: An AI for the TickoaTTwo game created
 by Oats Jenkins: https://www.youtube.com/watch?v=ePxrVU4M9uA
 
+**[ts-function.ts](./ts-function.ts)**: Creates functions that can be run either
+at compile time or run time.
+
 **[type-safe.ts](./type-safe.ts)**: A library of functions that run at compile
 time and runtime.
 
@@ -454,6 +457,9 @@ parser-7.
 with signals in classes easy.
 
 **[signal/index.ts](./signal/index.ts)**: Another implementation of signals.
+
+**[signal/impls/minimal.ts](./signal/impls/minimal.ts)**: A minimal
+implementation of signals that assumes effects will never throw.
 
 **[signal/impls/reactive-js.ts](./signal/impls/reactive-js.ts)**: A library with
 reactive primitives

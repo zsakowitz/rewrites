@@ -93,14 +93,3 @@ export function effect<Class extends abstract new (...args: any) => any>(
     return ClassWithEffect
   }
 }
-
-@effect(function () {
-  console.log(this.a + this.b)
-})
-class Adder {
-  @signal
-  accessor a = 0
-
-  @signal
-  accessor b = 0
-}

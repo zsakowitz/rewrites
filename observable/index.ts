@@ -9,27 +9,28 @@ import { throwTypeError } from "./throw-type-error"
 ;(Symbol as any).observable = Symbol.observable || Symbol("Symbol.observable")
 
 export interface Observer<in T> {
-  start?(subscription: Subscription): void
-  next?(value: T): void
-  error?(reason: unknown): void
-  complete?(value: unknown): void
+  start?(this: this, subscription: Subscription): void
+  next?(this: this, value: T): void
+  error?(this: this, reason: unknown): void
+  complete?(this: this, value: unknown): void
 }
 
 export type SubscriberFunction<out T> = (
+  this: void,
   observer: SubscriptionObserver<T>
 ) => void | (() => void) | Subscription
 
+export type ObservableLike<T> =
+  | { [Symbol.observable](): Observable<T> }
+  | { [Symbol.iterator](): Iterator<T> }
+  | {
+      [Symbol.asyncIterator]():
+        | AsyncIterator<T | PromiseLike<T>>
+        | Iterator<T | PromiseLike<T>>
+    }
+
 export class Observable<out T> {
-  static from<T>(
-    x:
-      | { [Symbol.observable](): Observable<T> }
-      | { [Symbol.iterator](): Iterator<T> }
-      | {
-          [Symbol.asyncIterator]():
-            | AsyncIterator<T | PromiseLike<T>>
-            | Iterator<T | PromiseLike<T>>
-        }
-  ): Observable<T> {
+  static from<T>(x: ObservableLike<T>): Observable<T> {
     let C = this
 
     if (typeof C != "function") {
@@ -153,7 +154,7 @@ export class Observable<out T> {
       }
 
       try {
-        var result = start.call(observer, subscription)
+        start.call(observer, subscription)
       } catch (error) {
         hostReportError(error)
       }
@@ -202,6 +203,18 @@ export class Observable<out T> {
     })
   }
 
+  flatMap<U>(mapFn: (value: T) => ObservableLike<U>): Observable<U> {
+    const self = this
+
+    return Observable.from(
+      (async function* () {
+        for await (const value of self) {
+          yield* Observable.from(mapFn(value))
+        }
+      })()
+    )
+  }
+
   filter<U extends T>(filterFn: (value: T) => value is U): Observable<U>
   filter(filterFn: (value: T) => boolean): Observable<T>
   filter(filterFn: (value: T) => boolean): Observable<T> {
@@ -211,6 +224,58 @@ export class Observable<out T> {
           if (filterFn(value)) {
             observer.next(value)
           }
+        },
+        error(reason) {
+          observer.error(reason)
+        },
+        complete(value) {
+          observer.complete(value)
+        },
+      })
+    })
+  }
+
+  every(checkFn: (value: T) => boolean): Promise<boolean> {
+    return (async () => {
+      for await (const value of this) {
+        if (!checkFn(value)) {
+          return false
+        }
+      }
+
+      return true
+    })()
+  }
+
+  some(checkFn: (value: T) => boolean): Promise<boolean> {
+    return (async () => {
+      for await (const value of this) {
+        if (checkFn(value)) {
+          return true
+        }
+      }
+
+      return false
+    })()
+  }
+
+  take(maxValues: number): Observable<T> {
+    return new Observable((observer) => {
+      let sent = 0
+
+      var subscription = this.subscribe({
+        next(value) {
+          sent++
+
+          if (sent >= maxValues) {
+            subscription?.unsubscribe()
+
+            if (sent != maxValues) {
+              return
+            }
+          }
+
+          observer.next(value)
         },
         error(reason) {
           observer.error(reason)
@@ -389,7 +454,7 @@ export class SubscriptionObserver<in T> {
       return undefined
     }
 
-    const observer = getSubscriptionObserver(subscription)
+    const observer = getSubscriptionObserver(subscription)!
 
     const nextMethod = getMethod(observer, "next")
 
@@ -414,7 +479,7 @@ export class SubscriptionObserver<in T> {
       throw exception
     }
 
-    const observer = getSubscriptionObserver(subscription)
+    const observer = getSubscriptionObserver(subscription)!
 
     subscription.unsubscribe()
 
@@ -434,7 +499,7 @@ export class SubscriptionObserver<in T> {
       return
     }
 
-    const observer = getSubscriptionObserver(subscription)
+    const observer = getSubscriptionObserver(subscription)!
 
     subscription.unsubscribe()
 

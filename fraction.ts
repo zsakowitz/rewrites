@@ -1,12 +1,20 @@
 // Expresses arbitrary precision fractions using bigints.
 
 export function gcd(a: bigint, b: bigint): bigint {
-  if (b) {
-    return gcd(b, a % b)
-  } else {
-    return a
+  while (b) {
+    ;[a, b] = [b, a % b]
   }
+
+  return a
 }
+
+// export function gcd(a: bigint, b: bigint): bigint {
+//   if (b) {
+//     return gcd(b, a % b)
+//   } else {
+//     return a
+//   }
+// }
 
 export function lcm(a: bigint, b: bigint): bigint {
   return (a * b) / gcd(a, b)
