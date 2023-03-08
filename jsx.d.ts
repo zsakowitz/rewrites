@@ -67,17 +67,30 @@ declare global {
         ? EventMapToProps<Omit<EventMap, keyof HTMLElementEventMap>, Source>
         : {}
 
+      type CSSProps = {
+        [K in keyof CSSStyleDeclaration as CSSStyleDeclaration[K] extends (
+          ...args: any
+        ) => any
+          ? never
+          : K extends number | "length" | "parentRule"
+          ? never
+          : K]?: CSSStyleDeclaration[K]
+      }
+
+      type CSSPropsWithSignals = {
+        [K in keyof CSSProps]?: CSSProps[K] | (() => CSSProps[K])
+      }
+
       type HTMLProps<T> = OmitFunctionsAndConstantsAndEventsAndReadonly<T> & {
         children: Element
         use: (el: T) => void
-        style:
-          | string
-          | Partial<CSSStyleDeclaration>
-          | (() => string | Partial<CSSStyleDeclaration>)
+        style: string | CSSPropsWithSignals | (() => string | CSSProps)
         [x: `class:${string}`]: boolean | (() => boolean)
         [x: `on:${string}`]: (event: Event & { currentTarget: T }) => void
         [x: `style:${string}`]: string | number | (() => string | number)
-      } & EventMapToProps<HTMLElementEventMap, T> &
+      } & MaybeEventMap<T, HTMLElement, HTMLElementEventMap> &
+        MaybeEventMap<T, SVGElement, SVGElementEventMap> &
+        MaybeEventMap<T, SVGSVGElement, SVGSVGElementEventMap> &
         MaybeEventMap<T, HTMLBodyElement, HTMLBodyElementEventMap> &
         MaybeEventMap<T, HTMLMediaElement, HTMLMediaElementEventMap> &
         MaybeEventMap<T, HTMLVideoElement, HTMLVideoElementEventMap> &
