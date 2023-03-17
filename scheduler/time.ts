@@ -1,3 +1,6 @@
+// A `Time` class that stores hours and minutes. Can be used to create random
+// times, convert a time to a date, or create a range of random times.
+
 export class Time {
   static random(start: Time, end: Time): Time {
     const startMin = start.hour * 60 + start.minute

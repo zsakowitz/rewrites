@@ -1,3 +1,6 @@
+// A weakly valued map that automatically removes entries when they are garbage
+// collected.
+
 export class WeakValueMap<K, V extends object> {
   #map = new Map<K, WeakRef<V>>()
 

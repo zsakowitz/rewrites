@@ -1,3 +1,5 @@
+// A decorator that memoizes a function's arguments and return value.
+
 type Primitive = string | number | bigint | boolean | symbol | null | undefined
 
 export function memo<This, P extends Primitive, R>(

@@ -1,3 +1,6 @@
+// Randomly surfs web pages to discover the probability of finding certain pages
+// in a network.
+
 import { randomItem } from "./random-item"
 
 export class Page {

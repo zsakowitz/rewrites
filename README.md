@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 175 files
+standard library implemented solely in the TS type system. Enjoy the 188 files
 this repository has to offer.
 
 # File listing
@@ -188,6 +188,9 @@ multiplied.
 **[media.js](./media.js)**: Captures clicks on AirPods 3 or AirPods Pro using a
 video and the mediaSession API.
 
+**[memo.ts](./memo.ts)**: A decorator that memoizes a function's arguments and
+return value.
+
 **[monad.ts](./monad.ts)**: An exploration into various monads. Unfinished.
 
 **[nand.ts](./nand.ts)**: All boolean logic gates implemented from a single NAND
@@ -233,6 +236,12 @@ ready to be released.
 
 **[random-path.ts](./random-path.ts)**: Makes a random path in 1D, 2D, or 3D.
 
+**[random-surfer.ts](./random-surfer.ts)**: Randomly surfs web pages to discover
+the probability of finding certain pages in a network.
+
+**[result-2.ts](./result-2.ts)**: An Option<T> class similar to Rust's Option
+type.
+
 **[result.ts](./result.ts)**: A generic result type that can express a possibly
 failed result.
 
@@ -276,6 +285,9 @@ costs low. Functional style.
 **[tick-oat-two.ts](./tick-oat-two.ts)**: An AI for the TickoaTTwo game created
 by Oats Jenkins: https://www.youtube.com/watch?v=ePxrVU4M9uA
 
+**[toki-pona-names.ts](./toki-pona-names.ts)**: Generates random toki pona-style
+names.
+
 **[ts-function.ts](./ts-function.ts)**: Creates functions that can be run either
 at compile time or run time.
 
@@ -296,6 +308,9 @@ support.
 
 **[validator-3.ts](./validator-3.ts)**: Another validator. This one doesn't
 really support anything.
+
+**[weak-valued-map.ts](./weak-valued-map.ts)**: A weakly valued map that
+automatically removes entries when they are garbage collected.
 
 **[webauthn.test.tsx](./webauthn.test.tsx)**: An HTML page that experiments with
 the WebAuthn API.
@@ -401,6 +416,10 @@ specifically for animations.
 **[motion/scenes/rectangles.ts](./motion/scenes/rectangles.ts)**: A Motion scene
 using rectangles.
 
+**[nimbus/h.ts](./nimbus/h.ts)**: / <reference types="../jsx" />
+
+**[nimbus/render.ts](./nimbus/render.ts)**: / <reference types="../jsx" />
+
 **[observable/index.ts](./observable/index.ts)**: An implementation of the
 Observable proposal.
 
@@ -452,6 +471,10 @@ type safe system for parsing text. Works with `--noEmit`.
 
 **[parsers/parser-7.types.ts](./parsers/parser-7.types.ts)**: Extra types for
 parser-7.
+
+**[scheduler/time.ts](./scheduler/time.ts)**: A `Time` class that stores hours
+and minutes. Can be used to create random times, convert a time to a date, or
+create a range of random times.
 
 **[signal/decorators.ts](./signal/decorators.ts)**: Decorators that make working
 with signals in classes easy.

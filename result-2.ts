@@ -1,3 +1,5 @@
+// An Option<T> class similar to Rust's Option type.
+
 export class Option<T> {
   static try<T>(fn: () => T): Option<T> {
     try {

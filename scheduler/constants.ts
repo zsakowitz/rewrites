@@ -1,3 +1,5 @@
+// #::exclude
+
 import { Time } from "./time"
 
 export interface Deadline {

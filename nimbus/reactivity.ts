@@ -1,3 +1,5 @@
+// #::exclude
+
 let currentEffect: (() => void) | undefined
 let currentBatch: Set<() => void> | undefined
 

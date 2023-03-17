@@ -1,3 +1,5 @@
+// #::exclude
+
 import {
   ReadonlySchedule,
   ScheduleItem,

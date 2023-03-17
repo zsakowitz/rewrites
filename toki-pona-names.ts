@@ -1,3 +1,5 @@
+// Generates random toki pona-style names.
+
 import { randomItem } from "./random-item"
 
 const VOWELS = "aeiou"

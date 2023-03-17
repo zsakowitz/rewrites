@@ -1,3 +1,5 @@
+// #::exclude
+
 export interface FivePointConic {
   x1: number
   y1: number
