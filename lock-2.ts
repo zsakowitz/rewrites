@@ -13,15 +13,13 @@ export class Lock {
 
     const next = this.#queue.shift()
 
-    if (!next) {
-      return
-    }
-
-    try {
-      await next()
-    } finally {
-      this.#isLocked = false
-      this.#runNext()
+    if (next) {
+      try {
+        await next()
+      } finally {
+        this.#isLocked = false
+        this.#runNext()
+      }
     }
   }
 
