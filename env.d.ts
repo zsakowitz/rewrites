@@ -15,3 +15,7 @@ declare module "promises-aplus-tests" {
 
   export default tests
 }
+
+interface Array<T extends string> {
+  includes(item: string): item is T
+}

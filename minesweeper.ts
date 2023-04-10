@@ -837,9 +837,9 @@ function makeInteractiveGame<T extends Game>(
 }
 
 const options: InteractiveGameOptions = {
-  rows: Math.floor(innerHeight / 30 - 2),
-  cols: Math.floor(innerWidth / 30),
-  mines: 400,
+  rows: 14,
+  cols: 18,
+  mines: 40,
   minRevealed: 2,
 }
 

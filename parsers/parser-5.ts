@@ -23,7 +23,7 @@ export type State<T> = Ok<T> | Error
 export function ok<T>(
   previous: State<unknown>,
   index: number,
-  value: T
+  value: T,
 ): State<T> {
   return {
     index,
@@ -57,7 +57,7 @@ export function initial(source: string): State<undefined> {
 export class Parser<T> {
   constructor(
     /** A function that reads the current state and returns a new one. */
-    readonly p: (state: State<unknown>) => State<T>
+    readonly p: (state: State<unknown>) => State<T>,
   ) {}
 
   parse(source: string): State<T> {
@@ -128,8 +128,8 @@ export function text<T extends string>(text: T): Parser<T> {
       state,
       `Expected string '${text}'; received '${state.source.slice(
         state.index,
-        state.index + 10
-      )}${state.source.length > state.index + 10 ? "..." : ""}'.`
+        state.index + 10,
+      )}${state.source.length > state.index + 10 ? "..." : ""}'.`,
     )
   })
 }
@@ -138,25 +138,25 @@ export function text<T extends string>(text: T): Parser<T> {
 export function regex(regex: RegExp): Parser<RegExpMatchArray> {
   if (regex.global) {
     throw new Error(
-      "The regular expression passed to 'regex' should not be global."
+      "The regular expression passed to 'regex' should not be global.",
     )
   }
 
   if (regex.sticky) {
     throw new Error(
-      "The regular expression passed to 'regex' should not be sticky."
+      "The regular expression passed to 'regex' should not be sticky.",
     )
   }
 
   if (regex.multiline) {
     throw new Error(
-      "The regular expression passed to 'regex' should not be multiline."
+      "The regular expression passed to 'regex' should not be multiline.",
     )
   }
 
   if (!regex.source.startsWith("^")) {
     throw new Error(
-      "The regular expression passed to 'regex' should start with a begin assertion (^)."
+      "The regular expression passed to 'regex' should start with a begin assertion (^).",
     )
   }
 
@@ -175,8 +175,8 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
       state,
       `Expected something matching ${regex}; received '${state.source.slice(
         state.index,
-        state.index + 10
-      )}${state.source.length > state.index + 10 ? "..." : ""}'.`
+        state.index + 10,
+      )}${state.source.length > state.index + 10 ? "..." : ""}'.`,
     )
   })
 }
@@ -300,7 +300,7 @@ export function not(parser: Parser<unknown>): Parser<undefined> {
 }
 
 /** Matches as many repeats of the provided parser as possible. */
-export function many<T>(parser: Parser<T>): Parser<readonly T[]> {
+export function many<T>(parser: Parser<T>): Parser<T[]> {
   return new Parser((state) => {
     if (!state.ok) {
       return state
@@ -323,9 +323,7 @@ export function many<T>(parser: Parser<T>): Parser<readonly T[]> {
 }
 
 /** Matches as at least one repeat of the provided parser, but more if possible. */
-export function many1<T>(
-  parser: Parser<T>
-): Parser<readonly T[] & { readonly 0: T }> {
+export function many1<T>(parser: Parser<T>): Parser<[T, ...T[]]> {
   return new Parser((state) => {
     if (!state.ok) {
       return state
@@ -341,7 +339,7 @@ export function many1<T>(
           return error(state, `Expected at least one match; found none.`)
         }
 
-        return ok(state, state.index, output as T[] & { 0: T })
+        return ok(state, state.index, output as [T, ...T[]])
       }
 
       output.push(next.value)
@@ -367,28 +365,28 @@ export function lazy<T>(parser: () => Parser<T>): Parser<T> {
 /** Repeatedly matches a parser with a separator between each match. */
 export function sepBy<T>(
   parser: Parser<T>,
-  separator: Parser<unknown>
-): Parser<readonly T[]> {
+  separator: Parser<unknown>,
+): Parser<T[]> {
   return optional(
     seq(parser, many(seq(separator, parser).map((match) => match[1]))).map(
-      ([first, rest]) => [first]!.concat(rest)
-    )
+      ([first, rest]) => [first]!.concat(rest),
+    ),
   ).map((match) => match || [])
 }
 
 /** Repeatedly matches a parser with a separator between each match. Requires at least one match. */
 export function sepBy1<T>(
   parser: Parser<T>,
-  separator: Parser<unknown>
-): Parser<readonly T[] & { readonly 0: T }> {
+  separator: Parser<unknown>,
+): Parser<[T, ...T[]]> {
   return seq(parser, many(seq(separator, parser).map((match) => match[1]))).map(
-    ([first, rest]) => [first, ...rest] as const
+    ([first, rest]) => [first, ...rest],
   )
 }
 
 /** Matches any string from an array. */
 export function oneOf<T extends readonly string[]>(
-  values: T
+  values: T,
 ): Parser<T[number]> {
   return new Parser((state) => {
     if (!state.ok) {
@@ -405,8 +403,8 @@ export function oneOf<T extends readonly string[]>(
       state,
       `Expected one of ${values.join(", ")}; found ${state.source.slice(
         state.index,
-        state.index + 10
-      )}.`
+        state.index + 10,
+      )}.`,
     )
   })
 }

@@ -6,7 +6,7 @@ namespace String {
   type JoinRest<
     Array extends readonly any[],
     Joiner extends string = "",
-    Output extends string = ""
+    Output extends string = "",
   > = Array extends readonly [infer Element, ...infer Rest]
     ? Element extends Embeddable
       ? JoinRest<Rest, Joiner, `${Output}${Joiner}${Element}`>
@@ -15,7 +15,7 @@ namespace String {
 
   export type Join<
     Array extends readonly any[],
-    Joiner extends string = ""
+    Joiner extends string = "",
   > = Array extends []
     ? ""
     : Array extends [infer Element]
@@ -31,7 +31,7 @@ namespace String {
   export type Split<
     Text extends string,
     Splitter extends Embeddable,
-    Arr extends string[] = []
+    Arr extends string[] = [],
   > = Text extends `${infer First}${Splitter}${infer Rest}`
     ? Split<Rest, Splitter, [...Arr, First]>
     : Splitter extends ""
@@ -44,20 +44,27 @@ namespace String {
     ? [char: Char, rest: Rest]
     : never
 
-  export type SliceFromStart<
-    String extends string,
-    End extends number = number
-  > = never
-
-  type ArrayOfLength<T extends number, A extends any[]> = never
+  export type Trim<T extends string> = T extends ` ${infer U}`
+    ? Trim<U>
+    : T extends `\n${infer U}`
+    ? Trim<U>
+    : T extends `${infer U} `
+    ? Trim<U>
+    : T extends `${infer U}\n`
+    ? Trim<U>
+    : T
 }
 
 interface String {
   split<This extends string, Splitter extends string>(
     this: This,
     splitter: Splitter,
-    limit?: number
+    limit?: number,
   ): string extends This ? string[] : String.Split<This, Splitter>
+
+  trim<This extends string>(
+    this: This,
+  ): string extends This ? string : String.Trim<This>
 }
 
 let testString = "test string".split(" ")

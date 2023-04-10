@@ -20,7 +20,7 @@ export function createEffect(fn: (this: void) => void) {
 }
 
 export function createSignal<T>(
-  value: T
+  value: T,
 ): [get: () => T, set: (value: T) => void] {
   const listeners = new Set<() => void>()
 
@@ -61,7 +61,7 @@ export function createUntrack<T>(fn: (this: void) => T): T {
 
 export function render(
   value: JSX.Element,
-  parent: { appendChild(node: ChildNode): void }
+  parent: { appendChild(node: ChildNode): void },
 ) {
   if (value instanceof Node) {
     parent.appendChild(value)
@@ -209,7 +209,7 @@ export function h<P extends Record<string, any>>(
 
 export function h<P extends Record<string, any>>(
   tag: (props: P) => JSX.Element,
-  originalProps: P | JSX.Helpers.NullableIfPropsCanBeEmpty<P>
+  originalProps: P | JSX.Helpers.NullableIfPropsCanBeEmpty<P>,
 ): JSX.Element
 
 export function h(
@@ -270,12 +270,14 @@ export function h(
     } else if (key.startsWith("on:")) {
       element.addEventListener(
         key.slice(3),
-        value as EventListenerOrEventListenerObject
+        value as EventListenerOrEventListenerObject,
       )
     } else if (key != "use" && key != "children") {
       attr(element, key, value)
     }
   }
+
+  render(children as readonly JSX.Element[], element)
 
   if ("use" in props && typeof props.use == "function") {
     props.use(element)

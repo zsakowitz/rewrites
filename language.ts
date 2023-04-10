@@ -2,18 +2,8 @@
 
 import * as Z from "./parsers/parser-5"
 
-declare module "./parsers/parser-5" {
-  export interface Parser<T> {
-    asWord<T extends string>(this: Parser<T>): Parser<Word<T>>
-  }
-}
-
 function asWord<T extends string>(word: T): Word<T> {
   return { type: "word", word }
-}
-
-Z.Parser.prototype.asWord = function () {
-  return this.map(asWord)
 }
 
 export type Word<T extends string = string> = {
@@ -104,7 +94,7 @@ export namespace Word {
   ]
 }
 
-export const ContentWord: Z.Parser<Word> = Z.oneOf(Word.Content).asWord()
+export const ContentWord: Z.Parser<Word> = Z.oneOf(Word.Content).map(asWord)
 
 export const PiGroup: Z.Parser<Modifier> = Z.seq(
   Z.text("pi"),
@@ -167,7 +157,7 @@ export type Action = {
 }
 
 export const Action: Z.Parser<Action> = Z.seq(
-  Z.oneOf(["li", "o"] as const).asWord(),
+  Z.oneOf(["li", "o"] as const).map(asWord),
   Whitespace,
   Verb
 ).map(([head, , action]) => ({
