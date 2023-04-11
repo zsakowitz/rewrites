@@ -1,11 +1,20 @@
 import { Expression } from "./expression-parser"
-import { BUILT_INS, RESERVED_NAMES_REGEX } from "./types"
+import {
+  BUILT_INS,
+  BUILT_INS_WITH_COMPLEX_ALTERNATIVES,
+  IMPLICIT_FUNCTION_BUILT_INS,
+  SINGLE_CHARACTER_VARIABLES,
+} from "./types"
 
 const enum Precedence {
   Atom = 10,
-  Exponentiation = 7,
-  Multiplication = 4,
-  Addition = 1,
+  Exponentiation = 9,
+  ImpliedMultiplication = 8,
+  Multiplication = 7,
+  Addition = 6,
+  Range = 5,
+  Conditional = 4,
+  Action = 3,
 }
 
 type PartialPrint = {
@@ -32,6 +41,23 @@ function curlyBracketize(text: string) {
   return "{" + text + "}"
 }
 
+function isAllowedInImplicitCall(node: Expression): boolean {
+  if (node.complex) {
+    return false
+  }
+
+  return (
+    node.type == "number" ||
+    node.type == "variable" ||
+    node.type == "/" ||
+    (node.type == "^" &&
+      (node.left.type == "number" || node.left.type == "variable")) ||
+    (node.type == "*" &&
+      isAllowedInImplicitCall(node.left) &&
+      isAllowedInImplicitCall(node.right))
+  )
+}
+
 function partialPrint(node: Expression): PartialPrint {
   switch (node.type) {
     case "number":
@@ -46,11 +72,14 @@ function partialPrint(node: Expression): PartialPrint {
       }
 
       if (BUILT_INS.includes(node.name)) {
-        return { output: node.name, precedence: Precedence.Atom }
+        return {
+          output: "\\operatorname{" + node.name + "}",
+          precedence: Precedence.Atom,
+        }
       }
 
       const name = node.name.replace(
-        RESERVED_NAMES_REGEX,
+        SINGLE_CHARACTER_VARIABLES,
         (match) => "\\" + match + "_",
       )
 
@@ -89,6 +118,15 @@ function partialPrint(node: Expression): PartialPrint {
         precedence: Precedence.Atom,
       }
 
+    case "range":
+      return {
+        output:
+          parenthesize(node.start, Precedence.Range) +
+          "..." +
+          parenthesize(node.end, Precedence.Range),
+        precedence: Precedence.Range,
+      }
+
     case "point":
       return {
         output:
@@ -101,6 +139,33 @@ function partialPrint(node: Expression): PartialPrint {
       }
 
     case "function_call":
+      if (
+        node.complex &&
+        BUILT_INS_WITH_COMPLEX_ALTERNATIVES.includes(node.name.name)
+      ) {
+        return {
+          output:
+            "c_{" +
+            node.name.name +
+            "}\\left(" +
+            node.args.map(printLaTeX).join(",") +
+            "\\right)",
+          precedence: Precedence.Atom,
+        }
+      }
+
+      if (node.args.length == 1) {
+        if (
+          IMPLICIT_FUNCTION_BUILT_INS.includes(node.name.name) &&
+          isAllowedInImplicitCall(node.args[0]!)
+        ) {
+          return {
+            output: printLaTeX(node.name) + " " + printLaTeX(node.args[0]!),
+            precedence: Precedence.Addition,
+          }
+        }
+      }
+
       return {
         output:
           printLaTeX(node.name) +
@@ -176,13 +241,26 @@ function partialPrint(node: Expression): PartialPrint {
         precedence: Precedence.Atom,
       }
 
-    case "*":
+    case "*": {
       if (node.complex) {
         return {
           output: `c_{mult}\\left(${printLaTeX(node.left)}, ${printLaTeX(
             node.right,
           )}\\right)`,
           precedence: Precedence.Atom,
+        }
+      }
+
+      if (
+        node.left.type == "number" ||
+        node.left.type == "variable" ||
+        partialPrint(node.left).precedence ==
+          Precedence.ImpliedMultiplication ||
+        partialPrint(node.left).precedence == Precedence.Exponentiation
+      ) {
+        return {
+          output: printLaTeX(node.left) + " " + parenthesize(node.right),
+          precedence: Precedence.ImpliedMultiplication,
         }
       }
 
@@ -193,21 +271,95 @@ function partialPrint(node: Expression): PartialPrint {
           parenthesize(node.right),
         precedence: Precedence.Multiplication,
       }
+    }
 
     case "+":
     case "-":
       return {
         output:
-          printLaTeX(node.left) +
+          parenthesize(node.left, Precedence.Range) +
           node.type +
           parenthesize(node.right, Precedence.Addition),
         precedence: Precedence.Addition,
+      }
+
+    case "<":
+    case ">":
+    case "<=":
+    case ">=":
+    case "=":
+      return {
+        output:
+          parenthesize(node.left, Precedence.Action) +
+          (node.type == "<="
+            ? "\\le"
+            : node.type == ">="
+            ? "\\ge"
+            : node.type) +
+          parenthesize(node.right, Precedence.Action),
+        precedence: Precedence.Conditional,
       }
 
     case "list":
       return {
         output:
           "\\left[" + node.elements.map(printLaTeX).join(",") + "\\right]",
+        precedence: Precedence.Atom,
+      }
+
+    case "square_root":
+      if (node.complex) {
+        return {
+          output: "c_{sqrt}\\left(" + printLaTeX(node.arg) + "\\right)",
+          precedence: Precedence.Atom,
+        }
+      }
+
+      return {
+        output: "\\sqrt{" + printLaTeX(node.arg) + "}",
+        precedence: Precedence.Atom,
+      }
+
+    case "nth_root":
+      if (node.complex) {
+        return {
+          output:
+            "c_{root}\\left(" +
+            printLaTeX(node.root) +
+            "," +
+            printLaTeX(node.arg) +
+            "\\right)",
+          precedence: Precedence.Atom,
+        }
+      }
+
+      return {
+        output:
+          "\\sqrt[" + printLaTeX(node.root) + "]{" + printLaTeX(node.arg) + "}",
+        precedence: Precedence.Atom,
+      }
+
+    case "arbitrary_log":
+      if (node.complex) {
+        return {
+          output:
+            "c_{arbitraryLog}\\left(" +
+            printLaTeX(node.base) +
+            "," +
+            printLaTeX(node.arg) +
+            "\\right)",
+          precedence: Precedence.Atom,
+        }
+      }
+
+      return {
+        output:
+          "\\log_{" +
+          printLaTeX(node.base) +
+          "}" +
+          (isAllowedInImplicitCall(node.arg)
+            ? printLaTeX(node.arg)
+            : parenthesize(node.arg, Precedence.Atom)),
         precedence: Precedence.Atom,
       }
   }

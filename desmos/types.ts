@@ -1,10 +1,5 @@
-export const RESERVED_NAMES =
-  "arccos arccosh arccot arccoth arccsc arccsch arcsec arcsech arcsin arcsinh arctan arctanh binomialdist boxplot cdf ceil corr cos cosh cot coth cov covp csc csch distance dotplot exp floor for gcd histogram hsv inversecdf ittest join lcm length ln log mad max mean median midpoint min mod normaldist pdf poissondist polygon quantile quartile random rgb round sec sech shuffle sign sin sinh sort spearman stats stdev stdevp tan tanh tdist total tscore ttest uniformdist unique var".split(
-    " ",
-  )
-
-export const RESERVED_NAMES_REGEX =
-  /^arccos|arccosh|arccot|arccoth|arccsc|arccsch|arcsec|arcsech|arcsin|arcsinh|arctan|arctanh|binomialdist|boxplot|cdf|ceil|corr|cos|cosh|cot|coth|cov|covp|csc|csch|distance|dotplot|exp|floor|for|gcd|histogram|hsv|inversecdf|ittest|join|lcm|length|ln|log|mad|max|mean|median|midpoint|min|mod|normaldist|pdf|poissondist|polygon|quantile|quartile|random|rgb|round|sec|sech|shuffle|sign|sin|sinh|sort|spearman|stats|stdev|stdevp|tan|tanh|tdist|total|tscore|ttest|uniformdist|unique|var/
+export const SINGLE_CHARACTER_VARIABLES =
+  /^Pi|Xi|mp|mu|nu|pi|pm|xi|Phi|Psi|chi|div|eta|mid|phi|psi|rho|tau|beta|iota|perp|zeta|Delta|Gamma|Omega|Sigma|Theta|alpha|delta|gamma|infty|kappa|omega|sigma|theta|times|varpi|Lambda|lambda|varphi|varrho|Upsilon|digamma|epsilon|upsilon|varkappa|varsigma|vartheta|nparallel|varepsilon/
 
 // Typings are in this format:
 //   fn_name arg1 arg2 -> return_type
@@ -196,6 +191,10 @@ spearman LR LR -> R
 
 stats LR -> X
 
+stddev LR -> R
+
+stddevp LR -> R
+
 stdev LR -> R
 
 stdevp LR -> R
@@ -227,8 +226,17 @@ unique LP -> LP
 var LR -> R
 `.trim()
 
+export const BUILT_INS_WITH_COMPLEX_ALTERNATIVES = TYPINGS_SOURCE.split("\n")
+  .filter((x): x is typeof x & `+${string}` => x.startsWith("+"))
+  .map((x) => x.split(" ", 1)[0].slice(1))
+
 export const BUILT_INS = TYPINGS_SOURCE.split("\n")
   .map((row) => row.split(" ")[0])
   .filter((x): x is Exclude<typeof x, ""> => x != "")
   .filter((x): x is Exclude<typeof x, `+${string}`> => !x.startsWith("+"))
   .filter((item, index, array) => array.indexOf(item) == index)
+
+export const IMPLICIT_FUNCTION_BUILT_INS =
+  "arccos arccosh arccot arccoth arccsc arccsch arcsec arcsech arcsin arcsinh arctan arctanh cos cosh cot coth csc csch distance dotplot ln log sec sech sin sinh tan tanh".split(
+    " ",
+  )

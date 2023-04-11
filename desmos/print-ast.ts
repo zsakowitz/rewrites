@@ -1,11 +1,9 @@
-import { expression } from "./expression-parser"
-
 function indent(text: string) {
   return text.replace(/\n/g, "\n  ")
 }
 
 function printArray(value: readonly unknown[]) {
-  return printAST(value)
+  return " " + indent(printAST(value))
 }
 
 function printASTKey([key, value]: [string, unknown]) {
@@ -21,13 +19,13 @@ function printASTKey([key, value]: [string, unknown]) {
       ? printArray(value)
       : typeof value == "object" && value
       ? "\n    " + indent(indent(printAST(value)))
-      : "\n    " + value)
+      : " " + JSON.stringify(value))
   )
 }
 
-export function printAST(node: {}): string {
-  if (typeof node != "object") {
-    return String(node)
+export function printAST(node: unknown): string {
+  if (typeof node != "object" || node == null) {
+    return JSON.stringify(node)
   }
 
   return `${

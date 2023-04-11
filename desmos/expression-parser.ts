@@ -12,6 +12,13 @@ export type Variable = {
   name: string
 }
 
+export type Range = {
+  type: "range"
+  complex: boolean
+  start: Expression
+  end: Expression
+}
+
 export type Prefix = {
   type: "prefix"
   complex: boolean
@@ -65,7 +72,7 @@ export type IndexedAccess = {
 }
 
 export type BinaryOp = {
-  type: "+" | "-" | "*" | "/" | "^"
+  type: "+" | "-" | "*" | "/" | "^" | "<" | ">" | "<=" | ">=" | "="
   complex: boolean
   left: Expression
   right: Expression
@@ -77,9 +84,30 @@ export type List = {
   elements: Expression[]
 }
 
+export type SquareRoot = {
+  type: "square_root"
+  complex: boolean
+  arg: Expression
+}
+
+export type NthRoot = {
+  type: "nth_root"
+  complex: boolean
+  root: Expression
+  arg: Expression
+}
+
+export type ArbitraryLog = {
+  type: "arbitrary_log"
+  complex: boolean
+  base: Expression
+  arg: Expression
+}
+
 export type Expression =
   | Number
   | Variable
+  | Range
   | Prefix
   | SumOrProduct
   | Point
@@ -89,6 +117,9 @@ export type Expression =
   | IndexedAccess
   | BinaryOp
   | List
+  | SquareRoot
+  | NthRoot
+  | ArbitraryLog
 
 function asComplex(expr: Expression): Expression {
   if (expr.complex) {
@@ -105,9 +136,11 @@ function asComplex(expr: Expression): Expression {
 
 const optionalWhitespace = Z.regex(/^\s*/).void()
 
-const expression: Z.Parser<Expression> = Z.lazy(
-  () => additionOrSubtractionChain,
-)
+const whitespace = Z.regex(/^\s+/).void()
+
+const expression: Z.Parser<Expression> = Z.lazy(() => maybeConditional)
+
+const comma = Z.regex(/^\s*,\s*/).void()
 
 // #region atoms
 
@@ -181,16 +214,21 @@ const parenthesized: Z.Parser<Expression> = Z.seq(
   Z.text(")"),
 ).map((match) => match[2])
 
-const number = Z.regex(/^\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?i?/).map<
-  Number | Point
->(([value]) => {
-  const number: Number = {
-    type: "number",
-    complex: false,
-    value: +(value.endsWith("i") ? value.slice(0, -1) : value),
-  }
+const plainNumber = Z.regex(/^\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?/).map<Number>(
+  ([value]) => {
+    return {
+      type: "number",
+      complex: false,
+      value: +value,
+    }
+  },
+)
 
-  if (value.endsWith("i")) {
+const number = Z.seq(
+  plainNumber,
+  Z.optional(Z.seq(optionalWhitespace, Z.text("i"))),
+).map<Number | Point>(([number, i]) => {
+  if (i) {
     return {
       type: "point",
       complex: true,
@@ -206,13 +244,13 @@ const number = Z.regex(/^\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?i?/).map<
   }
 })
 
-const variable = Z.regex(/^(?!sum|prod)[A-Za-z][A-Za-z0-9]*/).map<Variable>(
-  ([value]) => ({
-    type: "variable",
-    complex: value.startsWith("z"),
-    name: value,
-  }),
-)
+const variable = Z.regex(
+  /^(?!sum|prod|root|of)[A-Za-z][A-Za-z0-9]*/,
+).map<Variable>(([value]) => ({
+  type: "variable",
+  complex: value.startsWith("z") || value == "i",
+  name: value,
+}))
 
 const prefix = Z.seq(
   Z.any(Z.text("+"), Z.text("-")),
@@ -234,11 +272,11 @@ const sumOrProduct = Z.seq(
   optionalWhitespace,
   Z.text("="),
   optionalWhitespace,
-  expression,
+  Z.lazy(() => additionOrSubtractionChain),
   optionalWhitespace,
   Z.text("..."),
   optionalWhitespace,
-  expression,
+  Z.lazy(() => additionOrSubtractionChain),
   optionalWhitespace,
   Z.text(")"),
   optionalWhitespace,
@@ -275,40 +313,77 @@ const point = Z.seq(
 
 const args = Z.seq(
   Z.text("("),
-  Z.many(Z.seq(optionalWhitespace, expression).map((value) => value[1])),
   optionalWhitespace,
+  Z.sepBy(expression, comma),
+  optionalWhitespace,
+  Z.optional(comma),
   Z.text(")"),
-).map((value) => value[1])
+).map((value) => value[2])
 
-const functionCall = Z.seq(
-  variable,
-  optionalWhitespace,
-  args,
-).map<FunctionCall>(([name, , args]) => ({
-  type: "function_call",
-  complex: false, // Function calls are technically unknown.
-  name,
-  args,
-}))
+const functionCall = Z.seq(variable, optionalWhitespace, args).map<Expression>(
+  ([name, , args]) => {
+    if (name.name == "sqrt" && args.length == 1) {
+      return {
+        type: "square_root",
+        complex: args[0]!.complex,
+        arg: args[0]!,
+      }
+    }
+
+    if (name.name == "log" && args.length == 2) {
+      const base = args[0]!
+      const arg = args[1]!
+      const isComplex = base.complex || arg.complex
+
+      return {
+        type: "arbitrary_log",
+        complex: isComplex,
+        base: isComplex ? asComplex(base) : base,
+        arg: isComplex ? asComplex(arg) : arg,
+      }
+    }
+
+    const isComplex = args.some((arg) => arg.complex)
+
+    return {
+      type: "function_call",
+      complex: isComplex, // Function calls are technically unknown.
+      name,
+      args: isComplex ? args.map(asComplex) : args,
+    }
+  },
+)
 
 const implicitFunctionCall = Z.seq(
   variable,
-  optionalWhitespace,
+  whitespace,
   Z.not(Z.lookahead(Z.regex(/^\s*[+\-*/^]/))),
   Z.lazy(() => multiplicationOrDivisionChain),
-).map<FunctionCall>(([name, , , arg]) => ({
-  type: "function_call",
-  complex: false, // Function calls are technically unknown.
-  name,
-  args: [arg],
-}))
+).map<Expression>(([name, , , arg]) => {
+  if (name.name == "sqrt") {
+    return {
+      type: "square_root",
+      complex: arg.complex,
+      arg,
+    }
+  }
+
+  return {
+    type: "function_call",
+    complex: arg.complex, // Function calls are technically unknown.
+    name,
+    args: [arg],
+  }
+})
 
 const list = Z.seq(
   Z.text("["),
-  Z.many(Z.seq(optionalWhitespace, expression).map((value) => value[1])),
   optionalWhitespace,
+  Z.sepBy(expression, comma),
+  optionalWhitespace,
+  Z.optional(comma),
   Z.text("]"),
-).map<List>(([, elements]) => ({
+).map<List>(([, , elements]) => ({
   type: "list",
   complex:
     // Lists are marked complex if any of their elements are complex.
@@ -393,14 +468,41 @@ const multiplicationOrDivisionChain = Z.seq(
   return head
 })
 
-const additionOrSubtractionChain = Z.seq(
+const nthRootChain = Z.seq(
   multiplicationOrDivisionChain,
+  Z.many(
+    Z.seq(
+      optionalWhitespace,
+      Z.text("root"),
+      optionalWhitespace,
+      Z.text("of"),
+      optionalWhitespace,
+      multiplicationOrDivisionChain,
+    ).map((value) => value[5]),
+  ),
+).map<Expression>(([head, tail]) => {
+  for (const item of tail) {
+    const isComplex = head.complex || item.complex
+
+    head = {
+      type: "nth_root",
+      complex: isComplex,
+      root: isComplex ? asComplex(head) : head,
+      arg: isComplex ? asComplex(item) : item,
+    }
+  }
+
+  return head
+})
+
+const additionOrSubtractionChain = Z.seq(
+  nthRootChain,
   Z.many(
     Z.seq(
       optionalWhitespace,
       Z.any(Z.text("+"), Z.text("-")),
       optionalWhitespace,
-      multiplicationOrDivisionChain,
+      nthRootChain,
     ),
   ),
 ).map<Expression>(([head, tail]) => {
@@ -418,4 +520,71 @@ const additionOrSubtractionChain = Z.seq(
   return head
 })
 
-export { additionOrSubtractionChain as expression }
+const maybeRange = Z.seq(
+  additionOrSubtractionChain,
+  Z.optional(
+    Z.seq(
+      optionalWhitespace,
+      Z.text("..."),
+      optionalWhitespace,
+      additionOrSubtractionChain,
+    ).map((value) => value[3]),
+  ),
+).map<Expression>(([start, end]) => {
+  if (end) {
+    if (start.complex || end.complex) {
+      throw new Error("Complex ranges are not supported yet.")
+    }
+
+    return {
+      type: "range",
+      complex: false,
+      start,
+      end,
+    }
+  }
+
+  return start
+})
+
+const maybeConditional = Z.seq(
+  maybeRange,
+  Z.many(
+    Z.seq(
+      optionalWhitespace,
+      Z.any(Z.text("<="), Z.text(">="), Z.text("<"), Z.text(">"), Z.text("=")),
+      optionalWhitespace,
+      maybeRange,
+    ),
+  ),
+).map(([head, tail]) => {
+  for (const item of tail) {
+    if (item[1] == "=") {
+      const isComplex = head.complex || item[3].complex
+
+      head = {
+        type: item[1],
+        complex: isComplex,
+        left: isComplex ? asComplex(head) : head,
+        right: isComplex ? asComplex(item[3]) : item[3],
+      }
+    } else {
+      if (head.complex || item[3].complex) {
+        throw new Error("Complex comparisons are not supported yet.")
+      }
+
+      head = {
+        type: item[1],
+        complex: false,
+        left: head,
+        right: item[3],
+      }
+    }
+  }
+
+  return head
+})
+
+const complete = Z.seq(maybeConditional, Z.not(Z.char)).map((value) => value[0])
+
+export { complete as expression }

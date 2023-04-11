@@ -70,13 +70,17 @@ export class Parser<T> {
         return state
       }
 
-      const next = this.p(state)
+      try {
+        const next = this.p(state)
 
-      if (!next.ok) {
-        return next
+        if (!next.ok) {
+          return next
+        }
+
+        return ok(next, next.index, fn(next.value))
+      } catch (err) {
+        return error(state, err instanceof Error ? err.message : String(err))
       }
-
-      return ok(next, next.index, fn(next.value))
     })
   }
 
@@ -135,7 +139,7 @@ export function text<T extends string>(text: T): Parser<T> {
 }
 
 /** Matches a regular expression. */
-export function regex(regex: RegExp): Parser<RegExpMatchArray> {
+export function regex(regex: RegExp): Parser<RegExpExecArray> {
   if (regex.global) {
     throw new Error(
       "The regular expression passed to 'regex' should not be global.",
@@ -165,7 +169,7 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
       return state
     }
 
-    const match = state.source.slice(state.index).match(regex)
+    const match = regex.exec(state.source.slice(state.index))
 
     if (match) {
       return ok(state, state.index + match[0]!.length, match)
