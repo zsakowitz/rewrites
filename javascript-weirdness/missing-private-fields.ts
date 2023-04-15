@@ -1,4 +1,5 @@
-// Creates a class object with only one of the private fields it's supposed to have.
+// Creates a class object which is missing one of its private fields it's
+// supposed to have, leading to issues with `#x in instance`.
 
 class Abc {
   static #createWithAge = false
