@@ -1,9 +1,10 @@
 // A class-based TicTacToe implementation.
 
-type Player = 1 | 2
-type Square = 0 | Player
+export type Player = 1 | 2
 
-class TicTacToe {
+export type Square = 0 | Player
+
+export class TicTacToe {
   static randomPosition(): 0 | 1 | 2 {
     return Math.floor(3 * Math.random()) as 0 | 1 | 2
   }
@@ -11,7 +12,7 @@ class TicTacToe {
   readonly board: [
     [Square, Square, Square],
     [Square, Square, Square],
-    [Square, Square, Square]
+    [Square, Square, Square],
   ] = [
     [0, 0, 0],
     [0, 0, 0],

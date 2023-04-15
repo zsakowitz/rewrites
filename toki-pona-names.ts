@@ -9,16 +9,16 @@ const MAYBE_N = ["", "", "", "n"] as const
 
 export function createRandomTokiPonaName(
   minSyllables: number,
-  maxSyllables: number
+  maxSyllables: number,
 ) {
   const syllableCount = Math.floor(
-    Math.random() * (maxSyllables - minSyllables) + minSyllables
+    Math.random() * (maxSyllables - minSyllables) + minSyllables,
   )
 
   let name = ""
 
   if (Math.random() < 0.5) {
-    name += randomItem(VOWELS)!
+    name += randomItem(VOWELS)
   }
 
   for (let i = 0; i < syllableCount; i++) {
@@ -26,12 +26,11 @@ export function createRandomTokiPonaName(
 
     if (name.endsWith("n")) {
       output =
-        randomItem(CONSONANTS_WITHOUT_MN)! +
-        randomItem(VOWELS)! +
-        randomItem(MAYBE_N)!
+        randomItem(CONSONANTS_WITHOUT_MN) +
+        randomItem(VOWELS) +
+        randomItem(MAYBE_N)
     } else {
-      output =
-        randomItem(CONSONANTS)! + randomItem(VOWELS)! + randomItem(MAYBE_N)!
+      output = randomItem(CONSONANTS) + randomItem(VOWELS) + randomItem(MAYBE_N)
     }
 
     if (
@@ -53,9 +52,9 @@ export function createRandomTokiPonaName(
 export function generateMany(
   count: number,
   minSyllables: number,
-  maxSyllables: number
+  maxSyllables: number,
 ) {
   return Array.from({ length: count }, () =>
-    createRandomTokiPonaName(minSyllables, maxSyllables)
+    createRandomTokiPonaName(minSyllables, maxSyllables),
   )
 }
