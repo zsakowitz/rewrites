@@ -1,4 +1,32 @@
-# A .zshrc that includes useful functions for working with this repository.
+# A .zshrc that includes useful functions for working with this repository. For
+# example, you can copy the bundled contents of a TypeScript file using:
+#
+#     copy my-file.ts
+
+
+# Alternatively, you can create a TSX file which puts DOM nodes into
+# document.body, and quickly load it into a new browser window with:
+#
+#     serve my-file.ts
+
+
+# Normally, we compile code with esbuild, which has the added benefit of
+# bundling all of the packages a given file imports into a single file, which
+# can then easily be copied into a browser window. However, esbuild sometimes
+# doesn't support the latest TypeScript code. For example, `infer X extends Y`
+# was broken during the TypeScript beta releases, when TSC supported the syntax
+# but esbuild didn't.
+#
+# When esbuild doesn't support a given syntax, you can choose to precompile with
+# TSC (before bundling, minifying, or serving through esbuild) by prepending
+# `tsc` to any multi-letter command here.
+#
+#     tsc copy my-file.ts
+#     tsc serve my-file.ts
+#
+# Note that this isn't the default because it may be significantly buggier and
+# slower than using esbuild directly.
+
 
 ## Single character aliases for common operations
 
@@ -12,8 +40,17 @@ alias u="git reset --soft HEAD~1"                       # Undo last commit
 alias w="npm run watch"                                 # Watch
 alias pub="npm publish --access=public"                 # Publish
 
-alias o="ZSNOUT_DATABASE='' ZSNOUT_MAIL_HOST='' d"      # Run offline
-alias cli="npm run cli"                                 # zSnout CLI
+## Creates the `~/tmp` folder if it doesn't exist and symlinks the current
+## `node_modules` directory into it.
+##
+##     ensure_tmp_exists
+
+ensure_tmp_exists() {
+  mkdir -p "$HOME/tmp"
+  rm "$HOME/tmp/node_modules" 2> "/dev/null"
+  mkdir -p "$HOME/tmp"
+  ln -s "$PWD/node_modules" "$HOME/tmp/node_modules"
+}
 
 ## Builds a file into ~/tmp using esbuild, then echoes the name of the output file.
 ##
@@ -28,10 +65,8 @@ esbuild() {
     return
   fi
 
-  mkdir -p "$HOME/tmp"
-  rm "$HOME/tmp/node_modules" 2> "/dev/null"
-  ln -s "$PWD/node_modules" "$HOME/tmp/node_modules"
-  npx esbuild $@ > "$HOME/tmp/${@[-1]:t:r}.mjs"
+  ensure_tmp_exists
+  npx esbuild $@ --outfile="$HOME/tmp/${@[-1]:t:r}.mjs" 2> "/dev/null"
   echo "$HOME/tmp/${@[-1]:t:r}.mjs"
 }
 
@@ -81,9 +116,13 @@ bundle() {
         echo "--alias:\$env/static/private=$HOME/env.js" "--alias:\$env/static/public=$HOME/env.js"
       fi
     ) \
-    $(maybe $args --format       esm  ) \
-    $(maybe $args --tree-shaking false) \
-    $(maybe $args --platform     node ) \
+    $(maybe $args --format       esm      ) \
+    $(maybe $args --tree-shaking false    ) \
+    $(maybe $args --platform     node     ) \
+    $(maybe $args --metafile     "$HOME/tmp/meta.json") \
+    --loader:.woff2=file \
+    --loader:.woff=file \
+    --loader:.ttf=file \
     $@
 }
 
@@ -131,7 +170,26 @@ serve() {
     return
   fi
 
-  echo "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>${@[-1]:t}</title></head><body><script type='module' src='/${@[-1]:t:r}.js'></script></body></html>" > "$HOME/tmp/index.html"
+  ensure_tmp_exists
+
+  echo "<!DOCTYPE html>
+<html lang=\"en\">
+  <head>
+    <meta charset=\"utf-8\" />
+    <title>${@[-1]:t}</title>
+    <style>
+      *,
+      ::before,
+      ::after {
+        box-sizing: border-box;
+      }
+    </style>
+    <link rel=\"stylesheet\" href=\"/${@[-1]:t:r}.css\" />
+  </head>
+  <body>
+    <script type=\"module\" src=\"/${@[-1]:t:r}.mjs\"></script>
+  </body>
+</html>" > "$HOME/tmp/index.html"
 
   bundle "--servedir=$HOME/tmp" $@
 }
@@ -221,5 +279,3 @@ tsc() {
 prisma() {
   node -i -e "import('@prisma/client').then(module => (global.M = new module.PrismaClient, M.\$connect()))"
 }
-
-node -e "import('$(bundle deferred.ts)').then(p => p.test())"
