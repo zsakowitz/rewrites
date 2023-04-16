@@ -1,3 +1,5 @@
+// Prints an expression as LaTeX.
+
 import { Expression } from "./expression-parser"
 import {
   BUILT_INS,

@@ -1,3 +1,5 @@
+// #::exclude
+
 import { Sandpile } from "./sandpiles"
 
 const pile = new Sandpile(40, 40)

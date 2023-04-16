@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 188 files
+standard library implemented solely in the TS type system. Enjoy the 204 files
 this repository has to offer.
 
 # File listing
@@ -88,6 +88,9 @@ async generators.
 **[encode-uri.js](./encode-uri.js)**: Encodes standard input into a javascript:
 bookmark.
 
+**[enumerable-weak-set.ts](./enumerable-weak-set.ts)**: An enumerable WeakSet
+created using WeakRefs.
+
 **[env.d.ts](./env.d.ts)**: Declares modules without @types/... declarations.
 
 **[exittable.ts](./exittable.ts)**: Runs function that can be exited from using
@@ -169,6 +172,11 @@ time.
 **[log-and-bound.ts](./log-and-bound.ts)**: Experiments with ECMAScript
 decorators, as they're finally at stage 3!
 
+**[log-everything.ts](./log-everything.ts)**: Creates a Proxy around an object
+that logs any time an action involving it happens. This can be useful for
+testing ECMAScript internal methods and other making sure polyfills emulate the
+exact behavior of their standardized counterparts.
+
 **[logged.test.ts](./logged.test.ts)**: A test file for the @logged decorator.
 
 **[logged.ts](./logged.ts)**: A decorator that logs all kinds of events.
@@ -190,6 +198,9 @@ video and the mediaSession API.
 
 **[memo.ts](./memo.ts)**: A decorator that memoizes a function's arguments and
 return value.
+
+**[minesweeper.ts](./minesweeper.ts)**: A clone of Google's Minesweeper, with an
+AI built in.
 
 **[monad.ts](./monad.ts)**: An exploration into various monads. Unfinished.
 
@@ -276,11 +287,19 @@ until the proposal is implemented.
 **[string.ts](./string.ts)** (typesystem): String.split and Array.join, but in
 the TS typesystem.
 
+**[sudoku.ts](./sudoku.ts)**: An interactive Sudoku game.
+
 **[tee-2.ts](./tee-2.ts)**: Tees an iterable into two iterables while keeping
 memory costs low. OOP style.
 
 **[tee.ts](./tee.ts)**: Tees an iterable into two iterables while keeping memory
 costs low. Functional style.
+
+**[tetration.ts](./tetration.ts)**: Tetration is repeated exponentiation. It is
+defined for any base `a` and any natural "exponent" `n` as the following: a^^0 =
+1, a^^n = a^(a^^(n-1)).
+
+**[the-bulba-game.ts](./the-bulba-game.ts)**: A board generator for a fun game.
 
 **[tick-oat-two.ts](./tick-oat-two.ts)**: An AI for the TickoaTTwo game created
 by Oats Jenkins: https://www.youtube.com/watch?v=ePxrVU4M9uA
@@ -290,6 +309,8 @@ names.
 
 **[ts-function.ts](./ts-function.ts)**: Creates functions that can be run either
 at compile time or run time.
+
+**[ttt-ai.ts](./ttt-ai.ts)**: A class-based TicTacToe implementation.
 
 **[type-safe.ts](./type-safe.ts)**: A library of functions that run at compile
 time and runtime.
@@ -363,6 +384,24 @@ for Animator.
 **[animator/scenes/colors.ts](./animator/scenes/colors.ts)**: An Animator scene
 with colored rectangles.
 
+**[desmos/expression-parser.ts](./desmos/expression-parser.ts)**: Parses simple
+math expressions.
+
+**[desmos/playground.tsx](./desmos/playground.tsx)**: A playground which allows
+expressions to be typed and converted into Desmos-compatible LaTeX. It
+automatically detects complex numbers and replaces their operations (\*, ^, exp,
+ln) with c_mult, c_pow, c_exp, and other functions to easily allow the typing of
+complex expressions in Desmos.
+
+**[desmos/print-ast.ts](./desmos/print-ast.ts)**: Prints the AST of an
+expression.
+
+**[desmos/print-latex.ts](./desmos/print-latex.ts)**: Prints an expression as
+LaTeX.
+
+**[desmos/types.ts](./desmos/types.ts)**: Constants defining the reserved names
+and functions of Desmos.
+
 **[genesis/core.ts](./genesis/core.ts)**: The core of a fine-grained reactivity
 library.
 
@@ -382,9 +421,14 @@ render an object.
 **[genesis/stores.ts](./genesis/stores.ts)**: Genesis stores to track values,
 objects, and computed properties.
 
-**[javascript-weirdness/missing-private-fields.ts](./javascript-weirdness/missing-private-fields.ts)**:
-Creates a class object with only one of the private fields it's supposed to
-have.
+**[javascript-weirdness/missing-private-fields.ts](./javascript-weirdness/missing-private-fields.ts)**
+(x): Creates a class object which is missing one of its private fields it's
+supposed to have, leading to issues with ` in instance`.
+
+**[javascript-weirdness/private-fields-on-plain-objects.ts](./javascript-weirdness/private-fields-on-plain-objects.ts)**:
+Utilities for creating private fields on plain objects. As is noted in the
+proposal (tc39/proposal-class-fields), private fields are really syntax sugar
+for WeakMaps, so this is allowed.
 
 **[motion/action.ts](./motion/action.ts)**: An action type and helpers for
 Motion.
@@ -511,3 +555,6 @@ An implementation of Svelte stores.
 
 **[signal/impls/tiny-store.ts](./signal/impls/tiny-store.ts)**: A simple signal,
 effect, memo, and computed library based on SolidJS.
+
+**[signal/impls/with-roots.ts](./signal/impls/with-roots.ts)**: A signal
+implementation that allows for cleanup functions.

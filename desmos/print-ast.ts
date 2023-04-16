@@ -1,3 +1,5 @@
+// Prints the AST of an expression.
+
 function indent(text: string) {
   return text.replace(/\n/g, "\n  ")
 }

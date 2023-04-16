@@ -1,3 +1,5 @@
+// Parses simple math expressions.
+
 import * as Z from "../parsers/parser-5"
 
 export type Number = {

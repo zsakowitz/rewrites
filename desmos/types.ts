@@ -1,3 +1,5 @@
+// Constants defining the reserved names and functions of Desmos.
+
 export const SINGLE_CHARACTER_VARIABLES =
   /^Pi|Xi|mp|mu|nu|pi|pm|xi|Phi|Psi|chi|div|eta|mid|phi|psi|rho|tau|beta|iota|perp|zeta|Delta|Gamma|Omega|Sigma|Theta|alpha|delta|gamma|infty|kappa|omega|sigma|theta|times|varpi|Lambda|lambda|varphi|varrho|Upsilon|digamma|epsilon|upsilon|varkappa|varsigma|vartheta|nparallel|varepsilon/
 

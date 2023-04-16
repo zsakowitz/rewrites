@@ -1,3 +1,5 @@
+// An enumerable WeakSet created using WeakRefs.
+
 export class WeakSet<T extends object> implements Set<T> {
   #set = new Set<WeakRef<T>>()
 
@@ -51,7 +53,7 @@ export class WeakSet<T extends object> implements Set<T> {
 
   forEach(
     callbackfn: (value: T, value2: T, set: WeakSet<T>) => void,
-    thisArg?: any
+    thisArg?: any,
   ): void {
     for (const ref of this.#set) {
       const value = ref.deref()
