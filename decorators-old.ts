@@ -4,7 +4,7 @@ import { createEffect, createMemo, createSignal } from "./solid"
 
 export function signal<This, Value>(
   value: ClassAccessorDecoratorTarget<This, Value>,
-  _context: ClassAccessorDecoratorContext<This, Value>
+  _context: ClassAccessorDecoratorContext<This, Value>,
 ): ClassAccessorDecoratorResult<This, Value> {
   type Signal = [() => Value, (value: Value) => void]
 
@@ -34,7 +34,7 @@ const UNSET = Symbol("unset")
 
 export function cached<This, Value>(
   value: (this: This) => Value,
-  _context: ClassGetterDecoratorContext<This, () => Value>
+  _context: ClassGetterDecoratorContext<This, () => Value>,
 ) {
   type Cache = [isOutdated: boolean, value: typeof UNSET | Value]
 
@@ -77,7 +77,7 @@ export function cached<This, Value>(
 
 export function computed<This, Value>(
   value: (this: This) => Value,
-  _context: ClassGetterDecoratorContext<This, () => Value>
+  _context: ClassGetterDecoratorContext<This, Value>,
 ) {
   const memos = new WeakMap<any, () => Value>()
 
@@ -101,7 +101,7 @@ export function computed<This, Value>(
 }
 
 export function effect<Class extends abstract new (...args: any) => any>(
-  fn: (this: InstanceType<Class>) => void
+  fn: (this: InstanceType<Class>) => void,
 ) {
   return (value: Class, _context: ClassDecoratorContext<Class>) => {
     abstract class InnerClass extends value {
@@ -117,13 +117,13 @@ export function effect<Class extends abstract new (...args: any) => any>(
 
 export function untrack<
   This,
-  Value extends (this: This, ...args: unknown[]) => unknown
+  Value extends (this: This, ...args: unknown[]) => unknown,
 >(
   value: Value,
   context:
     | ClassGetterDecoratorContext<This, Value>
     | ClassSetterDecoratorContext<This, Value>
-    | ClassMethodDecoratorContext<This, Value>
+    | ClassMethodDecoratorContext<This, Value>,
 ) {
   return function (this: This) {
     return untrack(() => value.apply(this, arguments as any), context)

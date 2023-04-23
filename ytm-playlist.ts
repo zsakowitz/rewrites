@@ -53,7 +53,7 @@ async function getVideoInfo(id: string): Promise<VideoInfo> {
         hasVideo,
         quality: qualityLabel,
         audio: audioQuality,
-      })
+      }),
     ),
   }
 }
@@ -63,22 +63,22 @@ function getAudioURL(info: VideoInfo): string | undefined {
   const audios = info.formats
     .filter(
       (
-        format
+        format,
       ): format is VideoFormat & {
         audio: NonNullable<VideoFormat["audio"]>
-      } => format.hasAudio && !format.hasVideo && format.audio != null
+      } => format.hasAudio && !format.hasVideo && format.audio != null,
     )
     .sort(
       (a, b) =>
         +(a.audio == "AUDIO_QUALITY_MEDIUM") -
-        +(b.audio == "AUDIO_QUALITY_MEDIUM")
+        +(b.audio == "AUDIO_QUALITY_MEDIUM"),
     )
 
   return audios[0]?.url
 }
 
 async function getVideoIDsFromPlaylist(
-  playlistId: string
+  playlistId: string,
 ): Promise<readonly string[]> {
   const videos = await ytpl(playlistId)
   return videos.items.map((item) => item.id)
@@ -171,11 +171,11 @@ async function cli() {
   log(colors.blue, "// Welcome to the YouTube Music playlist downloader!")
   log(
     colors.blue,
-    "// Make sure you're using a public playlist, not a private one."
+    "// Make sure you're using a public playlist, not a private one.",
   )
   log(
     colors.blue,
-    "// If a bug occurs, open an issue in https://github.com/zsakowitz/rewrites."
+    "// If a bug occurs, open an issue in https://github.com/zsakowitz/rewrites.",
   )
 
   // #region Get CLI configuration
@@ -186,7 +186,7 @@ async function cli() {
   } catch {
     log(colors.magenta, "Playlist URL:   ", colors.red, process.argv[2])
     throw new Error(
-      "The playlist URL was invalid. Please pass a valid URL next time."
+      "The playlist URL was invalid. Please pass a valid URL next time.",
     )
   }
   log(colors.magenta, "Media type:     ", colors.reset, "MP3")
@@ -207,7 +207,7 @@ async function cli() {
     colors.cyan,
     "Creating output directory...            ",
     colors.green,
-    "Done."
+    "Done.",
   )
   // #endregion
 
@@ -224,7 +224,7 @@ async function cli() {
     "Gathering information about songs...    ",
     colors.reset,
     "0 of ",
-    videoIds.length
+    videoIds.length,
   )
 
   const audioUrls = await new Promise<readonly [title: string, url: string][]>(
@@ -238,7 +238,7 @@ async function cli() {
           colors.reset,
           data.resolved,
           " of ",
-          videoIds.length
+          videoIds.length,
         )
 
         if (data.resolved == data.total) {
@@ -246,14 +246,14 @@ async function cli() {
           resolve(data.audios)
         }
       })
-    }
+    },
   )
 
   rewrite(
     colors.cyan,
     "Gathering information about songs...    ",
     colors.green,
-    "Done."
+    "Done.",
   )
   log()
   // #endregion
@@ -264,7 +264,7 @@ async function cli() {
     "Downloading songs...                    ",
     colors.reset,
     "0 of ",
-    audioUrls.length
+    audioUrls.length,
   )
 
   let resolved = 0
@@ -284,7 +284,27 @@ async function cli() {
 
         await writeFile(path, buffer)
 
-        return path
+        const SHOULD_DOWNLOAD_IMMEDIATELY = true
+
+        if (SHOULD_DOWNLOAD_IMMEDIATELY) {
+          try {
+            const video = await new ffmpeg(path)
+
+            const mp3Path = path
+              .replace("ytm/webm/audio", "ytm/mp3")
+              .replace(/\.webm$/, ".mp3")
+
+            await video.fnExtractSoundToMP3(mp3Path)
+            return mp3Path
+          } catch (e) {
+            error(e)
+            log()
+          }
+
+          return path
+        } else {
+          return path
+        }
       } finally {
         rewrite(
           colors.cyan,
@@ -292,20 +312,20 @@ async function cli() {
           colors.reset,
           ++resolved,
           " of ",
-          audioUrls.length
+          audioUrls.length,
         )
       }
-    })
+    }),
   )
 
   const webmPaths = audioResults
     .filter(
       (
-        result
+        result,
       ): result is typeof result & {
         status: "fulfilled"
         value: string
-      } => result.status == "fulfilled" && result.value != null
+      } => result.status == "fulfilled" && result.value != null,
     )
     .map((result) => result.value)
 
@@ -313,7 +333,7 @@ async function cli() {
     colors.cyan,
     "Downloading songs...                    ",
     colors.green,
-    "Done."
+    "Done.",
   )
   log()
   log(
@@ -322,7 +342,7 @@ async function cli() {
     webmPaths.length < audioUrls.length ? colors.yellow : colors.green,
     webmPaths.length,
     " of ",
-    audioUrls.length
+    audioUrls.length,
   )
   // #endregion
 
@@ -332,7 +352,7 @@ async function cli() {
     "Converting songs to MP3s...             ",
     colors.reset,
     "0 of ",
-    webmPaths.length
+    webmPaths.length,
   )
 
   resolved = 0
@@ -358,16 +378,16 @@ async function cli() {
           colors.reset,
           ++resolved,
           " of ",
-          webmPaths.length
+          webmPaths.length,
         )
       }
-    })
+    }),
   )
 
   const mp3paths = mp3pathResults
     .filter(
       (result): result is typeof result & { status: "fulfilled" } =>
-        result.status == "fulfilled"
+        result.status == "fulfilled",
     )
     .map((result) => result.value)
 
@@ -375,7 +395,7 @@ async function cli() {
     colors.cyan,
     "Converting songs to MP3s...             ",
     colors.green,
-    "Done."
+    "Done.",
   )
   log()
   log(
@@ -384,7 +404,7 @@ async function cli() {
     mp3paths.length < webmPaths.length ? colors.yellow : colors.green,
     mp3paths.length,
     " of ",
-    webmPaths.length
+    webmPaths.length,
   )
 }
 
@@ -397,7 +417,7 @@ if (RUN_CLI) {
     .then(() => log(colors.blue, "// Process completed successfully."))
     .catch((err) => {
       if (err instanceof Error) {
-        error(colors.red, "Error: ", colors.reset, err.message)
+        error(colors.red, "Error: ", colors.reset, err.message + err.stack)
       } else {
         error(colors.red, "Error: ", String(err))
       }

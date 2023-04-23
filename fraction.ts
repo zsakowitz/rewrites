@@ -8,16 +8,16 @@ export function gcd(a: bigint, b: bigint): bigint {
   return a
 }
 
-// export function gcd(a: bigint, b: bigint): bigint {
-//   if (b) {
-//     return gcd(b, a % b)
-//   } else {
-//     return a
-//   }
-// }
-
 export function lcm(a: bigint, b: bigint): bigint {
   return (a * b) / gcd(a, b)
+}
+
+export function abs(a: bigint) {
+  if (a < 0n) {
+    return -a
+  }
+
+  return a
 }
 
 export type FractionLike = {
@@ -49,15 +49,27 @@ export class Fraction implements FractionLike {
     return new Fraction(BigInt(value), bottom)
   }
 
-  constructor(readonly top: bigint, readonly bottom: bigint) {
+  readonly top: bigint
+  readonly bottom: bigint
+
+  constructor(top: bigint, bottom: bigint) {
     if (bottom === 0n) {
       throw new Error("The denominator of a fraction cannot be 0.")
     }
-  }
 
-  simplify(this: FractionLike) {
-    const GCD = gcd(this.top, this.bottom)
-    return new Fraction(this.top / GCD, this.bottom / GCD)
+    if (bottom < 0n) {
+      top = -top
+      bottom = -bottom
+    }
+
+    if (top == 0n) {
+      bottom = 1n
+    }
+
+    const GCD = gcd(abs(top), abs(bottom))
+
+    this.top = top / GCD
+    this.bottom = bottom / GCD
   }
 
   flip(this: FractionLike) {
@@ -65,31 +77,43 @@ export class Fraction implements FractionLike {
   }
 
   times(this: FractionLike, other: FractionLike) {
-    return new Fraction(
-      this.top * other.top,
-      this.bottom * other.bottom
-    ).simplify()
+    return new Fraction(this.top * other.top, this.bottom * other.bottom)
+  }
+
+  square(this: FractionLike) {
+    return new Fraction(this.top * this.top, this.bottom * this.bottom)
   }
 
   dividedBy(this: FractionLike, other: FractionLike) {
-    return new Fraction(
-      this.top * other.bottom,
-      this.bottom * other.top
-    ).simplify()
+    return new Fraction(this.top * other.bottom, this.bottom * other.top)
   }
 
   plus(this: FractionLike, other: FractionLike) {
     return new Fraction(
       this.top * other.bottom + this.bottom * other.top,
-      this.bottom * other.bottom
-    ).simplify()
+      this.bottom * other.bottom,
+    )
   }
 
   minus(this: FractionLike, other: FractionLike) {
     return new Fraction(
       this.top * other.bottom - this.bottom * other.top,
-      this.bottom * other.bottom
-    ).simplify()
+      this.bottom * other.bottom,
+    )
+  }
+
+  negate(this: FractionLike) {
+    return new Fraction(-this.top, this.bottom)
+  }
+
+  power(this: FractionLike, exponent: bigint) {
+    let base = new Fraction(1n, 1n)
+
+    for (let i = 0n; i < exponent; i++) {
+      base = base.times(this)
+    }
+
+    return base
   }
 
   toString(this: FractionLike) {

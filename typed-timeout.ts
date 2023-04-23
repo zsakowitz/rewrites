@@ -5,10 +5,7 @@ export function setTimeout<T extends (...args: any) => any>(
   timeout?: number,
   ...args: Parameters<T>
 ): number {
-  let timer = globalThis.setTimeout(handler, timeout, ...(args as any))
-
-  if (typeof timer == "number") return timer
-  return timer[Symbol.toPrimitive]()
+  return globalThis.setTimeout(handler, timeout, ...(args as any))
 }
 
 export class Timeout<T extends (...args: any) => any> {

@@ -4,6 +4,12 @@ declare module "es-observable-tests" {
   export const runTests: any
 }
 
+declare module "gamma" {
+  const gamma: (value: number) => number
+
+  export = gamma
+}
+
 declare module "promises-aplus-tests" {
   export type PromisesAPlusTestable = {
     pending(): PromiseLike<any>

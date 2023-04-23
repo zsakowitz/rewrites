@@ -32,7 +32,7 @@ function createRandomItem(): ScheduleItem {
     Math.random() < 0.5 ? undefined : Math.random() < 0.5 ? "soft" : "hard"
 
   const deadline = new Date(
-    Date.now() + 2 * dayLength + dayLength * Math.random() * 7
+    Date.now() + 2 * dayLength + dayLength * Math.random() * 7,
   )
 }
 
