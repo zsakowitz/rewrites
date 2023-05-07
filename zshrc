@@ -113,13 +113,13 @@ bundle() {
   esbuild --bundle \
     $(
       if [[ $PWD == *kama-sona* ]]; then
-        echo "--alias:\$env/static/private=$HOME/env.js" "--alias:\$env/static/public=$HOME/env.js"
+        echo "--alias:\$env/static/private=$HOME/env.mjs" "--alias:\$env/static/public=$HOME/env.mjs"
       fi
     ) \
     $(maybe $args --format       esm      ) \
     $(maybe $args --tree-shaking false    ) \
     $(maybe $args --platform     node     ) \
-    $(maybe $args --metafile     "$HOME/tmp/meta.json") \
+    $(maybe $args --metafile     "$HOME/tmp/meta.mjson") \
     --loader:.woff2=file \
     --loader:.woff=file \
     --loader:.ttf=file \
@@ -270,7 +270,7 @@ tsc() {
   if [[ $1 == "pure" ]]; then
     echo $HOME/tmp/**/*
   else
-    $1 "$HOME/tmp/${@[-1]:t:r}.js"
+    $1 "$HOME/tmp/${@[-1]:t:r}.mjs"
   fi
 }
 
