@@ -203,3 +203,24 @@ export type Formative = {
 
   ca: CA
 }
+
+export type ReferrentType =
+  | "1m"
+  | "2m"
+  | "2p"
+  | "ma"
+  | "pa"
+  | "mi"
+  | "pi"
+  | "Mx"
+  | "Rdp"
+  | "Obv"
+  | "PVS"
+
+export type Effect = "neutral" | "beneficial" | "detrimental"
+
+export type Referrent = {
+  effect: Effect
+  perspective: Perspective
+  referrent: ReferrentType
+}

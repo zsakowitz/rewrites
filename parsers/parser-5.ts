@@ -96,11 +96,15 @@ export class Parser<T> {
     return optional(this)
   }
 
-  many(): Parser<readonly T[]> {
+  optionalWith<U>(value: U): Parser<T | U> {
+    return optionalWith(this, value)
+  }
+
+  many(): Parser<T[]> {
     return many(this)
   }
 
-  many1(): Parser<readonly T[]> {
+  many1(): Parser<[T, ...T[]]> {
     return many1(this)
   }
 
@@ -204,7 +208,7 @@ export const char = new Parser((state) => {
 export function seq<T extends readonly Parser<unknown>[]>(
   ...parsers: T
 ): Parser<{
-  readonly [K in keyof T]: Infer<T[K]>
+  [K in keyof T]: Infer<T[K]>
 }> {
   return new Parser((state) => {
     if (!state.ok) {
@@ -266,6 +270,23 @@ export function optional<T>(parser: Parser<T>): Parser<T | undefined> {
     }
 
     return ok(state, state.index, undefined)
+  })
+}
+
+/** Matches a parser, but returns `undefined` upon failure. */
+export function optionalWith<T, U>(parser: Parser<T>, value: U): Parser<T | U> {
+  return new Parser<T | U>((state) => {
+    if (!state.ok) {
+      return state
+    }
+
+    const next = parser.p(state)
+
+    if (next.ok) {
+      return next
+    }
+
+    return ok(state, state.index, value)
   })
 }
 
@@ -411,4 +432,27 @@ export function oneOf<T extends readonly string[]>(
       )}.`,
     )
   })
+}
+
+/** Matches the end of the source text. */
+export const EndOfSource = new Parser((state) => {
+  if (state.index == state.source.length) {
+    return ok(state, state.index, undefined)
+  }
+
+  return error(
+    state,
+    "Expected EOF; found '" +
+      state.source.slice(state.index, state.index + 10) +
+      "'.",
+  )
+})
+
+/** Unwraps a state, returning the contained value or throwing an error. */
+export function unwrap<T>(state: State<T>): T {
+  if (state.ok) {
+    return state.value
+  }
+
+  throw new Error(state.value)
 }
