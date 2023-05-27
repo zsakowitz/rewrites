@@ -14,4 +14,4 @@ export const PERSPECTIVE_TO_NAME_MAP = deepFreeze({
   G: "Agglomerative",
   N: "Nomic",
   A: "Abstract",
-} as const)
+})

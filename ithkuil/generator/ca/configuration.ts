@@ -72,7 +72,7 @@ export const CONFIGURATION_TO_LETTER_MAP = deepFreeze({
   MFS: "z",
   MFC: "ž",
   MFF: "ẓ",
-} as const)
+})
 
 export function configurationToIthkuil(configuration: Configuration): string {
   return CONFIGURATION_TO_LETTER_MAP[configuration]

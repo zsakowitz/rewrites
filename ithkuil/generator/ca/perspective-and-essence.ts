@@ -1,5 +1,5 @@
-import { Essence } from "./essence"
-import { Perspective } from "./perspective"
+import type { Essence } from "./essence"
+import type { Perspective } from "./perspective"
 
 export function perspectiveAndEssenceToIthkuil(
   perspective: Perspective,

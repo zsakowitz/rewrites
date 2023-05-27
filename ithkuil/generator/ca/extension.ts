@@ -18,7 +18,7 @@ export const EXTENSION_TO_NAME_MAP = deepFreeze({
   ATV: "Attenuative",
   GRA: "Graduative",
   DPL: "Depletive",
-} as const)
+})
 
 export const EXTENSION_TO_LETTER_MAP = deepFreeze({
   DEL: ["", ""],
@@ -27,7 +27,7 @@ export const EXTENSION_TO_LETTER_MAP = deepFreeze({
   ATV: ["p", "b"],
   GRA: ["g", "gz"],
   DPL: ["b", "bz"],
-} as const)
+})
 
 export function extensionToIthkuil(
   extension: Extension,

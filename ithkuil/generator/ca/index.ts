@@ -1,8 +1,8 @@
-import { Affiliation, affiliationToIthkuil } from "./affiliation"
-import { Configuration, configurationToIthkuil } from "./configuration"
-import { Essence } from "./essence"
-import { Extension, extensionToIthkuil } from "./extension"
-import { Perspective } from "./perspective"
+import { affiliationToIthkuil, type Affiliation } from "./affiliation"
+import { configurationToIthkuil, type Configuration } from "./configuration"
+import { type Essence } from "./essence"
+import { extensionToIthkuil, type Extension } from "./extension"
+import { type Perspective } from "./perspective"
 import { perspectiveAndEssenceToIthkuil } from "./perspective-and-essence"
 
 export * from "./affiliation"

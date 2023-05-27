@@ -14,14 +14,14 @@ export const AFFILIATION_TO_NAME_MAP = deepFreeze({
   COA: "Coalescent",
   ASO: "Associative",
   VAR: "Variative",
-} as const)
+})
 
 export const AFFILIATION_TO_LETTER_MAP = deepFreeze({
   CSL: ["", ""],
   COA: ["r", "rļ"],
   ASO: ["l", "nļ"],
   VAR: ["ř", "n"],
-} as const)
+})
 
 export function affiliationToIthkuil(
   affiliation: Affiliation,
