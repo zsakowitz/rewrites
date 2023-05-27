@@ -1,5 +1,5 @@
-import { deepFreeze } from "../../../deep-freeze"
-import { insertGlottalStop } from "../../insert-glottal-stop"
+import { deepFreeze } from "../../helpers/deep-freeze"
+import { insertGlottalStop } from "../../helpers/insert-glottal-stop"
 import {
   IA_UÄ,
   IE_UË,
@@ -10,7 +10,7 @@ import {
   UO_ÖÄ,
   UÖ_ÖË,
   WithWYAlternative,
-} from "../../with-wy-alternative"
+} from "../../helpers/with-wy-alternative"
 import type { Stem } from "./stem"
 import type { Version } from "./version"
 

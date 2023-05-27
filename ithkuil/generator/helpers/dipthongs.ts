@@ -1,4 +1,4 @@
-import { deepFreeze } from "../deep-freeze"
+import { deepFreeze } from "./deep-freeze"
 
 export type Dipthong =
   | "ai"

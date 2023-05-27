@@ -1,4 +1,4 @@
-import { applyStress, countVowelForms } from "../../stress"
+import { applyStress, countVowelForms } from "../../helpers/stress"
 
 export type SlotX = "UNF/C" | "UNF/K" | "FRM"
 

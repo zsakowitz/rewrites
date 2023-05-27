@@ -1,4 +1,4 @@
-import { deepFreeze } from "../deep-freeze"
+import { deepFreeze } from "./deep-freeze"
 
 export const VOWEL_TO_STRESSED_VOWEL_MAP = deepFreeze({
   a: "á",
@@ -31,11 +31,11 @@ export function stressVowelForm(vowelForm: string): string {
 }
 
 export function countVowelForms(text: string) {
-  return text.match(/[aeiouäëöü]+/g)?.length || 0
+  return text.match(/[aeëou]i|[aeëio]u|[aeiouäëöü]/g)?.length || 0
 }
 
 export function applyStress(word: string, position: -4 | -3 | -2 | -1): string {
-  const sequences = word.match(/[aeiouäëöü]+|[^aeiouäëöü]+/g)
+  const sequences = word.match(/[aeëou]i|[aeëio]u|[aeiouäëöü]|[^aeiouäëöü]+/g)
 
   if (!sequences) {
     throw new Error("Cannot add stress to an empty word.")

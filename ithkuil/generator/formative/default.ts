@@ -5,7 +5,7 @@ import type {
   PartialFormative,
   UnframedVerbalFormative,
 } from "."
-import { deepFreeze } from "../../deep-freeze"
+import { deepFreeze } from "../helpers/deep-freeze"
 
 export const DEFAULT_NOMINAL_FORMATIVE: NominalFormative = deepFreeze({
   type: "UNF/C",

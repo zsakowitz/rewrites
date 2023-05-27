@@ -1,5 +1,5 @@
 import { affixToIthkuil, type Affix } from "../../affix"
-import { WithWYAlternative } from "../../with-wy-alternative"
+import { WithWYAlternative } from "../../helpers/with-wy-alternative"
 
 export type SlotVII = {
   readonly affixes: readonly Affix[]

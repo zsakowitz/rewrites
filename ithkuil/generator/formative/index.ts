@@ -1,9 +1,9 @@
-import { deepFreeze } from "../../deep-freeze"
-import type { Expand } from "../../expand"
 import type { Affix } from "../affix"
 import { type CA, type PartialCA } from "../ca"
-import { applyStress, countVowelForms } from "../stress"
-import { WithWYAlternative } from "../with-wy-alternative"
+import { deepFreeze } from "../helpers/deep-freeze"
+import type { Expand } from "../helpers/expand"
+import { applyStress, countVowelForms } from "../helpers/stress"
+import { WithWYAlternative } from "../helpers/with-wy-alternative"
 import { fillInDefaultFormativeSlots } from "./default"
 import { slotIToIthkuil, type ConcatenationType } from "./slot-1"
 import { applySlotXStress } from "./slot-10"
@@ -149,6 +149,7 @@ function completeFormativeToIthkuil(formative: Formative) {
 
   const slot7 = slotVIIToIthkuil({ affixes: formative.slotVIIAffixes })
 
+  // Nominal formatives
   if (formative.type == "UNF/C") {
     const slot1 = slotIToIthkuil({
       concatenationType: formative.concatenatenationType,
@@ -196,6 +197,87 @@ function completeFormativeToIthkuil(formative: Formative) {
       return word
     }
   }
+
+  // Unframed verbal formatives
+  if (formative.type == "UNF/K") {
+    const slot1 = slotIToIthkuil({
+      caShortcutType: "none",
+      concatenationType: "none",
+    })
+
+    const slot2 = slotIIToIthkuil(formative, {
+      slotI: slot1,
+      slotIII: slot3,
+      doesSlotVHaveAtLeastTwoAffixes: formative.slotVAffixes.length >= 2,
+    })
+
+    const slot8 = slotVIIIToIthkuil(
+      {
+        vn: formative.vn,
+        cn: formative.mood,
+      },
+      {
+        allowOmittingDefaultValence: true,
+      },
+    ).withPreviousText(slot6 + slot7)
+
+    const slot9 = WithWYAlternative.of(
+      slotIXToIthkuil(formative.illocutionValidation, {
+        elideIfPossible: slot6.length == 1 && !slot8,
+        isPartOfConcatenatedFormative: false,
+      }),
+    ).withPreviousText(slot6 + slot7 + slot8)
+
+    const word =
+      slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8 + slot9
+
+    return applySlotXStress(word, "UNF/K")
+  }
+
+  // Framed verbal formatives
+  if (formative.type == "FRM") {
+    const slot1 = slotIToIthkuil({
+      concatenationType: "none",
+      caShortcutType: "none",
+    })
+
+    const slot2 = slotIIToIthkuil(formative, {
+      slotI: slot1,
+      slotIII: slot3,
+      doesSlotVHaveAtLeastTwoAffixes: formative.slotVAffixes.length >= 2,
+    })
+
+    const slot8 = slotVIIIToIthkuil(
+      {
+        vn: formative.vn,
+        cn: formative.caseScope,
+      },
+      {
+        allowOmittingDefaultValence:
+          countVowelForms(
+            slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7,
+          ) >= 2,
+      },
+    ).withPreviousText(slot6 + slot7)
+
+    const slot9 = WithWYAlternative.of(
+      slotIXToIthkuil(formative.case, {
+        elideIfPossible:
+          !slot8 &&
+          countVowelForms(
+            slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8,
+          ) >= 3,
+        isPartOfConcatenatedFormative: false,
+      }),
+    ).withPreviousText(slot6 + slot7 + slot8)
+
+    const word =
+      slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8 + slot9
+
+    return applySlotXStress(word, "FRM")
+  }
+
+  throw new Error("Unknown formative type '" + (formative as any)?.type + "'.")
 }
 
 export function formativeToIthkuil(formative: PartialFormative) {

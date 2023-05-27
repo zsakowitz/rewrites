@@ -1,4 +1,4 @@
-import { deepFreeze } from "../../../deep-freeze"
+import { deepFreeze } from "../../helpers/deep-freeze"
 import type { CAShortcutType } from "./ca-shortcut-type"
 import type { ConcatenationType } from "./concatenation-type"
 

@@ -1,6 +1,6 @@
 // TODO: Referential Affixes
 
-import { deepFreeze } from "../../deep-freeze"
+import { deepFreeze } from "../helpers/deep-freeze"
 import { caToIthkuil, type PartialCA } from "../ca"
 import {
   IA_UÄ,
@@ -12,7 +12,7 @@ import {
   UO_ÖÄ,
   UÖ_ÖË,
   WithWYAlternative,
-} from "../with-wy-alternative"
+} from "../helpers/with-wy-alternative"
 import type { AffixDegree } from "./degree"
 import type { AffixType } from "./type"
 

@@ -1,4 +1,4 @@
-import { deepFreeze } from "../../../deep-freeze"
+import { deepFreeze } from "../../helpers/deep-freeze"
 import {
   IA_UÄ,
   IE_UË,
@@ -8,7 +8,7 @@ import {
   UE_IË,
   UO_ÖÄ,
   UÖ_ÖË,
-} from "../../with-wy-alternative"
+} from "../../helpers/with-wy-alternative"
 import type { Context } from "./context"
 import type { Function } from "./function"
 import type { Specification } from "./specification"

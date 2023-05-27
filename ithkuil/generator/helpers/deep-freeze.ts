@@ -1,4 +1,4 @@
-import type { WithWYAlternative } from "./generator/with-wy-alternative"
+import type { WithWYAlternative } from "./with-wy-alternative"
 
 export type DeepFreeze<T> = T extends WithWYAlternative
   ? T

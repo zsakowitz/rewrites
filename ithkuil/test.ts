@@ -1,7 +1,7 @@
 import { strictEqual } from "assert"
-import * as Ithkuil from "./generator/formative"
+import { formativeToIthkuil } from "./generator/index"
 
-const result = Ithkuil.formativeToIthkuil({
+const result = formativeToIthkuil({
   type: "UNF/C",
   root: "c",
   specification: "CTE",
@@ -22,3 +22,19 @@ const result = Ithkuil.formativeToIthkuil({
 })
 
 strictEqual(result, "hwa'cäpoukliollüötëuhrwöë")
+
+const result2 = formativeToIthkuil({
+  type: "FRM",
+  root: "c",
+  version: "CPT",
+  vn: "3:DET",
+  ca: {
+    affiliation: "COA",
+    configuration: "DPX",
+    extension: "PRX",
+    perspective: "A",
+    essence: "NRM",
+  },
+})
+
+console.log(result2)

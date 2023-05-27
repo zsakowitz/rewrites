@@ -1,4 +1,4 @@
-import { deepFreeze } from "../../../deep-freeze"
+import { deepFreeze } from "../../helpers/deep-freeze"
 import type { Illocution } from "./illocution"
 import type { Validation } from "./validation"
 

@@ -1,4 +1,4 @@
-import type { Expand } from "../../expand"
+import type { Expand } from "../helpers/expand"
 import { affiliationToIthkuil, type Affiliation } from "./affiliation"
 import { configurationToIthkuil, type Configuration } from "./configuration"
 import type { Essence } from "./essence"

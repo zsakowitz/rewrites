@@ -1,4 +1,4 @@
-import { deepFreeze } from "../../deep-freeze"
+import { deepFreeze } from "../helpers/deep-freeze"
 
 export type Configuration =
   | "UPX"
