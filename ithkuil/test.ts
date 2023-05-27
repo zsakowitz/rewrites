@@ -15,9 +15,11 @@ const result = Ithkuil.formativeToIthkuil({
       ca: { configuration: "MSS" },
     },
   ],
-  // concatenatenationType: 1,
+  concatenatenationType: 2,
   case: "TSP",
   caseScope: "CCS",
 })
+
+// hwa'cäpoukliollüötëuhrwöë
 
 console.log(result)
