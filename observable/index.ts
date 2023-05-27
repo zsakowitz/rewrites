@@ -17,7 +17,7 @@ export interface Observer<in T> {
 
 export type SubscriberFunction<out T> = (
   this: void,
-  observer: SubscriptionObserver<T>
+  observer: SubscriptionObserver<T>,
 ) => void | (() => void) | Subscription
 
 export type ObservableLike<T> =
@@ -116,13 +116,13 @@ export class Observable<out T> {
   subscribe(
     onNext: (value: T) => void,
     onError?: (reason: unknown) => void,
-    onComplete?: (value: unknown) => void
+    onComplete?: (value: unknown) => void,
   ): Subscription
 
   subscribe(
     observer: Observer<T> | ((value: T) => void),
     onError: ((reason: unknown) => void) | undefined = undefined,
-    onComplete: ((value: unknown) => void) | undefined = undefined
+    onComplete: ((value: unknown) => void) | undefined = undefined,
   ): Subscription {
     const O = this
 
@@ -211,7 +211,7 @@ export class Observable<out T> {
         for await (const value of self) {
           yield* Observable.from(mapFn(value))
         }
-      })()
+      })(),
     )
   }
 
@@ -341,13 +341,13 @@ export class Observable<out T> {
 
 let setSubscriptionCleanup: (
   value: Subscription,
-  cleanup: (() => void) | undefined
+  cleanup: (() => void) | undefined,
 ) => void
 
 let cleanupSubscription: (subscription: Subscription) => void
 
 let getSubscriptionObserver: (
-  subscription: Subscription
+  subscription: Subscription,
 ) => Observer<unknown> | undefined
 
 export class Subscription {

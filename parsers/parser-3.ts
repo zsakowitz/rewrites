@@ -100,7 +100,7 @@ export class Result<T> {
     readonly source: string,
     readonly index: number,
     readonly ok: boolean,
-    readonly data: T
+    readonly data: T,
   ) {}
 
   fail() {
@@ -166,7 +166,7 @@ export function regex<T>(pattern: RegExp, data?: Transformer<T>): Parser<T> {
 
   if (pattern.multiline) {
     throw new SyntaxError(
-      "A matching pattern must not be multiline. This interferes with the ^ assertion."
+      "A matching pattern must not be multiline. This interferes with the ^ assertion.",
     )
   }
 
@@ -180,7 +180,7 @@ export function regex<T>(pattern: RegExp, data?: Transformer<T>): Parser<T> {
     if (match) {
       return result.succeed<T>(
         index + match[0]!.length,
-        data?.(...(match as [string, ...string[]]))!
+        data?.(...(match as [string, ...string[]]))!,
       )
     } else {
       return result.fail()
@@ -300,7 +300,7 @@ export function many1<T>(parser: Parser<T>): Parser<T[]> {
 
 export function sepBy<T>(
   parser: Parser<T>,
-  separator: Parser<unknown>
+  separator: Parser<unknown>,
 ): Parser<T[]> {
   return new Parser<T[]>((result: Result<unknown>) => {
     if (!result.ok) {
@@ -333,7 +333,7 @@ export function sepBy<T>(
 
 export function sepBy1<T>(
   parser: Parser<T>,
-  separator: Parser<unknown>
+  separator: Parser<unknown>,
 ): Parser<T[]> {
   return new Parser<T[]>((result: Result<unknown>) => {
     if (!result.ok) {
@@ -375,7 +375,7 @@ export function sepBy1<T>(
 
 export function repeat<T, N extends number>(
   parser: Parser<T>,
-  repeats: N
+  repeats: N,
 ): Parser<ToArray<N, T>>
 
 export function repeat<T>(parser: Parser<T>, repeats: number): Parser<T[]> {
@@ -402,7 +402,7 @@ export function maybe<T>(parser: Parser<T>): Parser<T | undefined> {
 }
 
 export function coroutine<T = any, U = any>(
-  coroutine: () => Generator<Parser<U>, T, U>
+  coroutine: () => Generator<Parser<U>, T, U>,
 ): Parser<T> {
   return new Parser<T>((result: Result<unknown>) => {
     const original = result
@@ -417,7 +417,7 @@ export function coroutine<T = any, U = any>(
           : generator.throw(
               new Error("The last result had an error state.", {
                 cause: result,
-              })
+              }),
             )
 
         if (done) {

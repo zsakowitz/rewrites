@@ -102,7 +102,7 @@ export class Worker {
 
     addEventListener(
       type: "message",
-      fn: (event: MessageEvent<FromWorker>) => void
+      fn: (event: MessageEvent<FromWorker>) => void,
     ): void
   }
 
@@ -210,7 +210,7 @@ export class Worker {
   }
 
   task<P extends readonly any[], R>(
-    fn: (...params: P) => R | PromiseLike<R>
+    fn: (...params: P) => R | PromiseLike<R>,
   ): (...params: P) => Promise<R> {
     const handle = this.twoWay<
       [id: number, value: R],
@@ -251,7 +251,7 @@ const ex2 = worker.run(
     return a * b
   },
   575793485639n,
-  534537465938n
+  534537465938n,
 )
 console.log(await ex2)
 

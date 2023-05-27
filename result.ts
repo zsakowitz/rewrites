@@ -31,7 +31,7 @@ function unwrap<T>(result: Result<T>): T {
 }
 
 export function coroutine<T>(
-  fn: (unwrap: <U>(result: Result<U>) => U) => Result<T>
+  fn: (unwrap: <U>(result: Result<U>) => U) => Result<T>,
 ) {
   try {
     return ok(fn(unwrap))

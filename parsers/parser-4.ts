@@ -3,7 +3,7 @@
 export type ArrayOfLength<
   N extends number,
   T,
-  A extends T[] = []
+  A extends T[] = [],
 > = number extends N
   ? T[]
   : N extends A["length"]
@@ -30,7 +30,7 @@ export class State<T> {
     readonly input: string,
     readonly index: number,
     readonly value?: T,
-    readonly error?: string
+    readonly error?: string,
   ) {}
 
   asError<U>(reason = this.error): State<U> {
@@ -83,8 +83,8 @@ export function text<T extends string>(text: T): Parser<T> {
     return state.asError(
       `'text' failed to match; the input string is '${state.input.slice(
         index,
-        index + 20
-      )}...'`
+        index + 20,
+      )}...'`,
     )
   })
 }
@@ -101,7 +101,7 @@ export function char(): Parser<string> {
     }
 
     return state.asError(
-      `No characters were left in the input for 'char' to match.`
+      `No characters were left in the input for 'char' to match.`,
     )
   })
 }
@@ -109,19 +109,19 @@ export function char(): Parser<string> {
 export function regex(regex: RegExp): Parser<RegExpMatchArray> {
   if (regex.global) {
     throw new Error(
-      "A regex with the 'global' flag cannot be used as a matcher."
+      "A regex with the 'global' flag cannot be used as a matcher.",
     )
   }
 
   if (regex.multiline) {
     throw new Error(
-      "A regex with the 'multiline' flag cannot be used as a matcher."
+      "A regex with the 'multiline' flag cannot be used as a matcher.",
     )
   }
 
   if (regex.sticky) {
     throw new Error(
-      "A regex with the 'sticky' flag cannot be used as a matcher."
+      "A regex with the 'sticky' flag cannot be used as a matcher.",
     )
   }
 
@@ -148,8 +148,8 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
         regex.flags
       }' failed to match; the input string is '${state.input.slice(
         index,
-        index + 20
-      )}...'`
+        index + 20,
+      )}...'`,
     )
   })
 }
@@ -174,7 +174,7 @@ export function optional<T>(parser: Parser<T>): Parser<T | undefined>
 export function optional<T>(parser: Parser<T>, alternate: T): Parser<T>
 export function optional<T>(
   parser: Parser<T>,
-  alternate?: T
+  alternate?: T,
 ): Parser<T | undefined> {
   return new Parser((state) => {
     if (!state.ok) {
@@ -237,7 +237,7 @@ export function extractMatch(parser: Parser<unknown>): Parser<string> {
 
     return nextState.asOk(
       nextState.index,
-      state.input.slice(state.index, nextState.index)
+      state.input.slice(state.index, nextState.index),
     )
   })
 }
@@ -322,7 +322,7 @@ export function sequence<T extends readonly any[]>(
 
 export function sepBy<T>(
   parser: Parser<T>,
-  separator: Parser<unknown>
+  separator: Parser<unknown>,
 ): Parser<T[]> {
   const RestItem = sequence(separator, parser).key(1)
   const RestItems = many(RestItem)
@@ -334,7 +334,7 @@ export function sepBy<T>(
 
 export function sepBy1<T>(
   parser: Parser<T>,
-  separator: Parser<unknown>
+  separator: Parser<unknown>,
 ): Parser<T[]> {
   const RestItem = sequence(separator, parser).key(1)
   const RestItems = many(RestItem)
@@ -347,5 +347,5 @@ export function sepBy1<T>(
 export const Whitespace = regex(/^\s+/).map<true>((match) => true)
 
 export const OptionalWhitespace = regex(/^\s*/).map(
-  (match) => match[0]!.length != 0
+  (match) => match[0]!.length != 0,
 )

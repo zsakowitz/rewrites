@@ -17,7 +17,7 @@ export interface LineTerminatorNode extends Node<"LineTerminatorNode"> {
 }
 
 export let LineTerminatorNode: A.Parser<LineTerminatorNode> = A.anyOfString(
-  ";\n"
+  ";\n",
 ).map((x) => ({
   nodeType: "LineTerminatorNode",
   output: ";",
@@ -32,7 +32,7 @@ export let IntegerNode: A.Parser<IntegerNode> = A.regex(/^[+-]?\d+n/).map(
   (x) => ({
     nodeType: "IntegerNode",
     output: x,
-  })
+  }),
 )
 
 // NumberNode
@@ -40,7 +40,7 @@ export let IntegerNode: A.Parser<IntegerNode> = A.regex(/^[+-]?\d+n/).map(
 export interface NumberNode extends Node<"NumberNode"> {}
 
 export let NumberNode: A.Parser<NumberNode> = A.regex(
-  /^[+-]?\d+(\.\d+)?(e[+-]?\d+)?|NaN|-?Infinity/
+  /^[+-]?\d+(\.\d+)?(e[+-]?\d+)?|NaN|-?Infinity/,
 ).map((x) => ({
   nodeType: "NumberNode",
   output: x,
@@ -70,10 +70,10 @@ export let StringNode: A.Parser<StringNode> = A.coroutine(
         A.sequenceOf([A.char("\\"), A.anyChar]).map(([, x]) => `\\${x}`),
         A.recursiveParser(() =>
           A.sequenceOf([A.char("{"), ExpressionNode, A.char("}")]).map(
-            ([, x]) => x
-          )
+            ([, x]) => x,
+          ),
         ),
-      ])
+      ]),
     )
 
     for (let result of all) {
@@ -92,7 +92,7 @@ export let StringNode: A.Parser<StringNode> = A.coroutine(
       output: "`" + output + "`",
       variables,
     }
-  }
+  },
 )
 
 // BooleanNode
@@ -100,7 +100,7 @@ export let StringNode: A.Parser<StringNode> = A.coroutine(
 export interface BooleanNode extends Node<"BooleanNode"> {}
 
 export let BooleanNode: A.Parser<BooleanNode> = A.regex(
-  /^yes|no|true|false/i
+  /^yes|no|true|false/i,
 ).map((x) => ({
   nodeType: "BooleanNode",
   output: x == "yes" || x == "true" ? "true" : "false",
@@ -111,7 +111,7 @@ export let BooleanNode: A.Parser<BooleanNode> = A.regex(
 export interface SymbolNode extends Node<"SymbolNode"> {}
 
 export let SymbolNode: A.Parser<SymbolNode> = A.regex(
-  /^#[A-Za-z]![A-Za-z0-9_]*/
+  /^#[A-Za-z]![A-Za-z0-9_]*/,
 ).map((x) => ({
   nodeType: "SymbolNode",
   output: `Symbol.for(${x.slice(1)})`,
@@ -122,7 +122,7 @@ export let SymbolNode: A.Parser<SymbolNode> = A.regex(
 export interface IdentifierNode extends Node<"IdentifierNode"> {}
 
 export let IdentifierNode: A.Parser<IdentifierNode> = A.regex(
-  /^[A-Za-z]![A-Za-z0-9_]*/
+  /^[A-Za-z]![A-Za-z0-9_]*/,
 ).map((x) => ({
   nodeType: "IdentifierNode",
   output: x,
@@ -164,7 +164,7 @@ export let ExpressionNode: A.Parser<ExpressionNode> = A.recursiveParser(() =>
     variables: [],
     ...x,
     nodeType: "ExpressionNode",
-  }))
+  })),
 )
 
 // ScriptNode

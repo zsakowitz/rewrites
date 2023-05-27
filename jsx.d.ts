@@ -33,7 +33,7 @@ declare global {
       type Parent = { appendChild(node: ChildNode): unknown }
 
       type IfEquals<X, Y, A, B> = (<T>() => T extends X ? 1 : 2) extends <
-        T
+        T,
       >() => T extends Y ? 1 : 2
         ? A
         : B
@@ -55,14 +55,14 @@ declare global {
 
       type EventMapToProps<T, E extends Element> = {
         [K in keyof T & string as `on:${K}`]: (
-          event: T[K] & { currentTarget: E }
+          event: T[K] & { currentTarget: E },
         ) => void
       }
 
       type MaybeEventMap<
         Source extends Element,
         Requirement extends Element,
-        EventMap
+        EventMap,
       > = Source extends Requirement
         ? EventMapToProps<Omit<EventMap, keyof HTMLElementEventMap>, Source>
         : {}

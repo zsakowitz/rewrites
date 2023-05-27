@@ -82,7 +82,7 @@ type DebugParams<T extends any[]> = number extends T["length"]
 
 type DebugTuple<T, A extends string> = T extends readonly [
   infer Head,
-  ...infer Tail
+  ...infer Tail,
 ]
   ? DebugTuple<Tail, `${A}, ${Debug<Head>}`>
   : A

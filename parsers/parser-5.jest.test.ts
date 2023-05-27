@@ -29,7 +29,7 @@ expect.extend({
       return {
         message: () =>
           `expected State.Ok(${this.utils.printReceived(
-            actual.value
+            actual.value,
           )}) to be errored`,
         pass: true,
       }
@@ -37,7 +37,7 @@ expect.extend({
       return {
         message: () =>
           `expected State.Error(${this.utils.printReceived(
-            actual.value
+            actual.value,
           )}) to be ok`,
         pass: false,
       }
@@ -62,7 +62,7 @@ expect.extend({
       return {
         message: () =>
           `expected State.Ok(${this.utils.printReceived(
-            actual.value
+            actual.value,
           )}) to be errored`,
         pass: false,
       }
@@ -70,7 +70,7 @@ expect.extend({
       return {
         message: () =>
           `expected State.Error(${this.utils.printReceived(
-            actual.value
+            actual.value,
           )}) to be ok`,
         pass: true,
       }
@@ -95,9 +95,9 @@ expect.extend({
       return {
         message: () =>
           `expected State.Ok(${this.utils.printReceived(
-            actual.value
+            actual.value,
           )}) to be errored or have a value other than ${this.utils.printExpected(
-            value
+            value,
           )}`,
         pass: true,
       }
@@ -105,7 +105,7 @@ expect.extend({
       return {
         message: () =>
           `expected State.Error(${this.utils.printReceived(
-            actual.value
+            actual.value,
           )}) to be State.Ok(${this.utils.printExpected(value)})`,
         pass: false,
       }
@@ -136,9 +136,9 @@ expect.extend({
           `expected State.${
             actual.ok ? "Ok" : "Error"
           }(#${this.utils.printReceived(
-            actual.index
+            actual.index,
           )}) to have an index other than #${this.utils.printExpected(
-            actual.index
+            actual.index,
           )}`,
         pass: true,
       }
@@ -148,7 +148,7 @@ expect.extend({
           `expected State.${
             actual.ok ? "Ok" : "Error"
           }(#${this.utils.printReceived(
-            actual.index
+            actual.index,
           )}) to have an index of #${this.utils.printExpected(actual.index)}`,
         pass: false,
       }

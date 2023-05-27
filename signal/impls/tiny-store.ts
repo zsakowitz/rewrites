@@ -12,7 +12,7 @@ export function createEffect(update: () => void) {
 export function createSignal<T>(): [() => T | undefined, (value: T) => void]
 export function createSignal<T>(value: T): [() => T, (value: T) => void]
 export function createSignal<T>(
-  value?: T
+  value?: T,
 ): [() => T | undefined, (value: T) => void] {
   const tracking = new Set<() => void>()
 

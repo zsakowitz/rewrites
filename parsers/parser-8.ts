@@ -19,7 +19,7 @@ export type Result<T> = Ok<T> | Error
 export function ok<T>(
   state: Ok<unknown>,
   newIndex: number,
-  newValue: T
+  newValue: T,
 ): Ok<T> {
   return {
     ok: true,
@@ -112,14 +112,14 @@ export class Parser<T> {
 
   refine<U extends T>(
     fn: (value: T, index: number) => value is U,
-    message?: string
+    message?: string,
   ): Parser<U>
 
   refine(fn: (value: T, index: number) => boolean, message?: string): Parser<T>
 
   refine(
     fn: (value: T, index: number) => boolean,
-    message = "Refinement failed."
+    message = "Refinement failed.",
   ) {
     return new Parser((state) => {
       const next = this.#p(state)
@@ -174,7 +174,7 @@ export function always<T>(value: T): Parser<T> {
 }
 
 export function never(
-  message = "Reached an unreachable point."
+  message = "Reached an unreachable point.",
 ): Parser<never> {
   return new Parser<never>((state) => {
     return error(state, message)
@@ -192,7 +192,7 @@ export function text<T extends string>(text: T): Parser<T> {
           text +
           "'; found '" +
           state.source.slice(state.index, state.index + 20) +
-          "'."
+          "'.",
       )
     }
   })
@@ -213,7 +213,7 @@ export function regex(regex: RegExp): Parser<RegExpExecArray> {
 
   if (!regex.source.startsWith("^")) {
     throw new TypeError(
-      "Regular expressions passed to regex() must start with ^."
+      "Regular expressions passed to regex() must start with ^.",
     )
   }
 
@@ -227,7 +227,7 @@ export function regex(regex: RegExp): Parser<RegExpExecArray> {
           regex +
           "; found '" +
           state.source.slice(state.index, state.index + 20) +
-          "'."
+          "'.",
       )
     }
 
@@ -249,7 +249,7 @@ export function any<T extends readonly Parser<unknown>[]>(
 
     return error(
       state,
-      "The source failed to match any parser passed to 'any'."
+      "The source failed to match any parser passed to 'any'.",
     )
   })
 }

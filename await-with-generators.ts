@@ -4,7 +4,7 @@
 import { Deferred } from "./deferred"
 
 export function asyncFn<T, P extends any[], R>(
-  fn: (this: T, ...params: P) => Iterator<unknown, R, any>
+  fn: (this: T, ...params: P) => Iterator<unknown, R, any>,
 ) {
   return function (this: T, ...params: P): Deferred<R> {
     const deferred = new Deferred<R>()

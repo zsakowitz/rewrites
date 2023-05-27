@@ -26,10 +26,10 @@ function isFnKey(p: unknown): p is string {
 
 export function addCallSignature<
   T extends object,
-  S extends (this: any, ...args: any[]) => any
+  S extends (this: any, ...args: any[]) => any,
 >(
   target: T,
-  signature: S
+  signature: S,
 ): Exclude<
   T,
   ((this: any, ...args: any[]) => any) | (abstract new (...args: any[]) => any)
@@ -85,5 +85,5 @@ const d = addCallSignature(
       return 45
     },
   },
-  () => 23
+  () => 23,
 )

@@ -8,7 +8,7 @@ export type Transition<T> = Action & {
     end: T,
     frames: number,
     timing?: Timing,
-    interpolator?: Interpolator<T>
+    interpolator?: Interpolator<T>,
   ): Transition<T>
 }
 
@@ -17,7 +17,7 @@ function* transitionInternal<T>(
   end: T,
   frames: number,
   timing: Timing = linearMap,
-  interpolator: Interpolator<T> = linearMap as any
+  interpolator: Interpolator<T> = linearMap as any,
 ): Action {
   const start = store()
 
@@ -38,7 +38,7 @@ function toTransition<T>(store: Store<T>, action: Action): Transition<T> {
       (function* (): Action {
         yield* output
         yield* transitionInternal(store, ...args)
-      })()
+      })(),
     )
 
   return output
@@ -49,11 +49,11 @@ export function to<T>(
   end: T,
   frames: number,
   timing?: Timing,
-  interpolator?: Interpolator<T>
+  interpolator?: Interpolator<T>,
 ): Transition<T> {
   return toTransition(
     this,
-    transitionInternal(this, end, frames, timing, interpolator)
+    transitionInternal(this, end, frames, timing, interpolator),
   )
 }
 
@@ -63,7 +63,7 @@ export function toWithInterpolator<T>(defaultInterpolator: Interpolator<T>) {
     end: T,
     frames: number,
     timing?: Timing,
-    interpolator: Interpolator<T> = defaultInterpolator
+    interpolator: Interpolator<T> = defaultInterpolator,
   ): Transition<T> {
     return to.call(this, end, frames, timing, interpolator as any) as any
   }
@@ -89,7 +89,7 @@ export type Store<T> = {
     end: T,
     frames: number,
     timing?: Timing,
-    interpolator?: Interpolator<T>
+    interpolator?: Interpolator<T>,
   ): Transition<T>
 }
 

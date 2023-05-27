@@ -41,8 +41,8 @@ const Expression: Parser<string> = deferred(() =>
     Object,
     Await,
     Yield,
-    String
-  )
+    String,
+  ),
 )
 
 const Word = regex(/^[A-Za-z]+/, (match) => match)
@@ -51,7 +51,7 @@ const Property = sequence(text("'"), OptionalWhitespace, Word).key(2)
 
 const ExpressionOrProperty = any<{ isProp: boolean; data: string }[]>(
   Expression.map((data) => ({ isProp: false, data })),
-  Property.map((data) => ({ isProp: true, data }))
+  Property.map((data) => ({ isProp: true, data })),
 )
 
 const Member = sequence(
@@ -59,7 +59,7 @@ const Member = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  ExpressionOrProperty
+  ExpressionOrProperty,
 ).map(([, , target, , index]) => {
   if (index.isProp) return `${target}.${index.data}`
   return `${target}[${index.data}]`
@@ -70,7 +70,7 @@ const StatementList = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  Expression
+  Expression,
 ).map(([, , left, , right]) => `((${left}, ${right}))`)
 
 const Assignment = sequence(
@@ -78,7 +78,7 @@ const Assignment = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  Expression
+  Expression,
 ).map(([, , left, , right]) => `(${left} = ${right})`)
 
 const Variable = sequence(text("$"), OptionalWhitespace, Word).key(2)
@@ -93,7 +93,7 @@ const Addition = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  Expression
+  Expression,
 ).map(([, , left, , right]) => `(${left} + ${right})`)
 
 const Subtraction = sequence(
@@ -101,7 +101,7 @@ const Subtraction = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  Expression
+  Expression,
 ).map(([, , left, , right]) => `(${left} - ${right})`)
 
 const Multiplication = sequence(
@@ -109,7 +109,7 @@ const Multiplication = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  Expression
+  Expression,
 ).map(([, , left, , right]) => `(${left} * ${right})`)
 
 const Division = sequence(
@@ -117,7 +117,7 @@ const Division = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  Expression
+  Expression,
 ).map(([, , left, , right]) => `(${left} / ${right})`)
 
 const Not = sequence(text("!"), OptionalWhitespace, Expression)
@@ -131,7 +131,7 @@ const Apply = sequence(
   OptionalWhitespace,
   sepBy(Expression, OptionalWhitespace),
   OptionalWhitespace,
-  text(")")
+  text(")"),
 ).map(([, , target, , args]) => `(${target}(${args.join(", ")}))`)
 
 const Function = sequence(
@@ -148,14 +148,14 @@ const Function = sequence(
   OptionalWhitespace,
   text(")"),
   OptionalWhitespace,
-  Expression
+  Expression,
 ).map(
   ([, , { async, generator }, , , , params, , , , value]) =>
     `(${async ? "async " : ""}function${generator ? "*" : ""} (${params
       .map((e) => (e.startsWith("(") && e.endsWith(")") ? e.slice(1, -1) : e))
       .join(", ")}) {
   return ${indent(value)};
-}.bind(this))`
+}.bind(this))`,
 )
 
 const Condition = sequence(
@@ -165,9 +165,9 @@ const Condition = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  Expression
+  Expression,
 ).map(
-  ([, , condition, , left, , right]) => `(${condition} ? ${left} : ${right})`
+  ([, , condition, , left, , right]) => `(${condition} ? ${left} : ${right})`,
 )
 
 const Undefined = text("x", "undefined")
@@ -177,7 +177,7 @@ const Array = sequence(
   OptionalWhitespace,
   sepBy(Expression, OptionalWhitespace),
   OptionalWhitespace,
-  text("]")
+  text("]"),
 ).map(([, , data]) => `[\n  ${indent(data.join(",\n"))}\n]`)
 
 const Object = sequence(
@@ -185,10 +185,10 @@ const Object = sequence(
   OptionalWhitespace,
   sepBy(
     sequence(ExpressionOrProperty, OptionalWhitespace, Expression),
-    OptionalWhitespace
+    OptionalWhitespace,
   ),
   OptionalWhitespace,
-  text("}")
+  text("}"),
 ).map(
   ([, , props]) =>
     `{\n  ${indent(
@@ -199,18 +199,18 @@ const Object = sequence(
               value.startsWith("(") && value.endsWith(")")
                 ? value.slice(1, -1)
                 : value
-            }`
+            }`,
         )
-        .join(",\n")
-    )}\n}`
+        .join(",\n"),
+    )}\n}`,
 )
 
 const Await = sequence(text("@"), OptionalWhitespace, Expression).map(
-  ([, , data]) => `(await ${data})`
+  ([, , data]) => `(await ${data})`,
 )
 
 const Yield = sequence(text("~"), OptionalWhitespace, Expression).map(
-  ([, , data]) => `(yield ${data})`
+  ([, , data]) => `(yield ${data})`,
 )
 
 const Character = char((char) =>
@@ -220,7 +220,7 @@ const Character = char((char) =>
     ? "\\n"
     : char == "\r"
     ? "\\r"
-    : char
+    : char,
 ).except(any(text("\\"), text('"')))
 
 const EscapedCharacter = any(text("\\\\", "\\\\"), text('\\"', '\\"'))
@@ -232,13 +232,13 @@ const Interpolation = sequence(
   OptionalWhitespace,
   Expression,
   OptionalWhitespace,
-  text("}")
+  text("}"),
 ).map(([, , , , data]) => `\${${data}}`)
 
 const String = sequence(
   text('"'),
   many(any(Character, EscapedCharacter, Interpolation)),
-  text('"')
+  text('"'),
 ).map(([, data]) => `\`${data.join("")}\``)
 
 function compile(text: string) {

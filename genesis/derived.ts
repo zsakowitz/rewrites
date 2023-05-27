@@ -6,7 +6,7 @@ import { Signal } from "./stores"
 export function derived<T, U>(
   [get, set]: Signal<T>,
   toTarget: (input: T) => U,
-  toSource: (input: U) => T
+  toSource: (input: U) => T,
 ): Signal<U> {
   return [() => toTarget(get()), (input) => set(toSource(input))]
 }

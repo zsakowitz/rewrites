@@ -14,7 +14,7 @@ function map(value: PointLike) {
 function interpolate(
   percentage: number,
   start: Point,
-  end: Point
+  end: Point,
 ): { x: number; y: number } {
   return {
     x: linear(percentage, start.x, end.x),

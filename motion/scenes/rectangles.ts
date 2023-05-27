@@ -22,7 +22,7 @@ const scene = new Scene(function* (view) {
 
   yield* all(
     a.fill("cyan", 96, undefined, rgb),
-    b.fill("yellow", 96, undefined, rgb)
+    b.fill("yellow", 96, undefined, rgb),
   )
 
   yield* a.scale(2, 120)

@@ -23,7 +23,7 @@ export class Rect extends Node {
       get(this.x) || 0,
       get(this.y) || 0,
       get(this.width) || 0,
-      get(this.height) || 0
+      get(this.height) || 0,
     )
   }
 }

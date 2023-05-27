@@ -60,7 +60,7 @@ export function onCleanup(fn: VoidFunction) {
     currentCleanups.add(fn)
   } else {
     warn(
-      "[onCleanup]: Cleanup functions created outside of an effect root will never be run."
+      "[onCleanup]: Cleanup functions created outside of an effect root will never be run.",
     )
   }
 }

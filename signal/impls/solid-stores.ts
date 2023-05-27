@@ -71,7 +71,7 @@ export function createMemo<T>(update: Read<T>): Read<T> {
 export function assign<T extends object, K extends PropertyKey>(
   object: T,
   key: K,
-  store: Store<T> | Read<T>
+  store: Store<T> | Read<T>,
 ): T & { [_ in K]: T } {
   if (typeof store === "function") {
     const get = store

@@ -18,7 +18,7 @@ export function effect(fn: () => void) {
 }
 
 export function signal<T>(
-  value: T
+  value: T,
 ): readonly [get: () => T, set: (value: T) => void] {
   const tracked = new Set<() => void>()
 
@@ -148,7 +148,7 @@ export function h(
 
         if (key.startsWith("class:")) {
           unwrapIfFunction(value, ($value) =>
-            element.classList.toggle(key.slice(6), !!$value)
+            element.classList.toggle(key.slice(6), !!$value),
           )
         }
 
@@ -156,15 +156,15 @@ export function h(
           unwrapIfFunction(value, ($value) =>
             element.style.setProperty(
               key.slice(6),
-              $value == null ? null : String($value)
-            )
+              $value == null ? null : String($value),
+            ),
           )
         }
 
         if (key.startsWith("on:")) {
           element.addEventListener(
             key.slice(3),
-            value as EventListenerOrEventListenerObject
+            value as EventListenerOrEventListenerObject,
           )
         }
 

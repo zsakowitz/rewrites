@@ -5,7 +5,7 @@ import { Signal, SignalLike, isSignal, signal, untrack } from "./signal"
 
 function map<I, O>(
   value: SignalLike<I>,
-  encode: (value: I) => O
+  encode: (value: I) => O,
 ): SignalLike<O> {
   if (isSignal(value)) {
     return () => encode(value())
@@ -17,7 +17,7 @@ function map<I, O>(
 export function mappedSignal<I, O>(
   value: SignalLike<I>,
   encode: (value: I) => O,
-  defaultInterpolator?: Interpolator<O>
+  defaultInterpolator?: Interpolator<O>,
 ): Signal<I, O> {
   const internal = signal(map(value, encode), defaultInterpolator)
 
@@ -25,7 +25,7 @@ export function mappedSignal<I, O>(
     value?: SignalLike<I>,
     frames?: number,
     easer?: Easer,
-    interpolator?: Interpolator<O>
+    interpolator?: Interpolator<O>,
   ) {
     if (value === void 0) {
       return internal()
@@ -39,7 +39,7 @@ export function mappedSignal<I, O>(
       encode(isSignal(value) ? untrack(value) : value),
       frames,
       easer,
-      interpolator
+      interpolator,
     )
   }
 

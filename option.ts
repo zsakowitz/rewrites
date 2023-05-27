@@ -19,7 +19,7 @@ export class Option<T> {
 
   private constructor(
     private readonly ok: boolean,
-    private readonly value?: T
+    private readonly value?: T,
   ) {}
 
   map<U>(fn: (value: T) => U): Option<U> {

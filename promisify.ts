@@ -1,7 +1,7 @@
 // A typed promisify function. #promise #rewrite
 
 function promisify<I extends any[], O>(
-  func: (...args: [...args: I, cb: (err: unknown, value: O) => void]) => void
+  func: (...args: [...args: I, cb: (err: unknown, value: O) => void]) => void,
 ) {
   return (...args: I) => {
     return new Promise<O>((resolve, reject) => {

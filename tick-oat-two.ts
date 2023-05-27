@@ -58,7 +58,7 @@ export function isWin(board: ReadonlyBoard) {
 export function possibleMoves(
   board: ReadonlyBoard,
   forPlayer: Player,
-  [lastRow, lastCol]: Location = [-1, -1]
+  [lastRow, lastCol]: Location = [-1, -1],
 ): readonly Location[] {
   const output: Location[] = []
 
@@ -87,7 +87,7 @@ const LOG = false
 export function rate(
   board: ReadonlyBoard,
   forPlayer: Player,
-  last: Location | undefined
+  last: Location | undefined,
 ): [bestMove: Location | undefined, rating: number] {
   if (isWin(board)) {
     if (LOG) console.log("win for", 3 - forPlayer) // TODO:

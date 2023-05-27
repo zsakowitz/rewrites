@@ -4,7 +4,7 @@ import { h, render, signal } from "./yet-another-js-framework"
 
 function select<T extends HTMLElement>(
   parent: ParentNode,
-  selector: string
+  selector: string,
 ): T[] {
   return Array.from(parent.querySelectorAll(selector))
 }
@@ -54,12 +54,12 @@ namespace AssignmentCenter {
   export function get(document = window.document): AssignmentOverview[] {
     const rows = select<HTMLTableRowElement>(
       document,
-      "#assignment-center-assignment-items tr"
+      "#assignment-center-assignment-items tr",
     )
 
     return rows.map((el) => {
       const [className, type, _, assign, due, status] = [...el.children].map(
-        (x) => x.textContent!
+        (x) => x.textContent!,
       )
 
       const detailsEl = el.children[2]! as HTMLTableCellElement
@@ -80,7 +80,7 @@ namespace AssignmentCenter {
   }
 
   export async function travel(
-    overview: AssignmentOverview
+    overview: AssignmentOverview,
   ): Promise<AssignmentOverview & Assignment.AssignmentDetails> {
     setStatus("Getting assignment details: " + overview.title)
     overview.link.click()
@@ -110,7 +110,7 @@ namespace AssignmentCenter {
           resolve({ ...overview, ...details })
           frame.remove()
         }
-      }
+      },
     )
   }
 
@@ -126,7 +126,7 @@ namespace AssignmentCenter {
         const output = await travelInEmbed(overview)
         setStatus("Getting assignment details: " + ++count + " of " + total)
         return output
-      })
+      }),
     )
 
     setStatus("Done!")
@@ -163,7 +163,7 @@ namespace Assignment {
 
     const submittedDate = select(
       document,
-      ".assignment-detail-header-info"
+      ".assignment-detail-header-info",
     )[0]?.textContent?.slice(13)
 
     const submission = select(document, "#assignment-info-textedit")[0]

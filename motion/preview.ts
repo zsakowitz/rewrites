@@ -27,7 +27,7 @@ const styles = html(
 .player-button:hover {
   background-color: #303030;
   border-top-color: #454545;
-}`
+}`,
 )
 
 function makeCanvas() {
@@ -53,7 +53,7 @@ justify-content: center;
 align-items: center;
 background-color: black;`,
     },
-    canvas
+    canvas,
   )
 
   const context = canvas.getContext("2d")!
@@ -69,7 +69,7 @@ function button(label: string, action: () => void) {
   return html(
     "button",
     { "on:click": action, className: "player-button" },
-    label
+    label,
   )
 }
 
@@ -105,7 +105,7 @@ gap: 1rem;`,
     button("Step", () => scene.next().then(() => scene.render(context))),
     button("Play", () => next(performance.now())),
     button("Stop", () => cancelAnimationFrame(frameId())),
-    frames
+    frames,
   )
 }
 

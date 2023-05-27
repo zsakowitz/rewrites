@@ -17,7 +17,7 @@ const CommaWithWhitespace = Z.regex(/^\s*,\s*/).void()
 const BarWithWhitespace = Z.regex(/^\s+\|\s+/).void()
 
 const Literal = Z.seq(Z.text('"'), Z.regex(/^[^"\n\r]+/), Z.text('"')).map(
-  (value) => `Z.text(${JSON.stringify(value[1]![0])})`
+  (value) => `Z.text(${JSON.stringify(value[1]![0])})`,
 )
 
 const ReferenceWithArgs: Z.Parser<string> = Z.seq(
@@ -27,22 +27,22 @@ const ReferenceWithArgs: Z.Parser<string> = Z.seq(
   OptionalWhitespace,
   Z.sepBy1(
     Z.lazy(() => Sequence),
-    CommaWithWhitespace
+    CommaWithWhitespace,
   ),
   OptionalWhitespace,
-  Z.text(">")
+  Z.text(">"),
 ).map((value) => `${value[0]}(${value[4]!.join(", ")})`)
 
 const Lookahead: Z.Parser<string> = Z.seq(
   Z.text("&"),
   OptionalWhitespace,
-  Z.lazy(() => Atom)
+  Z.lazy(() => Atom),
 ).map((value) => `Z.lookahead(\n  ${indent(value[2])}\n)`)
 
 const Not: Z.Parser<string> = Z.seq(
   Z.text("!"),
   OptionalWhitespace,
-  Z.lazy(() => Atom)
+  Z.lazy(() => Atom),
 ).map((value) => `Z.not(\n  ${indent(value[2])}\n)`)
 
 const Parenthesized: Z.Parser<string> = Z.seq(
@@ -50,18 +50,18 @@ const Parenthesized: Z.Parser<string> = Z.seq(
   OptionalWhitespace,
   Z.lazy(() => Choice),
   OptionalWhitespace,
-  Z.text(")")
+  Z.text(")"),
 ).map((value) => value[2])
 
 const CharacterClass: Z.Parser<string> = Z.seq(
   Z.text("["),
   Z.regex(/^[^\n\r\]]+/),
-  Z.text("]")
+  Z.text("]"),
 ).map(
   (e) =>
     `Z.regex(new RegExp(${JSON.stringify(
-      "^[" + e[1]![0] + "]"
-    )})).map(result => result[0])`
+      "^[" + e[1]![0] + "]",
+    )})).map(result => result[0])`,
 )
 
 const Js: Z.Parser<string> = Z.many(
@@ -70,9 +70,9 @@ const Js: Z.Parser<string> = Z.many(
     Z.seq(
       Z.text("{"),
       Z.many(Z.lazy(() => Js)).map((value) => value.join("")),
-      Z.text("}")
-    ).map((value) => value.join(""))
-  )
+      Z.text("}"),
+    ).map((value) => value.join("")),
+  ),
 ).map((value) => value.join(""))
 
 const Atom = Z.seq(
@@ -81,8 +81,8 @@ const Atom = Z.seq(
       Z.regex(/^\$[A-Za-z_]![A-Za-z0-9_]*/),
       OptionalWhitespace,
       Z.text(":"),
-      OptionalWhitespace
-    ).map((value) => value[0]![0])
+      OptionalWhitespace,
+    ).map((value) => value[0]![0]),
   ),
   Z.any(
     Literal,
@@ -91,12 +91,12 @@ const Atom = Z.seq(
     Lookahead,
     Not,
     Parenthesized,
-    CharacterClass
+    CharacterClass,
   ),
   Z.optional(
     Z.seq(OptionalWhitespace, Z.any(Z.text("?"), Z.text("*"), Z.text("+"))).map(
-      (value) => value[1]
-    )
+      (value) => value[1],
+    ),
   ),
   Z.optional(
     Z.seq(
@@ -105,9 +105,9 @@ const Atom = Z.seq(
       OptionalWhitespace,
       Z.text("{"),
       Js,
-      Z.text("}")
-    ).map((value) => value[4])
-  )
+      Z.text("}"),
+    ).map((value) => value[4]),
+  ),
 ).map(([label, value, quantifier, js]) => {
   if (quantifier == "?") {
     value = `Z.optional(\n  ${indent(value)}\n)`
@@ -135,8 +135,8 @@ const Atom = Z.seq(
 const Sequence = Z.seq(
   Z.sepBy1(Atom, Whitespace),
   Z.optional(
-    Z.seq(Whitespace, Z.text("{"), Js, Z.text("}")).map((value) => value[2])
-  )
+    Z.seq(Whitespace, Z.text("{"), Js, Z.text("}")).map((value) => value[2]),
+  ),
 ).map(([items, js]) => {
   let value =
     items.length == 1 ? items[0] : `Z.seq(\n  ${indent(items.join(",\n"))}\n)`
@@ -169,18 +169,18 @@ const Assignment = Z.seq(
       OptionalWhitespace,
       Z.sepBy1(
         Z.lazy(() => Sequence),
-        CommaWithWhitespace
+        CommaWithWhitespace,
       ),
       OptionalWhitespace,
       Z.text(">"),
-      OptionalWhitespace
-    ).map((value) => value[2])
+      OptionalWhitespace,
+    ).map((value) => value[2]),
   ),
   Z.text("="),
   OptionalWhitespace,
   Choice,
   OptionalWhitespace,
-  Z.text(";")
+  Z.text(";"),
 ).map((value) => {
   const name = value[0]
   const args = value[2]
@@ -191,7 +191,7 @@ const Assignment = Z.seq(
       `const ${name} =\n  ` +
       indent(
         `(${args.join(", ")}) =>\n  ` +
-          indent(`Z.lazy(() =>\n  ${indent(expr)}\n)`)
+          indent(`Z.lazy(() =>\n  ${indent(expr)}\n)`),
       )
     )
   }
@@ -207,7 +207,7 @@ export const Grammar = Z.seq(
   OptionalWhitespace,
   Sequence,
   OptionalWhitespace,
-  EOF
+  EOF,
 ).map((value) => `${value[1]!.join("\n\n")}\n\n${value[3]}`)
 
 /** A description of this grammar:

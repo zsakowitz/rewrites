@@ -50,7 +50,7 @@ export function useState<T>(initial: T) {
 
   return [id in states ? states[id] : (states[id] = initial), update] as [
     T,
-    typeof update
+    typeof update,
   ]
 }
 
@@ -73,7 +73,7 @@ export function useIsFirstRenderCycle(): boolean {
 /** Runs a side effect only when its dependencies change. */
 export function useEffect(
   fn: () => void | (() => void),
-  deps?: readonly unknown[]
+  deps?: readonly unknown[],
 ) {
   const cleanup = useRef<(() => void) | void>(undefined)
   const previousDeps = useRef(deps)
@@ -117,7 +117,7 @@ export function useMemo<T>(fn: () => T, deps: readonly unknown[]): T {
 export function useElement<K extends keyof HTMLElementTagNameMap>(
   tagName: K,
   props: Record<string, any> = {},
-  listeners: Record<string, (event: Event) => void> = {}
+  listeners: Record<string, (event: Event) => void> = {},
 ): HTMLElementTagNameMap[K] {
   const node = useConst(() => {
     const node = document.createElement(tagName)

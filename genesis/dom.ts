@@ -18,7 +18,7 @@ export function text(value: unknown) {
 /** Creates a fragment of nodes which can be manipulated. */
 export function fragment(
   parent: { append(node: ChildNode): void },
-  label = "Fragment"
+  label = "Fragment",
 ): (...nodes: readonly Renderable[]) => void {
   const anchor = document.createComment(label)
   const children: ChildNode[] = []
@@ -30,7 +30,7 @@ export function fragment(
     nodes.forEach((node) =>
       render(node, {
         append: (node) => (anchor.after(node), children.push(node)),
-      })
+      }),
     )
   )
 }
@@ -38,7 +38,7 @@ export function fragment(
 /** Renders something into a node. */
 export function render(
   node: Renderable,
-  parent: { append(node: ChildNode): void }
+  parent: { append(node: ChildNode): void },
 ) {
   if (node instanceof Node) {
     parent.append(node)

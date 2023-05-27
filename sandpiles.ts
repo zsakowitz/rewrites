@@ -190,9 +190,9 @@ export class Sandpile extends Array<number[]> {
     return this.map((row) =>
       row
         .map((cell) =>
-          (Sandpile.characters[cell] ?? Sandpile.characters[4]!).repeat(2)
+          (Sandpile.characters[cell] ?? Sandpile.characters[4]!).repeat(2),
         )
-        .join("")
+        .join(""),
     ).join("\n")
   }
 

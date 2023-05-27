@@ -1,7 +1,7 @@
 // A lambda calculus parser that runs at compile time and runtime. #typesystem
 
 export function parse<T extends string>(
-  text: T
+  text: T,
 ): parse.ToNode<parse.ToTree<parse.Lex<parse.PreLex<T>>>> {
   return parse.toNode(parse.toTree(parse.lex(parse.preLex(text))))
 }
@@ -9,7 +9,7 @@ export function parse<T extends string>(
 export namespace parse {
   type ReplaceLambdaWithBackslash<
     T extends string,
-    H extends string = ""
+    H extends string = "",
   > = T extends `${infer A}λ${infer B}`
     ? ReplaceLambdaWithBackslash<B, `${H}${A}\\`>
     : `${H}${T}`
@@ -24,17 +24,17 @@ export namespace parse {
 
   type FindAndRemoveAliases<
     T extends string,
-    A extends [name: string, body: string][] = []
+    A extends [name: string, body: string][] = [],
   > = T extends `${infer Name}=${infer Body};${infer Rest}`
     ? FindAndRemoveAliases<Rest, [...A, [Name, Body]]>
     : [T, A]
 
   type PutBackAliases<
     T extends string,
-    A extends [name: string, body: string][]
+    A extends [name: string, body: string][],
   > = A extends [
     [infer Name extends string, infer Body extends string],
-    ...infer Rest extends [name: string, body: string][]
+    ...infer Rest extends [name: string, body: string][],
   ]
     ? PutBackAliases<`(\\${Name} ${T})(${Body})`, Rest>
     : T
@@ -43,7 +43,7 @@ export namespace parse {
     RemoveComments<ReplaceLambdaWithBackslash<T>>
   > extends [
     infer T extends string,
-    infer A extends [name: string, body: string][]
+    infer A extends [name: string, body: string][],
   ]
     ? PutBackAliases<T, A>
     : never
@@ -82,12 +82,12 @@ export namespace parse {
 
   type MergeNameIntoBackslash<
     N extends string,
-    R extends readonly Token[]
+    R extends readonly Token[],
   > = N extends ""
     ? R
     : R extends readonly [
         ...infer Body extends readonly Token[],
-        { readonly type: "backslash"; readonly name: "" }
+        { readonly type: "backslash"; readonly name: "" },
       ]
     ? readonly [...Body, { readonly type: "backslash"; readonly name: N }]
     : readonly [...R, { readonly type: "name"; readonly name: N }]
@@ -97,7 +97,7 @@ export namespace parse {
     R extends readonly {
       readonly type: "backslash"
       readonly name: string
-    }[] = readonly []
+    }[] = readonly [],
   > = T extends `${infer Head}${infer Tail}`
     ? Split<
         Tail,
@@ -108,7 +108,7 @@ export namespace parse {
   export type Lex<
     T extends string,
     N extends string = "",
-    R extends readonly Token[] = readonly []
+    R extends readonly Token[] = readonly [],
   > = T extends ` ${infer Rest}` | `\n${infer Rest}` | `\r${infer Rest}`
     ? Lex<Rest, "", MergeNameIntoBackslash<N, R>>
     : T extends `\\${infer Rest}`
@@ -117,7 +117,7 @@ export namespace parse {
         "",
         readonly [
           ...MergeNameIntoBackslash<N, R>,
-          { readonly type: "backslash"; readonly name: "" }
+          { readonly type: "backslash"; readonly name: "" },
         ]
       >
     : T extends `(${infer Rest}`
@@ -138,7 +138,7 @@ export namespace parse {
         {
           readonly type: "backslash"
           readonly name: infer Name extends string
-        }
+        },
       ]
       ? Lex<Rest, "", readonly [...Head, ...Split<Name>]>
       : never
@@ -149,10 +149,10 @@ export namespace parse {
   export namespace Lex {
     export type Debug<
       T extends readonly Token[],
-      S extends string = ""
+      S extends string = "",
     > = T extends readonly [
       infer Head extends Token,
-      ...infer Rest extends readonly Token[]
+      ...infer Rest extends readonly Token[],
     ]
       ? Debug<
           Rest,
@@ -229,7 +229,7 @@ export namespace parse {
 
           if (last?.type != "backslash") {
             throw new Error(
-              "A '.' token can only be parsed directly after a backslash."
+              "A '.' token can only be parsed directly after a backslash.",
             )
           }
 
@@ -271,10 +271,10 @@ export namespace parse {
   export namespace Tree {
     type ToArray<
       T extends readonly Tree[],
-      S extends string = ""
+      S extends string = "",
     > = T extends readonly [
       infer Head extends Tree,
-      ...infer Tail extends readonly Tree[]
+      ...infer Tail extends readonly Tree[],
     ]
       ? S extends ""
         ? ToArray<Tail, Debug<Head>>
@@ -304,10 +304,10 @@ export namespace parse {
 
   type Fold<
     T extends readonly FlatTree[],
-    I extends readonly Tree[] = readonly []
+    I extends readonly Tree[] = readonly [],
   > = T extends readonly [
     ...infer Head extends readonly FlatTree[],
-    infer Tail extends FlatTree
+    infer Tail extends FlatTree,
   ]
     ? Tail extends "paren"
       ? readonly [...Head, I]
@@ -318,7 +318,7 @@ export namespace parse {
       ? Fold<
           [
             ...Head,
-            { readonly type: "lambda"; readonly name: Name; readonly body: I }
+            { readonly type: "lambda"; readonly name: Name; readonly body: I },
           ]
         >
       : Tail extends Tree
@@ -328,7 +328,7 @@ export namespace parse {
 
   function fold<T extends readonly FlatTree[]>(tree: T): Fold<T>
   function fold(
-    tree: readonly FlatTree[]
+    tree: readonly FlatTree[],
   ): readonly [...(readonly FlatTree[]), Tree] | readonly Tree[] {
     const inserted: Tree[] = []
 
@@ -346,7 +346,7 @@ export namespace parse {
 
       if ("type" in tail && tail.type === "backslash") {
         return fold(
-          head.concat({ type: "lambda", name: tail.name, body: inserted })
+          head.concat({ type: "lambda", name: tail.name, body: inserted }),
         )
       }
 
@@ -358,10 +358,10 @@ export namespace parse {
 
   type ToFlatTree<
     T extends readonly Token[],
-    O extends readonly FlatTree[] = readonly []
+    O extends readonly FlatTree[] = readonly [],
   > = T extends readonly [
     infer Head extends Token,
-    ...infer Tail extends readonly Token[]
+    ...infer Tail extends readonly Token[],
   ]
     ? Head extends { readonly type: "lParen" }
       ? ToFlatTree<Tail, readonly [...O, "paren"]>
@@ -428,10 +428,10 @@ export namespace parse {
 
   type ArrayToNodeWithInitial<
     A extends readonly Tree[],
-    S extends Node.Node
+    S extends Node.Node,
   > = A extends readonly [
     infer Head extends Tree,
-    ...infer Tail extends readonly Tree[]
+    ...infer Tail extends readonly Tree[],
   ]
     ? // @ts-ignore
       ArrayToNodeWithInitial<Tail, Node.Application<S, ToNode<Head>>>
@@ -439,7 +439,7 @@ export namespace parse {
 
   type ArrayToNode<A extends readonly Tree[]> = A extends readonly [
     infer Head extends Tree,
-    ...infer Tail extends readonly Tree[]
+    ...infer Tail extends readonly Tree[],
   ]
     ? ArrayToNodeWithInitial<Tail, ToNode<Head>>
     : never
@@ -501,7 +501,7 @@ export namespace Node {
   export type Rename<
     T extends Node,
     Old extends string,
-    New extends string
+    New extends string,
   > = T extends Name<infer U>
     ? Equal<U, Old> extends true
       ? Name<New>
@@ -517,7 +517,7 @@ export namespace Node {
 
   export type Includes<
     T extends readonly string[],
-    U extends string
+    U extends string,
   > = T extends readonly [U, ...any]
     ? true
     : T extends readonly [any, ...infer Rest extends readonly string[]]
@@ -585,7 +585,7 @@ export namespace Node {
   // @ts-ignore
   export type UniqueNameX<
     X extends readonly any[],
-    Avoid extends readonly string[]
+    Avoid extends readonly string[],
   > = Includes<Avoid, `x${X["length"]}`> extends false
     ? `x${X["length"]}`
     : // @ts-ignore
@@ -594,7 +594,7 @@ export namespace Node {
   export type Replace<
     T extends Node,
     Old extends string,
-    New extends Node
+    New extends Node,
   > = T extends Name<infer U>
     ? Equal<U, Old> extends true
       ? New
@@ -683,7 +683,7 @@ export namespace Node {
 
     rename<Old extends string, New extends string>(
       oldName: Old,
-      newName: Name<New>
+      newName: Name<New>,
     ): Rename<this, Old, New>
     rename(oldName: string, newName: Name<string>): Name<string> {
       if (oldName == this.name) {
@@ -696,7 +696,7 @@ export namespace Node {
 
     replace<O extends string, N extends Node>(
       oldName: O,
-      newNode: N
+      newNode: N,
     ): Equal<O, T> extends true ? N : this
     replace(oldName: string, newNode: Node): Node {
       if (oldName == this.name) {
@@ -751,12 +751,12 @@ export namespace Node {
   type ExcludeFromArray<
     T extends string,
     A extends readonly string[],
-    C extends readonly string[] = readonly []
+    C extends readonly string[] = readonly [],
   > = A extends readonly [T, ...infer Rest extends readonly string[]]
     ? ExcludeFromArray<T, Rest, C>
     : A extends readonly [
         infer Head extends string,
-        ...infer Tail extends readonly string[]
+        ...infer Tail extends readonly string[],
       ]
     ? ExcludeFromArray<T, Tail, readonly [...C, Head]>
     : C
@@ -765,7 +765,7 @@ export namespace Node {
   export class Lambda<
     // @ts-ignore
     out T extends string,
-    in out B extends Node
+    in out B extends Node,
   > extends Node {
     readonly canEval: B["canEval"]
     readonly locals: ExcludeFromArray<T, B["locals"]>
@@ -779,7 +779,7 @@ export namespace Node {
     // @ts-ignore
     rename<Old extends string, New extends string>(
       oldName: Old,
-      newName: Name<New>
+      newName: Name<New>,
     ): // @ts-ignore
     Rename<this, Old, New>
     rename(oldName: string, newName: Name<string>): Node {
@@ -794,7 +794,7 @@ export namespace Node {
     // @ts-ignore
     replace<O extends string, N extends Node>(
       oldName: O,
-      newNode: N
+      newNode: N,
     ): // @ts-ignore
     Replace<this, O, N>
     replace(oldName: string, newNode: Node): Node {
@@ -811,7 +811,7 @@ export namespace Node {
 
         return new Lambda(
           unique.name,
-          this.body.rename(this.name, unique).replace(oldName, newNode)
+          this.body.rename(this.name, unique).replace(oldName, newNode),
         )
       }
 
@@ -915,11 +915,11 @@ export namespace Node {
 
     rename<Old extends string, New extends string>(
       oldName: Old,
-      newName: Name<New>
+      newName: Name<New>,
     ): Application<Rename<L, Old, New>, Rename<R, Old, New>> {
       return new Application(
         this.left.rename(oldName, newName),
-        this.right.rename(oldName, newName)
+        this.right.rename(oldName, newName),
       ) as any
     }
 
@@ -927,13 +927,13 @@ export namespace Node {
     replace<O extends string, N extends Node>(
       oldName: O,
       // @ts-ignore
-      newNode: N
+      newNode: N,
     ): // @ts-ignore
     Replace<this, O, N>
     replace(oldName: string, newNode: Node): Node {
       return new Application(
         this.left.replace(oldName, newNode),
-        this.right.replace(oldName, newNode)
+        this.right.replace(oldName, newNode),
       )
     }
 

@@ -66,7 +66,7 @@ export class zMap<K, V> implements Map<K, V> {
 
   forEach(
     callbackfn: (value: V, key: K, map: Map<K, V>) => void,
-    thisArg?: any
+    thisArg?: any,
   ): void {
     let symbols = Object.getOwnPropertySymbols(this.k)
 

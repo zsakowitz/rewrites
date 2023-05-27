@@ -50,7 +50,7 @@ export class WeakValueMap<K, V extends object> {
 
   forEach(
     callbackfn: (value: V, key: K, map: WeakValueMap<K, V>) => void,
-    thisArg?: any
+    thisArg?: any,
   ): void {
     for (const [key, ref] of this.#map.entries()) {
       const value = ref.deref()

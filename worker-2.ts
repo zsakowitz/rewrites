@@ -149,7 +149,7 @@ export class Worker {
     fn: (send: {
       (data: WorkerToScript): void
       [Symbol.asyncIterator](): AsyncGenerator<ScriptToWorker, never, unknown>
-    }) => unknown
+    }) => unknown,
   ): {
     (data: ScriptToWorker): void
     [Symbol.asyncIterator](): AsyncGenerator<WorkerToScript, never, unknown>
@@ -215,7 +215,7 @@ export class Pool {
     const lowestJobCount = this.workers.reduce((a, b) => Math.min(a, b.jobs), 0)
 
     const leastLoadedWorkers = this.workers.filter(
-      (worker) => worker.jobs == lowestJobCount
+      (worker) => worker.jobs == lowestJobCount,
     )
 
     const worker = randomItem(leastLoadedWorkers)
@@ -244,7 +244,7 @@ export class Pool {
     fn: (send: {
       (data: WorkerToScript): void
       [Symbol.asyncIterator](): AsyncGenerator<ScriptToWorker, never, unknown>
-    }) => unknown
+    }) => unknown,
   ): {
     (data: ScriptToWorker): void
     [Symbol.asyncIterator](): AsyncGenerator<WorkerToScript, never, unknown>

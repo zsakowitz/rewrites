@@ -26,7 +26,7 @@ Domino.index = Array<Domino[]>(7)
   .map((_, i) =>
     Array<Domino>(i + 1)
       .fill(0 as any)
-      .map((_, j) => new Domino(i, j))
+      .map((_, j) => new Domino(i, j)),
   )
 
 Domino.dominoes = Domino.index.flat()
@@ -158,7 +158,7 @@ class Game {
 
         this.data.tilesLeftByPlayers = this.players.reduce(
           (count, player) => count + player.dominoes.length,
-          0
+          0,
         )
 
         this.data.tilesLeftInDeck = this.dominoes.length

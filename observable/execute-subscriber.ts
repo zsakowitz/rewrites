@@ -6,7 +6,7 @@ import { throwTypeError } from "./throw-type-error"
 
 export function executeSubscriber<T>(
   subscriber: SubscriberFunction<T>,
-  observer: SubscriptionObserver<T>
+  observer: SubscriptionObserver<T>,
 ) {
   // 3. Let subscriberResult be ? Call(subscriber, undefined, observer).
   const subscriberResult = subscriber(observer)

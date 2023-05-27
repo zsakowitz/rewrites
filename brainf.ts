@@ -122,7 +122,7 @@ let macros: Record<string, string> = Object.fromEntries(
       let match = macro.match(/@(\w+).*\n([\s\S]+)/)
       if (!match) throw new Error("Regular expressions don't work anymore.")
       return [match[1], match[2]!.trim()]
-    })
+    }),
 )
 
 let source = `

@@ -4,7 +4,7 @@ import { MaybeFn, get, memo } from "./reactivity"
 
 export function Maybe<
   T extends JSX.Element,
-  U extends JSX.Element = undefined
+  U extends JSX.Element = undefined,
 >({
   children,
   fallback,

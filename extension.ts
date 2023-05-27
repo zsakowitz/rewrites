@@ -33,7 +33,7 @@ export class Facet<State, Input, Output = readonly Input[]> {
 
   compute(
     deps: (Facet<State, any, any> | Field<State, any>)[],
-    get: (state: State) => Input
+    get: (state: State) => Input,
   ): Extension<State> {
     return (state) => {}
   }

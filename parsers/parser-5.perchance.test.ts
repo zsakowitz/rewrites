@@ -233,40 +233,40 @@ type Suffix = (word: string) => string
 export const OptionalWhitespace = Z.regex(/^[ ]*/)
 
 export const Identifier = Z.regex(/^[A-Za-z_]![A-Za-z0-9_]*/).map(
-  (value) => value[0]
+  (value) => value[0],
 )
 
 export const Modifier = Z.seq(Z.text("."), OptionalWhitespace, Identifier).map(
-  (value) => `$.modifier.${value[2]}`
+  (value) => `$.modifier.${value[2]}`,
 )
 
 export const Variable = Identifier.map((value) => `$.value.${value}`)
 
 export const ListWithModifiers = Z.seq(
   Variable,
-  Z.sepBy(Modifier, OptionalWhitespace)
+  Z.sepBy(Modifier, OptionalWhitespace),
 ).map(([list, modifiers]) =>
-  modifiers.reduce((prev, modifier) => `$.modify(${prev},${modifier})`, list)
+  modifiers.reduce((prev, modifier) => `$.modify(${prev},${modifier})`, list),
 )
 
 export const Assignment = Z.seq(
   Variable,
   OptionalWhitespace,
   Z.text("="),
-  OptionalWhitespace
+  OptionalWhitespace,
 ).map((value) => value[0])
 
 export const ReturnValue: Z.Parser<string> = Z.seq(
   OptionalWhitespace,
   Z.text(","),
   OptionalWhitespace,
-  Z.lazy(() => InnerPickFromList)
+  Z.lazy(() => InnerPickFromList),
 ).map((value) => value[3])
 
 export const InnerPickFromList = Z.seq(
   Z.optional(Assignment),
   ListWithModifiers,
-  Z.optional(ReturnValue)
+  Z.optional(ReturnValue),
 ).map((value) => {
   let output = value[1]
 
@@ -291,7 +291,7 @@ export const PickFromList = Z.seq(
   OptionalWhitespace,
   InnerPickFromList,
   OptionalWhitespace,
-  Z.text("]")
+  Z.text("]"),
 ).map((value) => value[2])
 
 export const Prefix = Z.any(Z.text("an"), Z.text("a")).map(() => "$.prefix.a")
@@ -301,11 +301,11 @@ export const Suffix = Z.any(
   Z.text("ing"),
   Z.text("ly"),
   Z.text("s"),
-  Z.text("th")
+  Z.text("th"),
 ).map((value) => `$.suffix.${value}`)
 
 export const Number = Z.regex(/^\d+(?:\.\d+)?(?:e[+-]?\d+)?/).map((value) =>
-  parseFloat(value[0])
+  parseFloat(value[0]),
 )
 
 export const Range = Z.seq(
@@ -313,7 +313,7 @@ export const Range = Z.seq(
   OptionalWhitespace,
   Z.text("-"),
   OptionalWhitespace,
-  Number
+  Number,
 ).map((value) => `() => $.between(${value[0]},${value[1]})`)
 
 export const Choice = Z.seq(
@@ -321,8 +321,8 @@ export const Choice = Z.seq(
   Z.text("|"),
   Z.sepBy1(
     Z.lazy(() => Text),
-    Z.text("|")
-  )
+    Z.text("|"),
+  ),
 ).map((value) => `[${value[0]},${value[2]!.join(",")}]`)
 
 export const Shorthand = Z.seq(
@@ -330,7 +330,7 @@ export const Shorthand = Z.seq(
   OptionalWhitespace,
   Z.any(Choice, Prefix, Suffix, Range),
   OptionalWhitespace,
-  Z.text("}")
+  Z.text("}"),
 ).map((value) => value[2])
 
 export const PlainText = Z.regex(/^[^\f\n\r|[\]{}]+/)
@@ -339,8 +339,8 @@ export const PlainText = Z.regex(/^[^\f\n\r|[\]{}]+/)
 
 export const Text: Z.Parser<string> = Z.lazy(() =>
   Z.many(Z.any(PlainText, PickFromList, Shorthand)).map(
-    (value) => `$.join(${value.join(",")})`
-  )
+    (value) => `$.join(${value.join(",")})`,
+  ),
 )
 
 export const Whitespace = Z.regex(/^[ ]+/)
@@ -350,14 +350,14 @@ export const ListItem = Z.seq(Whitespace, Text).map((value) => value[1])
 export const Newline = Z.regex(/^\n+/)
 
 export const List = Z.seq(Variable, Newline, Z.sepBy1(ListItem, Newline)).map(
-  (value) => `${value[0]} = [${value[2]!.join(",")}]`
+  (value) => `${value[0]} = [${value[2]!.join(",")}]`,
 )
 
 export const Grammar = Z.seq(
   Z.optional(Newline),
   Z.sepBy(List, Newline),
   Z.optional(Newline),
-  Z.not(Z.char)
+  Z.not(Z.char),
 ).map((value) =>
-  (0, eval)(value[1]!.join(";") + ";()=>$.resolve($.value.output)")
+  (0, eval)(value[1]!.join(";") + ";()=>$.resolve($.value.output)"),
 )

@@ -37,7 +37,7 @@ export function linksIn(elements: Element[]): HTMLAnchorElement[] {
 
   for (const element of elements) {
     output.push(
-      ...element.querySelectorAll<HTMLAnchorElement>("a[href^='/wiki/']")
+      ...element.querySelectorAll<HTMLAnchorElement>("a[href^='/wiki/']"),
     )
   }
 
@@ -53,7 +53,7 @@ export interface Link {
 
 export function linksToObjects(
   level = 1,
-  elements: HTMLAnchorElement[]
+  elements: HTMLAnchorElement[],
 ): Link[] {
   return elements.map((link) => ({
     href: link.href,

@@ -57,7 +57,7 @@ export namespace Uint {
   type AddArrays<A extends AsArray, B extends AsArray> = [...A, ...B]
 
   assert<AddArrays<[any, any], [any, any, any]>, [any, any, any, any, any]>(
-    true
+    true,
   )
   assert<AddArrays<[any], [any, any, any]>, [any, any, any, any]>(true)
   assert<AddArrays<[any], []>, [any]>(true)
@@ -72,7 +72,7 @@ export namespace Uint {
 
   type SubtractArrays<A extends AsArray, B extends AsArray> = A extends [
     ...B,
-    ...infer U
+    ...infer U,
   ]
     ? U
     : []
@@ -95,7 +95,7 @@ export namespace Uint {
   type MultiplyArrays<
     A extends AsArray,
     B extends AsArray,
-    R extends AsArray = []
+    R extends AsArray = [],
   > = B["length"] extends 0
     ? R
     : MultiplyArrays<A, PreviousArray<B>, [...R, ...A]>
@@ -118,7 +118,7 @@ export namespace Uint {
   type DivideArrays<
     A extends AsArray,
     B extends AsArray,
-    R extends AsArray = []
+    R extends AsArray = [],
   > = A extends [...B, ...infer U] ? DivideArrays<U, B, NextArray<R>> : [R, A]
 
   assert<
@@ -131,10 +131,10 @@ export namespace Uint {
 
   export type QuotientAndRemainder<
     A extends number,
-    B extends number
+    B extends number,
   > = DivideArrays<ToArray<A>, ToArray<B>> extends [
     infer U extends AsArray,
-    infer V extends AsArray
+    infer V extends AsArray,
   ]
     ? [ToNumber<U>, ToNumber<V>]
     : never
@@ -353,7 +353,7 @@ export namespace Int {
 
   export type Multiply<A extends AsArray, B extends AsArray> = [
     Boolean.Xor<A[0], B[0]>,
-    Uint.Multiply<A[1], B[1]>
+    Uint.Multiply<A[1], B[1]>,
   ]
 
   assert<Multiply<[true, 4], [false, 3]>, [true, 12]>(true) // -4 *  3 = -12
@@ -447,7 +447,7 @@ export namespace Int {
 export namespace Boolean {
   // https://github.com/type-challenges/type-challenges/blob/main/utils/index.d.ts
   export type IsEqual<A, B> = (<T>() => T extends A ? 1 : 2) extends <
-    T
+    T,
   >() => T extends B ? 1 : 2
     ? true
     : false
@@ -527,7 +527,7 @@ export namespace Function {
     B = unknown,
     C = unknown,
     D = unknown,
-    T = unknown
+    T = unknown,
   > {
     [A]: A
     [B]: B
@@ -541,7 +541,7 @@ export namespace Function {
     A extends F[typeof A] = F[typeof A],
     B extends F[typeof B] = F[typeof B],
     C extends F[typeof C] = F[typeof C],
-    D extends F[typeof D] = F[typeof D]
+    D extends F[typeof D] = F[typeof D],
   > = (F & {
     [A]: A
     [B]: B
@@ -563,7 +563,7 @@ export interface Function<
   B = unknown,
   C = unknown,
   D = unknown,
-  T = unknown
+  T = unknown,
 > extends Function.Function<A, B, C, D, T> {}
 
 export namespace Array {
@@ -588,7 +588,7 @@ export namespace Array {
   export type Reduce<
     T extends unknown[],
     I,
-    F extends Function
+    F extends Function,
   > = IsEmpty<T> extends true
     ? I
     : Reduce<Tail<T>, Function.Call<F, I, T[0]>, F>
@@ -604,7 +604,7 @@ export namespace Array {
   export type AutoReduce<
     T extends unknown[],
     D,
-    F extends Function
+    F extends Function,
   > = IsEmpty<T> extends true ? D : Reduce<Tail<T>, T[0], F>
 
   assert<AutoReduce<[8, 5, 6], 47, SumReducer>, 19>(true)
@@ -679,7 +679,7 @@ export namespace String {
 
   export type ToSliceIndex<
     T extends string,
-    N extends number
+    N extends number,
   > = Uint.IsNegative<N> extends true
     ? Uint.Subtract<Length<T>, Uint.Abs<N>>
     : N
@@ -690,7 +690,7 @@ export namespace String {
 
   export type StartsWith<
     T extends string,
-    U extends string
+    U extends string,
   > = T extends `${U}${string}` ? true : false
 
   assert<StartsWith<"Zachary", "Z">, true>(true)
@@ -738,7 +738,7 @@ export namespace Decimal {
     1_000_000,
     10_000_000,
     100_000_000,
-    1_000_000_000
+    1_000_000_000,
   ][T]
 
   assert<Pow10<0>, 1>(true)
@@ -751,7 +751,7 @@ export namespace Decimal {
           `${WholePart}${Decimal}` extends `${infer Numerator extends number}`
             ? Numerator
             : never,
-          Pow10<Length<Decimal>>
+          Pow10<Length<Decimal>>,
         ]
       : `${T}` extends `${infer U extends number}`
       ? [U, 1]

@@ -53,7 +53,7 @@ class Validator<T> {
   }
 
   as<T extends new (modifiers: readonly Modifier<any, any>[]) => Validator<T>>(
-    type: T
+    type: T,
   ): InstanceType<T> {
     const output = new type(this.modifiers)
     ;(output.core as Modifier<unknown, unknown>[]).unshift(...this.core)
@@ -104,14 +104,14 @@ class Validator<T> {
 
   refine<U extends T>(
     refiner: (data: T) => data is U,
-    reason?: string
+    reason?: string,
   ): Validator<U> & Omit<this, keyof Validator<T>>
   refine(refiner: (data: T) => boolean, reason?: string): this
   refine(refiner: (data: T) => boolean, reason = "Refinement failed."): this {
     return this.duplicate(
       this.modifiers.concat((data) =>
-        refiner(data) ? ok(data) : error(reason)
-      )
+        refiner(data) ? ok(data) : error(reason),
+      ),
     )
   }
 
@@ -131,7 +131,7 @@ class Validator<T> {
 
       return error(
         `'or' failed to match any of its inputs. The last validator errored with`,
-        ...result2.errors
+        ...result2.errors,
       )
     })
   }
@@ -152,15 +152,15 @@ export function transform<T, U>(fn: (data: T) => U): Modifier<T, U> {
 
 export function refine<T, U extends T>(
   fn: (data: T) => data is U,
-  reason?: string
+  reason?: string,
 ): Modifier<T, U>
 export function refine<T>(
   fn: (data: T) => boolean,
-  reason?: string
+  reason?: string,
 ): Modifier<T, T>
 export function refine<T>(
   fn: (data: T) => boolean,
-  reason = "Refinement failed."
+  reason = "Refinement failed.",
 ): Modifier<T, T> {
   return (data) => (fn(data) ? ok(data) : error(reason))
 }
@@ -170,12 +170,12 @@ export const z = new Validator([])
 
 class StringValidator<
   Start extends string = "",
-  End extends string = ""
+  End extends string = "",
 > extends Validator<`${Start}${string}${End}`> {
   protected readonly core = [
     refine(
       (data): data is string => typeof data == "string",
-      `Expected a string.`
+      `Expected a string.`,
     ),
   ] as const
 
@@ -193,13 +193,13 @@ class StringValidator<
 
   startsWith<T extends `${Start}${string}`>(text: T): StringValidator<T, End> {
     return this.refine((data): data is `${T}${string}${End}` & typeof data =>
-      data.startsWith(text)
+      data.startsWith(text),
     ) as unknown as StringValidator<T, End>
   }
 
   endsWith<T extends `${string}${End}`>(text: T): StringValidator<Start, T> {
     return this.refine((data): data is `${Start}${string}${T}` & typeof data =>
-      data.endsWith(text)
+      data.endsWith(text),
     ) as unknown as StringValidator<Start, T>
   }
 }
@@ -210,7 +210,7 @@ class NumberValidator extends Validator<number> {
   protected readonly core = [
     refine(
       (data): data is number => typeof data == "number",
-      `Expected a number.`
+      `Expected a number.`,
     ),
   ] as const
 
@@ -229,7 +229,7 @@ class BigIntValidator extends Validator<bigint> {
   protected readonly core = [
     refine(
       (data): data is bigint => typeof data == "bigint",
-      `Expected a bigint.`
+      `Expected a bigint.`,
     ),
   ] as const
 
@@ -246,12 +246,12 @@ export const bigint = new BigIntValidator([])
 
 export const boolean = z.refine(
   (data): data is boolean => typeof data == "boolean",
-  `Expected a boolean.`
+  `Expected a boolean.`,
 )
 
 export const symbol = z.refine(
   (data): data is symbol => typeof data == "symbol",
-  `Expected a symbol.`
+  `Expected a symbol.`,
 )
 
 const Null = z.refine((data): data is null => data === null, `Expected null.`)
@@ -260,7 +260,7 @@ export { Null as null }
 
 export const undefined = z.refine(
   (data): data is undefined => typeof data == "undefined",
-  `Expected undefined.`
+  `Expected undefined.`,
 )
 
 class ArrayValidator<T, NonEmpty extends boolean = false> extends Validator<
@@ -269,7 +269,7 @@ class ArrayValidator<T, NonEmpty extends boolean = false> extends Validator<
   protected readonly core = [
     refine(
       (data): data is readonly T[] => Array.isArray(data),
-      `Expected an array.`
+      `Expected an array.`,
     ),
     transform((data: readonly T[]) => [...data]),
   ] as any
@@ -317,12 +317,12 @@ export const array = new ArrayValidator([])
 
 class TupleValidator<
   I extends readonly unknown[] = [],
-  R extends readonly unknown[] = []
+  R extends readonly unknown[] = [],
 > extends Validator<[...I, ...R]> {
   protected readonly core = [
     refine(
       (data): data is readonly unknown[] => Array.isArray(data),
-      `Expected an array.`
+      `Expected an array.`,
     ),
     transform((data: readonly unknown[]) => [...data]),
     (data: readonly unknown[]): Result<[...I, ...R]> => {
@@ -339,8 +339,8 @@ class TupleValidator<
           errors.push(
             ...joinErrors(
               `Found error at index ${index} of array: `,
-              result.errors
-            )
+              result.errors,
+            ),
           )
         } else {
           value.push(result.value)
@@ -356,8 +356,8 @@ class TupleValidator<
             errors.push(
               ...joinErrors(
                 `Found error at index ${index} of array: `,
-                result.errors
-              )
+                result.errors,
+              ),
             )
           } else {
             value.push(result.value)
@@ -367,7 +367,7 @@ class TupleValidator<
         return {
           ok: false,
           errors: errors.concat(
-            `Found ${data.length} items; expected ${this.tupleItems.length}`
+            `Found ${data.length} items; expected ${this.tupleItems.length}`,
           ),
         }
       }
@@ -381,19 +381,19 @@ class TupleValidator<
   constructor(
     modifiers: readonly Modifier<any, any>[],
     protected readonly tupleItems: readonly AnyValidator[],
-    protected readonly tupleRest?: AnyValidator
+    protected readonly tupleRest?: AnyValidator,
   ) {
     super(modifiers)
   }
 
   protected duplicate(
     newModifiers: readonly Modifier<any, any>[],
-    newTupleRest = this.tupleRest
+    newTupleRest = this.tupleRest,
   ): this {
     return new (this.constructor as typeof TupleValidator)(
       newModifiers,
       this.tupleItems,
-      newTupleRest
+      newTupleRest,
     ) as this
   }
 
@@ -412,13 +412,13 @@ class ObjectValidator<T extends object = {}> extends Validator<T> {
   protected readonly core = [
     refine(
       (data): data is object => typeof data == "object",
-      `Expected an object.`
+      `Expected an object.`,
     ),
     transform((data: object) => ({ ...data })),
   ] as any
 
   shape<U extends Record<string, AnyValidator>>(
-    shape: U
+    shape: U,
   ): ObjectValidator<{ readonly [K in keyof U]: Infer<U[K]> }> {
     return this.chain<{ readonly [K in keyof U]: Infer<U[K]> }>((data) => {
       let ok = true

@@ -12,7 +12,7 @@ export function reset(_size: number) {
     lights.length,
     ...Array.from({ length: size }, () => {
       return Array.from({ length: size }, () => false)
-    })
+    }),
   )
 
   clicks.splice(
@@ -20,7 +20,7 @@ export function reset(_size: number) {
     clicks.length,
     ...Array.from({ length: size }, () => {
       return Array.from({ length: size }, () => false)
-    })
+    }),
   )
 }
 

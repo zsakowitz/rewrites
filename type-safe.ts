@@ -3,7 +3,7 @@
 export namespace Uint {
   export function add<A extends number, B extends number>(
     a: A,
-    b: B
+    b: B,
   ): number extends A
     ? number
     : number extends B
@@ -16,7 +16,7 @@ export namespace Uint {
 
   export function subtract<A extends number, B extends number>(
     a: A,
-    b: B
+    b: B,
   ): number extends A
     ? number
     : number extends B
@@ -27,7 +27,7 @@ export namespace Uint {
 
   export function subtract<A extends number, B extends number>(
     a: A,
-    b: B
+    b: B,
   ): number {
     return Math.max(0, a - b)
   }
@@ -35,12 +35,12 @@ export namespace Uint {
   type Multiply<
     A extends unknown[],
     B extends unknown[],
-    T extends unknown[] = []
+    T extends unknown[] = [],
   > = B extends [unknown, ...infer Rest] ? Multiply<A, Rest, [...T, ...A]> : T
 
   export function multiply<A extends number, B extends number>(
     a: A,
-    b: B
+    b: B,
   ): number extends A
     ? number
     : number extends B
@@ -57,7 +57,7 @@ export namespace Uint {
 
   export function multiply<A extends number, B extends number>(
     a: A,
-    b: B
+    b: B,
   ): number {
     return a * b
   }
@@ -66,11 +66,11 @@ export namespace Uint {
 export namespace Array {
   export type FromLength<
     N extends number,
-    A extends unknown[] = []
+    A extends unknown[] = [],
   > = A["length"] extends N ? A : FromLength<N, [...A, undefined]>
 
   export function fromLength<N extends number>(
-    length: N
+    length: N,
   ): number extends N ? undefined[] : FromLength<N> {
     return globalThis.Array.from({ length }) as any
   }
@@ -78,7 +78,7 @@ export namespace Array {
 
 export abstract class Function<
   // @ts-ignore
-  in T
+  in T,
 > {
   declare input: T
 
@@ -86,7 +86,7 @@ export abstract class Function<
   protected abstract x(input: this["input"])
 
   call<U extends T>(
-    value: U
+    value: U,
   ): ReturnType<
     // @ts-ignore
     (this & { readonly input: U })["x"]
@@ -101,7 +101,11 @@ export abstract class Type<T> {
   when<U, A extends Function<T & U>, B extends Function<U>>(
     value: U,
     ifMatches: A,
-    otherwise: U extends B["input"] ? (B["input"] extends U ? B : never) : never
+    otherwise: U extends B["input"]
+      ? B["input"] extends U
+        ? B
+        : never
+      : never,
   ) {
     if (this.is(value)) {
       return ifMatches.call(value)
@@ -130,5 +134,5 @@ const x = Type.String.when(
     protected x(input: this["input"]) {
       return { y: input }
     }
-  })()
+  })(),
 )

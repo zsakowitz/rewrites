@@ -63,7 +63,7 @@ export class Quaternion implements QuaternionLike {
       n * on - i * oi - j * oj - k * ok,
       n * oi + i * on + j * ok - k * oj,
       n * oj + j * on + k * oi - i * ok,
-      n * ok + k * on + i * oj - j * oi
+      n * ok + k * on + i * oj - j * oi,
     )
   }
 

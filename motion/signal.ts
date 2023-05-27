@@ -57,7 +57,7 @@ export function effect(effect: () => void) {
 }
 
 function signalCore<T>(
-  value: T
+  value: T,
 ): [getUntracked: () => T, get: () => T, set: (value: T) => void] {
   const tracked = new Set<() => void>()
 
@@ -115,7 +115,7 @@ export type Signal<I, O = I> = {
     value: I,
     frames: number,
     easer?: Easer,
-    interpolator?: Interpolator<O>
+    interpolator?: Interpolator<O>,
   ): AnimationAction<O>
 }
 
@@ -131,7 +131,7 @@ export type AnimationAction<T> = Action & {
     value: T,
     frames: number,
     easer: Easer | undefined,
-    interpolator: Interpolator<T>
+    interpolator: Interpolator<T>,
   ): AnimationAction<T>
 }
 
@@ -164,10 +164,10 @@ export type AnimationAction<T> = Action & {
  */
 export function signal<T>(
   initialValue: SignalLike<T>,
-  defaultInterpolator: Interpolator<T> = linear as any
+  defaultInterpolator: Interpolator<T> = linear as any,
 ): Signal<T> {
   const [getUntracked, get, set] = signalCore<T>(
-    isSignal(initialValue) ? untrack(initialValue) : initialValue
+    isSignal(initialValue) ? untrack(initialValue) : initialValue,
   )
 
   let unsub = isSignal(initialValue) ? effect(() => set(initialValue())) : noop
@@ -176,7 +176,7 @@ export function signal<T>(
     value?: SignalLike<T>,
     frames?: number,
     easer?: Easer,
-    interpolator?: Interpolator<T>
+    interpolator?: Interpolator<T>,
   ) {
     if (value === void 0) {
       return get()
@@ -193,8 +193,8 @@ export function signal<T>(
         isSignal(value) ? untrack(value) : value,
         frames,
         easer,
-        interpolator
-      )
+        interpolator,
+      ),
     )
   }
 
@@ -202,7 +202,7 @@ export function signal<T>(
     end: T,
     frames: number,
     easer: Easer = linear,
-    interpolator: Interpolator<T> = defaultInterpolator
+    interpolator: Interpolator<T> = defaultInterpolator,
   ): Action {
     const start = getUntracked()
     set(interpolator(easer(0), start, end))
@@ -223,7 +223,7 @@ export function signal<T>(
         (function* (): Action {
           yield* output
           yield* animate(...args)
-        })()
+        })(),
       )
 
     return output

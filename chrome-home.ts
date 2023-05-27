@@ -60,7 +60,7 @@ namespace StackBlitz {
   export function GetFocused() {
     let editorTab =
       document.querySelector(
-        '[class*="Editor-module-panel"]:focus-within #editor-tabbar-0 > [class*=focused]'
+        '[class*="Editor-module-panel"]:focus-within #editor-tabbar-0 > [class*=focused]',
       ) || undefined
 
     let terminal =

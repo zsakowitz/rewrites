@@ -2,7 +2,7 @@
 
 type BoolArrayOfSize<
   T extends number,
-  A extends readonly boolean[] = []
+  A extends readonly boolean[] = [],
 > = A["length"] extends T ? A : BoolArrayOfSize<T, readonly [...A, boolean]>
 
 interface Binary<T extends number> {

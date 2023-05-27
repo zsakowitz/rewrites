@@ -75,7 +75,7 @@ class Cell {
         this.br2,
         this.minis[6]!,
         this.minis[7]!,
-        this.minis[8]!
+        this.minis[8]!,
       )
 
       this.minis.forEach((mini, index) => {
@@ -162,8 +162,8 @@ for (let row = 0; row < 9; row++) {
     cell.group = board
       .map((row) =>
         row.filter(
-          (_, otherCol) => Math.floor(otherCol / 3) == Math.floor(col / 3)
-        )
+          (_, otherCol) => Math.floor(otherCol / 3) == Math.floor(col / 3),
+        ),
       )
       .filter((_, otherRow) => Math.floor(otherRow / 3) == Math.floor(row / 3))
       .flat()
@@ -207,7 +207,7 @@ function saveState(): State {
     row.map((cell) => ({
       possibleValues: cell.possibleValues.slice(),
       value: cell.value,
-    }))
+    })),
   )
 }
 
@@ -225,6 +225,6 @@ function restoreState(state: State) {
 
 function isImpossible() {
   return board.some((row) =>
-    row.some((cell) => cell.possibleValues.length == 0)
+    row.some((cell) => cell.possibleValues.length == 0),
   )
 }

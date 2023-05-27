@@ -4,19 +4,19 @@ import { Observable } from "."
 
 export function listen<K extends keyof HTMLElementEventMap>(
   element: HTMLElement,
-  event: K
+  event: K,
 ): Observable<HTMLElementEventMap[K]>
 
 export function listen(
   element: HTMLElement,
   event: string,
-  options?: boolean | AddEventListenerOptions
+  options?: boolean | AddEventListenerOptions,
 ): Observable<Event>
 
 export function listen(
   element: HTMLElement,
   event: string,
-  options?: boolean | AddEventListenerOptions
+  options?: boolean | AddEventListenerOptions,
 ): Observable<Event> {
   return new Observable((observer) => {
     function listener(event: Event) {

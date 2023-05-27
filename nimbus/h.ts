@@ -7,7 +7,7 @@ type HTMLProps = Partial<JSX.Helpers.HTMLProps<HTMLElement | SVGElement>>
 
 function setCssPropsWithSignals(
   element: HTMLElement | SVGElement,
-  props: string | JSX.Helpers.CSSPropsWithSignals
+  props: string | JSX.Helpers.CSSPropsWithSignals,
 ) {
   if (typeof props == "string") {
     ;(element as any).style = props
@@ -35,7 +35,7 @@ function setCssPropsWithSignals(
 
 function setCssProps(
   element: HTMLElement | SVGElement,
-  props: string | JSX.Helpers.CSSProps
+  props: string | JSX.Helpers.CSSProps,
 ) {
   if (typeof props == "string") {
     ;(element as any).style = props
@@ -253,7 +253,7 @@ export function h(
 
 export function h<P, T extends JSX.Element>(
   tag: (props: P) => T,
-  props: {} extends P ? P | null | undefined : P
+  props: {} extends P ? P | null | undefined : P,
 ): T
 
 export function h<P extends { children: unknown }, T extends JSX.Element>(

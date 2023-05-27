@@ -8,7 +8,7 @@ export class Matrix {
 
     if (rows <= 0) {
       throw new Error(
-        "The matrix-like object has a zero or negative dimension."
+        "The matrix-like object has a zero or negative dimension.",
       )
     }
 
@@ -16,7 +16,7 @@ export class Matrix {
 
     if (cols <= 0) {
       throw new Error(
-        "The matrix-like object has a zero or negative dimension."
+        "The matrix-like object has a zero or negative dimension.",
       )
     }
 
@@ -66,7 +66,7 @@ export class Matrix {
 
     if (this.columns !== other.rows) {
       throw new Error(
-        "When multiplying matrices, the number of columns in the first matrix must be the same as the numbers of rows in the second matrix."
+        "When multiplying matrices, the number of columns in the first matrix must be the same as the numbers of rows in the second matrix.",
       )
     }
 

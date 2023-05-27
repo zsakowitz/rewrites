@@ -98,7 +98,7 @@ export const ContentWord: Z.Parser<Word> = Z.oneOf(Word.Content).map(asWord)
 
 export const PiGroup: Z.Parser<Modifier> = Z.seq(
   Z.text("pi"),
-  Z.many(Z.seq(Whitespace, ContentWord).map((value) => value[1]))
+  Z.many(Z.seq(Whitespace, ContentWord).map((value) => value[1])),
 ).map(([, matches]) => ({
   type: "mod-group",
   head: asWord("pi"),
@@ -110,13 +110,13 @@ export const Modifier: Z.Parser<Modifier> = Z.any(
   ContentWord.map<Modifier>((word) => ({
     type: "modifier",
     word,
-  }))
+  })),
 )
 
 export const Noun: Z.Parser<Noun> = Z.seq(
   Z.optional(Z.seq(Z.text("le"), Whitespace)),
   ContentWord,
-  Z.many(Z.seq(Whitespace, Modifier).map((value) => value[1]))
+  Z.many(Z.seq(Whitespace, Modifier).map((value) => value[1])),
 ).map(([le, head, tail]) => ({
   type: "noun",
   article: le ? asWord("le") : undefined,
@@ -142,12 +142,12 @@ export const Verb: Z.Parser<Verb> = Z.sepBy1(ContentWord, Whitespace).map(
       tail: words.slice(1),
       preverbs,
     }
-  }
+  },
 )
 
 export const Subject: Z.Parser<readonly Noun[]> = Z.seq(
   Z.optional(Z.seq(Z.text("en"), Whitespace)),
-  Z.sepBy(Noun, Z.seq(Whitespace, Z.text("en"), Whitespace))
+  Z.sepBy(Noun, Z.seq(Whitespace, Z.text("en"), Whitespace)),
 ).map((value) => value[1])
 
 export type Action = {
@@ -159,7 +159,7 @@ export type Action = {
 export const Action: Z.Parser<Action> = Z.seq(
   Z.oneOf(["li", "o"] as const).map(asWord),
   Whitespace,
-  Verb
+  Verb,
 ).map(([head, , action]) => ({
   type: "action",
   head,
@@ -174,7 +174,7 @@ export type Object = {
 export const Object: Z.Parser<Object> = Z.seq(
   Z.text("e"),
   Whitespace,
-  Noun
+  Noun,
 ).map(([, , object]) => ({ type: "object", object }))
 
 export const Preposition = Z.any(Action, Object)
@@ -189,16 +189,16 @@ export const Sentence: Z.Parser<Sentence> = Z.any(
   Z.seq(
     Z.lookahead(Z.seq(Z.text("o"), Whitespace)),
     Action,
-    Z.many(Z.seq(Whitespace, Preposition).map((value) => value[1]))
+    Z.many(Z.seq(Whitespace, Preposition).map((value) => value[1])),
   ).map(
     ([, first, tail]): Sentence => ({
       type: "sentence",
       head: [],
       tail: [first, ...tail],
-    })
+    }),
   ),
   Z.seq(
     Subject,
-    Z.many(Z.seq(Whitespace, Preposition).map((value) => value[1]))
-  ).map(([head, tail]): Sentence => ({ type: "sentence", head, tail }))
+    Z.many(Z.seq(Whitespace, Preposition).map((value) => value[1])),
+  ).map(([head, tail]): Sentence => ({ type: "sentence", head, tail })),
 )

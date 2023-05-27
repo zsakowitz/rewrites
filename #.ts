@@ -32,7 +32,7 @@ class Parser {
   /** Matches exprs. */
   script() {
     const result = this.exprs("execute").error(
-      "A # script must be a list of expressions."
+      "A # script must be a list of expressions.",
     )
 
     if (this.source.trim().length !== 0) {
@@ -110,7 +110,7 @@ class Parser {
 
     if (mode == "comma") {
       return new ParseResult(this, true, source).setJs(
-        () => `(${js.join(", ")})`
+        () => `(${js.join(", ")})`,
       )
     }
 
@@ -121,7 +121,7 @@ class Parser {
         return new ParseResult(this, true, source).setJs(() => js[0] + ";\n")
       } else {
         return new ParseResult(this, true, source).setJs(
-          () => js.join(";\n\n") + ";\n"
+          () => js.join(";\n\n") + ";\n",
         )
       }
     }
@@ -131,7 +131,7 @@ class Parser {
         return new ParseResult(this, true, source).setJs(() => "")
       } else if (js.length == 1) {
         return new ParseResult(this, true, source).setJs(
-          () => `return ${js[0]};\n`
+          () => `return ${js[0]};\n`,
         )
       } else if (js.length == 2) {
         return new ParseResult(this, true, source).setJs(
@@ -139,7 +139,7 @@ class Parser {
             js.slice(0, -1).join(";\n\n") +
             ";\n\nreturn " +
             js[js.length - 1] +
-            ";\n"
+            ";\n",
         )
       }
     }
@@ -167,8 +167,8 @@ class Parser {
             result.source
               .split("")
               .map((x) => "_" + x.codePointAt(0))
-              .join("")
-          )
+              .join(""),
+          ),
       )
   }
 
@@ -198,7 +198,7 @@ class Parser {
       .map((path) =>
         this.propName()
           .setJs((result) => `${path.js}.${result.js}`)
-          .or(() => this.expr().setJs((result) => `${path.js}[${result.js}]`))
+          .or(() => this.expr().setJs((result) => `${path.js}[${result.js}]`)),
       )
   }
 
@@ -215,9 +215,9 @@ class Parser {
               result.source
                 .split("")
                 .map((x) => "_" + x.codePointAt(0))
-                .join("")
-            )
-        )
+                .join(""),
+            ),
+        ),
     )
   }
 
@@ -227,8 +227,8 @@ class Parser {
       .map(() => this.expr())
       .map((cond) =>
         this.expr().map((yes) =>
-          this.expr().setJs((no) => `(${cond.js} ? ${yes.js} : ${no.js})`)
-        )
+          this.expr().setJs((no) => `(${cond.js} ? ${yes.js} : ${no.js})`),
+        ),
       )
   }
 
@@ -237,7 +237,7 @@ class Parser {
     return this.match("=")
       .map(() => this.assignable())
       .map((assignable) =>
-        this.expr().setJs((expr) => `(${assignable.js} = ${expr.js})`)
+        this.expr().setJs((expr) => `(${assignable.js} = ${expr.js})`),
       )
   }
 
@@ -345,7 +345,7 @@ class Parser {
     }
 
     return new ParseResult(this, true, source).setJs(() =>
-      isTemplate ? `\`${js}\`` : `"${js}"`
+      isTemplate ? `\`${js}\`` : `"${js}"`,
     )
   }
 
@@ -363,7 +363,7 @@ class Parser {
         ? "\\$"
         : result.source == "`"
         ? "\\`"
-        : result.source
+        : result.source,
     )
   }
 
@@ -387,7 +387,7 @@ class Parser {
     return this.match("(")
       .map(() => this.expr())
       .map((target) =>
-        this.exprs("comma").setJs((args) => `(${target.js}(${args.js}))`)
+        this.exprs("comma").setJs((args) => `(${target.js}(${args.js}))`),
       )
   }
 
@@ -430,9 +430,9 @@ class Parser {
       .or(() =>
         this.match("=").map(() =>
           this.pattern().map((pattern) =>
-            this.expr().setJs((expr) => `${pattern} = ${expr}`)
-          )
-        )
+            this.expr().setJs((expr) => `${pattern} = ${expr}`),
+          ),
+        ),
       )
       .or(() => this.pattern())
   }
@@ -461,7 +461,7 @@ class Parser {
             "console.input.char()",
             "console.input.line()",
             "console.input.rest()",
-          ]![dots.source.match(/\./g)!.length]!
+          ]![dots.source.match(/\./g)!.length]!,
       )
   }
 }
@@ -472,7 +472,7 @@ class ParseResult {
   constructor(
     public readonly parser: Parser,
     public readonly ok: boolean,
-    public readonly source: string
+    public readonly source: string,
   ) {}
 
   error(error: string) {

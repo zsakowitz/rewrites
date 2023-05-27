@@ -55,7 +55,7 @@ export function randomPath3d(steps: number) {
 export function repeat(
   path: (steps: number) => boolean,
   steps: number,
-  attempts: number
+  attempts: number,
 ) {
   let successes = 0
   let failures = 0

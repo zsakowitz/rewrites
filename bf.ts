@@ -21,13 +21,13 @@ const Whitespace = Z.regex(/^[ \t]+/).void()
 
 const Macro: Z.Parser<Token> = Z.seq(
   Z.regex(/^[a-z_][a-z0-9_]*[!?]?/).map((match) => match[0]),
-  Z.many(Z.seq(Whitespace, Z.regex(/^[^\s]+/)).map((match) => match[1][0]))
+  Z.many(Z.seq(Whitespace, Z.regex(/^[^\s]+/)).map((match) => match[1][0])),
 ).map(([name, args]) => ({ type: "macro", name, args }))
 
 const Code: Z.Parser<Token> = Z.seq(
   Z.text("'"),
   Z.regex(/^[^'\n\r]+/),
-  Z.text("'")
+  Z.text("'"),
 ).map(([, text]) => {
   const code = text[0]
     .split("")
@@ -43,7 +43,7 @@ const Script: Z.Parser<readonly Token[]> = Z.seq(
   OptionalNewline,
   Z.sepBy(Z.any(Macro, Code), Newline),
   OptionalNewline,
-  Z.not(Z.char)
+  Z.not(Z.char),
 ).map(([, tokens]) => tokens)
 
 type Macro = (...args: readonly string[]) => string
@@ -150,7 +150,7 @@ export function expand(_tokens: readonly Token[]) {
     }
 
     throw new SyntaxError(
-      "Found unexpected macro after flattening: '" + token.type + "'."
+      "Found unexpected macro after flattening: '" + token.type + "'.",
     )
   })
 }
@@ -224,7 +224,7 @@ export function compile(script: readonly Character[]): (input: string) => {
   // ${script.join("")}
 ${output}
 
-return { index, input, memory, output }`
+return { index, input, memory, output }`,
   ) as any
 }
 

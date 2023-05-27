@@ -55,7 +55,7 @@ export function surf(pages: readonly [Page, ...Page[]], iterations: number) {
 export function repeatedlySurf(
   pages: readonly [Page, ...Page[]],
   iterations: number,
-  count: number
+  count: number,
 ) {
   const output: Record<string, number> = Object.create(null)
 
@@ -85,7 +85,7 @@ export function alternateSurf(start: Page, iterations: number) {
   }
 
   return Object.fromEntries(
-    Object.entries(scores).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    Object.entries(scores).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   )
 }
 

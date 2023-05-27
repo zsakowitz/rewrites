@@ -18,6 +18,6 @@ export function rgb(percentage: number, start: string, end: string) {
     linear(percentage, sR, eR),
     linear(percentage, sG, eG),
     linear(percentage, sB, eB),
-    linear(percentage, sA, eA)
+    linear(percentage, sA, eA),
   )
 }

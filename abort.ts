@@ -115,7 +115,7 @@ export class Signal<T> implements AbortSignalLike<T>, PromiseLike<T> {
 
   // Yo, we're a thenable!
   then<U>(
-    listener: ((reason: T) => U | PromiseLike<U>) | null | undefined
+    listener: ((reason: T) => U | PromiseLike<U>) | null | undefined,
   ): Signal<U> {
     if (!listener) {
       return new Signal(() => {})

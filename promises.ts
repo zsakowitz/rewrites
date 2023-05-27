@@ -18,8 +18,8 @@ export class zPromise<T> {
   constructor(
     executor: (
       resolve: (value: T | PromiseLike<T>) => void,
-      reject: (reason?: any) => void
-    ) => void
+      reject: (reason?: any) => void,
+    ) => void,
   ) {
     this.#promise = new Promise<T>((resolve, reject) => {
       executor(resolve, reject)
@@ -34,7 +34,7 @@ export class zPromise<T> {
     onrejected?:
       | ((reason: any) => TResult2 | PromiseLike<TResult2>)
       | undefined
-      | null
+      | null,
   ): zPromise<TResult1 | TResult2> {
     return zPromise.resolve(this.#promise.then(onfulfilled, onrejected))
   }
@@ -43,14 +43,14 @@ export class zPromise<T> {
     onrejected?:
       | ((reason: any) => TResult | PromiseLike<TResult>)
       | undefined
-      | null
+      | null,
   ): zPromise<TResult | T> {
     return this.then<T, TResult>(null, onrejected)
   }
 
   passthrough(
     onfulfilled?: ((value: T) => void | PromiseLike<void>) | undefined | null,
-    onrejected?: ((reason: any) => void | PromiseLike<void>) | undefined | null
+    onrejected?: ((reason: any) => void | PromiseLike<void>) | undefined | null,
   ): zPromise<T> {
     return this.then<T, never>(
       (value) => {
@@ -66,7 +66,7 @@ export class zPromise<T> {
           })
 
         throw reason
-      }
+      },
     )
   }
 
@@ -82,7 +82,7 @@ export class zPromise<T> {
     onrejected?:
       | ((reason: any) => TResult2 | PromiseLike<TResult2>)
       | undefined
-      | null
+      | null,
   ): zPromise<(T extends any[] ? TResult1 : T) | TResult2> {
     return this.then<T extends any[] ? TResult1 : T, TResult2>((value) => {
       if (typeof onfulfilled == "function" && Array.isArray(value))

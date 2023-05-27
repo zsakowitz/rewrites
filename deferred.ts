@@ -26,7 +26,7 @@ export class Deferred<T> {
   resolve(x: T | PromiseLike<T>) {
     if ((this as any) === x) {
       this.reject(
-        new TypeError("The promise and value refer to the same object")
+        new TypeError("The promise and value refer to the same object"),
       )
     } else if (x && (typeof x == "object" || typeof x == "function")) {
       let called = false
@@ -48,7 +48,7 @@ export class Deferred<T> {
                 this.reject(reason)
                 called = true
               }
-            }
+            },
           )
         } else {
           this.fulfill(x as T)
@@ -83,7 +83,7 @@ export class Deferred<T> {
     onrejected?:
       | ((reason: any) => TResult2 | PromiseLike<TResult2>)
       | undefined
-      | null
+      | null,
   ): Deferred<TResult1 | TResult2> {
     let deferred = new Deferred<TResult1 | TResult2>()
 
@@ -124,7 +124,7 @@ export class Deferred<T> {
     onrejected?:
       | ((reason: any) => TResult | PromiseLike<TResult>)
       | undefined
-      | null
+      | null,
   ): Deferred<T | TResult> {
     return this.then(null, onrejected)
   }
@@ -138,7 +138,7 @@ export class Deferred<T> {
       (reason) => {
         if (typeof onfinally == "function") onfinally()
         throw reason
-      }
+      },
     )
   }
 
@@ -165,7 +165,7 @@ export class Deferred<T> {
   }
 
   spread<TResult = void>(
-    onfulfilled: (...value: T & any[]) => TResult | PromiseLike<T>
+    onfulfilled: (...value: T & any[]) => TResult | PromiseLike<T>,
   ): Deferred<T extends any[] ? TResult : T> {
     return this.then<T extends any[] ? TResult : T>((value) => {
       if (Array.isArray(value)) return onfulfilled(...(value as any)) as any

@@ -7,7 +7,7 @@ const numberToString = createFunction(
     x(input: this["input"]) {
       return `${input}` as const
     }
-  }
+  },
 )
 
 const valueResult: "23" = numberToString(23)

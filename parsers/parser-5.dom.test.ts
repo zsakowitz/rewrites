@@ -54,7 +54,7 @@ entry.oninput = () => {
       output.value = JSON.stringify(
         grammar.parse(input.value).value,
         undefined,
-        2
+        2,
       )
     } else {
       output.value = grammar
@@ -70,7 +70,7 @@ input.oninput = () => {
       output.value = JSON.stringify(
         grammar.parse(input.value).value,
         undefined,
-        2
+        2,
       )
     } else {
       output.value = grammar
@@ -85,7 +85,7 @@ document.body.remove()
 
 document.documentElement.append(
   document.createElement("head"),
-  document.createElement("body")
+  document.createElement("body"),
 )
 
 document.documentElement.style.background = "#151515"

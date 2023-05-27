@@ -7,7 +7,7 @@ export function untrack<This, Value extends (this: This, ...args: any) => any>(
   context:
     | ClassGetterDecoratorContext<This, ReturnType<Value>>
     | ClassMethodDecoratorContext<This, Value>
-    | ClassSetterDecoratorContext<This, ReturnType<Value>>
+    | ClassSetterDecoratorContext<This, ReturnType<Value>>,
 ) {
   return function (this, ...args) {
     return useUntrack(() => value.apply(this, args))
@@ -19,7 +19,7 @@ export function batch<This, Value extends (this: This, ...args: any) => any>(
   context:
     | ClassGetterDecoratorContext<This, ReturnType<Value>>
     | ClassMethodDecoratorContext<This, Value>
-    | ClassSetterDecoratorContext<This, ReturnType<Value>>
+    | ClassSetterDecoratorContext<This, ReturnType<Value>>,
 ) {
   return function (this, ...args) {
     return useBatch(() => value.apply(this, args))
@@ -28,7 +28,7 @@ export function batch<This, Value extends (this: This, ...args: any) => any>(
 
 export function signal<This extends object, Value>(
   value: ClassAccessorDecoratorTarget<This, Value>,
-  context: ClassAccessorDecoratorContext<This, Value>
+  context: ClassAccessorDecoratorContext<This, Value>,
 ): ClassAccessorDecoratorResult<This, Value> {
   const map = new WeakMap<This, Signal<Value>>()
 
@@ -37,7 +37,7 @@ export function signal<This extends object, Value>(
 
     if (!signal) {
       throw new TypeError(
-        "Cannot access signal value on an uninitialized object."
+        "Cannot access signal value on an uninitialized object.",
       )
     }
 
@@ -60,7 +60,7 @@ export function signal<This extends object, Value>(
 
 export function memo<This extends object, Value>(
   value: (this: This) => Value,
-  context: ClassGetterDecoratorContext<This, Value>
+  context: ClassGetterDecoratorContext<This, Value>,
 ) {
   const map = new WeakMap<This, () => Value>()
 
@@ -80,7 +80,7 @@ export function memo<This extends object, Value>(
 }
 
 export function effect<Class extends abstract new (...args: any) => any>(
-  effect: (this: InstanceType<Class>) => void
+  effect: (this: InstanceType<Class>) => void,
 ) {
   return (value: Class, context: ClassDecoratorContext<Class>) => {
     abstract class ClassWithEffect extends value {

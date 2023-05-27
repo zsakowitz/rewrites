@@ -30,7 +30,7 @@ export function logged(value: any, context: DecoratorContext): any {
                   getter: "getting",
                   setter: "setting",
                 }[context.kind]
-              } ${name}`
+              } ${name}`,
             )
 
             try {

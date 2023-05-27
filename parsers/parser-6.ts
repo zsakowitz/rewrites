@@ -39,7 +39,7 @@ export function ok<T>(source: string, index: number, data: T): Result<T> {
 export function error<T>(
   source: string,
   index: number,
-  error: string
+  error: string,
 ): Result<T> {
   return {
     ok: false,
@@ -56,7 +56,7 @@ export function initial(source: string): PreviousState {
 
 /** Create a function that actually parses something. */
 export function createParseFn<T>(
-  parser: Parser<T>
+  parser: Parser<T>,
 ): (source: string) => Result<T> {
   return (source) => parser(initial(source))
 }
@@ -74,7 +74,7 @@ export function text<T extends string>(text: T): Parser<T> {
         index,
         `Expected '${text}'; found '${source.slice(index, index + 20)}${
           source.length > index + 20 ? "..." : ""
-        }'.`
+        }'.`,
       )
     }
   }
@@ -84,25 +84,25 @@ export function text<T extends string>(text: T): Parser<T> {
 export function regex(regex: RegExp): Parser<RegExpMatchArray> {
   if (regex.global) {
     throw new Error(
-      "The regular expression passed to 'regex' must not be global."
+      "The regular expression passed to 'regex' must not be global.",
     )
   }
 
   if (regex.sticky) {
     throw new Error(
-      "The regular expression passed to 'regex' must not be sticky."
+      "The regular expression passed to 'regex' must not be sticky.",
     )
   }
 
   if (regex.multiline) {
     throw new Error(
-      "The regular expression passed to 'regex' must not be multiline."
+      "The regular expression passed to 'regex' must not be multiline.",
     )
   }
 
   if (!regex.source.startsWith("^")) {
     throw new Error(
-      "The regular expression passed to 'regex' must start with a begin assertion (^)."
+      "The regular expression passed to 'regex' must start with a begin assertion (^).",
     )
   }
 
@@ -115,8 +115,8 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
         index,
         `Expected match for ${regex}; found '${source.slice(
           index,
-          index + 20
-        )}${source.length > index + 20 ? "..." : ""}'.`
+          index + 20,
+        )}${source.length > index + 20 ? "..." : ""}'.`,
       )
     }
 
@@ -127,7 +127,7 @@ export function regex(regex: RegExp): Parser<RegExpMatchArray> {
 /** The type of function passed to {@link coroutine} */
 export type CoroutineFunction<T> = (
   run: <U>(parser: Parser<U>) => U,
-  resetIndex: () => void
+  resetIndex: () => void,
 ) => T
 
 /** Runs a function that may include matchers. */
@@ -149,7 +149,7 @@ export function coroutine<T>(fn: CoroutineFunction<T>): Parser<T> {
         },
         () => {
           index = startIndex
-        }
+        },
       )
 
       return ok(source, index, data)
@@ -157,7 +157,7 @@ export function coroutine<T>(fn: CoroutineFunction<T>): Parser<T> {
       return error(
         source,
         index,
-        err instanceof Error ? err.message : String(err)
+        err instanceof Error ? err.message : String(err),
       )
     }
   }
@@ -255,7 +255,7 @@ export function voidify(parser: Parser<unknown>): Parser<void> {
  */
 export function refine<T>(
   parser: Parser<T>,
-  fn: (value: T) => boolean
+  fn: (value: T) => boolean,
 ): Parser<T> {
   return coroutine((run, resetIndex) => {
     const value = run(parser)
@@ -290,7 +290,7 @@ export function optional<T>(parser: Parser<T>): Parser<T | undefined> {
 /** If the parser succeeds, returns its value. Otherwise, returns the default. */
 export function withDefault<T, U>(
   parser: Parser<T>,
-  defaultValue: U
+  defaultValue: U,
 ): Parser<T | U> {
   return coroutine((run, resetIndex) => {
     try {

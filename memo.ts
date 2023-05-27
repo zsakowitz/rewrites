@@ -4,7 +4,7 @@ type Primitive = string | number | bigint | boolean | symbol | null | undefined
 
 export function memo<This, P extends Primitive, R>(
   value: (this: This, arg: P) => R,
-  _context: ClassMethodDecoratorContext<This, (this: This, arg: P) => R>
+  _context: ClassMethodDecoratorContext<This, (this: This, arg: P) => R>,
 ): (this: This, arg: P) => R {
   const memo = new Map<P, R>()
 

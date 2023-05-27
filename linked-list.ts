@@ -39,7 +39,7 @@ export class LinkedList<T> {
       | {
           [Symbol.split](string: string, limit?: number | undefined): string[]
         },
-    limit?: number
+    limit?: number,
   ) {
     return LinkedList.of(...text.split(separator as any, limit))
   }
@@ -75,7 +75,7 @@ export class LinkedList<T> {
   }
 
   every<U extends T>(
-    fn: (head: T, tail: LinkedList<T>) => head is U
+    fn: (head: T, tail: LinkedList<T>) => head is U,
   ): this is LinkedList<U>
   every(fn: (head: T, tail: LinkedList<T>) => unknown): boolean
   every(fn: (head: T, tail: LinkedList<T>) => unknown): boolean {
@@ -93,7 +93,7 @@ export class LinkedList<T> {
   }
 
   filter<U extends T>(
-    fn: (head: T, tail: LinkedList<T>) => head is U
+    fn: (head: T, tail: LinkedList<T>) => head is U,
   ): LinkedList<U>
   filter(fn: (head: T, tail: LinkedList<T>) => unknown): LinkedList<T>
   filter(fn: (head: T, tail: LinkedList<T>) => unknown): LinkedList<T> {

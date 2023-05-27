@@ -5,7 +5,7 @@ import { throwTypeError } from "./throw-type-error"
 // https://tc39.es/ecma262/#sec-getmethod
 export function getMethod<T, K extends keyof any>(
   value: T,
-  key: K
+  key: K,
 ): Extract<T, { readonly [_ in K]?: any }>[K] | undefined {
   // 1. Let func be ? GetV(V, P).
   const func = (value as any)[key]

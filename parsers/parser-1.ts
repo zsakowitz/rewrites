@@ -51,7 +51,7 @@ class Result<D> {
     public readonly parser: Parser,
     public readonly ok: boolean,
     public readonly source: string,
-    public readonly data: D
+    public readonly data: D,
   ) {}
 }
 

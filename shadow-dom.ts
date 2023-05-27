@@ -67,11 +67,11 @@ export function render(parent: JSX.Parent, child: JSX.Element): void {
 
 export function customElement(
   name: string,
-  options?: ElementDefinitionOptions
+  options?: ElementDefinitionOptions,
 ) {
   return <Class extends new (...args: unknown[]) => HTMLElement>(
     _class: Class,
-    context: ClassDecoratorContext<Class>
+    context: ClassDecoratorContext<Class>,
   ) => {
     context.addInitializer(function (this) {
       customElements.define(name, this, options)
@@ -106,7 +106,7 @@ export class ShadowElement extends HTMLElement {
   attributeChangedCallback(
     name: string,
     _oldValue: string | null,
-    newValue: string | null
+    newValue: string | null,
   ) {
     const prop = this.constructor.attributeMap.get(name.toLowerCase())
 
@@ -126,16 +126,16 @@ export interface ShadowElement {
 
 export type AttributeDecorator<Value> = <This extends ShadowElement>(
   value: ClassAccessorDecoratorTarget<This, Value>,
-  context: ClassAccessorDecoratorContext<This, Value>
+  context: ClassAccessorDecoratorContext<This, Value>,
 ) => ClassAccessorDecoratorResult<This, Value>
 
 export function customAttribute<Value>(
   name: string,
-  options: Pick<AttributeOptions<Value>, "decode" | "encode">
+  options: Pick<AttributeOptions<Value>, "decode" | "encode">,
 ): AttributeDecorator<Value> {
   return <This extends ShadowElement>(
     value: ClassAccessorDecoratorTarget<This, Value>,
-    context: ClassAccessorDecoratorContext<This, Value>
+    context: ClassAccessorDecoratorContext<This, Value>,
   ): ClassAccessorDecoratorResult<This, Value> => {
     context.addInitializer(function (this) {
       this.constructor.attributeMap.set(name, {
@@ -171,17 +171,17 @@ export function customAttribute<Value>(
 
 export function attribute(
   name: string,
-  options: { default: string }
+  options: { default: string },
 ): AttributeDecorator<string>
 
 export function attribute(
   name: string,
-  options: { default: number }
+  options: { default: number },
 ): AttributeDecorator<number>
 
 export function attribute<Value extends boolean | string | number | undefined>(
   name: string,
-  options?: Value extends boolean ? undefined : { default?: Value }
+  options?: Value extends boolean ? undefined : { default?: Value },
 ): AttributeDecorator<Value>
 
 export function attribute<Value>(name: string, options?: { default?: Value }) {
@@ -195,7 +195,7 @@ export function attribute<Value>(name: string, options?: { default?: Value }) {
 
   return <This extends ShadowElement>(
     value: ClassAccessorDecoratorTarget<This, Value>,
-    context: ClassAccessorDecoratorContext<This, Value>
+    context: ClassAccessorDecoratorContext<This, Value>,
   ): ClassAccessorDecoratorResult<This, Value> => {
     const attributeOptions: AttributeOptions<any> = {
       decode() {
@@ -246,7 +246,7 @@ export function attribute<Value>(name: string, options?: { default?: Value }) {
               : +value
         } else {
           throw new Error(
-            "Cannot create an attribute of type " + typeof value + "."
+            "Cannot create an attribute of type " + typeof value + ".",
           )
         }
 
@@ -272,21 +272,21 @@ export function attribute<Value>(name: string, options?: { default?: Value }) {
 
 type OnDecorator<Event> = <This extends ShadowElement>(
   value: (event: Event) => void,
-  context: ClassMethodDecoratorContext<This, (event: Event) => void>
+  context: ClassMethodDecoratorContext<This, (event: Event) => void>,
 ) => void
 
 export function on<K extends keyof HTMLElementEventMap>(
   event: K,
-  options?: AddEventListenerOptions
+  options?: AddEventListenerOptions,
 ): OnDecorator<HTMLElementEventMap[K]>
 
 export function on(
   event: string,
-  options?: AddEventListenerOptions
+  options?: AddEventListenerOptions,
 ): OnDecorator<Event> {
   return <This extends ShadowElement>(
     value: (event: Event) => unknown,
-    context: ClassMethodDecoratorContext<This>
+    context: ClassMethodDecoratorContext<This>,
   ) => {
     context.addInitializer(function () {
       this.addEventListener(event, value, options)

@@ -109,7 +109,7 @@ export namespace TicTacToe {
 
   export function analyze(
     board: Board,
-    player: Player
+    player: Player,
   ): [cell: Position | undefined, score: number] {
     const win = isWin(board)
 

@@ -46,7 +46,7 @@ function setupInstantShare() {
   color: #fff;
   padding: 9px 16px 10px 12px;
   text-transform: capitalize;
-  cursor: pointer;`
+  cursor: pointer;`,
   )
   div.onmouseover = () => {
     div.style.background = "#2b7de9"

@@ -22,7 +22,7 @@ export class Parser<T = unknown> {
     private readonly source: string,
     private readonly index: number,
     private readonly ok: boolean,
-    readonly data: T = undefined!
+    readonly data: T = undefined!,
   ) {}
 
   tap(fn: (data: T) => void): this {
@@ -45,17 +45,17 @@ export class Parser<T = unknown> {
 
   match<U>(
     matcher: Pattern,
-    map: (match: string, ...groups: string[]) => U
+    map: (match: string, ...groups: string[]) => U,
   ): Parser<U>
 
   match<U>(
     matcher: Pattern,
-    map?: (match: string, ...groups: string[]) => U
+    map?: (match: string, ...groups: string[]) => U,
   ): Parser<U | undefined>
 
   match<U>(
     matcher: Pattern,
-    map?: (match: string, ...groups: string[]) => U
+    map?: (match: string, ...groups: string[]) => U,
   ): Parser<U> {
     if (!this.ok) {
       return Parser.error(this.source, this.index)
@@ -68,7 +68,7 @@ export class Parser<T = unknown> {
         return Parser.ok<U>(
           this.source,
           this.index + matcher.length,
-          map?.(matcher)!
+          map?.(matcher)!,
         )
       } else {
         return Parser.error(this.source, this.index)
@@ -76,7 +76,7 @@ export class Parser<T = unknown> {
     } else if (matcher instanceof RegExp) {
       if (!matcher.source.startsWith("^")) {
         throw new SyntaxError(
-          "If a regular expression is used as a matcher, it must have a ^ assertion."
+          "If a regular expression is used as a matcher, it must have a ^ assertion.",
         )
       }
 
@@ -86,7 +86,7 @@ export class Parser<T = unknown> {
         return Parser.ok<U>(
           this.source,
           this.index + match[0]!.length,
-          map?.(...(match as [string, ...string[]]))!
+          map?.(...(match as [string, ...string[]]))!,
         )
       } else {
         return Parser.error(this.source, this.index)
@@ -94,7 +94,7 @@ export class Parser<T = unknown> {
     }
 
     throw new TypeError(
-      `A ${typeof matcher} was passed to .match(). Pass a string or regular expression.`
+      `A ${typeof matcher} was passed to .match(). Pass a string or regular expression.`,
     )
   }
 
@@ -102,17 +102,17 @@ export class Parser<T = unknown> {
 
   static match<U>(
     matcher: Pattern,
-    map: (match: string, ...groups: string[]) => U
+    map: (match: string, ...groups: string[]) => U,
   ): (parser: Parser) => Parser<U>
 
   static match<U>(
     matcher: Pattern,
-    map?: (match: string, ...groups: string[]) => U
+    map?: (match: string, ...groups: string[]) => U,
   ): (parser: Parser) => Parser<U | undefined>
 
   static match<U>(
     matcher: Pattern,
-    map?: (match: string, ...groups: string[]) => U
+    map?: (match: string, ...groups: string[]) => U,
   ): (parser: Parser) => Parser<U | undefined> {
     return (parser) => parser.match<U>(matcher, map)
   }
@@ -127,7 +127,7 @@ export class Parser<T = unknown> {
     }
 
     throw new TypeError(
-      `A ${typeof matcher} was passed to .chain(). Pass a function instead.`
+      `A ${typeof matcher} was passed to .chain(). Pass a function instead.`,
     )
   }
 
@@ -141,7 +141,7 @@ export class Parser<T = unknown> {
 
   lookahead<U = never>(
     matcher: Matcher<T, U>,
-    map?: (match: string, ...groups: string[]) => U
+    map?: (match: string, ...groups: string[]) => U,
   ): Parser<U> {
     if (!this.ok) {
       return Parser.error(this.source, this.index)
@@ -195,7 +195,7 @@ export class Parser<T = unknown> {
   }
 
   static discriminate<U>(
-    matchers: Record<string, Matcher<unknown, U>>
+    matchers: Record<string, Matcher<unknown, U>>,
   ): <T>(parser: Parser<T>) => Parser<U> {
     return (parser) => parser.discriminate(matchers)
   }
@@ -270,7 +270,7 @@ export class Parser<T = unknown> {
   }
 
   static many<U>(
-    matcher: Matcher<unknown, U>
+    matcher: Matcher<unknown, U>,
   ): (parser: Parser<unknown>) => Parser<U[]> {
     return (parser) => parser.many(matcher)
   }
@@ -293,7 +293,7 @@ export class Parser<T = unknown> {
   }
 
   static many1<U>(
-    matcher: Matcher<unknown, U>
+    matcher: Matcher<unknown, U>,
   ): (parser: Parser<unknown>) => Parser<U[]> {
     return (parser) => parser.many1(matcher)
   }
@@ -371,11 +371,11 @@ const matchers = {
         Parser.optionalWhitespace,
         matchers.expr,
         Parser.optionalWhitespace,
-        matchers.expr
+        matchers.expr,
       )
       .map(
         ([condition, _, ifTrue, _1, ifFalse]) =>
-          `(${condition} ? ${ifTrue} : ${ifFalse})`
+          `(${condition} ? ${ifTrue} : ${ifFalse})`,
       )
   },
   list(parser: Parser): Parser<string> {

@@ -11,7 +11,7 @@ export interface AsyncDisposableResource {
 const dispose = ((Symbol as any).dispose ??= Symbol("Symbol.dispose"))
 
 const asyncDispose = ((Symbol as any).asyncDispose ??= Symbol(
-  "Symbol.asyncDispose"
+  "Symbol.asyncDispose",
 ))
 
 let disposables: unknown[] | undefined
@@ -35,7 +35,7 @@ export function usingBlock<T>(fn: () => T): T {
           disposable == null
         ) {
           throw new TypeError(
-            "A disposable was of an improper type: " + typeof disposable
+            "A disposable was of an improper type: " + typeof disposable,
           )
         }
 
@@ -78,7 +78,7 @@ export async function asyncUsingBlock<T>(fn: () => T): Promise<Awaited<T>> {
           disposable == null
         ) {
           throw new TypeError(
-            "A disposable was of an improper type: " + typeof disposable
+            "A disposable was of an improper type: " + typeof disposable,
           )
         }
 
@@ -91,7 +91,7 @@ export async function asyncUsingBlock<T>(fn: () => T): Promise<Awaited<T>> {
 
           if (typeof disposeFn != "function") {
             throw new TypeError(
-              "An async disposable is missing an @@asyncDispose or @@dispose method."
+              "An async disposable is missing an @@asyncDispose or @@dispose method.",
             )
           }
 
@@ -111,7 +111,7 @@ export async function asyncUsingBlock<T>(fn: () => T): Promise<Awaited<T>> {
 }
 
 export function using<T extends DisposableResource | null | undefined>(
-  disposable: T
+  disposable: T,
 ): T {
   if (!disposables) {
     throw new Error("Cannot call 'using' outside of a using {} block.")
@@ -122,7 +122,7 @@ export function using<T extends DisposableResource | null | undefined>(
 }
 
 export function asyncUsing<
-  T extends AsyncDisposableResource | DisposableResource | null | undefined
+  T extends AsyncDisposableResource | DisposableResource | null | undefined,
 >(disposable: T): T {
   if (!disposables) {
     throw new Error("Cannot call 'usingAsync' outside of a using {} block.")

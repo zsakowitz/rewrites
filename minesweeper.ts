@@ -132,8 +132,8 @@ if (!context) {
   canvas.addEventListener("pointermove", (event) =>
     onPointerMove?.(
       Math.floor(event.offsetY / SQUARE_SIZE),
-      Math.floor(event.offsetX / SQUARE_SIZE)
-    )
+      Math.floor(event.offsetX / SQUARE_SIZE),
+    ),
   )
 
   canvas.addEventListener("pointerleave", () => onPointerLeave?.())
@@ -145,7 +145,7 @@ if (!context) {
 
     onPointerDown?.(
       Math.floor(event.offsetY / SQUARE_SIZE),
-      Math.floor(event.offsetX / SQUARE_SIZE)
+      Math.floor(event.offsetX / SQUARE_SIZE),
     )
   })
 
@@ -154,7 +154,7 @@ if (!context) {
 
     onContextMenu?.(
       Math.floor(event.offsetY / SQUARE_SIZE),
-      Math.floor(event.offsetX / SQUARE_SIZE)
+      Math.floor(event.offsetX / SQUARE_SIZE),
     )
   })
 }
@@ -225,12 +225,12 @@ export class Game {
     this.mines = mines
 
     const board = (this.board = Array.from({ length: rows }, () =>
-      Array.from({ length: cols }, () => BLANK)
+      Array.from({ length: cols }, () => BLANK),
     ))
 
     for (const mine of inPlaceLimitedShuffle(
       Array.from({ length: rows * cols }, (_, index) => index),
-      mines
+      mines,
     )) {
       const value = MINE | makeHue(8 * Math.random())
 
@@ -268,9 +268,9 @@ export class Game {
               ? "💣"
               : cell & VALUE
               ? (cell & VALUE).toString().padStart(2)
-              : "  "
+              : "  ",
           )
-          .join(" ")
+          .join(" "),
       )
       .join("\n")
   }
@@ -522,7 +522,7 @@ export class Game {
           col * squareSize,
           row * squareSize,
           squareSize,
-          squareSize
+          squareSize,
         )
 
         this.postDrawBackground?.(row, col)
@@ -536,7 +536,7 @@ export class Game {
           context.fillText(
             "!",
             (col + 0.5) * squareSize,
-            (row + 0.5) * squareSize + 9 * devicePixelRatio
+            (row + 0.5) * squareSize + 9 * devicePixelRatio,
           )
         } else if (cell.type == "mine") {
           context.fillStyle = cell.color[1]
@@ -546,7 +546,7 @@ export class Game {
             (row + 0.5) * squareSize,
             mineInteriorRadius,
             0,
-            360
+            360,
           )
           context.fill()
         } else if (cell.type == "number") {
@@ -554,7 +554,7 @@ export class Game {
           context.fillText(
             "" + cell.value,
             (col + 0.5) * squareSize,
-            (row + 0.5) * squareSize + 9 * devicePixelRatio
+            (row + 0.5) * squareSize + 9 * devicePixelRatio,
           )
         }
 
@@ -568,7 +568,7 @@ export class Game {
               col * squareSize,
               row * squareSize,
               borderSize,
-              squareSize
+              squareSize,
             )
           }
 
@@ -577,7 +577,7 @@ export class Game {
               col * squareSize + nonBorderSize,
               row * squareSize,
               borderSize,
-              squareSize
+              squareSize,
             )
           }
 
@@ -586,7 +586,7 @@ export class Game {
               col * squareSize,
               row * squareSize,
               squareSize,
-              borderSize
+              borderSize,
             )
           }
 
@@ -595,7 +595,7 @@ export class Game {
               col * squareSize,
               row * squareSize + nonBorderSize,
               squareSize,
-              borderSize
+              borderSize,
             )
           }
 
@@ -604,7 +604,7 @@ export class Game {
               col * squareSize + nonBorderSize,
               row * squareSize + nonBorderSize,
               borderSize,
-              borderSize
+              borderSize,
             )
           }
 
@@ -613,7 +613,7 @@ export class Game {
               col * squareSize + nonBorderSize,
               row * squareSize,
               borderSize,
-              borderSize
+              borderSize,
             )
           }
 
@@ -622,7 +622,7 @@ export class Game {
               col * squareSize,
               row * squareSize + nonBorderSize,
               borderSize,
-              borderSize
+              borderSize,
             )
           }
 
@@ -631,7 +631,7 @@ export class Game {
               col * squareSize,
               row * squareSize,
               borderSize,
-              borderSize
+              borderSize,
             )
           }
         }
@@ -720,12 +720,12 @@ export class GameWithAI extends Game {
 
           const flaggedNeighbors = neighbors.filter(
             (cell): cell is typeof cell & { info: { type: "flag" } } =>
-              cell.info.type == "flag"
+              cell.info.type == "flag",
           )
 
           const unknownNeighbors = neighbors.filter(
             (cell): cell is typeof cell & { info: { type: "unknown" } } =>
-              cell.info.type == "unknown"
+              cell.info.type == "unknown",
           )
 
           if (
@@ -771,7 +771,7 @@ type InteractiveGameOptions = GameOptions & {
 
 function makeInteractiveGame<T extends Game>(
   Constructor: new (options: GameOptions) => T,
-  options: InteractiveGameOptions
+  options: InteractiveGameOptions,
 ): () => T {
   let game = new Constructor(options)
   let isFirstClick = true
@@ -786,7 +786,7 @@ function makeInteractiveGame<T extends Game>(
     const result: ClickResult = Object.getPrototypeOf(game).click.call(
       game,
       row,
-      col
+      col,
     )
 
     let totalRevealed = 0

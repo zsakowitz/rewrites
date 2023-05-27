@@ -9,7 +9,7 @@ function toString(object: unknown) {
 
 function createTrap<A extends [any, ...any[]], R>(
   name: string,
-  fn: (...args: A) => R
+  fn: (...args: A) => R,
 ): (...args: A) => R {
   return (...args: A): R => {
     console.group(`Reflect.${name}()`)

@@ -1948,7 +1948,7 @@ async function render(emojis: ReadonlyCharacterList): Promise<Blob> {
 }
 
 async function renderToImage(
-  emojis: ReadonlyCharacterList
+  emojis: ReadonlyCharacterList,
 ): Promise<HTMLImageElement> {
   const image = new Image()
   image.src = URL.createObjectURL(await render(emojis))
@@ -1993,7 +1993,7 @@ function makeCards(size: number): ReadonlyCharacterList[] {
     .map(() =>
       Array<void>(size)
         .fill()
-        .map<CharacterList>(() => [])
+        .map<CharacterList>(() => []),
     )
 
   for (const row of grid) {
@@ -2032,7 +2032,7 @@ async function createGridZip(size: number) {
       const blob = await render(emojis)
       const myIndex = index++
       zip.file("./card-" + myIndex + ".png", blob)
-    })
+    }),
   )
 
   const blob = await zip.generateAsync({ type: "blob" })

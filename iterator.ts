@@ -88,7 +88,7 @@ export class Iterator<T, TReturn = any, TNext = undefined>
 
       if (done) {
         throw new Error(
-          "When initialValue is not passed, the underlying iterator must have at least one element."
+          "When initialValue is not passed, the underlying iterator must have at least one element.",
         )
       }
 

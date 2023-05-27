@@ -65,7 +65,7 @@ export function instant(fn: () => void) {
 }
 
 export function signal<T>(
-  value: T
+  value: T,
 ): readonly [get: () => T, set: (value: T) => void] {
   const [track, trigger] = event()
 
@@ -127,7 +127,7 @@ export function fragment(parent: {
 
 export function render(
   node: Renderable,
-  parent: { append(node: ChildNode): void }
+  parent: { append(node: ChildNode): void },
 ) {
   if (node instanceof Node) {
     parent.append(node)
@@ -165,7 +165,7 @@ export function attr(element: Element, key: string, value: unknown) {
 
 // https://stackoverflow.com/questions/52443276/how-to-exclude-getter-only-properties-from-type-in-typescript
 type IfEquals<X, Y, A, B> = (<T>() => T extends X ? 1 : 2) extends <
-  T
+  T,
 >() => T extends Y ? 1 : 2
   ? A
   : B

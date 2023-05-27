@@ -29,7 +29,7 @@ const body = (
                 user: {
                   displayName: "Zachary Sakowitz",
                   id: Uint8Array.from("zsakowitz@gmail.com", (x) =>
-                    x.charCodeAt(0)
+                    x.charCodeAt(0),
                   ),
                   name: "zsakowitz@gmail.com",
                 },

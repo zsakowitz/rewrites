@@ -68,13 +68,13 @@ export class CancelSignal {
 
   addEventListener(
     type: "abort",
-    oncanceled: ((reason: unknown) => unknown) | null | undefined
+    oncanceled: ((reason: unknown) => unknown) | null | undefined,
   ) {
     this.then(oncanceled)
   }
 
   then<T>(
-    oncanceled: ((reason: unknown) => T) | null | undefined
+    oncanceled: ((reason: unknown) => T) | null | undefined,
   ): CancelSignal {
     return new CancelSignal((cancel) => {
       this.#promise.then(oncanceled).then(cancel)

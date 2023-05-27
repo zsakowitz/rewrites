@@ -11,7 +11,7 @@ assert<ToNumber<[any, any, any]>>(3)
 
 export type ToArray<
   T extends number,
-  Acc extends Array = Empty
+  Acc extends Array = Empty,
 > = Acc["length"] extends T ? Acc : ToArray<T, [...Acc, any]>
 
 assert<ToArray<4>>([0, 0, 0, 0])
@@ -28,7 +28,7 @@ assert<Add<2, 3>>(5)
 
 export type SubtractArrays<A extends Array, B extends Array> = A extends [
   ...B,
-  ...infer U
+  ...infer U,
 ]
   ? U
   : Empty
@@ -52,7 +52,7 @@ assert<DecrementArray<[any, any, any]>>([0, 0])
 export type MultiplyArrays<
   A extends Array,
   B extends Array,
-  Acc extends Array = Empty
+  Acc extends Array = Empty,
 > = A extends Empty ? Acc : MultiplyArrays<DecrementArray<A>, B, [...Acc, ...B]>
 
 assert<MultiplyArrays<[any, any], [any, any, any]>>([0, 0, 0, 0, 0, 0])
@@ -66,7 +66,7 @@ assert<Multiply<56, 93>>(5208)
 export type DivideArrays<
   A extends Array,
   B extends Array,
-  Acc extends Array = Empty
+  Acc extends Array = Empty,
 > = A extends [...B, ...infer R] ? DivideArrays<R, B, [...Acc, any]> : Acc
 
 assert<DivideArrays<[any, any, any, any], [any, any]>>([0, 0])
@@ -79,7 +79,7 @@ assert<Divide<89, 7>>(12)
 
 export type ModuloArrays<A extends Array, B extends Array> = A extends [
   ...B,
-  ...infer R
+  ...infer R,
 ]
   ? ModuloArrays<R, B>
   : A
@@ -111,7 +111,7 @@ export type Not<T extends boolean> = T extends true ? false : true
 
 export type IsGTEArray<A extends Array, B extends Array> = A extends [
   ...B,
-  ...any[]
+  ...any[],
 ]
   ? true
   : false

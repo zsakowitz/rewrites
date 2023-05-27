@@ -2,7 +2,7 @@
 
 type ToArray<
   Length extends number,
-  Accumulator extends any[] = []
+  Accumulator extends any[] = [],
 > = Accumulator["length"] extends Length
   ? Accumulator
   : ToArray<Length, [...Accumulator, any]>
@@ -11,7 +11,7 @@ type ToNumber<T extends any[]> = number & T["length"]
 
 type StringSlice<This extends string, Start extends any[]> = Start extends [
   any,
-  ...infer StartTail extends any[]
+  ...infer StartTail extends any[],
 ]
   ? string extends This
     ? string
@@ -22,7 +22,7 @@ type StringSlice<This extends string, Start extends any[]> = Start extends [
 
 type StringLength<
   This extends string,
-  Total extends any[]
+  Total extends any[],
 > = string extends This
   ? number
   : This extends `${string}${infer Rest}`
@@ -34,11 +34,11 @@ declare global {
     startsWith<
       This extends string,
       Text extends string,
-      Position extends number = 0
+      Position extends number = 0,
     >(
       this: This,
       text: Text,
-      position?: Position
+      position?: Position,
     ): StringSlice<This, ToArray<Position>> extends `${Text}${string}`
       ? true
       : false
@@ -48,7 +48,7 @@ declare global {
     type startsWith<
       This extends string,
       Text extends string,
-      Position extends number = 0
+      Position extends number = 0,
     > = string extends This
       ? boolean
       : StringSlice<This, ToArray<Position>> extends `${Text}${string}`
@@ -59,7 +59,7 @@ declare global {
 
     type charAt<
       This extends string,
-      Position extends number
+      Position extends number,
     > = string extends This
       ? string
       : StringSlice<

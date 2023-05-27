@@ -15,7 +15,7 @@ export function createEffect(fn: () => void) {
 }
 
 export function createSignal<T>(
-  value: T
+  value: T,
 ): [get: () => T, set: (value: T) => void] {
   const listeners = new Set<() => void>()
 
@@ -51,7 +51,7 @@ export function string(
   return createMemo(() =>
     cooked(
       strings,
-      values.map((value) => (typeof value == "function" ? value() : value))
-    )
+      values.map((value) => (typeof value == "function" ? value() : value)),
+    ),
   )
 }

@@ -10,11 +10,11 @@ export function color(value: string): Store<string> {
     const [eR, eG, eB, eA] = get.rgb(end) || [0, 0, 0, 0]
 
     return `rgba(${Math.floor(linearMap(percentage, sR, eR))}, ${Math.floor(
-      linearMap(percentage, sG, eG)
+      linearMap(percentage, sG, eG),
     )}, ${Math.floor(linearMap(percentage, sB, eB))}, ${linearMap(
       percentage,
       sA,
-      eA
+      eA,
     )})`
   })
 }

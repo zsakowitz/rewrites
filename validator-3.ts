@@ -31,7 +31,7 @@ export class Validator<T = unknown> {
 
   refine(
     refiner: (value: T) => unknown,
-    reason = "Refinement failed."
+    reason = "Refinement failed.",
   ): Validator<T> {
     return this.map((value) => {
       if (!refiner(value)) {

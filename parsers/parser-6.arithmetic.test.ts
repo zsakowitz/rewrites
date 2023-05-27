@@ -6,7 +6,7 @@ const OptionalWhitespace = Z.voidify(Z.regex(/^\s*/))
 
 const Number = Z.map(
   Z.regex(/^[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?/),
-  (value) => +value[0]
+  (value) => +value[0],
 )
 
 export const ExprLevel3: Z.Parser<number> = Z.choice(
@@ -17,10 +17,10 @@ export const ExprLevel3: Z.Parser<number> = Z.choice(
       OptionalWhitespace,
       Z.lazy(() => ExprLevel1),
       OptionalWhitespace,
-      Z.text(")")
+      Z.text(")"),
     ),
-    (value) => value[2]
-  )
+    (value) => value[2],
+  ),
 )
 
 export const ExprLevel2: Z.Parser<number> = Z.map(
@@ -31,9 +31,9 @@ export const ExprLevel2: Z.Parser<number> = Z.map(
         OptionalWhitespace,
         Z.choice(Z.text("*"), Z.text("/")),
         OptionalWhitespace,
-        ExprLevel3
-      )
-    )
+        ExprLevel3,
+      ),
+    ),
   ),
   ([initial, next]) =>
     next.reduce((a, b) => {
@@ -42,7 +42,7 @@ export const ExprLevel2: Z.Parser<number> = Z.map(
       } else {
         return a / b[3]
       }
-    }, initial)
+    }, initial),
 )
 
 export const ExprLevel1: Z.Parser<number> = Z.map(
@@ -53,9 +53,9 @@ export const ExprLevel1: Z.Parser<number> = Z.map(
         OptionalWhitespace,
         Z.choice(Z.text("+"), Z.text("-")),
         OptionalWhitespace,
-        ExprLevel2
-      )
-    )
+        ExprLevel2,
+      ),
+    ),
   ),
   ([initial, next]) =>
     next.reduce((a, b) => {
@@ -64,7 +64,7 @@ export const ExprLevel1: Z.Parser<number> = Z.map(
       } else {
         return a - b[3]
       }
-    }, initial)
+    }, initial),
 )
 
 export const parse = Z.createParseFn(ExprLevel1)

@@ -6,7 +6,7 @@
 export type Error<
   Index extends number,
   Source extends string,
-  Value extends string
+  Value extends string,
 > = {
   readonly index: Index
   readonly ok: false
@@ -34,7 +34,7 @@ export type IsStateGeneric<T extends State> = string extends T["source"]
 export function ok<Previous extends State, Index extends number, Value>(
   previous: Previous,
   index: Index,
-  value: Value
+  value: Value,
 ): ok<Previous, Index, Value> {
   return {
     index,
@@ -53,7 +53,7 @@ export type ok<Previous extends State, Index extends number, Value> = {
 
 export function error<Previous extends State, Value extends string>(
   previous: Previous,
-  value: Value
+  value: Value,
 ): error<Previous, Value> {
   return {
     index: previous.index as Previous["index"],
@@ -71,7 +71,7 @@ export type error<Previous extends State, Value extends string> = {
 }
 
 export function initial<Source extends string>(
-  source: Source
+  source: Source,
 ): initial<Source> {
   return {
     index: 0,
@@ -120,7 +120,7 @@ export abstract class Parser {
 
 export type Parse<
   parser extends Parser,
-  state extends State
+  state extends State,
 > = state extends OkState
   ? Expand<
       ReturnType<
@@ -145,7 +145,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     }
 
     t(
-      state: this["input"]
+      state: this["input"],
     ): String.startsWith<
       (typeof state)["source"],
       text,
@@ -175,7 +175,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
   type ParseMany<
     Matcher extends Parser,
     State extends OkState,
-    Output extends any[]
+    Output extends any[],
   > = IsStateGeneric<State> extends true
     ? ok<State, number, ValueOf<Matcher>[]>
     : Parse<Matcher, State> extends infer S
@@ -219,7 +219,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     }
 
     protected t(
-      state: this["input"]
+      state: this["input"],
     ): Parse<Matcher, typeof state> extends infer S
       ? S extends OkState
         ? S
@@ -246,10 +246,10 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     Matchers extends readonly Parser[],
     originalState extends OkState,
     state extends OkState,
-    output extends any[]
+    output extends any[],
   > = Matchers extends [
     infer Matcher extends Parser,
-    ...infer Rest extends readonly Parser[]
+    ...infer Rest extends readonly Parser[],
   ]
     ? Parse<Matcher, state> extends infer S
       ? S extends State
@@ -271,7 +271,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     }
 
     protected t(
-      originalState: this["input"]
+      originalState: this["input"],
     ): ParseSequence<Matchers, typeof originalState, typeof originalState, []>
     protected t(originalState: this["input"]): State {
       const output: any[] = []
@@ -304,7 +304,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     }
 
     protected t(
-      state: this["input"]
+      state: this["input"],
     ): Parse<Matcher, typeof state> extends infer next
       ? next extends State
         ? next extends OkState
@@ -333,10 +333,10 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
 {
   type ParseChoice<
     Matchers extends readonly Parser[],
-    state extends OkState
+    state extends OkState,
   > = Matchers extends [
     infer Matcher extends Parser,
-    ...infer Rest extends readonly Parser[]
+    ...infer Rest extends readonly Parser[],
   ]
     ? Parse<Matcher, state> extends infer S
       ? S extends OkState
@@ -375,7 +375,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
 {
   class AnyCharacterParser extends Parser {
     protected t(
-      state: this["input"]
+      state: this["input"],
     ): String.charAt<
       (typeof state)["source"],
       (typeof state)["index"]
@@ -408,7 +408,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     }
 
     protected t(
-      state: this["input"]
+      state: this["input"],
     ): String.charAt<
       (typeof state)["source"],
       (typeof state)["index"]
@@ -434,7 +434,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
 
       return error(
         state,
-        `Found ${char}; expected one of '${this.characters}'.`
+        `Found ${char}; expected one of '${this.characters}'.`,
       )
     }
   }
@@ -456,7 +456,7 @@ export type ValueOf<parser extends Parser> = (Parse<parser, OkState> & {
     // @ts-ignore
     protected abstract map(
       value: // @ts-ignore
-      this["value"]
+      this["value"],
     )
 
     protected t(state: this["input"]): Parse<
@@ -505,7 +505,7 @@ const Mapped = _Mapped
     }
 
     protected t(
-      state: this["input"]
+      state: this["input"],
     ): Parse<this["seq"], typeof state> extends infer result
       ? result extends ErrorState
         ? result

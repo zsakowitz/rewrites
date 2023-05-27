@@ -11,5 +11,5 @@ render(
     <textarea on:input={(event) => setText(event.currentTarget.value)} />,
     <textarea readOnly value={output} />,
   ],
-  document.body
+  document.body,
 )

@@ -40,7 +40,7 @@ export namespace Solid {
   let currentEffect: (() => void) | undefined
 
   export function writable<T>(
-    value: T
+    value: T,
   ): [get: () => T, set: (value: T) => void] {
     const tracking = new Set<() => void>()
 
@@ -62,7 +62,7 @@ export namespace Solid {
 
   export function readable<T>(
     value: T,
-    updater: (set: (value: T) => void) => void
+    updater: (set: (value: T) => void) => void,
   ): () => T {
     const [get, set] = writable(value)
     updater(set)
@@ -154,7 +154,7 @@ export namespace Svelte {
 
   export function readable<T>(
     value: T,
-    updater: (set: (value: T) => void) => void
+    updater: (set: (value: T) => void) => void,
   ): Readable<T> {
     const { set, subscribe } = writable(value)
     updater(set)
@@ -178,7 +178,7 @@ export namespace Svelte {
 
   export function effect<T extends readonly Readable<any>[]>(
     stores: T,
-    effect: (...values: { [K in keyof T]: Infer<T[K]> }) => void
+    effect: (...values: { [K in keyof T]: Infer<T[K]> }) => void,
   ) {
     const values: { -readonly [K in keyof T]: Infer<T[K]> } = [] as any
 
@@ -197,7 +197,7 @@ export namespace Svelte {
 
       if (!wasUpdated) {
         throw new Error(
-          "The passed store did not call 'onUpdate' synchronously."
+          "The passed store did not call 'onUpdate' synchronously.",
         )
       }
     })
@@ -208,7 +208,7 @@ export namespace Svelte {
 
   export function derived<T extends readonly Readable<any>[], U>(
     stores: T,
-    getValue: (...values: { [K in keyof T]: Infer<T[K]> }) => U
+    getValue: (...values: { [K in keyof T]: Infer<T[K]> }) => U,
   ): Readable<U> {
     const { set, subscribe } = writable<U>(null!)
     effect(stores, (...values) => set(getValue(...values)))
@@ -266,7 +266,7 @@ export namespace Vue {
 
   export function readable<T>(
     value: T,
-    updater: (set: (value: T) => void) => void
+    updater: (set: (value: T) => void) => void,
   ): Readable<T> {
     const store = writable(value)
 

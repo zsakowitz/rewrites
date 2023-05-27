@@ -3,14 +3,14 @@
 import { effect, isSignal } from "./signal"
 
 type IfEquals<X, Y, A, B> = (<T>() => T extends X ? 1 : 2) extends <
-  T
+  T,
 >() => T extends Y ? 1 : 2
   ? A
   : B
 
 export function html<
   K extends keyof HTMLElementTagNameMap,
-  T extends HTMLElementTagNameMap[K] = HTMLElementTagNameMap[K]
+  T extends HTMLElementTagNameMap[K] = HTMLElementTagNameMap[K],
 >(
   element: K,
   props: {
@@ -25,7 +25,7 @@ export function html<
       | (() => T[K])
   } & {
     [K in keyof HTMLElementEventMap as `on:${K}`]?: (
-      event: HTMLElementEventMap[K]
+      event: HTMLElementEventMap[K],
     ) => void
   } & {
     ref?: (node: T) => void

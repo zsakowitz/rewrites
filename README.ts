@@ -42,8 +42,8 @@ function sortFilenames(files: string[]) {
         `Encountered unexpected file path lengths (${a.length} and ${
           b.length
         }) belonging to files ${a.join("/")} and ${b.join(
-          "/"
-        )}. Update 'sortFilenames' in README.md, or restructure your files to have a maximum nesting depth of 3.`
+          "/",
+        )}. Update 'sortFilenames' in README.md, or restructure your files to have a maximum nesting depth of 3.`,
       )
     })
     .map((x) => x.join("/"))
@@ -103,7 +103,7 @@ this repository has to offer.
 # File listing
 
 ${result.join("\n\n")}
-`.trim()
+`.trim(),
 )
 
 spawn("npx", ["prettier", "--write", "./README.md"])

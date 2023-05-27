@@ -30,7 +30,7 @@ export class Point {
     public x: number,
     public y: number,
     public mx: number,
-    public my: number
+    public my: number,
   ) {}
 }
 

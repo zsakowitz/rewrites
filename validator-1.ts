@@ -19,13 +19,13 @@ export class Validator<T> {
 
   or<U>(other: Validator<U>) {
     return new Validator(
-      (value): value is T | U => this.check(value) || other.check(value)
+      (value): value is T | U => this.check(value) || other.check(value),
     )
   }
 
   and<U>(other: Validator<U>) {
     return new Validator(
-      (value): value is T & U => this.check(value) && other.check(value)
+      (value): value is T & U => this.check(value) && other.check(value),
     )
   }
 
@@ -35,7 +35,7 @@ export class Validator<T> {
     if (other) {
       return new Validator(
         (value): value is Exclude<T, U> =>
-          this.check(value) && !other.check(value)
+          this.check(value) && !other.check(value),
       )
     } else {
       return new Validator((value): value is unknown => !this.check(value))
@@ -52,13 +52,13 @@ export class ArrayValidator<T> extends Validator<T[]> {
     super(
       (value): value is T[] =>
         Array.isArray(value) &&
-        value.every((element) => itemValidator.check(element))
+        value.every((element) => itemValidator.check(element)),
     )
   }
 }
 
 export class ObjectValidator<
-  T extends Record<string | number | symbol, Validator<unknown>>
+  T extends Record<string | number | symbol, Validator<unknown>>,
 > extends Validator<{
   [K in keyof MakeUndefinedOptional<
     UnwrapValidatorRecord<T>
@@ -71,7 +71,7 @@ export class ObjectValidator<
       (value): value is MakeUndefinedOptional<UnwrapValidatorRecord<T>> =>
         typeof value === "object" &&
         value !== null &&
-        this.object.every(([k, v]) => v.check(value[k]))
+        this.object.every(([k, v]) => v.check(value[k])),
     )
 
     this.object = Object.entries(object)
@@ -112,9 +112,9 @@ export { _null as null }
 const _function = () =>
   new Validator(
     (
-      value
+      value,
     ): value is ((...args: any[]) => any) | (new (...args: any[]) => any) =>
-      typeof value === "function"
+      typeof value === "function",
   )
 export { _function as function }
 
@@ -135,7 +135,7 @@ export namespace array {
 }
 
 export function object<
-  T extends Record<string | number | symbol, Validator<unknown>>
+  T extends Record<string | number | symbol, Validator<unknown>>,
 >(object: T) {
   return new ObjectValidator(object)
 }

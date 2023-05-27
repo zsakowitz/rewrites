@@ -12,7 +12,7 @@ import {
 /** A decorator that turns the given accessor into a reactive signal. */
 export function signal<This extends object, Value>(
   value: ClassAccessorDecoratorTarget<This, Value>,
-  _context: ClassAccessorDecoratorContext<This, Value>
+  _context: ClassAccessorDecoratorContext<This, Value>,
 ): ClassAccessorDecoratorResult<This, Value> {
   const signals = new WeakMap<This, Signal<Value>>()
 
@@ -41,7 +41,7 @@ export function signal<This extends object, Value>(
 /** A decorator that turns the given getter into a memoized signal. */
 export function memo<This extends object, Value>(
   value: (this: This) => Value,
-  _context: ClassGetterDecoratorContext<This, Value>
+  _context: ClassGetterDecoratorContext<This, Value>,
 ): (this: This) => Value {
   const memos = new WeakMap<This, () => Value>()
 
@@ -67,7 +67,7 @@ export function memo<This extends object, Value>(
 /** A decorator that runs the given method when any of its dependencies change. */
 export function effect<This, Value extends (this: This) => any>(
   value: Value,
-  context: ClassMethodDecoratorContext<This, Value>
+  context: ClassMethodDecoratorContext<This, Value>,
 ): Value {
   context.addInitializer(function (this) {
     createEffect(() => value.call(this))
@@ -85,7 +85,7 @@ export function untrack<This, Value extends (this: This, ...args: any) => any>(
   _context:
     | ClassGetterDecoratorContext<This, ReturnType<Value>>
     | ClassMethodDecoratorContext<This, Value>
-    | ClassSetterDecoratorContext<This, ReturnType<Value>>
+    | ClassSetterDecoratorContext<This, ReturnType<Value>>,
 ): Value {
   return function (...args) {
     return useUntrack(() => value.apply(this, args))
@@ -101,7 +101,7 @@ export function batch<This, Value extends (this: This, ...args: any) => any>(
   _context:
     | ClassGetterDecoratorContext<This, ReturnType<Value>>
     | ClassMethodDecoratorContext<This, Value>
-    | ClassSetterDecoratorContext<This, ReturnType<Value>>
+    | ClassSetterDecoratorContext<This, ReturnType<Value>>,
 ): Value {
   return function (...args) {
     return useBatch(() => value.apply(this, args))

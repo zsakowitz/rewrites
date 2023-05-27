@@ -87,7 +87,7 @@ export type IsFree<T extends Node, U extends string> = T extends Lambda<
 export type Rename<
   T extends Node,
   Old extends string,
-  New extends string
+  New extends string,
 > = T extends Name<infer U>
   ? Equal<U, Old> extends true
     ? Name<New>
@@ -163,7 +163,7 @@ export type UniqueNameX<X extends any[], Avoid extends string[]> = Includes<
 export type Replace<
   T extends Node,
   Old extends string,
-  New extends Node
+  New extends Node,
 > = T extends Name<infer U>
   ? Equal<U, Old> extends true
     ? New

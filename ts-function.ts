@@ -9,7 +9,7 @@ export abstract class Function<I> {
 }
 
 export function createFunction<F extends Function<any>>(
-  Fn: new () => F
+  Fn: new () => F,
 ): TSFunction<F> {
   const { x } = new Fn()
   return ((input: F["input"]): F["output"] => x(input)) as any
@@ -26,6 +26,6 @@ export type TSFunction<F extends Function<any>> = {
 
 export type Call<
   F extends TSFunction<Function<any>>,
-  I extends F[typeof tsFunctionMarker]["input"]
+  I extends F[typeof tsFunctionMarker]["input"],
 > = F[typeof tsFunctionMarker]["output"] &
   ReturnType<(F[typeof tsFunctionMarker] & { input: I })["x"]>

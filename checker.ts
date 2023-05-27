@@ -42,7 +42,7 @@ export interface State {
 
 export type CheckEach<T extends State, M extends StateChanger[]> = M extends [
   infer Head extends StateChanger,
-  ...infer Tail extends StateChanger[]
+  ...infer Tail extends StateChanger[],
 ]
   ? IsNever<(Head & { [T]: T })["next"]> extends true
     ? (Head & { [T]: T })["next"]

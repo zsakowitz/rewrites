@@ -24,7 +24,7 @@ export class Result<T, E> {
   private constructor(
     private readonly ok: boolean,
     private readonly value?: T,
-    private readonly error?: E
+    private readonly error?: E,
   ) {}
 
   map<U>(fn: (value: T) => U): Result<U, E> {

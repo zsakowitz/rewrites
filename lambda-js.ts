@@ -382,14 +382,14 @@ export class Application<L extends Node, R extends Node> extends Node {
   replace(name: string, node: Node): Node {
     return new Application(
       this.left.replace(name, node),
-      this.right.replace(name, node)
+      this.right.replace(name, node),
     )
   }
 
   rename(oldName: string, newName: Name<string>): Node {
     return new Application(
       this.left.rename(oldName, newName),
-      this.right.rename(oldName, newName)
+      this.right.rename(oldName, newName),
     )
   }
 
@@ -525,10 +525,10 @@ export const S = new Lambda(
       "z",
       new Application(
         new Application(new Name("x"), new Name("z")),
-        new Application(new Name("y"), new Name("z"))
-      )
-    )
-  )
+        new Application(new Name("y"), new Name("z")),
+      ),
+    ),
+  ),
 )
 
 export const K = new Lambda("x", new Lambda("y", new Name("x")))
@@ -595,10 +595,10 @@ export function getValue(value: unknown): Value {
       apply(
         apply(
           apply(value, (x: number) => x + 1),
-          true
+          true,
         ),
-        false
-      )
+        false,
+      ),
     )
 
     if (output === true) {
@@ -639,7 +639,7 @@ export function getValue(value: unknown): Value {
         a = _a
         b = _b
         return symbol
-      })
+      }),
     )
 
     if (output === symbol) {
@@ -657,8 +657,8 @@ export function getValue(value: unknown): Value {
     const output = unwrap(
       apply(
         apply(value, (x: number) => x + 1),
-        0
-      )
+        0,
+      ),
     )
 
     if (typeof output == "number") {

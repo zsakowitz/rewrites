@@ -2,7 +2,7 @@
 
 function log<P, T extends readonly any[], R>(
   originalMethod: (this: P, ...args: T) => R,
-  context: ClassMethodDecoratorContext
+  context: ClassMethodDecoratorContext,
 ) {
   return function (this: P, ...args: T) {
     console.log("LOG: Entering method.")
