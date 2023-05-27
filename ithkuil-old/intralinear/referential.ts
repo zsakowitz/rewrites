@@ -1,6 +1,6 @@
 import { joinWithHyphens, joinWithSlashes } from "../helpers"
 import { Referential } from "../parser/referential"
-import { Referrent } from "../types"
+import type { Referrent } from "../types"
 import { caseToSymbolMap } from "./case"
 import { essenceMap, specificationMap } from "./maps"
 

@@ -1,12 +1,12 @@
 // A set of decorators that make working with signals, memos, and effects easier.
 
 import {
-  Signal,
   createEffect,
   createMemo,
   createSignal,
   useBatch,
   useUntrack,
+  type Signal,
 } from "./signal"
 
 /** A decorator that turns the given accessor into a reactive signal. */

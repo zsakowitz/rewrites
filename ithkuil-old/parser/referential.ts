@@ -1,5 +1,5 @@
 import * as Z from "../../parsers/parser-5"
-import {
+import type {
   Effect,
   Essence,
   Perspective,
@@ -7,7 +7,7 @@ import {
   ReferrentType,
   Specification,
 } from "../types"
-import { Affix, StandardAffix } from "./affix"
+import { type Affix, StandardAffix } from "./affix"
 import { Case } from "./case"
 import { normalized } from "./helpers"
 import { makeParserFromMap } from "./make-parser-from-map"

@@ -1,5 +1,5 @@
 import * as Z from "../../parsers/parser-5"
-import { CA } from "../types"
+import type { CA } from "../types"
 import { CAComplex } from "./ca"
 import { makeParserFromMap } from "./make-parser-from-map"
 

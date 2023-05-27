@@ -16,7 +16,8 @@
     "skipLibCheck": true,
     "strict": true,
     "strictFunctionTypes": true,
-    "target": "ES2022"
+    "target": "ES2022",
+    "verbatimModuleSyntax": true
   },
   "exclude": ["node_modules", "dist"]
 }

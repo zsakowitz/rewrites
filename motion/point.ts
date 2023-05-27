@@ -2,7 +2,7 @@
 
 import { linear } from "./animation"
 import { mappedSignal } from "./mapped-signal"
-import { Signal, SignalLike } from "./signal"
+import type { Signal, SignalLike } from "./signal"
 
 export type Point = { x: number; y: number }
 export type PointLike = Point | number

@@ -1,5 +1,7 @@
 // #::exclude
 
+// @ts-nocheck
+
 import {
   ReadonlySchedule,
   ScheduleItem,

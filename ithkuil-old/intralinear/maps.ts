@@ -1,4 +1,4 @@
-import { Affiliation, Essence, Extension, Specification } from "../types"
+import type { Affiliation, Essence, Extension, Specification } from "../types"
 
 export const affiliationMap: Record<Affiliation, string> = {
   consolidative: "",

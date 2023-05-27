@@ -1,7 +1,7 @@
 // A drawable node for Motion scenes.
 
-import { Point, PointLike, point } from "./point"
-import { Signal, SignalLike, signal, untrack } from "./signal"
+import { point, type Point, type PointLike } from "./point"
+import { signal, untrack, type Signal, type SignalLike } from "./signal"
 
 export interface NodeProps {
   x?: SignalLike<number>

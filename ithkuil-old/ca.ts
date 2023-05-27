@@ -1,20 +1,20 @@
 import {
   AlternativeType,
-  WithKPTAlternative,
-  WithStandaloneAlternative,
   pickUniplexAlternative,
+  type WithKPTAlternative,
+  type WithStandaloneAlternative,
 } from "./alternatives"
 import {
   AFFILIATION,
-  Affiliation,
-  CA,
   CONFIGURATION,
-  Configuration,
   EXTENSION,
-  Essence,
-  Extension,
   PERSPECTIVE_AND_ESSENCE,
-  Perspective,
+  type Affiliation,
+  type CA,
+  type Configuration,
+  type Essence,
+  type Extension,
+  type Perspective,
 } from "./types"
 
 export function configToString(configuration: Configuration) {

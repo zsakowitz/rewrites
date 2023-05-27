@@ -2,7 +2,7 @@
 
 import { get } from "color-string"
 import { linearMap } from "./transition"
-import { Store, store } from "./value"
+import { store, type Store } from "./value"
 
 export function color(value: string): Store<string> {
   return store(value, (percentage, start, end) => {

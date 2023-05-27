@@ -1,7 +1,7 @@
 // A rectangle node for Motion.
 
-import { Node, NodeProps } from "./node"
-import { Signal, SignalLike, signal } from "./signal"
+import { Node, type NodeProps } from "./node"
+import { signal, type Signal, type SignalLike } from "./signal"
 
 export interface RectProps extends NodeProps {
   width?: SignalLike<number>

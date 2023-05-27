@@ -1,6 +1,6 @@
 // View and Scene classes for Animator.
 
-import { Action, ActionIterator } from "./action"
+import { type Action, type ActionIterator } from "./action"
 import { Node } from "./node"
 
 export function wait(ms: number): Promise<void> {

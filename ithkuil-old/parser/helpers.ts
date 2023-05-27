@@ -1,5 +1,5 @@
 import * as Z from "../../parsers/parser-5"
-import { Essence } from "../types"
+import type { Essence } from "../types"
 
 export type SyllabicStressType =
   | "consonants-only"

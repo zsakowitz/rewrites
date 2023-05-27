@@ -1,5 +1,5 @@
 import { joinWithSlashes } from "../helpers"
-import { CA } from "../types"
+import type { CA } from "../types"
 import {
   affiliationMap,
   extensionMap,

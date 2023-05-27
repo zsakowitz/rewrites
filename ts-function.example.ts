@@ -1,6 +1,6 @@
 // #::exclude
 
-import { Call, Function, createFunction } from "./ts-function"
+import { Function, createFunction, type Call } from "./ts-function"
 
 const numberToString = createFunction(
   class extends Function<number> {

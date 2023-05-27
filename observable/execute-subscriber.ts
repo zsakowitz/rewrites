@@ -1,6 +1,6 @@
 // #::exclude
 
-import { SubscriberFunction, SubscriptionObserver } from "."
+import { SubscriptionObserver, type SubscriberFunction } from "."
 import { getMethod } from "./get-method"
 import { throwTypeError } from "./throw-type-error"
 

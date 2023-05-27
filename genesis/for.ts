@@ -1,6 +1,6 @@
 // A Genesis component that renders a list of items.
 
-import { Renderable } from "./dom"
+import type { Renderable } from "./dom"
 import { memo } from "./stores"
 
 /** Creates a component that renders each item in a list. */

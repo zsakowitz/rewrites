@@ -1,6 +1,6 @@
 // A Genesis component to conditionally render an object.
 
-import { Renderable } from "./dom"
+import type { Renderable } from "./dom"
 import { memo } from "./stores"
 
 /** Creates a component that is only shown some of the time. */

@@ -1,6 +1,6 @@
 // Prints an expression as LaTeX.
 
-import { Expression } from "./expression-parser"
+import { type Expression } from "./expression-parser"
 import {
   BUILT_INS,
   BUILT_INS_WITH_COMPLEX_ALTERNATIVES,

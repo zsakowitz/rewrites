@@ -1,6 +1,6 @@
 // Derived Genesis stores.
 
-import { Signal } from "./stores"
+import type { Signal } from "./stores"
 
 /** Creates a derived Genesis store with two-way control. */
 export function derived<T, U>(
