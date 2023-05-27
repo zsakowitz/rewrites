@@ -57,5 +57,5 @@ export function valenceToIthkuil(
     return ""
   }
 
-  return valence
+  return value
 }

@@ -6,23 +6,23 @@ export * from "./ca-shortcut-type"
 export * from "./concatenation-type"
 
 export type SlotI = {
-  readonly concatenationType?: ConcatenationType
-  readonly caShortcutType?: CAShortcutType
+  readonly concatenationType: ConcatenationType
+  readonly caShortcutType: CAShortcutType
 }
 
 export const SLOT_I_MAP = deepFreeze({
-  undefined: {
-    undefined: "",
+  none: {
+    none: "",
     w: "w",
     y: "y",
   },
   1: {
-    undefined: "h",
+    none: "h",
     w: "hl",
     y: "hm",
   },
   2: {
-    undefined: "hw",
+    none: "hw",
     w: "hr",
     y: "hn",
   },

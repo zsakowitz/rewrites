@@ -25,7 +25,7 @@
     "color-string": "^1.9.1",
     "decimal.js": "^10.4.3",
     "es-observable-tests": "^0.3.0",
-    "esbuild": "^0.15.10",
+    "esbuild": "^0.17.19",
     "fast-glob": "^3.2.12",
     "ffmpeg": "^0.0.4",
     "html5parser": "^2.0.2",

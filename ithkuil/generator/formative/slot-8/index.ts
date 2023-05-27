@@ -1,4 +1,4 @@
-import type { WithWYAlternative } from "../../with-wy-alternative"
+import { WithWYAlternative } from "../../with-wy-alternative"
 import { ALL_ASPECTS, aspectToIthkuil, type Aspect } from "./aspect"
 import { caseScopeToIthkuil, type CaseScope } from "./case-scope"
 import { ALL_EFFECTS, effectToIthkuil, type Effect } from "./effect"
@@ -43,11 +43,11 @@ export function slotVIIIToIthkuil(slot: SlotVIII, metadata: SlotVIIIMetadata) {
     : caseScopeToIthkuil(slot.cn, whatDoesSlot8Contain)
 
   if (vn == "" && cn == "h") {
-    return ""
+    return WithWYAlternative.EMPTY
   }
 
   if (typeof vn == "string") {
-    return vn + cn
+    return WithWYAlternative.of(vn + cn)
   } else {
     return vn.add(cn)
   }

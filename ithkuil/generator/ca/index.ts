@@ -1,3 +1,4 @@
+import type { Expand } from "../../expand"
 import { affiliationToIthkuil, type Affiliation } from "./affiliation"
 import { configurationToIthkuil, type Configuration } from "./configuration"
 import type { Essence } from "./essence"
@@ -20,6 +21,8 @@ export type CA = {
   readonly perspective: Perspective
   readonly essence: Essence
 }
+
+export type PartialCA = Expand<Partial<CA>>
 
 export function makeCAAllomorphicSubstitutions(ca: string) {
   return ca
@@ -62,7 +65,7 @@ export function caToIthkuil(ca: CA) {
     ca.perspective,
     ca.essence,
     affiliation == "" && configuration == "" && extension == "",
-    !!(affiliation + configuration + extension).match(/[kpt]^/),
+    !!(affiliation + configuration + extension).match(/[kpt]$/),
   )
 
   const core = affiliation + configuration + extension + perspectiveAndEssence
