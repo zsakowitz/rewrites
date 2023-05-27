@@ -3,6 +3,7 @@ import type { Expand } from "../../expand"
 import type { Affix } from "../affix"
 import { type CA, type PartialCA } from "../ca"
 import { applyStress, countVowelForms } from "../stress"
+import { WithWYAlternative } from "../with-wy-alternative"
 import { fillInDefaultFormativeSlots } from "./default"
 import { slotIToIthkuil, type ConcatenationType } from "./slot-1"
 import { applySlotXStress } from "./slot-10"
@@ -169,14 +170,17 @@ function completeFormativeToIthkuil(formative: Formative) {
       },
     ).withPreviousText(slot6 + slot7)
 
-    const slot9 = slotIXToIthkuil(formative.case, {
-      elideIfPossible:
-        formative.concatenatenationType != "none" &&
-        countVowelForms(
-          slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8,
-        ) >= 2,
-      isPartOfConcatenatedFormative: formative.concatenatenationType != "none",
-    })
+    const slot9 = WithWYAlternative.of(
+      slotIXToIthkuil(formative.case, {
+        elideIfPossible:
+          !slot8 &&
+          countVowelForms(
+            slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8,
+          ) >= 2,
+        isPartOfConcatenatedFormative:
+          formative.concatenatenationType != "none",
+      }),
+    ).withPreviousText(slot6 + slot7 + slot8)
 
     const word =
       slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8 + slot9
