@@ -1,0 +1,180 @@
+import { deepFreeze } from "../../../deep-freeze"
+import {
+  IA_UÄ,
+  IE_UË,
+  IO_ÜÄ,
+  IÖ_ÜË,
+  UA_IÄ,
+  UE_IË,
+  UO_ÖÄ,
+  UÖ_ÖË,
+  WithWYAlternative,
+} from "../../with-wy-alternative"
+
+export type Aspect =
+  | "RTR"
+  | "PRS"
+  | "HAB"
+  | "PRG"
+  | "IMM"
+  | "PCS"
+  | "REG"
+  | "SMM"
+  | "ATP"
+  | "RSM"
+  | "CSS"
+  | "PAU"
+  | "RGR"
+  | "PCL"
+  | "CNT"
+  | "ICS"
+  | "EXP"
+  | "IRP"
+  | "PMP"
+  | "CLM"
+  | "DLT"
+  | "TMP"
+  | "XPD"
+  | "LIM"
+  | "EPD"
+  | "PTC"
+  | "PPR"
+  | "DCL"
+  | "CCL"
+  | "CUL"
+  | "IMD"
+  | "TRD"
+  | "TNS"
+  | "ITC"
+  | "MTV"
+  | "SQN"
+
+export const ALL_ASPECTS: readonly Aspect[] = deepFreeze([
+  "RTR",
+  "PRS",
+  "HAB",
+  "PRG",
+  "IMM",
+  "PCS",
+  "REG",
+  "SMM",
+  "ATP",
+
+  "RSM",
+  "CSS",
+  "PAU",
+  "RGR",
+  "PCL",
+  "CNT",
+  "ICS",
+  "EXP",
+  "IRP",
+
+  "PMP",
+  "CLM",
+  "DLT",
+  "TMP",
+  "XPD",
+  "LIM",
+  "EPD",
+  "PTC",
+  "PPR",
+
+  "DCL",
+  "CCL",
+  "CUL",
+  "IMD",
+  "TRD",
+  "TNS",
+  "ITC",
+  "MTV",
+  "SQN",
+])
+
+export const ASPECT_TO_LETTER_MAP = deepFreeze({
+  RTR: "a",
+  PRS: "ä",
+  HAB: "e",
+  PRG: "i",
+  IMM: "ëi",
+  PCS: "ö",
+  REG: "o",
+  SMM: "ü",
+  ATP: "u",
+
+  RSM: "ai",
+  CSS: "au",
+  PAU: "ei",
+  RGR: "eu",
+  PCL: "ëu",
+  CNT: "ou",
+  ICS: "oi",
+  EXP: "iu",
+  IRP: "ui",
+
+  PMP: IA_UÄ,
+  CLM: IE_UË,
+  DLT: IO_ÜÄ,
+  TMP: IÖ_ÜË,
+  XPD: "eë",
+  LIM: UÖ_ÖË,
+  EPD: UO_ÖÄ,
+  PTC: UE_IË,
+  PPR: UA_IÄ,
+
+  DCL: "ao",
+  CCL: "aö",
+  CUL: "eo",
+  IMD: "eö",
+  TRD: "oë",
+  TNS: "öe",
+  ITC: "oe",
+  MTV: "öa",
+  SQN: "oa",
+})
+
+export const ASPECT_TO_NAME_MAP = deepFreeze({
+  RTR: "Retrospective",
+  PRS: "Prospective",
+  HAB: "Habitual",
+  PRG: "Progressive",
+  IMM: "Imminent",
+  PCS: "Precessive",
+  REG: "Regulative",
+  SMM: "Summative",
+  ATP: "Anticipatory",
+
+  RSM: "Resumptive",
+  CSS: "Cessative",
+  PAU: "Pausal",
+  RGR: "Regressive",
+  PCL: "Preclusive",
+  CNT: "Continuative",
+  ICS: "Incessative",
+  EXP: "Experiential",
+  IRP: "Interruptive",
+
+  PMP: "Preemptive",
+  CLM: "Climactic",
+  DLT: "Dilatory",
+  TMP: "Temporary",
+  XPD: "Expenditive",
+  LIM: "Limitative",
+  EPD: "Expeditive",
+  PTC: "Protractive",
+  PPR: "Preparatory",
+
+  DCL: "Disclusive",
+  CCL: "Conclusive",
+  CUL: "Culminative",
+  IMD: "Intermediative",
+  TRD: "Tardative",
+  TNS: "Transitional",
+  ITC: "Intercommutative",
+  MTV: "Motive",
+  SQN: "Sequential",
+})
+
+export function aspectToIthkuil(aspect: Aspect): string | WithWYAlternative {
+  return ASPECT_TO_LETTER_MAP[aspect]
+}

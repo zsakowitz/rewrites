@@ -1,14 +1,15 @@
 import { affiliationToIthkuil, type Affiliation } from "./affiliation"
 import { configurationToIthkuil, type Configuration } from "./configuration"
-import { type Essence } from "./essence"
+import type { Essence } from "./essence"
 import { extensionToIthkuil, type Extension } from "./extension"
-import { type Perspective } from "./perspective"
+import type { Perspective } from "./perspective"
 import { perspectiveAndEssenceToIthkuil } from "./perspective-and-essence"
 
 export * from "./affiliation"
 export * from "./configuration"
 export * from "./essence"
 export * from "./extension"
+export * from "./geminate"
 export * from "./perspective"
 export * from "./perspective-and-essence"
 

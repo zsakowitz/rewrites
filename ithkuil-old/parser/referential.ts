@@ -7,7 +7,7 @@ import type {
   ReferrentType,
   Specification,
 } from "../types"
-import { type Affix, StandardAffix } from "./affix"
+import { StandardAffix, type Affix } from "./affix"
 import { Case } from "./case"
 import { normalized } from "./helpers"
 import { makeParserFromMap } from "./make-parser-from-map"

@@ -1,4 +1,5 @@
 import { deepFreeze } from "../../../deep-freeze"
+import { insertGlottalStop } from "../../insert-glottal-stop"
 import {
   IA_UÄ,
   IE_UË,
@@ -8,6 +9,7 @@ import {
   UE_IË,
   UO_ÖÄ,
   UÖ_ÖË,
+  WithWYAlternative,
 } from "../../with-wy-alternative"
 import type { Stem } from "./stem"
 import type { Version } from "./version"
@@ -16,13 +18,14 @@ export * from "./stem"
 export * from "./version"
 
 export type SlotII = {
-  stem: Stem
-  version: Version
+  readonly stem: Stem
+  readonly version: Version
 }
 
 export type SlotIIMetadata = {
-  isSlotIFilled: boolean
-  affixShortcut?: "NEG/4" | "DCD/4" | "DCD/5"
+  readonly slotI: string
+  readonly affixShortcut?: "NEG/4" | "DCD/4" | "DCD/5"
+  readonly doesSlotVHaveAtLeastTwoAffixes: boolean
 }
 
 export const SLOT_II_MAP = deepFreeze({
@@ -52,15 +55,26 @@ export const SLOT_II_MAP = deepFreeze({
   ],
 })
 
-export function slotIIToIthkuil(slot: SlotII, metadata: SlotIIMetadata) {
-  const main =
+export function slotIIToIthkuil(
+  slot: SlotII,
+  metadata: SlotIIMetadata,
+): string {
+  let value: string | WithWYAlternative =
     SLOT_II_MAP[`${metadata.affixShortcut}`][slot.stem][
-      +(slot.version == "CPT")
+      +(slot.version == "CPT") as 0 | 1
     ]
 
-  if (metadata.isSlotIFilled && main == "a") {
+  if (metadata.slotI == "" && value == "a") {
     return ""
   }
 
-  return main
+  if (typeof value != "string") {
+    value = value.withPreviousText(metadata.slotI)
+  }
+
+  if (metadata.doesSlotVHaveAtLeastTwoAffixes) {
+    value = insertGlottalStop(value, false)
+  }
+
+  return value
 }
