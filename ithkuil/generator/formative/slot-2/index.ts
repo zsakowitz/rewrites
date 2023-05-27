@@ -24,6 +24,7 @@ export type SlotII = {
 
 export type SlotIIMetadata = {
   readonly slotI: string
+  readonly slotIII: string
   readonly affixShortcut?: "NEG/4" | "DCD/4" | "DCD/5"
   readonly doesSlotVHaveAtLeastTwoAffixes: boolean
 }
@@ -64,7 +65,11 @@ export function slotIIToIthkuil(
       +(slot.version == "CPT") as 0 | 1
     ]
 
-  if (metadata.slotI == "" && value == "a") {
+  if (
+    metadata.slotIII.replace(/(.)\1/g, "$1").length <= 2 &&
+    metadata.slotI == "" &&
+    value == "a"
+  ) {
     if (metadata.doesSlotVHaveAtLeastTwoAffixes) {
       return "a'"
     } else {
