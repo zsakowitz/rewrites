@@ -65,7 +65,11 @@ export function slotIIToIthkuil(
     ]
 
   if (metadata.slotI == "" && value == "a") {
-    return ""
+    if (metadata.doesSlotVHaveAtLeastTwoAffixes) {
+      return "a'"
+    } else {
+      return ""
+    }
   }
 
   if (typeof value != "string") {

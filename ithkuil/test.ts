@@ -2,8 +2,22 @@ import * as Ithkuil from "./generator/formative"
 
 const result = Ithkuil.formativeToIthkuil({
   type: "UNF/C",
-  root: "d",
-  slotVAffixes: [{ type: 2, degree: 3, cs: "k" }],
+  root: "c",
+  specification: "CTE",
+  vn: "PCL",
+  slotVAffixes: [
+    { type: 2, degree: 6, cs: "p" },
+    { type: 3, degree: 3, cs: "kl" },
+  ],
+  slotVIIAffixes: [
+    {
+      type: "CA",
+      ca: { configuration: "MSS" },
+    },
+  ],
+  // concatenatenationType: 1,
+  case: "TSP",
+  caseScope: "CCS",
 })
 
 console.log(result)

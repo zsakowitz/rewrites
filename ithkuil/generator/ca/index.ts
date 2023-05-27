@@ -47,7 +47,9 @@ export function makeCAAllomorphicSubstitutions(ca: string) {
     .replace(/tḑ/g, "ḑy")
 }
 
-export function caToIthkuil(ca: CA) {
+export function caToIthkuil(CA: PartialCA) {
+  const ca = fillInDefaultCAValues(CA)
+
   const configuration = configurationToIthkuil(ca.configuration)
 
   const extension = extensionToIthkuil(ca.extension, ca.configuration == "UPX")
@@ -71,4 +73,15 @@ export function caToIthkuil(ca: CA) {
   const core = affiliation + configuration + extension + perspectiveAndEssence
 
   return makeCAAllomorphicSubstitutions(core)
+}
+
+export function fillInDefaultCAValues(ca: PartialCA): CA {
+  return {
+    affiliation: "CSL",
+    configuration: "UPX",
+    extension: "DEL",
+    perspective: "M",
+    essence: "NRM",
+    ...ca,
+  }
 }

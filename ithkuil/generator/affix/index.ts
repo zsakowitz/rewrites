@@ -1,7 +1,7 @@
 // TODO: Referential Affixes
 
 import { deepFreeze } from "../../deep-freeze"
-import { caToIthkuil, type CA } from "../ca"
+import { caToIthkuil, type PartialCA } from "../ca"
 import {
   IA_UÄ,
   IE_UË,
@@ -27,7 +27,7 @@ export type Affix =
     }
   | {
       readonly type: "CA"
-      readonly ca: CA
+      readonly ca: PartialCA
     }
 
 export type AffixMetadata = {
