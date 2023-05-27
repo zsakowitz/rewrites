@@ -8,7 +8,7 @@ import type {
 import { deepFreeze } from "../../deep-freeze"
 
 export const DEFAULT_NOMINAL_FORMATIVE: NominalFormative = deepFreeze({
-  type: "NOM",
+  type: "UNF/C",
 
   concatenatenationType: "none",
 
@@ -41,7 +41,7 @@ export const DEFAULT_NOMINAL_FORMATIVE: NominalFormative = deepFreeze({
 
 export const DEFAULT_UNFRAMED_VERBAL_FORMATIVE: UnframedVerbalFormative =
   deepFreeze({
-    type: "VRB",
+    type: "UNF/K",
 
     version: "PRC",
     stem: 1,
@@ -102,8 +102,8 @@ export const DEFAULT_FRAMED_VERBAL_FORMATIVE: FramedVerbalFormative =
   })
 
 export const DEFAULT_FORMATIVES_BY_TYPE = deepFreeze({
-  NOM: DEFAULT_NOMINAL_FORMATIVE,
-  VRB: DEFAULT_UNFRAMED_VERBAL_FORMATIVE,
+  "UNF/C": DEFAULT_NOMINAL_FORMATIVE,
+  "UNF/K": DEFAULT_UNFRAMED_VERBAL_FORMATIVE,
   FRM: DEFAULT_FRAMED_VERBAL_FORMATIVE,
 })
 

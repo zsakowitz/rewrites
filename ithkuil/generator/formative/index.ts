@@ -2,7 +2,7 @@ import { deepFreeze } from "../../deep-freeze"
 import type { Expand } from "../../expand"
 import type { Affix } from "../affix"
 import { type CA, type PartialCA } from "../ca"
-import { countVowelForms } from "../count-vowel-forms"
+import { applyStress, countVowelForms } from "../stress"
 import { fillInDefaultFormativeSlots } from "./default"
 import { slotIToIthkuil, type ConcatenationType } from "./slot-1"
 import { applySlotXStress } from "./slot-10"
@@ -27,6 +27,7 @@ import {
   type Valence,
 } from "./slot-8"
 import {
+  ALL_CASES,
   slotIXToIthkuil,
   type Case,
   type IllocutionOrValidation,
@@ -69,7 +70,7 @@ export type PartialCoreFormative = Expand<
 >
 
 export type NominalFormative = CoreFormative & {
-  readonly type: "NOM"
+  readonly type: "UNF/C"
 
   readonly concatenatenationType: ConcatenationType
   readonly caseScope: CaseScope
@@ -77,7 +78,7 @@ export type NominalFormative = CoreFormative & {
 }
 
 export type PartialNominalFormative = PartialCoreFormative & {
-  readonly type: "NOM"
+  readonly type: "UNF/C"
 
   readonly concatenatenationType?: ConcatenationType
   readonly caseScope?: CaseScope
@@ -85,14 +86,14 @@ export type PartialNominalFormative = PartialCoreFormative & {
 }
 
 export type UnframedVerbalFormative = CoreFormative & {
-  readonly type: "VRB"
+  readonly type: "UNF/K"
 
   readonly mood: Mood
   readonly illocutionValidation: IllocutionOrValidation
 }
 
 export type PartialUnframedVerbalFormative = PartialCoreFormative & {
-  readonly type: "VRB"
+  readonly type: "UNF/K"
 
   readonly mood?: Mood
   readonly illocutionValidation?: IllocutionOrValidation
@@ -123,12 +124,11 @@ export type PartialFormative =
   | PartialFramedVerbalFormative
 
 export const FORMATIVE_TYPE_TO_NAME_MAP = deepFreeze({
-  NOM: "Nominal",
-  VRB: "Unframed Verbal",
+  "UNF/C": "Nominal",
+  "UNF/K": "Unframed Verbal",
   FRM: "Framed Verbal",
 })
 
-// TODO: Handle concatenation and Noun Cases properly.
 // TODO: Handle verbal formatives.
 
 // This function does not compute any Vr+Ca shortcuts.
@@ -148,7 +148,7 @@ function completeFormativeToIthkuil(formative: Formative) {
 
   const slot7 = slotVIIToIthkuil({ affixes: formative.slotVIIAffixes })
 
-  if (formative.type == "NOM") {
+  if (formative.type == "UNF/C") {
     const slot1 = slotIToIthkuil({
       concatenationType: formative.concatenatenationType,
       caShortcutType: "none",
@@ -170,13 +170,26 @@ function completeFormativeToIthkuil(formative: Formative) {
     ).withPreviousText(slot6 + slot7)
 
     const slot9 = slotIXToIthkuil(formative.case, {
-      elideIfPossible: false,
+      elideIfPossible:
+        formative.concatenatenationType != "none" &&
+        countVowelForms(
+          slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8,
+        ) >= 2,
+      isPartOfConcatenatedFormative: formative.concatenatenationType != "none",
     })
 
     const word =
       slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8 + slot9
 
-    return applySlotXStress(word, "NOM")
+    if (formative.concatenatenationType == "none") {
+      return applySlotXStress(word, "UNF/C")
+    }
+
+    if (ALL_CASES.indexOf(formative.case) >= 36) {
+      return applyStress(word, -1)
+    } else {
+      return word
+    }
   }
 }
 

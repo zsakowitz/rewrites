@@ -15,12 +15,17 @@ export type SlotIX = Case | IllocutionOrValidation
 
 export interface SlotIXMetadata {
   elideIfPossible: boolean
+  isPartOfConcatenatedFormative: boolean
 }
 
 export function slotIXToIthkuil(slot: SlotIX, metadata: SlotIXMetadata) {
   if (ALL_ILLOCUTIONS.includes(slot) || ALL_VALIDATIONS.includes(slot)) {
     return illocutionAndValidationToIthkuil(slot, metadata.elideIfPossible)
   } else {
-    return caseToIthkuil(slot, metadata.elideIfPossible)
+    return caseToIthkuil(
+      slot,
+      metadata.elideIfPossible,
+      metadata.isPartOfConcatenatedFormative,
+    )
   }
 }
