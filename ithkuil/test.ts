@@ -1,3 +1,4 @@
+import { strictEqual } from "assert"
 import * as Ithkuil from "./generator/formative"
 
 const result = Ithkuil.formativeToIthkuil({
@@ -20,6 +21,4 @@ const result = Ithkuil.formativeToIthkuil({
   caseScope: "CCS",
 })
 
-// hwa'cäpoukliollüötëuhrwöë
-
-console.log(result)
+strictEqual(result, "hwa'cäpoukliollüötëuhrwöë")
