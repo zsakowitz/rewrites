@@ -1,7 +1,7 @@
 // TODO: Referential Affixes
 
-import { deepFreeze } from "../helpers/deep-freeze"
 import { caToIthkuil, type PartialCA } from "../ca"
+import { deepFreeze } from "../helpers/deep-freeze"
 import {
   IA_UÄ,
   IE_UË,
@@ -13,11 +13,32 @@ import {
   UÖ_ÖË,
   WithWYAlternative,
 } from "../helpers/with-wy-alternative"
+import { referentialAffixToIthkuil, type Referrent } from "../referential"
 import type { AffixDegree } from "./degree"
 import type { AffixType } from "./type"
 
 export * from "./degree"
 export * from "./type"
+
+export type ReferentialAffixCase =
+  | "THM"
+  | "INS"
+  | "ABS"
+  | "AFF"
+  | "STM"
+  | "EFF"
+  | "ERG"
+  | "DAT"
+  | "IND"
+  | "POS"
+  | "PRP"
+  | "GEN"
+  | "ATT"
+  | "PDC"
+  | "ITP"
+  | "OGN"
+  | "IDP"
+  | "PAR"
 
 export type Affix =
   | {
@@ -26,8 +47,14 @@ export type Affix =
       readonly cs: string
     }
   | {
-      readonly type: "CA"
+      readonly type: "ca"
       readonly ca: PartialCA
+    }
+  | {
+      readonly type: "ref"
+      readonly referrent: Referrent
+      readonly perspective?: "M" | "G" | "N"
+      readonly case?: ReferentialAffixCase
     }
 
 export type AffixMetadata = {
@@ -41,15 +68,46 @@ const AFFIX_TO_LETTER_MAP = deepFreeze([
   ["üo", IA_UÄ, IE_UË, IO_ÜÄ, IÖ_ÜË, "eë", UÖ_ÖË, UO_ÖÄ, UE_IË, UA_IÄ],
 ])
 
+const REFERENTIAL_AFFIX_TO_LETTER_MAP = deepFreeze({
+  THM: "ao",
+  INS: "aö",
+  ABS: "eo",
+  AFF: "eö",
+  STM: "oë",
+  EFF: "öe",
+  ERG: "oe",
+  DAT: "öa",
+  IND: "oa",
+
+  POS: IA_UÄ,
+  PRP: IE_UË,
+  GEN: IO_ÜÄ,
+  ATT: IÖ_ÜË,
+  PDC: "eë",
+  ITP: UÖ_ÖË,
+  OGN: UO_ÖÄ,
+  IDP: UE_IË,
+  PAR: UA_IÄ,
+})
+
 export function affixToIthkuil(
   affix: Affix,
   metadata: AffixMetadata,
 ): WithWYAlternative {
   let vowel = WithWYAlternative.of(
-    affix.type == "CA" ? "üö" : AFFIX_TO_LETTER_MAP[affix.type][affix.degree],
+    affix.type == "ca"
+      ? "üö"
+      : affix.type == "ref"
+      ? REFERENTIAL_AFFIX_TO_LETTER_MAP[affix.case ?? "THM"]
+      : AFFIX_TO_LETTER_MAP[affix.type][affix.degree],
   )
 
-  const consonant = affix.type == "CA" ? caToIthkuil(affix.ca) : affix.cs
+  const consonant =
+    affix.type == "ca"
+      ? caToIthkuil(affix.ca)
+      : affix.type == "ref"
+      ? referentialAffixToIthkuil(affix.referrent, affix.perspective ?? "M")
+      : affix.cs
 
   if (metadata.reversed) {
     return WithWYAlternative.of(consonant).add(vowel)

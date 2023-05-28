@@ -1,23 +1,24 @@
-import type { Perspective } from "../ca"
-import { allPermutationsOf } from "../helpers/permutations"
+import { referrentToIthkuil, type Referrent } from "."
+import type { Perspective } from "../../ca"
+import { allPermutationsOf } from "../../helpers/permutations"
 import {
   isLegalConsonantForm,
   isLegalWordInitialConsonantForm,
-} from "../phonotactics"
+} from "../../phonotactics"
 import {
   referentialPerspectiveToIthkuil,
   referentialPerspectiveToIthkuilAlt,
-} from "./perspective"
-import { referrentToIthkuil, type Referrent } from "./referrent"
+} from "../perspective"
 
 export type ReferrentList = readonly [Referrent, ...Referrent[]]
 
-function assembleReferrentCluster(
+export function assembleReferrentList(
   referrents: ReferrentList,
   perspective: Perspective,
+  isReferentialAffix: boolean,
 ) {
   const text = referrents.map((referrent) =>
-    referrentToIthkuil(referrent, false),
+    referrentToIthkuil(referrent, isReferentialAffix),
   )
 
   let output = ""
@@ -69,13 +70,13 @@ function assembleReferrentCluster(
   return "ë" + output + persp
 }
 
-export function referrentClusterToIthkuil(
+export function referrentListToIthkuil(
   referrents: ReferrentList,
   perspective: Perspective,
 ): string {
   const all = allPermutationsOf(referrents)
     .map((referrentList) =>
-      assembleReferrentCluster(referrentList, perspective),
+      assembleReferrentList(referrentList, perspective, false),
     )
     .sort((a, b) => (a.length < b.length ? -1 : a.length > b.length ? 1 : 0))
 
@@ -88,4 +89,41 @@ export function referrentClusterToIthkuil(
   } else {
     return all[0]!
   }
+}
+
+export function referentialAffixToIthkuil(
+  referrent: Referrent,
+  perspective: "M" | "G" | "N",
+) {
+  if (
+    // @ts-ignore
+    perspective == "A"
+  ) {
+    throw new Error(
+      "Referrents may not be marked Abstract in referential affixes.",
+    )
+  }
+
+  const ref = referrentToIthkuil(referrent, true)
+  const persp = referentialPerspectiveToIthkuil(perspective)
+  const persp2 = referentialPerspectiveToIthkuilAlt(perspective)
+
+  if (isLegalConsonantForm(ref + persp)) {
+    return ref + persp
+  }
+
+  if (isLegalConsonantForm(persp + ref)) {
+    return persp + ref
+  }
+
+  if (isLegalConsonantForm(ref + persp2)) {
+    return ref + persp2
+  }
+
+  if (isLegalConsonantForm(persp2 + ref)) {
+    return persp2 + ref
+  }
+
+  // The following may be phonotactically invalid.
+  return ref + persp2
 }

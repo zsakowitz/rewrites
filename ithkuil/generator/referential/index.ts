@@ -7,7 +7,6 @@ import {
   isLegalConsonantForm,
   isLegalWordFinalConsonantForm,
 } from "../phonotactics"
-import { referrentClusterToIthkuil, type ReferrentList } from "./cluster"
 import { fillInDefaultReferentialSlots } from "./default"
 import { applyReferentialEssence } from "./essence"
 import {
@@ -15,9 +14,9 @@ import {
   referentialPerspectiveToIthkuilAlt,
 } from "./perspective"
 import { referrentToIthkuil, type Referrent } from "./referrent"
+import { referrentListToIthkuil, type ReferrentList } from "./referrent/list"
 import { referentialSpecificationToIthkuil } from "./specification"
 
-export * from "./cluster"
 export * from "./default"
 export * from "./essence"
 export * from "./perspective"
@@ -81,7 +80,7 @@ export type PartialReferential =
     })
 
 function completeReferentialToIthkuil(referential: Referential) {
-  const slot1 = referrentClusterToIthkuil(
+  const slot1 = referrentListToIthkuil(
     referential.referrents,
     referential.perspective,
   )

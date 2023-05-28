@@ -12,7 +12,7 @@ const result = formativeToIthkuil({
   ],
   slotVIIAffixes: [
     {
-      type: "CA",
+      type: "ca",
       ca: { configuration: "MSS" },
     },
   ],
@@ -47,8 +47,18 @@ const result3 = referentialToIthkuil({
   case2: "INV",
   affixes: [
     { type: 2, degree: 7, cs: "k" },
-    { type: "CA", ca: { configuration: "MSS" } },
+    { type: "ca", ca: { configuration: "MSS" } },
   ],
 })
 
 strictEqual(result3, "tiuxpoiküötu'ó")
+
+const result4 = formativeToIthkuil({
+  root: "l",
+  type: "UNF/C",
+  slotVIIAffixes: [
+    { type: "ref", referrent: "1m:BEN", case: "ERG", perspective: "G" },
+  ],
+})
+
+strictEqual(result4, "laloerļ")
