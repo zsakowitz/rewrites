@@ -1,0 +1,155 @@
+import { affixToIthkuil, type Affix } from "../affix"
+import type { Essence, Perspective } from "../ca"
+import { caseToIthkuil, type Case, type Specification } from "../formative"
+import { countVowelForms } from "../helpers/stress"
+import { WithWYAlternative } from "../helpers/with-wy-alternative"
+import {
+  isLegalConsonantForm,
+  isLegalWordFinalConsonantForm,
+} from "../phonotactics"
+import { referrentClusterToIthkuil, type ReferrentList } from "./cluster"
+import { fillInDefaultReferentialSlots } from "./default"
+import { applyReferentialEssence } from "./essence"
+import { referentialPerspectiveToIthkuil } from "./perspective"
+import { referrentToIthkuil, type Referrent } from "./referrent"
+import { referentialSpecificationToIthkuil } from "./specification"
+
+export * from "./cluster"
+export * from "./default"
+export * from "./essence"
+export * from "./perspective"
+export * from "./referrent"
+export * from "./specification"
+
+export type ReferentialCore = {
+  readonly referrents: ReferrentList
+  readonly perspective: Perspective
+  readonly case: Case
+  readonly case2?: Case
+  readonly essence: Essence
+}
+
+export type PartialReferentialCore = {
+  readonly referrents: ReferrentList
+  readonly perspective?: Perspective
+  readonly case?: Case
+  readonly case2?: Case
+  readonly essence?: Essence
+}
+
+export type Referential =
+  | (ReferentialCore & {
+      readonly referrent2?: undefined
+      readonly perspective2?: undefined
+      readonly specification?: undefined
+      readonly affixes?: undefined
+    })
+  | (ReferentialCore & {
+      readonly referrent2: Referrent
+      readonly perspective2: Perspective
+      readonly specification?: undefined
+      readonly affixes?: undefined
+    })
+  | (ReferentialCore & {
+      readonly referrent2?: undefined
+      readonly perspective2?: undefined
+      readonly specification: Specification
+      readonly affixes: readonly Affix[]
+    })
+
+export type PartialReferential =
+  | (PartialReferentialCore & {
+      readonly referrent2?: undefined
+      readonly perspective2?: undefined
+      readonly specification?: undefined
+      readonly affixes?: undefined
+    })
+  | (PartialReferentialCore & {
+      readonly referrent2: Referrent
+      readonly perspective2?: Perspective
+      readonly specification?: undefined
+      readonly affixes?: undefined
+    })
+  | (PartialReferentialCore & {
+      readonly referrent2?: undefined
+      readonly perspective2?: undefined
+      readonly specification?: Specification
+      readonly affixes?: readonly Affix[]
+    })
+
+function completeReferentialToIthkuil(referential: Referential) {
+  const slot1 = referrentClusterToIthkuil(
+    referential.referrents,
+    referential.perspective,
+  )
+
+  const slot2 = WithWYAlternative.of(
+    caseToIthkuil(referential.case, false, false),
+  ).withPreviousText(slot1)
+
+  if (referential.specification && referential.affixes) {
+    const slot3 = referentialSpecificationToIthkuil(referential.specification)
+
+    const slot4 = referential.affixes.length
+      ? referential.affixes
+          .map((affix) => affixToIthkuil(affix, { reversed: false }))
+          .reduce((a, b) => a.add(b))
+          .withPreviousText(slot1 + slot2 + slot3)
+      : ""
+
+    const slot5 = referential.case2
+      ? referential.case2 == "THM"
+        ? "üa"
+        : caseToIthkuil(referential.case2, false, false)
+      : countVowelForms(slot1 + slot2 + slot3 + slot4) >= 2
+      ? ""
+      : "a"
+
+    const word = slot1 + slot2 + slot3 + slot4 + slot5
+
+    return applyReferentialEssence(word, referential.essence)
+  } else if (
+    referential.case2 ||
+    referential.perspective2 ||
+    referential.referrent2
+  ) {
+    const slot3 =
+      "w" +
+      WithWYAlternative.of(
+        caseToIthkuil(referential.case2 || "THM", false, false),
+      ).precededByW
+
+    let slot4 = ""
+
+    if (referential.referrent2) {
+      const referrent = referrentToIthkuil(referential.referrent2, false)
+
+      const perspective = referentialPerspectiveToIthkuil(
+        referential.perspective,
+      )
+
+      if (isLegalWordFinalConsonantForm(perspective + referrent)) {
+        slot4 = perspective + referrent
+      } else if (isLegalWordFinalConsonantForm(referrent + perspective)) {
+        slot4 = referrent + perspective
+      } else if (isLegalConsonantForm(perspective + referrent)) {
+        slot4 = perspective + referrent + "ë"
+      } else {
+        slot4 = referrent + perspective + "ë"
+      }
+    }
+
+    return applyReferentialEssence(
+      slot1 + slot2 + slot3 + slot4,
+      referential.essence,
+    )
+  } else {
+    return applyReferentialEssence(slot1 + slot2, referential.essence)
+  }
+}
+
+export function referentialToIthkuil(referential: PartialReferential) {
+  return completeReferentialToIthkuil(
+    fillInDefaultReferentialSlots(referential),
+  )
+}

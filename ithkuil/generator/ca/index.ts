@@ -47,25 +47,28 @@ export function makeCAAllomorphicSubstitutions(ca: string) {
     .replace(/tḑ/g, "ḑy")
 }
 
-export function caToIthkuil(CA: PartialCA) {
-  const ca = fillInDefaultCAValues(CA)
+export function caToIthkuil(ca: PartialCA) {
+  const ca2 = fillInDefaultCAValues(ca)
 
-  const configuration = configurationToIthkuil(ca.configuration)
+  const configuration = configurationToIthkuil(ca2.configuration)
 
-  const extension = extensionToIthkuil(ca.extension, ca.configuration == "UPX")
+  const extension = extensionToIthkuil(
+    ca2.extension,
+    ca2.configuration == "UPX",
+  )
 
   const affiliation = affiliationToIthkuil(
-    ca.affiliation,
+    ca2.affiliation,
 
     configuration == "" &&
       extension == "" &&
-      ca.perspective == "M" &&
-      ca.essence == "NRM",
+      ca2.perspective == "M" &&
+      ca2.essence == "NRM",
   )
 
   const perspectiveAndEssence = perspectiveAndEssenceToIthkuil(
-    ca.perspective,
-    ca.essence,
+    ca2.perspective,
+    ca2.essence,
     affiliation == "" && configuration == "" && extension == "",
     !!(affiliation + configuration + extension).match(/[kpt]$/),
   )

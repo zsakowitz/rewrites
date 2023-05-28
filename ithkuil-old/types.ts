@@ -128,7 +128,7 @@ export const CONFIGURATION = {
     fuzzy: {
       separate: "z",
       connected: "ž",
-      fused: "ẓ",
+      fused: "ż",
     },
   },
 } as const

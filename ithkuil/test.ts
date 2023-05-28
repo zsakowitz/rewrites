@@ -1,5 +1,5 @@
 import { strictEqual } from "assert"
-import { formativeToIthkuil } from "./generator/index"
+import { formativeToIthkuil, referentialToIthkuil,caToIthkuil } from "./generator/index"
 
 const result = formativeToIthkuil({
   type: "UNF/C",
@@ -37,4 +37,6 @@ const result2 = formativeToIthkuil({
   },
 })
 
-console.log(result2)
+strictEqual(result2, "äcarstyúoha")
+
+const result3 = referentialToIthkuil({})
