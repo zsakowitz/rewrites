@@ -10,7 +10,10 @@ import {
 import { referrentClusterToIthkuil, type ReferrentList } from "./cluster"
 import { fillInDefaultReferentialSlots } from "./default"
 import { applyReferentialEssence } from "./essence"
-import { referentialPerspectiveToIthkuil } from "./perspective"
+import {
+  referentialPerspectiveToIthkuil,
+  referentialPerspectiveToIthkuilAlt,
+} from "./perspective"
 import { referrentToIthkuil, type Referrent } from "./referrent"
 import { referentialSpecificationToIthkuil } from "./specification"
 
@@ -101,18 +104,17 @@ function completeReferentialToIthkuil(referential: Referential) {
       ? referential.case2 == "THM"
         ? "üa"
         : caseToIthkuil(referential.case2, false, false)
-      : countVowelForms(slot1 + slot2 + slot3 + slot4) >= 2
+      : referential.essence == "NRM" ||
+        countVowelForms(slot1 + slot2 + slot3 + slot4) >= 2
       ? ""
       : "a"
 
     const word = slot1 + slot2 + slot3 + slot4 + slot5
 
     return applyReferentialEssence(word, referential.essence)
-  } else if (
-    referential.case2 ||
-    referential.perspective2 ||
-    referential.referrent2
-  ) {
+  }
+
+  if (referential.case2 || referential.perspective2 || referential.referrent2) {
     const slot3 =
       "w" +
       WithWYAlternative.of(
@@ -125,7 +127,7 @@ function completeReferentialToIthkuil(referential: Referential) {
       const referrent = referrentToIthkuil(referential.referrent2, false)
 
       const perspective = referentialPerspectiveToIthkuil(
-        referential.perspective,
+        referential.perspective2,
       )
 
       if (isLegalWordFinalConsonantForm(perspective + referrent)) {
@@ -134,8 +136,23 @@ function completeReferentialToIthkuil(referential: Referential) {
         slot4 = referrent + perspective
       } else if (isLegalConsonantForm(perspective + referrent)) {
         slot4 = perspective + referrent + "ë"
-      } else {
+      } else if (isLegalConsonantForm(referrent + perspective)) {
         slot4 = referrent + perspective + "ë"
+      }
+
+      const perspective2 = referentialPerspectiveToIthkuilAlt(
+        referential.perspective2,
+      )
+
+      if (isLegalWordFinalConsonantForm(referrent + perspective2)) {
+        slot4 = referrent + perspective2
+      } else if (isLegalWordFinalConsonantForm(perspective2 + referrent)) {
+        slot4 = perspective2 + referrent
+      } else if (isLegalConsonantForm(referrent + perspective2)) {
+        slot4 = referrent + perspective2 + "ë"
+      } else {
+        // The following may be phonotactically invalid.
+        slot4 = perspective2 + referrent + "ë"
       }
     }
 
@@ -143,9 +160,9 @@ function completeReferentialToIthkuil(referential: Referential) {
       slot1 + slot2 + slot3 + slot4,
       referential.essence,
     )
-  } else {
-    return applyReferentialEssence(slot1 + slot2, referential.essence)
   }
+
+  return applyReferentialEssence(slot1 + slot2, referential.essence)
 }
 
 export function referentialToIthkuil(referential: PartialReferential) {

@@ -1,5 +1,5 @@
 import { strictEqual } from "assert"
-import { formativeToIthkuil, referentialToIthkuil,caToIthkuil } from "./generator/index"
+import { formativeToIthkuil, referentialToIthkuil } from "./generator/index"
 
 const result = formativeToIthkuil({
   type: "UNF/C",
@@ -39,4 +39,16 @@ const result2 = formativeToIthkuil({
 
 strictEqual(result2, "äcarstyúoha")
 
-const result3 = referentialToIthkuil({})
+const result3 = referentialToIthkuil({
+  referrents: ["2p:BEN"],
+  specification: "CSV",
+  essence: "RPV",
+  case: "IDP",
+  case2: "INV",
+  affixes: [
+    { type: 2, degree: 7, cs: "k" },
+    { type: "CA", ca: { configuration: "MSS" } },
+  ],
+})
+
+strictEqual(result3, "tiuxpoiküötu'ó")

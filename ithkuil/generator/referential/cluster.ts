@@ -1,7 +1,13 @@
 import type { Perspective } from "../ca"
 import { allPermutationsOf } from "../helpers/permutations"
-import { isLegalWordInitialConsonantForm } from "../phonotactics"
-import { referentialPerspectiveToIthkuil } from "./perspective"
+import {
+  isLegalConsonantForm,
+  isLegalWordInitialConsonantForm,
+} from "../phonotactics"
+import {
+  referentialPerspectiveToIthkuil,
+  referentialPerspectiveToIthkuilAlt,
+} from "./perspective"
 import { referrentToIthkuil, type Referrent } from "./referrent"
 
 export type ReferrentList = readonly [Referrent, ...Referrent[]]
@@ -27,7 +33,40 @@ function assembleReferrentCluster(
     }
   }
 
-  return output + referentialPerspectiveToIthkuil(perspective)
+  const persp = referentialPerspectiveToIthkuil(perspective)
+  const persp2 = referentialPerspectiveToIthkuilAlt(perspective)
+
+  if (output.startsWith("ë")) {
+    if (isLegalConsonantForm(output.slice(1) + persp)) {
+      return output + persp
+    }
+
+    if (isLegalConsonantForm(persp + output.slice(1))) {
+      return "ë" + persp + output.slice(1)
+    }
+
+    // The following may be phonotactically invalid.
+    return output + persp
+  }
+
+  if (isLegalWordInitialConsonantForm(output + persp)) {
+    return output + persp
+  }
+
+  if (isLegalWordInitialConsonantForm(persp + output)) {
+    return persp + output
+  }
+
+  if (isLegalWordInitialConsonantForm(output + persp2)) {
+    return output + persp2
+  }
+
+  if (isLegalWordInitialConsonantForm(persp2 + output)) {
+    return persp2 + output
+  }
+
+  // The following may be phonotactically invalid.
+  return "ë" + output + persp
 }
 
 export function referrentClusterToIthkuil(
