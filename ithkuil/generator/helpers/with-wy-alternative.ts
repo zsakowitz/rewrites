@@ -2,17 +2,17 @@ import { insertGlottalStop } from "./insert-glottal-stop"
 
 /** Represents vowel forms that have an alternative when preceded by W or Y. */
 export class WithWYAlternative {
-  static EMPTY = new this("", "", "")
+  static EMPTY = /* @__PURE__ */ new this("", "", "")
 
-  static IA_UÄ = new this("ia", "ia", "uä")
-  static IE_UË = new this("ie", "ie", "uë")
-  static IO_ÜÄ = new this("io", "io", "üä")
-  static IÖ_ÜË = new this("iö", "iö", "üë")
+  static IA_UÄ = /* @__PURE__ */ new this("ia", "ia", "uä")
+  static IE_UË = /* @__PURE__ */ new this("ie", "ie", "uë")
+  static IO_ÜÄ = /* @__PURE__ */ new this("io", "io", "üä")
+  static IÖ_ÜË = /* @__PURE__ */ new this("iö", "iö", "üë")
 
-  static UÖ_ÖË = new this("uö", "öë", "uö")
-  static UO_ÖÄ = new this("uo", "öä", "uo")
-  static UE_IË = new this("ue", "ië", "ue")
-  static UA_IÄ = new this("ua", "iä", "ua")
+  static UÖ_ÖË = /* @__PURE__ */ new this("uö", "öë", "uö")
+  static UO_ÖÄ = /* @__PURE__ */ new this("uo", "öä", "uo")
+  static UE_IË = /* @__PURE__ */ new this("ue", "ië", "ue")
+  static UA_IÄ = /* @__PURE__ */ new this("ua", "iä", "ua")
 
   static add(first: string, second: string | WithWYAlternative): string
 
