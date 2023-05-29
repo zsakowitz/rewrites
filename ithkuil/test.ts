@@ -156,3 +156,12 @@ const result13 = formativeToIthkuil({
 })
 
 strictEqual(result13, "aežraitļíöha")
+
+const result14 = formativeToIthkuil({
+  type: "UNF/C",
+  root: { cs: "c", degree: 3 },
+  slotVIIAffixes: [{ type: "ref", referrent: "1m:DET", case: "IND" }],
+  vn: "CNT",
+})
+
+strictEqual(result14, "ëiceloařouwa")

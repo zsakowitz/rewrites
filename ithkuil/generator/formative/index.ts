@@ -132,16 +132,22 @@ export const FORMATIVE_TYPE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   FRM: "Framed Verbal",
 })
 
-// TODO: Handle verbal formatives.
-
 // This function does not compute any Vr+Ca shortcuts.
 function completeFormativeToIthkuil(formative: Formative) {
   const slot3 =
     typeof formative.root == "string"
       ? formative.root
-      : referrentListToPersonalReferenceRoot(formative.root)
+      : Array.isArray(formative.root)
+      ? referrentListToPersonalReferenceRoot(formative.root)
+      : formative.root.cs
 
-  const slot4 = slotIVToIthkuil(formative, { slotIII: slot3 })
+  const slot4 = slotIVToIthkuil(formative, {
+    slotIII: slot3,
+    affixualFormativeDegree:
+      typeof formative.root == "object" && !Array.isArray(formative.root)
+        ? formative.root.degree
+        : undefined,
+  })
 
   const slot5 = slotVToIthkuil(
     { affixes: formative.slotVAffixes },

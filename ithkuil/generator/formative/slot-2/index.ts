@@ -12,6 +12,7 @@ import {
   WithWYAlternative,
 } from "../../helpers/with-wy-alternative"
 import type { SlotIII } from "../slot-3"
+import type { Function } from "../slot-4"
 import type { Stem } from "./stem"
 import type { Version } from "./version"
 
@@ -21,6 +22,9 @@ export * from "./version"
 export type SlotII = {
   readonly stem: Stem
   readonly version: Version
+
+  /** This field is required in case Slot III is affixual. */
+  readonly function: Function
 }
 
 export type SlotIIMetadata = {
@@ -63,6 +67,16 @@ export function slotIIToIthkuil(
 ): string {
   if (Array.isArray(metadata.slotIII)) {
     return slot.version == "CPT" ? "ea" : "ae"
+  }
+
+  if (typeof metadata.slotIII == "object") {
+    return slot.version == "CPT"
+      ? slot.function == "DYN"
+        ? "oë"
+        : "ëu"
+      : slot.function == "DYN"
+      ? "eë"
+      : "ëi"
   }
 
   let value: string | WithWYAlternative =

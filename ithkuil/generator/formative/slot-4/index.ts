@@ -1,4 +1,6 @@
+import type { AffixDegree } from "../../affix"
 import { deepFreeze } from "../../helpers/deep-freeze"
+import { ONE_INDEXED_STANDARD_VOWEL_TABLE } from "../../helpers/vowel-table"
 import {
   IA_UÄ,
   IE_UË,
@@ -25,6 +27,7 @@ export type SlotIV = {
 
 export type SlotIVMetadata = {
   readonly slotIII: string
+  readonly affixualFormativeDegree?: AffixDegree
 }
 
 export const SLOT_IV_MAP = /* @__PURE__ */ deepFreeze({
@@ -46,7 +49,20 @@ export const SLOT_IV_MAP = /* @__PURE__ */ deepFreeze({
   },
 })
 
+export const CONTEXT_TO_INDEX_MAP = /* @__PURE__ */ deepFreeze({
+  EXS: 0,
+  FNC: 1,
+  RPS: 2,
+  AMG: 3,
+})
+
 export function slotIVToIthkuil(slot: SlotIV, metadata: SlotIVMetadata) {
+  if (metadata.affixualFormativeDegree != null) {
+    return ONE_INDEXED_STANDARD_VOWEL_TABLE[CONTEXT_TO_INDEX_MAP[slot.context]][
+      metadata.affixualFormativeDegree
+    ]
+  }
+
   const value = SLOT_IV_MAP[slot.context][slot.function][slot.specification]
 
   if (typeof value == "string") {
