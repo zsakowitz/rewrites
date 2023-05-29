@@ -2,16 +2,11 @@ import { deepFreeze } from "../../helpers/deep-freeze"
 
 export type CaseScope = "CCN" | "CCA" | "CCS" | "CCQ" | "CCP" | "CCV"
 
-export const ALL_CASE_SCOPES: readonly CaseScope[] = deepFreeze([
-  "CCN",
-  "CCA",
-  "CCS",
-  "CCQ",
-  "CCP",
-  "CCV",
-])
+export const ALL_CASE_SCOPES: readonly CaseScope[] = /* @__PURE__ */ deepFreeze(
+  ["CCN", "CCA", "CCS", "CCQ", "CCP", "CCV"],
+)
 
-export const CASE_SCOPE_TO_LETTER_MAP = deepFreeze({
+export const CASE_SCOPE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   false: {
     CCN: "h",
     CCA: "hl",
@@ -30,7 +25,7 @@ export const CASE_SCOPE_TO_LETTER_MAP = deepFreeze({
   },
 })
 
-export const CASE_SCOPE_TO_NAME_MAP = deepFreeze({
+export const CASE_SCOPE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   CCN: "Natural",
   CCA: "Antecedent",
   CCS: "Subaltern",
@@ -44,7 +39,7 @@ export function caseScopeToIthkuil(
   whatDoesSlot8Contain: "aspect" | "non-aspect" | "empty",
 ) {
   const value =
-    CASE_SCOPE_TO_LETTER_MAP[`${whatDoesSlot8Contain == "aspect"}`][caseScope]
+    CASE_SCOPE_TO_ITHKUIL_MAP[`${whatDoesSlot8Contain == "aspect"}`][caseScope]
 
   if (value == "h" && whatDoesSlot8Contain == "empty") {
     return ""

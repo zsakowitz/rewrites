@@ -22,7 +22,7 @@ export type Effect =
   | "2:DET"
   | "1:DET"
 
-export const ALL_EFFECTS: readonly Effect[] = deepFreeze([
+export const ALL_EFFECTS: readonly Effect[] = /* @__PURE__ */ deepFreeze([
   "1:BEN",
   "2:BEN",
   "3:BEN",
@@ -34,7 +34,7 @@ export const ALL_EFFECTS: readonly Effect[] = deepFreeze([
   "1:DET",
 ])
 
-export const EFFECT_TO_LETTER_MAP = deepFreeze({
+export const EFFECT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   "1:BEN": IA_UÄ,
   "2:BEN": IE_UË,
   "3:BEN": IO_ÜÄ,
@@ -46,7 +46,7 @@ export const EFFECT_TO_LETTER_MAP = deepFreeze({
   "1:DET": UA_IÄ,
 })
 
-export const EFFECT_TO_NAME_MAP = deepFreeze({
+export const EFFECT_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   "1:BEN": "Beneficial to Speaker",
   "2:BEN": "Beneficial to Addressee",
   "3:BEN": "Beneficial to 3rd Party",
@@ -59,7 +59,7 @@ export const EFFECT_TO_NAME_MAP = deepFreeze({
 })
 
 export function effectToIthkuil(effect: Effect) {
-  return EFFECT_TO_LETTER_MAP[effect]
+  return EFFECT_TO_ITHKUIL_MAP[effect]
 }
 
 export type EffectAsObject =
@@ -73,7 +73,7 @@ export type EffectAsObject =
     }
 
 export const EFFECT_TO_EFFECT_OBJECT_MAP: Record<Effect, EffectAsObject> =
-  deepFreeze({
+  /* @__PURE__ */ deepFreeze({
     "1:BEN": { effect: "BEN", target: 1 },
     "2:BEN": { effect: "BEN", target: 2 },
     "3:BEN": { effect: "BEN", target: 3 },

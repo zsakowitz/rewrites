@@ -11,19 +11,20 @@ export type Illocution =
   | "HOR"
   | "CNJ"
 
-export const ALL_ILLOCUTIONS: readonly Illocution[] = deepFreeze([
-  "ASR",
-  "DIR",
-  "DEC",
-  "IRG",
-  "VRF",
-  "ADM",
-  "POT",
-  "HOR",
-  "CNJ",
-])
+export const ALL_ILLOCUTIONS: readonly Illocution[] =
+  /* @__PURE__ */ deepFreeze([
+    "ASR",
+    "DIR",
+    "DEC",
+    "IRG",
+    "VRF",
+    "ADM",
+    "POT",
+    "HOR",
+    "CNJ",
+  ])
 
-export const ILLOCUTION_TO_NAME_MAP = deepFreeze({
+export const ILLOCUTION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   ASR: "Assertive",
   DIR: "Directive",
   DEC: "Declarative",

@@ -10,7 +10,7 @@ export type SlotI = {
   readonly caShortcutType: CAShortcutType
 }
 
-export const SLOT_I_MAP = deepFreeze({
+export const SLOT_I_MAP = /* @__PURE__ */ deepFreeze({
   none: {
     none: "",
     w: "w",

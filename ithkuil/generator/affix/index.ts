@@ -61,14 +61,14 @@ export type AffixMetadata = {
   reversed: boolean
 }
 
-const AFFIX_TO_LETTER_MAP = deepFreeze([
+const AFFIX_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze([
   ,
   ["ae", "a", "ä", "e", "i", "ëi", "ö", "o", "ü", "u"],
   ["ea", "ai", "au", "ei", "eu", "ëu", "ou", "oi", "iu", "ui"],
   ["üo", IA_UÄ, IE_UË, IO_ÜÄ, IÖ_ÜË, "eë", UÖ_ÖË, UO_ÖÄ, UE_IË, UA_IÄ],
 ])
 
-const REFERENTIAL_AFFIX_TO_LETTER_MAP = deepFreeze({
+const REFERENTIAL_AFFIX_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   THM: "ao",
   INS: "aö",
   ABS: "eo",
@@ -98,8 +98,8 @@ export function affixToIthkuil(
     affix.type == "ca"
       ? "üö"
       : affix.type == "ref"
-      ? REFERENTIAL_AFFIX_TO_LETTER_MAP[affix.case ?? "THM"]
-      : AFFIX_TO_LETTER_MAP[affix.type][affix.degree],
+      ? REFERENTIAL_AFFIX_TO_ITHKUIL_MAP[affix.case ?? "THM"]
+      : AFFIX_TO_ITHKUIL_MAP[affix.type][affix.degree],
   )
 
   const consonant =

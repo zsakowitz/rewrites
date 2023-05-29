@@ -27,7 +27,7 @@ export type SlotIVMetadata = {
   readonly slotIII: string
 }
 
-export const SLOT_IV_MAP = deepFreeze({
+export const SLOT_IV_MAP = /* @__PURE__ */ deepFreeze({
   EXS: {
     STA: { BSC: "a", CTE: "ä", CSV: "e", OBJ: "i" },
     DYN: { BSC: "u", CTE: "ü", CSV: "o", OBJ: "ö" },

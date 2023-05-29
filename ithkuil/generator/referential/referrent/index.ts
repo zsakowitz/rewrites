@@ -41,7 +41,7 @@ export type Referrent =
   | "Obv:DET"
   | "PVS:DET"
 
-export const REFERRENT_TO_LETTER_MAP = deepFreeze({
+export const REFERRENT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   false: {
     "1m:NEU": "l",
     "2m:NEU": "s",
@@ -118,7 +118,7 @@ export function referrentToIthkuil(
   referrent: Referrent,
   isReferentialAffix: boolean,
 ): string {
-  return REFERRENT_TO_LETTER_MAP[`${isReferentialAffix}`][referrent]
+  return REFERRENT_TO_ITHKUIL_MAP[`${isReferentialAffix}`][referrent]
 }
 
 export type ReferrentObject = {
@@ -126,7 +126,7 @@ export type ReferrentObject = {
   readonly effect: ReferrentEffect
 }
 
-export const REFERRENT_TO_REFERRENT_OBJECT_MAP = deepFreeze({
+export const REFERRENT_TO_REFERRENT_OBJECT_MAP = /* @__PURE__ */ deepFreeze({
   "1m:NEU": { target: "1m", effect: "NEU" },
   "2m:NEU": { target: "2m", effect: "NEU" },
   "2p:NEU": { target: "2p", effect: "NEU" },

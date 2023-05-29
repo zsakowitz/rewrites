@@ -1,3 +1,4 @@
+export * from "./adjunct"
 export * from "./affix"
 export * from "./ca"
 export * from "./formative"

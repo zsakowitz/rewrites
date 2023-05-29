@@ -22,30 +22,31 @@ export type Configuration =
   | "DFC"
   | "DFF"
 
-export const ALL_CONFIGURATIONS: readonly Configuration[] = deepFreeze([
-  "UPX",
-  "DPX",
-  "MSS",
-  "MSC",
-  "MSF",
-  "MDS",
-  "MDC",
-  "MDF",
-  "MFS",
-  "MFC",
-  "MFF",
-  "DSS",
-  "DSC",
-  "DSF",
-  "DDS",
-  "DDC",
-  "DDF",
-  "DFS",
-  "DFC",
-  "DFF",
-])
+export const ALL_CONFIGURATIONS: readonly Configuration[] =
+  /* @__PURE__ */ deepFreeze([
+    "UPX",
+    "DPX",
+    "MSS",
+    "MSC",
+    "MSF",
+    "MDS",
+    "MDC",
+    "MDF",
+    "MFS",
+    "MFC",
+    "MFF",
+    "DSS",
+    "DSC",
+    "DSF",
+    "DDS",
+    "DDC",
+    "DDF",
+    "DFS",
+    "DFC",
+    "DFF",
+  ])
 
-export const CONFIGURATION_TO_LETTER_MAP = deepFreeze({
+export const CONFIGURATION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   UPX: "",
   DPX: "s",
 
@@ -75,5 +76,5 @@ export const CONFIGURATION_TO_LETTER_MAP = deepFreeze({
 })
 
 export function configurationToIthkuil(configuration: Configuration): string {
-  return CONFIGURATION_TO_LETTER_MAP[configuration]
+  return CONFIGURATION_TO_ITHKUIL_MAP[configuration]
 }

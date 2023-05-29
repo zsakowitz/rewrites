@@ -11,7 +11,7 @@ export type Level =
   | "SPQ"
   | "MAX"
 
-export const ALL_LEVELS: readonly Level[] = deepFreeze([
+export const ALL_LEVELS: readonly Level[] = /* @__PURE__ */ deepFreeze([
   "MIN",
   "SBE",
   "IFR",
@@ -23,7 +23,7 @@ export const ALL_LEVELS: readonly Level[] = deepFreeze([
   "MAX",
 ])
 
-export const LEVEL_TO_LETTER_MAP = deepFreeze({
+export const LEVEL_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   MIN: "ao",
   SBE: "aö",
   IFR: "eo",
@@ -35,7 +35,7 @@ export const LEVEL_TO_LETTER_MAP = deepFreeze({
   MAX: "oa",
 })
 
-export const LEVEL_TO_NAME_MAP = deepFreeze({
+export const LEVEL_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   MIN: "Minimal",
   SBE: "Subequative",
   IFR: "Inferior",
@@ -48,5 +48,5 @@ export const LEVEL_TO_NAME_MAP = deepFreeze({
 })
 
 export function levelToIthkuil(level: Level) {
-  return LEVEL_TO_LETTER_MAP[level]
+  return LEVEL_TO_ITHKUIL_MAP[level]
 }

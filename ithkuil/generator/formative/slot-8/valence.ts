@@ -23,7 +23,7 @@ export const ALL_VALENCES: readonly Valence[] = [
   "PTI",
 ]
 
-export const VALENCE_TO_LETTER_MAP = deepFreeze({
+export const VALENCE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   MNO: "a",
   PRL: "ä",
   CRO: "e",
@@ -35,7 +35,7 @@ export const VALENCE_TO_LETTER_MAP = deepFreeze({
   PTI: "u",
 } satisfies Record<Valence, string>)
 
-export const VALENCE_TO_NAME_MAP = deepFreeze({
+export const VALENCE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   MNO: "Monoactive",
   PRL: "Parallel",
   CRO: "Corollary",
@@ -51,7 +51,7 @@ export function valenceToIthkuil(
   valence: Valence,
   allowOmittingDefaultValence: boolean,
 ): string {
-  const value = VALENCE_TO_LETTER_MAP[valence]
+  const value = VALENCE_TO_ITHKUIL_MAP[valence]
 
   if (allowOmittingDefaultValence && value == "a") {
     return ""

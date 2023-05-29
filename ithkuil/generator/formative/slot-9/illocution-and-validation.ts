@@ -4,26 +4,27 @@ import type { Validation } from "./validation"
 
 export type IllocutionOrValidation = Exclude<Illocution, "ASR"> | Validation
 
-export const ILLOCUTION_AND_VALIDATION_TO_LETTER_MAP = deepFreeze({
-  OBS: "a",
-  REC: "ä",
-  PUP: "e",
-  RPR: "i",
-  USP: "ëi",
-  IMA: "ö",
-  CVN: "o",
-  ITU: "ü",
-  INF: "u",
+export const ILLOCUTION_AND_VALIDATION_TO_ITHKUIL_MAP =
+  /* @__PURE__ */ deepFreeze({
+    OBS: "a",
+    REC: "ä",
+    PUP: "e",
+    RPR: "i",
+    USP: "ëi",
+    IMA: "ö",
+    CVN: "o",
+    ITU: "ü",
+    INF: "u",
 
-  DIR: "ai",
-  DEC: "au",
-  IRG: "ei",
-  VRF: "eu",
-  ADM: "ou",
-  POT: "oi",
-  HOR: "iu",
-  CNJ: "ui",
-})
+    DIR: "ai",
+    DEC: "au",
+    IRG: "ei",
+    VRF: "eu",
+    ADM: "ou",
+    POT: "oi",
+    HOR: "iu",
+    CNJ: "ui",
+  })
 
 export function illocutionAndValidationToIthkuil(
   illocutionOrValidation: IllocutionOrValidation,
@@ -33,5 +34,5 @@ export function illocutionAndValidationToIthkuil(
     return ""
   }
 
-  return ILLOCUTION_AND_VALIDATION_TO_LETTER_MAP[illocutionOrValidation]
+  return ILLOCUTION_AND_VALIDATION_TO_ITHKUIL_MAP[illocutionOrValidation]
 }

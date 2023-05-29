@@ -13,21 +13,22 @@ export type ReferrentTarget =
   | "Obv"
   | "PVS"
 
-export const ALL_REFERRENT_TARGETS: readonly ReferrentTarget[] = deepFreeze([
-  "1m",
-  "2m",
-  "2p",
-  "ma",
-  "pa",
-  "mi",
-  "pi",
-  "Mx",
-  "Rdp",
-  "Obv",
-  "PVS",
-])
+export const ALL_REFERRENT_TARGETS: readonly ReferrentTarget[] =
+  /* @__PURE__ */ deepFreeze([
+    "1m",
+    "2m",
+    "2p",
+    "ma",
+    "pa",
+    "mi",
+    "pi",
+    "Mx",
+    "Rdp",
+    "Obv",
+    "PVS",
+  ])
 
-export const REFERRENT_TARGET_TO_NAME_MAP = deepFreeze({
+export const REFERRENT_TARGET_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   "1m": "monadic speaker",
   "2m": "monadic addressee",
   "2p": "polyadic addressee",

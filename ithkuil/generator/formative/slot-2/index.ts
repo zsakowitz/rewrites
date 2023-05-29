@@ -29,7 +29,7 @@ export type SlotIIMetadata = {
   readonly doesSlotVHaveAtLeastTwoAffixes: boolean
 }
 
-export const SLOT_II_MAP = deepFreeze({
+export const SLOT_II_MAP = /* @__PURE__ */ deepFreeze({
   undefined: [
     ["o", "ö"],
     ["a", "ä"],

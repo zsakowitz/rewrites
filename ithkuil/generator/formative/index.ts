@@ -124,7 +124,7 @@ export type PartialFormative =
   | PartialUnframedVerbalFormative
   | PartialFramedVerbalFormative
 
-export const FORMATIVE_TYPE_TO_NAME_MAP = deepFreeze({
+export const FORMATIVE_TYPE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   "UNF/C": "Nominal",
   "UNF/K": "Unframed Verbal",
   FRM: "Framed Verbal",

@@ -11,7 +11,7 @@ export type Phase =
   | "VAC"
   | "FLC"
 
-export const ALL_PHASES: readonly Phase[] = deepFreeze([
+export const ALL_PHASES: readonly Phase[] = /* @__PURE__ */ deepFreeze([
   "PUN",
   "ITR",
   "REP",
@@ -23,7 +23,7 @@ export const ALL_PHASES: readonly Phase[] = deepFreeze([
   "FLC",
 ])
 
-export const PHASE_TO_LETTER_MAP = deepFreeze({
+export const PHASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   PUN: "ai",
   ITR: "au",
   REP: "ei",
@@ -35,7 +35,7 @@ export const PHASE_TO_LETTER_MAP = deepFreeze({
   FLC: "ui",
 })
 
-export const PHASE_TO_NAME_MAP = deepFreeze({
+export const PHASE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   PUN: "Punctual",
   ITR: "Iterative",
   REP: "Repetitive",
@@ -48,5 +48,5 @@ export const PHASE_TO_NAME_MAP = deepFreeze({
 })
 
 export function phaseToIthkuil(phase: Phase) {
-  return PHASE_TO_LETTER_MAP[phase]
+  return PHASE_TO_ITHKUIL_MAP[phase]
 }

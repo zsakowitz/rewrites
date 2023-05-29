@@ -12,7 +12,7 @@ export type Dipthong =
   | "ou"
   | "iu"
 
-export const ALL_DIPTIONGS: readonly Dipthong[] = deepFreeze([
+export const ALL_DIPTIONGS: readonly Dipthong[] = /* @__PURE__ */ deepFreeze([
   "ai",
   "ei",
   "ëi",

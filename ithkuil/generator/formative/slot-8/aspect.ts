@@ -49,7 +49,7 @@ export type Aspect =
   | "MTV"
   | "SQN"
 
-export const ALL_ASPECTS: readonly Aspect[] = deepFreeze([
+export const ALL_ASPECTS: readonly Aspect[] = /* @__PURE__ */ deepFreeze([
   "RTR",
   "PRS",
   "HAB",
@@ -91,7 +91,7 @@ export const ALL_ASPECTS: readonly Aspect[] = deepFreeze([
   "SQN",
 ])
 
-export const ASPECT_TO_LETTER_MAP = deepFreeze({
+export const ASPECT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   RTR: "a",
   PRS: "ä",
   HAB: "e",
@@ -133,7 +133,7 @@ export const ASPECT_TO_LETTER_MAP = deepFreeze({
   SQN: "oa",
 })
 
-export const ASPECT_TO_NAME_MAP = deepFreeze({
+export const ASPECT_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   RTR: "Retrospective",
   PRS: "Prospective",
   HAB: "Habitual",
@@ -176,5 +176,5 @@ export const ASPECT_TO_NAME_MAP = deepFreeze({
 })
 
 export function aspectToIthkuil(aspect: Aspect): string | WithWYAlternative {
-  return ASPECT_TO_LETTER_MAP[aspect]
+  return ASPECT_TO_ITHKUIL_MAP[aspect]
 }

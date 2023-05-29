@@ -2,7 +2,7 @@ import { deepFreeze } from "../helpers/deep-freeze"
 
 export type Extension = "DEL" | "PRX" | "ICP" | "ATV" | "GRA" | "DPL"
 
-export const ALL_EXTENSIONS: readonly Extension[] = deepFreeze([
+export const ALL_EXTENSIONS: readonly Extension[] = /* @__PURE__ */ deepFreeze([
   "DEL",
   "PRX",
   "ICP",
@@ -11,7 +11,7 @@ export const ALL_EXTENSIONS: readonly Extension[] = deepFreeze([
   "DPL",
 ])
 
-export const EXTENSION_TO_NAME_MAP = deepFreeze({
+export const EXTENSION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   DEL: "Delimitive",
   PRX: "Proximal",
   ICP: "Inceptive",
@@ -20,7 +20,7 @@ export const EXTENSION_TO_NAME_MAP = deepFreeze({
   DPL: "Depletive",
 })
 
-export const EXTENSION_TO_LETTER_MAP = deepFreeze({
+export const EXTENSION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   DEL: ["", ""],
   PRX: ["t", "d"],
   ICP: ["k", "g"],
@@ -33,5 +33,5 @@ export function extensionToIthkuil(
   extension: Extension,
   isCAUniplex: boolean,
 ): string {
-  return EXTENSION_TO_LETTER_MAP[extension][+isCAUniplex as 0 | 1]
+  return EXTENSION_TO_ITHKUIL_MAP[extension][+isCAUniplex as 0 | 1]
 }

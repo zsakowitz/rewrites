@@ -7,40 +7,41 @@ import type {
 } from "."
 import { deepFreeze } from "../helpers/deep-freeze"
 
-export const DEFAULT_NOMINAL_FORMATIVE: NominalFormative = deepFreeze({
-  type: "UNF/C",
+export const DEFAULT_NOMINAL_FORMATIVE: NominalFormative =
+  /* @__PURE__ */ deepFreeze({
+    type: "UNF/C",
 
-  concatenatenationType: "none",
+    concatenatenationType: "none",
 
-  version: "PRC",
-  stem: 1,
+    version: "PRC",
+    stem: 1,
 
-  root: "",
+    root: "",
 
-  function: "STA",
-  specification: "BSC",
-  context: "EXS",
+    function: "STA",
+    specification: "BSC",
+    context: "EXS",
 
-  slotVAffixes: [],
+    slotVAffixes: [],
 
-  ca: {
-    affiliation: "CSL",
-    configuration: "UPX",
-    extension: "DEL",
-    perspective: "M",
-    essence: "NRM",
-  },
+    ca: {
+      affiliation: "CSL",
+      configuration: "UPX",
+      extension: "DEL",
+      perspective: "M",
+      essence: "NRM",
+    },
 
-  slotVIIAffixes: [],
+    slotVIIAffixes: [],
 
-  vn: "MNO",
-  caseScope: "CCN",
+    vn: "MNO",
+    caseScope: "CCN",
 
-  case: "THM",
-})
+    case: "THM",
+  })
 
 export const DEFAULT_UNFRAMED_VERBAL_FORMATIVE: UnframedVerbalFormative =
-  deepFreeze({
+  /* @__PURE__ */ deepFreeze({
     type: "UNF/K",
 
     version: "PRC",
@@ -71,7 +72,7 @@ export const DEFAULT_UNFRAMED_VERBAL_FORMATIVE: UnframedVerbalFormative =
   })
 
 export const DEFAULT_FRAMED_VERBAL_FORMATIVE: FramedVerbalFormative =
-  deepFreeze({
+  /* @__PURE__ */ deepFreeze({
     type: "FRM",
 
     version: "PRC",
@@ -101,7 +102,7 @@ export const DEFAULT_FRAMED_VERBAL_FORMATIVE: FramedVerbalFormative =
     case: "THM",
   })
 
-export const DEFAULT_FORMATIVES_BY_TYPE = deepFreeze({
+export const DEFAULT_FORMATIVES_BY_TYPE = /* @__PURE__ */ deepFreeze({
   "UNF/C": DEFAULT_NOMINAL_FORMATIVE,
   "UNF/K": DEFAULT_UNFRAMED_VERBAL_FORMATIVE,
   FRM: DEFAULT_FRAMED_VERBAL_FORMATIVE,

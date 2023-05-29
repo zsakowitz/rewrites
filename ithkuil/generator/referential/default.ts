@@ -6,7 +6,7 @@ import type {
 } from "."
 import { deepFreeze } from "../helpers/deep-freeze"
 
-export const DEFAULT_REFERENTIAL: ReferentialCore = deepFreeze({
+export const DEFAULT_REFERENTIAL: ReferentialCore = /* @__PURE__ */ deepFreeze({
   referrents: ["1m:NEU"],
   perspective: "M",
   case: "THM",

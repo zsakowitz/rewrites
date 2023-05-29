@@ -81,7 +81,7 @@ export type Case =
   | "ELP"
   | "PLM"
 
-export const ALL_CASES: readonly Case[] = deepFreeze([
+export const ALL_CASES: readonly Case[] = /* @__PURE__ */ deepFreeze([
   "THM",
   "INS",
   "ABS",
@@ -159,7 +159,7 @@ export const ALL_CASES: readonly Case[] = deepFreeze([
   "PLM",
 ])
 
-export const CASE_TO_LETTER_MAP = deepFreeze({
+export const CASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   false: {
     THM: "a",
     INS: "ä",
@@ -316,7 +316,7 @@ export const CASE_TO_LETTER_MAP = deepFreeze({
   },
 })
 
-export const CASE_TO_NAME_MAP = deepFreeze({
+export const CASE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   THM: "Thematic",
   INS: "Instrumental",
   ABS: "Absolutive",
@@ -403,5 +403,5 @@ export function caseToIthkuil(
     return ""
   }
 
-  return CASE_TO_LETTER_MAP[`${isPartOfConcatenatedFormative}`][case_]
+  return CASE_TO_ITHKUIL_MAP[`${isPartOfConcatenatedFormative}`][case_]
 }

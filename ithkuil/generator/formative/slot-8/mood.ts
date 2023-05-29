@@ -2,7 +2,7 @@ import { deepFreeze } from "../../helpers/deep-freeze"
 
 export type Mood = "FAC" | "SUB" | "ASM" | "SPC" | "COU" | "HYP"
 
-export const ALL_MOODS: readonly Mood[] = deepFreeze([
+export const ALL_MOODS: readonly Mood[] = /* @__PURE__ */ deepFreeze([
   "FAC",
   "SUB",
   "ASM",
@@ -11,7 +11,7 @@ export const ALL_MOODS: readonly Mood[] = deepFreeze([
   "HYP",
 ])
 
-export const MOOD_TO_LETTER_MAP = deepFreeze({
+export const MOOD_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   false: {
     FAC: "h",
     SUB: "hl",
@@ -30,7 +30,7 @@ export const MOOD_TO_LETTER_MAP = deepFreeze({
   },
 })
 
-export const MOOD_TO_NAME_MAP = deepFreeze({
+export const MOOD_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   FAC: "Factual",
   SUB: "Subjunctive",
   ASM: "Assumptive",
@@ -43,7 +43,7 @@ export function moodToIthkuil(
   mood: Mood,
   whatDoesSlot8Contain: "aspect" | "non-aspect" | "empty",
 ) {
-  const value = MOOD_TO_LETTER_MAP[`${whatDoesSlot8Contain == "aspect"}`][mood]
+  const value = MOOD_TO_ITHKUIL_MAP[`${whatDoesSlot8Contain == "aspect"}`][mood]
 
   if (value == "h" && whatDoesSlot8Contain == "empty") {
     return ""

@@ -1,6 +1,6 @@
 import { deepFreeze } from "./deep-freeze"
 
-export const VOWEL_TO_STRESSED_VOWEL_MAP = deepFreeze({
+export const VOWEL_TO_STRESSED_VOWEL_MAP = /* @__PURE__ */ deepFreeze({
   a: "á",
   ä: "â",
   e: "é",

@@ -11,19 +11,20 @@ export type Validation =
   | "ITU"
   | "INF"
 
-export const ALL_VALIDATIONS: readonly Validation[] = deepFreeze([
-  "OBS",
-  "REC",
-  "PUP",
-  "RPR",
-  "USP",
-  "IMA",
-  "CVN",
-  "ITU",
-  "INF",
-])
+export const ALL_VALIDATIONS: readonly Validation[] =
+  /* @__PURE__ */ deepFreeze([
+    "OBS",
+    "REC",
+    "PUP",
+    "RPR",
+    "USP",
+    "IMA",
+    "CVN",
+    "ITU",
+    "INF",
+  ])
 
-export const VALIDATION_TO_NAME_MAP = deepFreeze({
+export const VALIDATION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   OBS: "Observational",
   REC: "Recollective",
   PUP: "Purportive",
