@@ -169,6 +169,7 @@ function completeFormativeToIthkuil(formative: Formative) {
   const slot2 = slotIIToIthkuil(formative, {
     slotI: slot1,
     slotIII: formative.root,
+    function: formative.function,
     doesSlotVHaveAtLeastTwoAffixes: formative.slotVAffixes.length >= 2,
   })
 
