@@ -2,6 +2,7 @@ import { strictEqual } from "assert"
 import {
   affixualAdjunctToIthkuil,
   formativeToIthkuil,
+  modularAdjunctToIthkuil,
   referentialToIthkuil,
 } from "./generator"
 
@@ -84,3 +85,29 @@ const result5 = affixualAdjunctToIthkuil({
 })
 
 strictEqual(result5, "cahecái")
+
+const result6 = modularAdjunctToIthkuil({
+  vn1: "RTR",
+  cn: "CCQ",
+  scope: "ADJACENT",
+})
+
+strictEqual(result6, "ahmwó")
+
+const result7 = modularAdjunctToIthkuil({
+  cn: "CCQ",
+  vn1: "2:BEN",
+  vn2: "DUP",
+  vn3: "MNO",
+})
+
+strictEqual(result7, "iehmöňa")
+
+const result8 = modularAdjunctToIthkuil({
+  cn: "CCQ",
+  vn1: "2:BEN",
+  vn2: "DUP",
+  scope: "CASE/MOOD",
+})
+
+strictEqual(result8, "iehmöňé")
