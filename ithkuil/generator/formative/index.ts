@@ -168,7 +168,7 @@ function completeFormativeToIthkuil(formative: Formative) {
         cn: formative.caseScope,
       },
       {
-        allowOmittingDefaultValence: true,
+        omitDefaultValence: true,
       },
     ).withPreviousText(slot6 + slot7)
 
@@ -217,7 +217,7 @@ function completeFormativeToIthkuil(formative: Formative) {
         cn: formative.mood,
       },
       {
-        allowOmittingDefaultValence: true,
+        omitDefaultValence: true,
       },
     ).withPreviousText(slot6 + slot7)
 
@@ -253,7 +253,7 @@ function completeFormativeToIthkuil(formative: Formative) {
         cn: formative.caseScope,
       },
       {
-        allowOmittingDefaultValence:
+        omitDefaultValence:
           countVowelForms(
             slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7,
           ) >= 2,

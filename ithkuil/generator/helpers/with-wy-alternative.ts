@@ -14,6 +14,33 @@ export class WithWYAlternative {
   static UE_IË = new this("ue", "ië", "ue")
   static UA_IÄ = new this("ua", "iä", "ua")
 
+  static add(first: string, second: string | WithWYAlternative): string
+
+  static add(
+    first: WithWYAlternative,
+    second: string | WithWYAlternative,
+  ): WithWYAlternative
+
+  static add(
+    first: string | WithWYAlternative,
+    second: string | WithWYAlternative,
+  ): string | WithWYAlternative
+
+  static add(
+    first: string | WithWYAlternative,
+    second: string | WithWYAlternative,
+  ): string | WithWYAlternative {
+    if (typeof first == "string") {
+      if (typeof second == "string") {
+        return first + second
+      }
+
+      return first + second.withPreviousText(first)
+    }
+
+    return first.add(second)
+  }
+
   static of(text: string | WithWYAlternative) {
     if (text instanceof WithWYAlternative) {
       return text

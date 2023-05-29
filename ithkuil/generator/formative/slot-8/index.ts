@@ -15,32 +15,51 @@ export * from "./mood"
 export * from "./phase"
 export * from "./valence"
 
+export type VN = Valence | Phase | Effect | Level | Aspect
+
+export type CN = Mood | CaseScope
+
 export type SlotVIII = {
-  vn: Valence | Phase | Effect | Level | Aspect
-  cn: Mood | CaseScope
+  vn: VN
+  cn: CN
 }
 
 export type SlotVIIIMetadata = {
-  allowOmittingDefaultValence: boolean
+  omitDefaultValence: boolean
+}
+
+export function vnToIthkuil(vn: VN, omitDefaultValence: boolean) {
+  if (omitDefaultValence && vn == "MNO") {
+    return ""
+  }
+
+  return ALL_VALENCES.includes(vn)
+    ? valenceToIthkuil(vn, omitDefaultValence)
+    : ALL_PHASES.includes(vn)
+    ? phaseToIthkuil(vn)
+    : ALL_EFFECTS.includes(vn)
+    ? effectToIthkuil(vn)
+    : ALL_LEVELS.includes(vn)
+    ? levelToIthkuil(vn)
+    : aspectToIthkuil(vn)
+}
+
+export function cnToIthkuil(
+  cn: CN,
+  whatDoesSlot8Contain: "empty" | "aspect" | "non-aspect",
+) {
+  return ALL_MOODS.includes(cn)
+    ? moodToIthkuil(cn, whatDoesSlot8Contain)
+    : caseScopeToIthkuil(cn, whatDoesSlot8Contain)
 }
 
 export function slotVIIIToIthkuil(slot: SlotVIII, metadata: SlotVIIIMetadata) {
-  const vn: string | WithWYAlternative = ALL_VALENCES.includes(slot.vn)
-    ? valenceToIthkuil(slot.vn, metadata.allowOmittingDefaultValence)
-    : ALL_PHASES.includes(slot.vn)
-    ? phaseToIthkuil(slot.vn)
-    : ALL_EFFECTS.includes(slot.vn)
-    ? effectToIthkuil(slot.vn)
-    : ALL_LEVELS.includes(slot.vn)
-    ? levelToIthkuil(slot.vn)
-    : aspectToIthkuil(slot.vn)
+  const vn = vnToIthkuil(slot.vn, metadata.omitDefaultValence)
 
   const whatDoesSlot8Contain =
     vn == "" ? "empty" : ALL_ASPECTS.includes(slot.vn) ? "aspect" : "non-aspect"
 
-  const cn: string = ALL_MOODS.includes(slot.cn)
-    ? moodToIthkuil(slot.cn, whatDoesSlot8Contain)
-    : caseScopeToIthkuil(slot.cn, whatDoesSlot8Contain)
+  const cn = cnToIthkuil(slot.cn, whatDoesSlot8Contain)
 
   if (vn == "" && cn == "h") {
     return WithWYAlternative.EMPTY
