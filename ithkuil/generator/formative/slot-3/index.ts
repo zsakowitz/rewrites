@@ -1,4 +1,5 @@
 // TODO: Affixual Formatives
-// TODO: Referential Formatives
 
-export type SlotIII = string
+import type { ReferrentList } from "../../referential"
+
+export type SlotIII = string | ReferrentList

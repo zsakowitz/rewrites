@@ -1,5 +1,6 @@
 export * from "./affixual"
 export * from "./bias"
 export * from "./modular"
+export * from "./parsing"
 export * from "./register"
 export * from "./suppletive"

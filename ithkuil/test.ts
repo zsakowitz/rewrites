@@ -3,7 +3,10 @@ import {
   affixualAdjunctToIthkuil,
   formativeToIthkuil,
   modularAdjunctToIthkuil,
+  parsingAdjunctToIthkuil,
   referentialToIthkuil,
+  registerAdjunctToIthkuil,
+  suppletiveAdjunctToIthkuil,
 } from "./generator"
 
 const result = formativeToIthkuil({
@@ -111,3 +114,45 @@ const result8 = modularAdjunctToIthkuil({
 })
 
 strictEqual(result8, "iehmöňé")
+
+const result9 = referentialToIthkuil({
+  type: "CAR",
+  specification: "CSV",
+  essence: "RPV",
+  case: "IDP",
+  case2: "INV",
+  affixes: [
+    { type: 2, degree: 7, cs: "k" },
+    { type: "ca", ca: { configuration: "MSS" } },
+  ],
+})
+
+strictEqual(result9, "ahliuxpoiküötu'ó")
+
+const result10 = parsingAdjunctToIthkuil("monosyllabic")
+
+strictEqual(result10, "a'")
+
+const result11 = registerAdjunctToIthkuil("CGT")
+
+strictEqual(result11[0], "hu")
+strictEqual(result11[1], "hui")
+
+const result12 = suppletiveAdjunctToIthkuil({
+  type: "NAM",
+  case: "AVR",
+})
+
+strictEqual(result12, "hnoe")
+
+const result13 = formativeToIthkuil({
+  type: "FRM",
+  root: ["1m:BEN", "2m:DET"],
+  ca: {
+    essence: "RPV",
+  },
+  context: "FNC",
+  vn: "SLF:BEN",
+})
+
+strictEqual(result13, "aežraitļíöha")

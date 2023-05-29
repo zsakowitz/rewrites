@@ -12,7 +12,7 @@ export type SuppletiveAdjunct = {
   readonly case: Case
 }
 
-export function suppletiveAdjunctToIthkuil(adjunct: SuppletiveAdjunct): string {
+export function suppletiveAdjunctToIthkuil(adjunct: SuppletiveAdjunct) {
   const type = suppletiveAdjunctTypeToIthkuil(adjunct.type)
 
   return WithWYAlternative.add(type, caseToIthkuil(adjunct.case, false, false))

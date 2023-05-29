@@ -4,10 +4,12 @@ import { deepFreeze } from "../helpers/deep-freeze"
 import type { Expand } from "../helpers/expand"
 import { applyStress, countVowelForms } from "../helpers/stress"
 import { WithWYAlternative } from "../helpers/with-wy-alternative"
+import { referrentListToPersonalReferenceRoot } from "../referential"
 import { fillInDefaultFormativeSlots } from "./default"
 import { slotIToIthkuil, type ConcatenationType } from "./slot-1"
 import { applySlotXStress } from "./slot-10"
 import { slotIIToIthkuil, type Stem, type Version } from "./slot-2"
+import type { SlotIII } from "./slot-3"
 import {
   slotIVToIthkuil,
   type Context,
@@ -50,7 +52,7 @@ export type CoreFormative = {
   readonly version: Version
   readonly stem: Stem
 
-  readonly root: string
+  readonly root: SlotIII
 
   readonly function: Function
   readonly specification: Specification
@@ -66,7 +68,7 @@ export type CoreFormative = {
 export type PartialCoreFormative = Expand<
   Partial<Omit<CoreFormative, "ca" | "root">> & {
     readonly ca?: PartialCA
-    readonly root: string
+    readonly root: SlotIII
   }
 >
 
@@ -134,7 +136,10 @@ export const FORMATIVE_TYPE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
 
 // This function does not compute any Vr+Ca shortcuts.
 function completeFormativeToIthkuil(formative: Formative) {
-  const slot3 = formative.root
+  const slot3 =
+    typeof formative.root == "string"
+      ? formative.root
+      : referrentListToPersonalReferenceRoot(formative.root)
 
   const slot4 = slotIVToIthkuil(formative, { slotIII: slot3 })
 
@@ -149,19 +154,20 @@ function completeFormativeToIthkuil(formative: Formative) {
 
   const slot7 = slotVIIToIthkuil({ affixes: formative.slotVIIAffixes })
 
+  const slot1 = slotIToIthkuil({
+    concatenationType:
+      formative.type == "UNF/C" ? formative.concatenatenationType : "none",
+    caShortcutType: "none",
+  })
+
+  const slot2 = slotIIToIthkuil(formative, {
+    slotI: slot1,
+    slotIII: formative.root,
+    doesSlotVHaveAtLeastTwoAffixes: formative.slotVAffixes.length >= 2,
+  })
+
   // Nominal formatives
   if (formative.type == "UNF/C") {
-    const slot1 = slotIToIthkuil({
-      concatenationType: formative.concatenatenationType,
-      caShortcutType: "none",
-    })
-
-    const slot2 = slotIIToIthkuil(formative, {
-      slotI: slot1,
-      slotIII: slot3,
-      doesSlotVHaveAtLeastTwoAffixes: formative.slotVAffixes.length >= 2,
-    })
-
     const slot8 = slotVIIIToIthkuil(
       {
         vn: formative.vn,
@@ -200,17 +206,6 @@ function completeFormativeToIthkuil(formative: Formative) {
 
   // Unframed verbal formatives
   if (formative.type == "UNF/K") {
-    const slot1 = slotIToIthkuil({
-      caShortcutType: "none",
-      concatenationType: "none",
-    })
-
-    const slot2 = slotIIToIthkuil(formative, {
-      slotI: slot1,
-      slotIII: slot3,
-      doesSlotVHaveAtLeastTwoAffixes: formative.slotVAffixes.length >= 2,
-    })
-
     const slot8 = slotVIIIToIthkuil(
       {
         vn: formative.vn,
@@ -236,17 +231,6 @@ function completeFormativeToIthkuil(formative: Formative) {
 
   // Framed verbal formatives
   if (formative.type == "FRM") {
-    const slot1 = slotIToIthkuil({
-      concatenationType: "none",
-      caShortcutType: "none",
-    })
-
-    const slot2 = slotIIToIthkuil(formative, {
-      slotI: slot1,
-      slotIII: slot3,
-      doesSlotVHaveAtLeastTwoAffixes: formative.slotVAffixes.length >= 2,
-    })
-
     const slot8 = slotVIIIToIthkuil(
       {
         vn: formative.vn,

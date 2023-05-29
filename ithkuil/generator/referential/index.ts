@@ -1,3 +1,7 @@
+import {
+  suppletiveAdjunctTypeToIthkuil,
+  type SuppletiveAdjunctType,
+} from "../adjunct"
 import { affixToIthkuil, type Affix } from "../affix"
 import type { Essence, Perspective } from "../ca"
 import { caseToIthkuil, type Case, type Specification } from "../formative"
@@ -23,21 +27,49 @@ export * from "./perspective"
 export * from "./referrent"
 export * from "./specification"
 
-export type ReferentialCore = {
+export type ReferentialReferentialCore = {
   readonly referrents: ReferrentList
   readonly perspective: Perspective
+  readonly type?: undefined
   readonly case: Case
   readonly case2?: Case
   readonly essence: Essence
 }
 
-export type PartialReferentialCore = {
+export type SuppletiveReferentialCore = {
+  readonly referrents?: undefined
+  readonly perspective?: undefined
+  readonly type: SuppletiveAdjunctType
+  readonly case: Case
+  readonly case2?: Case
+  readonly essence: Essence
+}
+
+export type ReferentialCore =
+  | ReferentialReferentialCore
+  | SuppletiveReferentialCore
+
+export type PartialReferentialReferentialCore = {
   readonly referrents: ReferrentList
   readonly perspective?: Perspective
+  readonly type?: undefined
   readonly case?: Case
   readonly case2?: Case
   readonly essence?: Essence
 }
+
+export type PartialSuppletiveReferentialCore = {
+  readonly referrents?: undefined
+  readonly perspective?: undefined
+  readonly type: SuppletiveAdjunctType
+  readonly case?: Case
+  readonly case2?: Case
+  readonly essence?: Essence
+}
+
+export type PartialReferentialCore =
+  | PartialReferentialReferentialCore
+  | PartialSuppletiveReferentialCore
 
 export type Referential =
   | (ReferentialCore & {
@@ -80,10 +112,10 @@ export type PartialReferential =
     })
 
 function completeReferentialToIthkuil(referential: Referential) {
-  const slot1 = referrentListToIthkuil(
-    referential.referrents,
-    referential.perspective,
-  )
+  const slot1 = referential.referrents
+    ? referrentListToIthkuil(referential.referrents, referential.perspective)
+    : (referential.specification && referential.affixes ? "a" : "üo") +
+      suppletiveAdjunctTypeToIthkuil(referential.type)
 
   const slot2 = WithWYAlternative.of(
     caseToIthkuil(referential.case, false, false),

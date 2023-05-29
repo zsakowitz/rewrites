@@ -11,6 +11,7 @@ import {
   UÖ_ÖË,
   WithWYAlternative,
 } from "../../helpers/with-wy-alternative"
+import type { SlotIII } from "../slot-3"
 import type { Stem } from "./stem"
 import type { Version } from "./version"
 
@@ -24,7 +25,7 @@ export type SlotII = {
 
 export type SlotIIMetadata = {
   readonly slotI: string
-  readonly slotIII: string
+  readonly slotIII: SlotIII
   readonly affixShortcut?: "NEG/4" | "DCD/4" | "DCD/5"
   readonly doesSlotVHaveAtLeastTwoAffixes: boolean
 }
@@ -60,6 +61,10 @@ export function slotIIToIthkuil(
   slot: SlotII,
   metadata: SlotIIMetadata,
 ): string {
+  if (Array.isArray(metadata.slotIII)) {
+    return slot.version == "CPT" ? "ea" : "ae"
+  }
+
   let value: string | WithWYAlternative =
     SLOT_II_MAP[`${metadata.affixShortcut}`][slot.stem][
       +(slot.version == "CPT") as 0 | 1

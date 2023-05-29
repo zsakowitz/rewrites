@@ -127,3 +127,25 @@ export function referentialAffixToIthkuil(
   // The following may be phonotactically invalid.
   return ref + persp2
 }
+
+function nonReferentialAffixReferrentToIthkuil(referrent: Referrent) {
+  return referrentToIthkuil(referrent, false)
+}
+
+export function referrentListToPersonalReferenceRoot(list: ReferrentList) {
+  const sorted = list.slice().sort().reverse()
+
+  const fallback = sorted.map(nonReferentialAffixReferrentToIthkuil).join("")
+
+  for (const permututation of allPermutationsOf(sorted)) {
+    const output = permututation
+      .map(nonReferentialAffixReferrentToIthkuil)
+      .join("")
+
+    if (isLegalConsonantForm(output)) {
+      return output
+    }
+  }
+
+  return fallback
+}
