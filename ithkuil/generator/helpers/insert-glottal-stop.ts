@@ -1,4 +1,5 @@
-import { isDipthong } from "./dipthongs"
+import { ALL_DIPTIONGS } from "./dipthongs"
+import { has } from "./has"
 
 function insertRawGlottalStop(text: string, isAtEndOfWord: boolean) {
   if (isAtEndOfWord) {
@@ -10,7 +11,7 @@ function insertRawGlottalStop(text: string, isAtEndOfWord: boolean) {
       return text[0] + "'" + text[1]
     }
   } else {
-    if (text.length == 1 || isDipthong(text)) {
+    if (text.length == 1 || has(ALL_DIPTIONGS, text)) {
       return text + "'"
     }
 

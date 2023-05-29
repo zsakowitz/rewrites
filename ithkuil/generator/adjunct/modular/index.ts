@@ -11,6 +11,7 @@ import {
   type Phase,
   type Valence,
 } from "../../formative"
+import { has } from "../../helpers/has"
 import { VOWEL_TO_STRESSED_VOWEL_MAP } from "../../helpers/stress"
 import { WithWYAlternative } from "../../helpers/with-wy-alternative"
 import { modularAdjunctScopeToIthkuil, type ModularAdjunctScope } from "./scope"
@@ -63,7 +64,7 @@ export function modularAdjunctToIthkuil(adjunct: ModularAdjunct): string {
 
   const second = adjunct.vn2
     ? vnToIthkuil(adjunct.vn2, false) +
-      (ALL_ASPECTS.includes(adjunct.vn2) ? "n" : "ň")
+      (has(ALL_ASPECTS, adjunct.vn2) ? "n" : "ň")
     : WithWYAlternative.EMPTY
 
   const vn2 = WithWYAlternative.of(second).withPreviousText(type + vn1)

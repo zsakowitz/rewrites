@@ -1,3 +1,4 @@
+import { has } from "../../helpers/has"
 import { WithWYAlternative } from "../../helpers/with-wy-alternative"
 import { ALL_ASPECTS, aspectToIthkuil, type Aspect } from "./aspect"
 import { caseScopeToIthkuil, type CaseScope } from "./case-scope"
@@ -33,13 +34,13 @@ export function vnToIthkuil(vn: VN, omitDefaultValence: boolean) {
     return ""
   }
 
-  return ALL_VALENCES.includes(vn)
+  return has(ALL_VALENCES, vn)
     ? valenceToIthkuil(vn, omitDefaultValence)
-    : ALL_PHASES.includes(vn)
+    : has(ALL_PHASES, vn)
     ? phaseToIthkuil(vn)
-    : ALL_EFFECTS.includes(vn)
+    : has(ALL_EFFECTS, vn)
     ? effectToIthkuil(vn)
-    : ALL_LEVELS.includes(vn)
+    : has(ALL_LEVELS, vn)
     ? levelToIthkuil(vn)
     : aspectToIthkuil(vn)
 }
@@ -48,7 +49,7 @@ export function cnToIthkuil(
   cn: CN,
   whatDoesSlot8Contain: "empty" | "aspect" | "non-aspect",
 ) {
-  return ALL_MOODS.includes(cn)
+  return has(ALL_MOODS, cn)
     ? moodToIthkuil(cn, whatDoesSlot8Contain)
     : caseScopeToIthkuil(cn, whatDoesSlot8Contain)
 }
@@ -57,7 +58,7 @@ export function slotVIIIToIthkuil(slot: SlotVIII, metadata: SlotVIIIMetadata) {
   const vn = vnToIthkuil(slot.vn, metadata.omitDefaultValence)
 
   const whatDoesSlot8Contain =
-    vn == "" ? "empty" : ALL_ASPECTS.includes(slot.vn) ? "aspect" : "non-aspect"
+    vn == "" ? "empty" : has(ALL_ASPECTS, slot.vn) ? "aspect" : "non-aspect"
 
   const cn = cnToIthkuil(slot.cn, whatDoesSlot8Contain)
 

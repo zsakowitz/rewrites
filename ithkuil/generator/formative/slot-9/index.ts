@@ -1,3 +1,4 @@
+import { has } from "../../helpers/has"
 import { caseToIthkuil, type Case } from "./case"
 import { ALL_ILLOCUTIONS } from "./illocution"
 import {
@@ -19,7 +20,7 @@ export interface SlotIXMetadata {
 }
 
 export function slotIXToIthkuil(slot: SlotIX, metadata: SlotIXMetadata) {
-  if (ALL_ILLOCUTIONS.includes(slot) || ALL_VALIDATIONS.includes(slot)) {
+  if (has(ALL_ILLOCUTIONS, slot) || has(ALL_VALIDATIONS, slot)) {
     return illocutionAndValidationToIthkuil(slot, metadata.elideIfPossible)
   } else {
     return caseToIthkuil(

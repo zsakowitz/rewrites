@@ -24,7 +24,3 @@ export const ALL_DIPTIONGS: readonly Dipthong[] = /* @__PURE__ */ deepFreeze([
   "ou",
   "iu",
 ])
-
-export function isDipthong(text: string): text is Dipthong {
-  return ALL_DIPTIONGS.includes(text as Dipthong)
-}
