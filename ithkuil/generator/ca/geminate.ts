@@ -1,3 +1,10 @@
+import { isLegalConsonantForm } from "../phonotactics"
+
+/**
+ * Geminates a Ca form.
+ * @param text The Ca form to be geminated.
+ * @returns The geminated Ca form.
+ */
 export function geminateCA(text: string): string {
   if (text.length == 1) {
     return text + text
@@ -12,7 +19,7 @@ export function geminateCA(text: string): string {
   }
 
   {
-    const nextText = text.replace(/[sšzžçcč]/, "$1$1")
+    const nextText = text.replace(/[sšzžçcč]/, (match) => match + match)
 
     if (nextText != text) {
       return nextText
@@ -48,7 +55,13 @@ export function geminateCA(text: string): string {
   if (text.includes("dn")) return text.replace("dn", "nnl")
 
   if (/^[lrř]/.test(text)) {
-    return text[0] + geminateCA(text.slice(1))
+    const a = text[0] + geminateCA(text.slice(1))
+
+    if (isLegalConsonantForm(a)) {
+      return a
+    }
+
+    return text[0]! + text[0] + text.slice(1)
   }
 
   throw new Error("Cannot geminate CA form '" + text + "'.")

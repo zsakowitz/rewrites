@@ -1,4 +1,3 @@
-import type { Expand } from "../helpers/expand"
 import { affiliationToIthkuil, type Affiliation } from "./affiliation"
 import { configurationToIthkuil, type Configuration } from "./configuration"
 import type { Essence } from "./essence"
@@ -14,16 +13,47 @@ export * from "./geminate"
 export * from "./perspective"
 export * from "./perspective-and-essence"
 
+/** A Ca affix complex. */
 export type CA = {
+  /** The affiliation of the Ca form. */
   readonly affiliation: Affiliation
+
+  /** The configuration of the Ca form. */
   readonly configuration: Configuration
+
+  /** The extension of the Ca form. */
   readonly extension: Extension
+
+  /** The perspective of the Ca form. */
   readonly perspective: Perspective
+
+  /** The essence of the Ca form. */
   readonly essence: Essence
 }
 
-export type PartialCA = Expand<Partial<CA>>
+export type PartialCA = {
+  /** The affiliation of the Ca form. */
+  readonly affiliation?: Affiliation
 
+  /** The configuration of the Ca form. */
+  readonly configuration?: Configuration
+
+  /** The extension of the Ca form. */
+  readonly extension?: Extension
+
+  /** The perspective of the Ca form. */
+  readonly perspective?: Perspective
+
+  /** The essence of the Ca form. */
+  readonly essence?: Essence
+}
+
+/**
+ * Makes allomorphic substitutions within Ca forms to make the pronounceble and
+ * conform to Ithkuil's phonotactic rules.
+ * @param ca The Ca form which will have substitutions made in it.
+ * @returns Romanized Ithkuilic text representing the finalized Ca form.
+ */
 export function makeCAAllomorphicSubstitutions(ca: string) {
   return ca
     .replace(/pp/g, "mp")
@@ -47,6 +77,11 @@ export function makeCAAllomorphicSubstitutions(ca: string) {
     .replace(/tḑ/g, "ḑy")
 }
 
+/**
+ * Converts a Ca form into Ithkuil.
+ * @param ca The Ca form to be converted.
+ * @returns Romanized Ithkuilic text representing the Ca form.
+ */
 export function caToIthkuil(ca: PartialCA) {
   const ca2 = fillInDefaultCAValues(ca)
 
@@ -78,6 +113,12 @@ export function caToIthkuil(ca: PartialCA) {
   return makeCAAllomorphicSubstitutions(core)
 }
 
+/**
+ * Fills a Ca form with default values (CSL, UPX, DEL, M, and NRM) in its empty
+ * slots.
+ * @param ca The Ca form to be filled.
+ * @returns A completed Ca form with no empty slots.
+ */
 export function fillInDefaultCAValues(ca: PartialCA): CA {
   return {
     affiliation: "CSL",

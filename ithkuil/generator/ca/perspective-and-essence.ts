@@ -1,6 +1,15 @@
 import type { Essence } from "./essence"
 import type { Perspective } from "./perspective"
 
+/**
+ * Converts a perspective and essence pair into Ithkuil.
+ * @param perspective The perspective to be converted.
+ * @param essence The essence to be converted.
+ * @param isStandalone Whether or not Perspective & Essence are the only slots
+ * present in the Ca affix complex.
+ * @param isPrecededByKPT Whether or not this slot is preceded by K, P, or T.
+ * @returns Romanized Ithkuilic text representing the perspective and essence.
+ */
 export function perspectiveAndEssenceToIthkuil(
   perspective: Perspective,
   essence: Essence,

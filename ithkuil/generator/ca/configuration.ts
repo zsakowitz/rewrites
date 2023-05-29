@@ -1,5 +1,6 @@
 import { deepFreeze } from "../helpers/deep-freeze"
 
+/** A configuration. */
 export type Configuration =
   | "UPX"
   | "DPX"
@@ -22,6 +23,7 @@ export type Configuration =
   | "DFC"
   | "DFF"
 
+/** An array containing all configurations. */
 export const ALL_CONFIGURATIONS: readonly Configuration[] =
   /* @__PURE__ */ deepFreeze([
     "UPX",
@@ -46,6 +48,7 @@ export const ALL_CONFIGURATIONS: readonly Configuration[] =
     "DFF",
   ])
 
+/** An object mapping from configurations to their Ithkuilic counterparts. */
 export const CONFIGURATION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   UPX: "",
   DPX: "s",
@@ -75,6 +78,11 @@ export const CONFIGURATION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   MFF: "ż",
 })
 
+/**
+ * Converts a configuration into Ithkuil.
+ * @param configuration The configuration to be converted.
+ * @returns Romanized Ithkuilic text representing the configuration.
+ */
 export function configurationToIthkuil(configuration: Configuration): string {
   return CONFIGURATION_TO_ITHKUIL_MAP[configuration]
 }

@@ -1,7 +1,6 @@
-// TODO: Referential Affixes
-
 import { caToIthkuil, type PartialCA } from "../ca"
 import { deepFreeze } from "../helpers/deep-freeze"
+import { ONE_INDEXED_STANDARD_VOWEL_TABLE } from "../helpers/vowel-table"
 import {
   IA_UÄ,
   IE_UË,
@@ -20,6 +19,7 @@ import type { AffixType } from "./type"
 export * from "./degree"
 export * from "./type"
 
+/** Cases allowed in referential affixes. */
 export type ReferentialAffixCase =
   | "THM"
   | "INS"
@@ -40,35 +40,11 @@ export type ReferentialAffixCase =
   | "IDP"
   | "PAR"
 
-export type Affix =
-  | {
-      readonly type: AffixType
-      readonly degree: AffixDegree
-      readonly cs: string
-    }
-  | {
-      readonly type: "ca"
-      readonly ca: PartialCA
-    }
-  | {
-      readonly type: "ref"
-      readonly referrent: Referrent
-      readonly perspective?: "M" | "G" | "N"
-      readonly case?: ReferentialAffixCase
-    }
-
-export type AffixMetadata = {
-  reversed: boolean
-}
-
-const AFFIX_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze([
-  ,
-  ["ae", "a", "ä", "e", "i", "ëi", "ö", "o", "ü", "u"],
-  ["ea", "ai", "au", "ei", "eu", "ëu", "ou", "oi", "iu", "ui"],
-  ["üo", IA_UÄ, IE_UË, IO_ÜÄ, IÖ_ÜË, "eë", UÖ_ÖË, UO_ÖÄ, UE_IË, UA_IÄ],
-])
-
-const REFERENTIAL_AFFIX_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
+/**
+ * An object mapping from referential affix cases to their Ithkuilic
+ * counterparts.
+ */
+const REFERENTIAL_AFFIX_CASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   THM: "ao",
   INS: "aö",
   ABS: "eo",
@@ -90,22 +66,70 @@ const REFERENTIAL_AFFIX_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   PAR: UA_IÄ,
 })
 
+/** An affix. */
+export type Affix =
+  | {
+      /** The type of the affix. */
+      readonly type: AffixType
+
+      /** The degree of the affix. */
+      readonly degree: AffixDegree
+
+      /** The consonantal form of the affix. */
+      readonly cs: string
+
+      readonly ca?: undefined
+      readonly referrent?: undefined
+    }
+  | {
+      /** The Ca complex of this affix. */
+      readonly ca: PartialCA
+
+      readonly referrent?: undefined
+    }
+  | {
+      /** The referrent of this affix. */
+      readonly referrent: Referrent
+
+      /** The perspective of the referrent. */
+      readonly perspective?: "M" | "G" | "N"
+
+      /** The case of the affix. */
+      readonly case: ReferentialAffixCase
+
+      readonly ca?: undefined
+    }
+
+/** Metadata about the affix. */
+export type AffixMetadata = {
+  /** Whether or not the affix is in reversed form. */
+  reversed: boolean
+}
+
+/**
+ * Converts an affix into Ithkuil.
+ * @param affix The affix to be converted.
+ * @param metadata Metadata about the affix.
+ * @returns Romanized Ithkuilic text representing the affix.
+ */
 export function affixToIthkuil(
   affix: Affix,
   metadata: AffixMetadata,
 ): WithWYAlternative {
   let vowel = WithWYAlternative.of(
-    affix.type == "ca"
+    "ca" in affix && affix.ca
       ? "üö"
-      : affix.type == "ref"
-      ? REFERENTIAL_AFFIX_TO_ITHKUIL_MAP[affix.case ?? "THM"]
-      : AFFIX_TO_ITHKUIL_MAP[affix.type][affix.degree],
+      : "referrent" in affix && affix.referrent
+      ? REFERENTIAL_AFFIX_CASE_TO_ITHKUIL_MAP[affix.case ?? "THM"]
+      : ONE_INDEXED_STANDARD_VOWEL_TABLE[(affix.type - 1) as 0 | 1 | 2][
+          affix.degree
+        ],
   )
 
   const consonant =
-    affix.type == "ca"
+    "ca" in affix && affix.ca
       ? caToIthkuil(affix.ca)
-      : affix.type == "ref"
+      : "referrent" in affix && affix.referrent
       ? referentialAffixToIthkuil(affix.referrent, affix.perspective ?? "M")
       : affix.cs
 

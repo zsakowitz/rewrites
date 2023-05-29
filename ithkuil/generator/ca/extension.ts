@@ -1,7 +1,9 @@
 import { deepFreeze } from "../helpers/deep-freeze"
 
+/** An extension. */
 export type Extension = "DEL" | "PRX" | "ICP" | "ATV" | "GRA" | "DPL"
 
+/** An array containing all extensions. */
 export const ALL_EXTENSIONS: readonly Extension[] = /* @__PURE__ */ deepFreeze([
   "DEL",
   "PRX",
@@ -11,6 +13,7 @@ export const ALL_EXTENSIONS: readonly Extension[] = /* @__PURE__ */ deepFreeze([
   "DPL",
 ])
 
+/** An object mapping from extensions to their names. */
 export const EXTENSION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   DEL: "Delimitive",
   PRX: "Proximal",
@@ -20,6 +23,7 @@ export const EXTENSION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   DPL: "Depletive",
 })
 
+/** An object mapping from extensions to their Ithkuilic counterparts. */
 export const EXTENSION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   DEL: ["", ""],
   PRX: ["t", "d"],
@@ -29,6 +33,12 @@ export const EXTENSION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   DPL: ["b", "bz"],
 })
 
+/**
+ * Converts an extension into Ithkuil.
+ * @param extension The extension to be converted.
+ * @param isCAUniplex Whether the Ca affix complex is marked Uniplex.
+ * @returns Romanized Ithkuilic text representing the extension.
+ */
 export function extensionToIthkuil(
   extension: Extension,
   isCAUniplex: boolean,
