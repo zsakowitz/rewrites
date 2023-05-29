@@ -110,7 +110,7 @@ export function affixToIthkuil(
       : affix.cs
 
   if (metadata.reversed) {
-    return WithWYAlternative.of(consonant).add(vowel)
+    return WithWYAlternative.of(consonant + vowel.withPreviousText(consonant))
   } else {
     return vowel.add(consonant)
   }

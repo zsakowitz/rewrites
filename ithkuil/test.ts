@@ -1,5 +1,9 @@
 import { strictEqual } from "assert"
-import { formativeToIthkuil, referentialToIthkuil } from "./generator/index"
+import {
+  affixualAdjunctToIthkuil,
+  formativeToIthkuil,
+  referentialToIthkuil,
+} from "./generator"
 
 const result = formativeToIthkuil({
   type: "UNF/C",
@@ -62,3 +66,21 @@ const result4 = formativeToIthkuil({
 })
 
 strictEqual(result4, "laloerļ")
+
+const result5 = affixualAdjunctToIthkuil({
+  affixes: [
+    {
+      type: 1,
+      degree: 1,
+      cs: "c",
+    },
+    {
+      type: 1,
+      degree: 3,
+      cs: "c",
+    },
+  ],
+  appliesToConcatenatedStemOnly: true,
+})
+
+strictEqual(result5, "cahecái")
