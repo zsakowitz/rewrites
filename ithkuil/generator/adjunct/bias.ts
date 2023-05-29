@@ -1,6 +1,7 @@
 import { deepFreeze } from "../helpers/deep-freeze"
 
-export type Bias =
+/** A bias adjunct. */
+export type BiasAdjunct =
   | "ACC"
   | "ACH"
   | "ADS"
@@ -63,71 +64,74 @@ export type Bias =
   | "TRP"
   | "VEX"
 
-export const ALL_BIASES: readonly Bias[] = /* @__PURE__ */ deepFreeze([
-  "ACC",
-  "ACH",
-  "ADS",
-  "ANN",
-  "ANP",
-  "APB",
-  "APH",
-  "ARB",
-  "ATE",
-  "CMD",
-  "CNV",
-  "COI",
-  "CRP",
-  "CRR",
-  "CTP",
-  "CTV",
-  "DCC",
-  "DEJ",
-  "DES",
-  "DFD",
-  "DIS",
-  "DLC",
-  "DOL",
-  "DPB",
-  "DRS",
-  "DUB",
-  "EUH",
-  "EUP",
-  "EXA",
-  "EXG",
-  "FOR",
-  "FSC",
-  "GRT",
-  "IDG",
-  "IFT",
-  "IPL",
-  "IPT",
-  "IRO",
-  "ISP",
-  "IVD",
-  "MAN",
-  "MNF",
-  "OPT",
-  "PES",
-  "PPT",
-  "PPX",
-  "PPV",
-  "PSC",
-  "PSM",
-  "RAC",
-  "RFL",
-  "RSG",
-  "RPU",
-  "RVL",
-  "SAT",
-  "SGS",
-  "SKP",
-  "SOL",
-  "STU",
-  "TRP",
-  "VEX",
-])
+/** An array of all biases. */
+export const ALL_BIAS_ADJUNCTS: readonly BiasAdjunct[] =
+  /* @__PURE__ */ deepFreeze([
+    "ACC",
+    "ACH",
+    "ADS",
+    "ANN",
+    "ANP",
+    "APB",
+    "APH",
+    "ARB",
+    "ATE",
+    "CMD",
+    "CNV",
+    "COI",
+    "CRP",
+    "CRR",
+    "CTP",
+    "CTV",
+    "DCC",
+    "DEJ",
+    "DES",
+    "DFD",
+    "DIS",
+    "DLC",
+    "DOL",
+    "DPB",
+    "DRS",
+    "DUB",
+    "EUH",
+    "EUP",
+    "EXA",
+    "EXG",
+    "FOR",
+    "FSC",
+    "GRT",
+    "IDG",
+    "IFT",
+    "IPL",
+    "IPT",
+    "IRO",
+    "ISP",
+    "IVD",
+    "MAN",
+    "MNF",
+    "OPT",
+    "PES",
+    "PPT",
+    "PPX",
+    "PPV",
+    "PSC",
+    "PSM",
+    "RAC",
+    "RFL",
+    "RSG",
+    "RPU",
+    "RVL",
+    "SAT",
+    "SGS",
+    "SKP",
+    "SOL",
+    "STU",
+    "TRP",
+    "VEX",
+  ])
 
-export const BIAS_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
+/** An object mapping from bias adjuncts to their Ithkuilic counterparts. */
+export const BIAS_ADJUNCT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   ACC: "lf",
   ACH: "mçt",
   ADS: "lļ",
@@ -149,7 +153,7 @@ export const BIAS_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   DES: "mřř",
   DFD: "cč",
   DIS: "kff",
-  DLC: "ẓmm",
+  DLC: "żmm",
   DOL: "řřx",
   DPB: "ffx",
   DRS: "pfc",
@@ -191,7 +195,8 @@ export const BIAS_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   VEX: "ksk",
 })
 
-export const BIAS_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
+/** An object mapping from bias adjuncts to their names. */
+export const BIAS_ADJUNCT_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   ACC: "Accidental",
   ACH: "Archetypal",
   ADS: "Admissive",
@@ -255,9 +260,10 @@ export const BIAS_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   VEX: "Vexative",
 })
 
-export const BIAS_TO_DESCRIPTION_MAP = /* @__PURE__ */ deepFreeze({
+/** An object mapping from bias adjuncts to English translations of them. */
+export const BIAS_ADJUNCT_TO_DESCRIPTION_MAP = /* @__PURE__ */ deepFreeze({
   ACC: "“As luck would have it...” “Fate has decided that...” “What luck!”",
-  ACH: "what (a) ...!; how . . .! ; Boy! Did (does) X ever ...",
+  ACH: "What (a) ...!; How ...!; Boy! Did (does) X ever ...",
   ADS: "“Mm-hmm” “Uh-huh” (said as mere acknowledgement of a statement without any implied agreement with or assent to the statement)",
   ANN: "“Guess what!” or “Wait till you hear this!",
   ANP: "“I’m looking forward to this!”",
@@ -319,8 +325,11 @@ export const BIAS_TO_DESCRIPTION_MAP = /* @__PURE__ */ deepFreeze({
   VEX: "“How annoying!” “What a bother!” “What a pain!”",
 })
 
-export function biasToIthkuil(bias: Bias) {
-  return BIAS_TO_ITHKUIL_MAP[bias]
+/**
+ * Converts a bias adjunct to Ithkuil.
+ * @param bias The adjunct to be converted.
+ * @returns Romanized Ithkuilic text representing the adjunct.
+ */
+export function biasAdjunctToIthkuil(bias: BiasAdjunct): string {
+  return BIAS_ADJUNCT_TO_ITHKUIL_MAP[bias]
 }
-
-export const X = 3

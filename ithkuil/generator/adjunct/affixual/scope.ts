@@ -1,5 +1,6 @@
 import { deepFreeze } from "../../helpers/deep-freeze"
 
+/** The scope of an affixual adjunct. */
 export type AffixualAdjunctScope =
   | "V:DOM"
   | "V:SUB"
@@ -8,6 +9,7 @@ export type AffixualAdjunctScope =
   | "FORMATIVE"
   | "ADJACENT"
 
+/** An array containing all affixual adjunct scopes. */
 export const ALL_AFFIXUAL_ADJUNCT_SCOPES: readonly AffixualAdjunctScope[] =
   /* @__PURE__ */ deepFreeze([
     "V:DOM",
@@ -18,6 +20,10 @@ export const ALL_AFFIXUAL_ADJUNCT_SCOPES: readonly AffixualAdjunctScope[] =
     "ADJACENT",
   ])
 
+/**
+ * An object mapping from affixual adjunct scopes to their Ithkuilic
+counterparts.
+ */
 export const AFFIXUAL_ADJUNCT_SCOPE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze(
   {
     vs: {
@@ -39,6 +45,7 @@ export const AFFIXUAL_ADJUNCT_SCOPE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze(
   },
 )
 
+/** An object mapping from affixual adjunct scopes to their names. */
 export const AFFIXUAL_ADJUNCT_SCOPE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   "V:DOM": "Last of Slot V",
   "V:SUB": "First of Slot V",
@@ -48,6 +55,13 @@ export const AFFIXUAL_ADJUNCT_SCOPE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   ADJACENT: "Formative + Affixes",
 })
 
+/**
+ * Converts an affixual adjunct scope into Ithkuil.
+ * @param scope The scope to be converted.
+ * @param type Whether this scope is used in a Vs, Cz, or Vz slot.
+ * @param omitWhenPossible Whether the default scope may be ommitted.
+ * @returns Romanized Ithkuilic text representing the affixual adjunct scope.
+ */
 export function affixualAdjunctScopeToIthkuil(
   scope: AffixualAdjunctScope,
   type: "vs" | "cz" | "vz",

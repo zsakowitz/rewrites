@@ -90,12 +90,13 @@ const result5 = affixualAdjunctToIthkuil({
 strictEqual(result5, "cahecái")
 
 const result6 = modularAdjunctToIthkuil({
-  vn1: "RTR",
+  type: "CONCAT",
   cn: "CCQ",
+  vn1: "RTR",
   scope: "ADJACENT",
 })
 
-strictEqual(result6, "ahmwó")
+strictEqual(result6, "yahmwó")
 
 const result7 = modularAdjunctToIthkuil({
   cn: "CCQ",
