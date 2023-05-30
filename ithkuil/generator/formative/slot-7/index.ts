@@ -1,5 +1,5 @@
 import { affixToIthkuil, type Affix } from "../../affix"
-import { WithWYAlternative } from "../../helpers/with-wy-alternative"
+import { EMPTY, WithWYAlternative } from "../../helpers/with-wy-alternative"
 
 /** Information directly pertaining to Slot VII. */
 export type SlotVII = {
@@ -15,7 +15,7 @@ export type SlotVII = {
  */
 export function slotVIIToIthkuil(slot: SlotVII): WithWYAlternative {
   if (slot.affixes.length == 0) {
-    return WithWYAlternative.EMPTY
+    return EMPTY
   }
 
   return slot.affixes

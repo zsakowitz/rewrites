@@ -1,5 +1,5 @@
 import { affixToIthkuil, type Affix } from "../../affix"
-import { WithWYAlternative } from "../../helpers/with-wy-alternative"
+import { EMPTY, WithWYAlternative } from "../../helpers/with-wy-alternative"
 
 /** Information directly pertaining to Slot V. */
 export type SlotV = {
@@ -28,7 +28,7 @@ export function slotVToIthkuil(
   metadata: SlotVMetadata,
 ): WithWYAlternative {
   if (slot.affixes.length == 0) {
-    return WithWYAlternative.EMPTY
+    return EMPTY
   }
 
   if (metadata.isSlotVIElided) {

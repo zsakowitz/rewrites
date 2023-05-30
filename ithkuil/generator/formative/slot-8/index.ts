@@ -1,5 +1,5 @@
 import { has } from "../../helpers/has"
-import { WithWYAlternative } from "../../helpers/with-wy-alternative"
+import { EMPTY, WithWYAlternative } from "../../helpers/with-wy-alternative"
 import { ALL_ASPECTS, aspectToIthkuil, type Aspect } from "./aspect"
 import { caseScopeToIthkuil, type CaseScope } from "./case-scope"
 import { ALL_EFFECTS, effectToIthkuil, type Effect } from "./effect"
@@ -92,7 +92,7 @@ export function slotVIIIToIthkuil(slot: SlotVIII, metadata: SlotVIIIMetadata) {
   const cn = cnToIthkuil(slot.cn, vnType)
 
   if (vn == "" && cn == "h") {
-    return WithWYAlternative.EMPTY
+    return EMPTY
   }
 
   if (typeof vn == "string") {

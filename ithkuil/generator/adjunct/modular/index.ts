@@ -13,7 +13,7 @@ import {
 } from "../../formative"
 import { has } from "../../helpers/has"
 import { VOWEL_TO_STRESSED_VOWEL_MAP } from "../../helpers/stress"
-import { WithWYAlternative } from "../../helpers/with-wy-alternative"
+import { EMPTY, WithWYAlternative } from "../../helpers/with-wy-alternative"
 import { modularAdjunctScopeToIthkuil, type ModularAdjunctScope } from "./scope"
 import { modularAdjunctTypeToIthkuil, type ModularAdjunctType } from "./type"
 
@@ -119,7 +119,7 @@ export function modularAdjunctToIthkuil(adjunct: ModularAdjunct): string {
   const second = adjunct.vn2
     ? vnToIthkuil(adjunct.vn2, false) +
       (has(ALL_ASPECTS, adjunct.vn2) ? "n" : "ň")
-    : WithWYAlternative.EMPTY
+    : EMPTY
 
   const vn2 = WithWYAlternative.of(second).withPreviousText(type + vn1)
 
