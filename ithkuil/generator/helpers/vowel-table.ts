@@ -11,7 +11,9 @@ import {
 } from "./with-wy-alternative"
 
 /**
- * This table is indexed as would be traditionally expected for computers. Index 0 means the 1st row of the vowel table, while index 9 means the 10th row.
+ * The standard vowel table, indexed as would be traditionally expected for
+ * computers. Index 0 means the 1st row of the vowel table, while index 9 means
+ * the 10th row.
  *
  * @example
  * ZERO_INDEXED_STANDARD_VOWEL_TABLE[2][0] // IA_UÄ
@@ -26,7 +28,8 @@ export const ZERO_INDEXED_STANDARD_VOWEL_TABLE = /* @__PURE__ */ deepFreeze([
 ])
 
 /**
- * This table is indexed to be optimal for things like affix degrees. Index 0 means the 10th row of the vowel table, while index 1 means the 1st row.
+ * The standard vowel table, indexed to be optimal for affix degrees. Index 0
+ * means the 10th row of the vowel table, while index 1 means the 1st row.
  *
  * @example
  * ONE_INDEXED_STANDARD_VOWEL_TABLE[2][0] // "üo"

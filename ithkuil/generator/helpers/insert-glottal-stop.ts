@@ -1,30 +1,31 @@
 import { ALL_DIPTIONGS } from "./dipthongs"
 import { has } from "./has"
 
-function insertRawGlottalStop(text: string, isAtEndOfWord: boolean) {
+/**
+ * Inserts a glottal stop into a vowel form.
+ * @param vowelForm The vowel form to insert a glottal stop into.
+ * @param isAtEndOfWord Whether the finished vowel form will be at the end of a
+ * word.
+ * @returns The vowel form with a glottal stop inserted.
+ */
+export function insertGlottalStop(vowelForm: string, isAtEndOfWord: boolean) {
   if (isAtEndOfWord) {
-    if (text.length == 1) {
-      return text + "'" + text
+    if (vowelForm.length == 1) {
+      return vowelForm + "'" + vowelForm
     }
 
-    if (text.length == 2) {
-      return text[0] + "'" + text[1]
+    if (vowelForm.length == 2) {
+      return vowelForm[0] + "'" + vowelForm[1]
     }
   } else {
-    if (text.length == 1 || has(ALL_DIPTIONGS, text)) {
-      return text + "'"
+    if (vowelForm.length == 1 || has(ALL_DIPTIONGS, vowelForm)) {
+      return vowelForm + "'"
     }
 
-    if (text.length == 2) {
-      return text[0] + "'" + text[1]
+    if (vowelForm.length == 2) {
+      return vowelForm[0] + "'" + vowelForm[1]
     }
   }
 
   throw new Error("Vowel forms may only 1 or 2 vowels.")
-}
-
-export function insertGlottalStop(text: string, isAtEndOfWord: boolean) {
-  return text.replace(/[aeiouäëöü]+/, (match) =>
-    insertRawGlottalStop(match, isAtEndOfWord),
-  )
 }

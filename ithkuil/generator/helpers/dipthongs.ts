@@ -1,5 +1,6 @@
 import { deepFreeze } from "./deep-freeze"
 
+/** A dipthong permissible in Ithkuil. */
 export type Dipthong =
   | "ai"
   | "ei"
@@ -12,6 +13,7 @@ export type Dipthong =
   | "ou"
   | "iu"
 
+/** An array containing all permissible dipthongs in Ithkuil. */
 export const ALL_DIPTIONGS: readonly Dipthong[] = /* @__PURE__ */ deepFreeze([
   "ai",
   "ei",

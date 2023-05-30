@@ -1,5 +1,6 @@
 import { deepFreeze } from "./deep-freeze"
 
+/** An object mapping from vowels to their stressed counterparts. */
 export const VOWEL_TO_STRESSED_VOWEL_MAP = /* @__PURE__ */ deepFreeze({
   a: "á",
   ä: "â",
@@ -12,6 +13,12 @@ export const VOWEL_TO_STRESSED_VOWEL_MAP = /* @__PURE__ */ deepFreeze({
   ü: "û",
 })
 
+/**
+ * Applies stress to a vowel form, marking it either with an accent (´) or a
+ * circumflex (ˆ).
+ * @param vowelForm The vowel form to apply stress to.
+ * @returns The stressed vowel form.
+ */
 export function stressVowelForm(vowelForm: string): string {
   if (vowelForm.length == 0) {
     throw new Error("Expected a vowel form; found ''.")
@@ -30,10 +37,21 @@ export function stressVowelForm(vowelForm: string): string {
   throw new Error("Expected a vowel form; found '" + vowelForm + "'.")
 }
 
+/**
+ * Counts the number of vowels and dipthongs in a string.
+ * @param text The text to count the vowels of.
+ * @returns The number of vowels and dipthongs in the given string.
+ */
 export function countVowelForms(text: string) {
   return text.match(/[aeëou]i|[aeëio]u|[aeiouäëöü]/g)?.length || 0
 }
 
+/**
+ * Marks a specific syllable of a word with stress.
+ * @param word The word to apply stress to.
+ * @param position The position to apply stress at.
+ * @returns The word, with the proper syllable stressed.
+ */
 export function applyStress(word: string, position: -4 | -3 | -2 | -1): string {
   const sequences = word.match(/[aeëou]i|[aeëio]u|[aeiouäëöü]|[^aeiouäëöü]+/g)
 
