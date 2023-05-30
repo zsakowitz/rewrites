@@ -16,7 +16,7 @@ export const ALL_PARSING_ADJUNCTS: readonly ParsingAdjunct[] =
     "antepenultimate",
   ])
 
-/** An object mapping from parsing adjuncts to their Ithkuilic counterparts. */
+/** An object mapping from parsing adjuncts to their Ithkuilic translations. */
 export const PARSING_ADJUNCT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   monosyllabic: "a'",
   ultimate: "e'",

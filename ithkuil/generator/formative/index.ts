@@ -1,7 +1,6 @@
 import type { Affix } from "../affix"
 import { type CA, type PartialCA } from "../ca"
 import { deepFreeze } from "../helpers/deep-freeze"
-import type { Expand } from "../helpers/expand"
 import { applyStress, countVowelForms } from "../helpers/stress"
 import { WithWYAlternative } from "../helpers/with-wy-alternative"
 import { referrentListToPersonalReferenceRoot } from "../referential"
@@ -48,91 +47,207 @@ export * from "./slot-7"
 export * from "./slot-8"
 export * from "./slot-9"
 
+/** The core structure shared between all formatives. */
 export type CoreFormative = {
+  /** The version of the formative. */
   readonly version: Version
+
+  /** The stem of the formative. */
   readonly stem: Stem
 
+  /** The root of the formative. */
   readonly root: SlotIII
 
+  /** The function of the formative. */
   readonly function: Function
+
+  /** The specification of the formative. */
   readonly specification: Specification
+
+  /** The context of the formative. */
   readonly context: Context
 
+  /** The Slot V affixes of the formative. */
   readonly slotVAffixes: readonly Affix[]
+
+  /** The Ca affix complex of the formative. */
   readonly ca: CA
+
+  /** The Slot VII affixes of the formative. */
   readonly slotVIIAffixes: readonly Affix[]
 
+  /** The Vn slot of the formative. */
   readonly vn: Valence | Aspect | Phase | Level | Effect
 }
 
-export type PartialCoreFormative = Expand<
-  Partial<Omit<CoreFormative, "ca" | "root">> & {
-    readonly ca?: PartialCA
-    readonly root: SlotIII
-  }
->
+/**
+ * The core structure shared between all formatives, with all optional slots
+ * properly marked as optional.
+ *
+ * Note that the `type` and `root` properties are still required, and the `ca`
+ * property is also partial. For these reasons, use `PartialFormative` instead
+ * of `Partial<Formative>`, as the latter gives improper results.
+ */
+export type PartialCoreFormative = {
+  /** The version of the formative. */
+  readonly version?: Version
 
+  /** The stem of the formative. */
+  readonly stem?: Stem
+
+  /** The root of the formative. */
+  readonly root: SlotIII
+
+  /** The function of the formative. */
+  readonly function?: Function
+
+  /** The specification of the formative. */
+  readonly specification?: Specification
+
+  /** The context of the formative. */
+  readonly context?: Context
+
+  /** The Slot V affixes of the formative. */
+  readonly slotVAffixes?: readonly Affix[]
+
+  /** The Ca affix complex of the formative. */
+  readonly ca?: PartialCA
+
+  /** The Slot VII affixes of the formative. */
+  readonly slotVIIAffixes?: readonly Affix[]
+
+  /** The Vn slot of the formative. */
+  readonly vn?: Valence | Aspect | Phase | Level | Effect
+}
+
+/** A nominal formative. */
 export type NominalFormative = CoreFormative & {
+  /** The type of the formative. */
   readonly type: "UNF/C"
 
+  /** The concatenation type of the formative. */
   readonly concatenatenationType: ConcatenationType
+
+  /** The case-scope of the formative. */
   readonly caseScope: CaseScope
+
+  /** The case of the formative. */
   readonly case: Case
 }
 
+/**
+ * A nominal formative, with all optional slots properly marked as optional.
+ *
+ * Note that the `type` and `root` properties are still required, and the `ca`
+ * property is also partial. For these reasons, use `PartialFormative` instead
+ * of `Partial<Formative>`, as the latter gives improper results.
+ */
 export type PartialNominalFormative = PartialCoreFormative & {
+  /** The type of the formative. */
   readonly type: "UNF/C"
 
+  /** The concatenation type of the formative. */
   readonly concatenatenationType?: ConcatenationType
+
+  /** The case-scope of the formative. */
   readonly caseScope?: CaseScope
+
+  /** The case of the formative. */
   readonly case?: Case
 }
 
+/** An unframed verbal formative. */
 export type UnframedVerbalFormative = CoreFormative & {
+  /** The type of the formative. */
   readonly type: "UNF/K"
 
+  /** The mood of the formative. */
   readonly mood: Mood
+
+  /** The illocution+validation of the formative. */
   readonly illocutionValidation: IllocutionOrValidation
 }
 
+/**
+ * An unframed verbal formative, with all optional slots properly marked as
+ * optional.
+ *
+ * Note that the `type` and `root` properties are still required, and the `ca`
+ * property is also partial. For these reasons, use `PartialFormative` instead
+ * of `Partial<Formative>`, as the latter gives improper results.
+ */
 export type PartialUnframedVerbalFormative = PartialCoreFormative & {
+  /** The type of the formative. */
   readonly type: "UNF/K"
 
+  /** The mood of the formative. */
   readonly mood?: Mood
+
+  /** The illocution+validation of the formative. */
   readonly illocutionValidation?: IllocutionOrValidation
 }
 
+/** A framed verbal formative. */
 export type FramedVerbalFormative = CoreFormative & {
+  /** The type of the formative. */
   readonly type: "FRM"
 
+  /** The case-scope of the formative. */
   readonly caseScope: CaseScope
+
+  /** The case of the formative. */
   readonly case: Case
 }
 
+/**
+ * A framed verbal formative, with all optional slots properly marked as
+ * optional.
+ *
+ * Note that the `type` and `root` properties are still required, and the `ca`
+ * property is also partial. For these reasons, use `PartialFormative` instead
+ * of `Partial<Formative>`, as the latter gives improper results.
+ */
 export type PartialFramedVerbalFormative = PartialCoreFormative & {
+  /** The type of the formative. */
   readonly type: "FRM"
 
+  /** The case-scope of the formative. */
   readonly caseScope?: CaseScope
+
+  /** The case of the formative. */
   readonly case?: Case
 }
 
+/** A formative. */
 export type Formative =
   | NominalFormative
   | UnframedVerbalFormative
   | FramedVerbalFormative
 
+/**
+ * A formative, with all optional slots properly marked as optional.
+ *
+ * Note that the `type` and `root` properties are still required, and the `ca`
+ * property is also partial. For these reasons, use `PartialFormative` instead
+ * of `Partial<Formative>`, as the latter gives improper results.
+ */
 export type PartialFormative =
   | PartialNominalFormative
   | PartialUnframedVerbalFormative
   | PartialFramedVerbalFormative
 
+/** An object mapping from formative types to their names. */
 export const FORMATIVE_TYPE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   "UNF/C": "Nominal",
   "UNF/K": "Unframed Verbal",
   FRM: "Framed Verbal",
 })
 
-// This function does not compute any Vr+Ca shortcuts.
+/**
+ * Converts a formative into Ithkuil.
+ * @param formative The formative to be converted.
+ * @returns Romanized Ithkuilic text representing the formative.
+ */
 function completeFormativeToIthkuil(formative: Formative) {
   const slot3 =
     typeof formative.root == "string"
@@ -271,6 +386,11 @@ function completeFormativeToIthkuil(formative: Formative) {
   throw new Error("Unknown formative type '" + (formative as any)?.type + "'.")
 }
 
-export function formativeToIthkuil(formative: PartialFormative) {
+/**
+ * Converts a formative into Ithkuil.
+ * @param formative The formative to be converted.
+ * @returns Romanized Ithkuilic text representing the formative.
+ */
+export function formativeToIthkuil(formative: PartialFormative): string {
   return completeFormativeToIthkuil(fillInDefaultFormativeSlots(formative))
 }

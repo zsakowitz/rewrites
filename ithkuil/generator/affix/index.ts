@@ -42,7 +42,7 @@ export type ReferentialAffixCase =
 
 /**
  * An object mapping from referential affix cases to their Ithkuilic
- * counterparts.
+ * translations.
  */
 const REFERENTIAL_AFFIX_CASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   THM: "ao",

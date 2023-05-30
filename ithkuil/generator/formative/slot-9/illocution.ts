@@ -1,5 +1,6 @@
 import { deepFreeze } from "../../helpers/deep-freeze"
 
+/** An illocution. */
 export type Illocution =
   | "ASR"
   | "DIR"
@@ -11,6 +12,7 @@ export type Illocution =
   | "HOR"
   | "CNJ"
 
+/** An array containing all illocutions. */
 export const ALL_ILLOCUTIONS: readonly Illocution[] =
   /* @__PURE__ */ deepFreeze([
     "ASR",
@@ -24,6 +26,7 @@ export const ALL_ILLOCUTIONS: readonly Illocution[] =
     "CNJ",
   ])
 
+/** An object mapping from illocutuons to their names. */
 export const ILLOCUTION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   ASR: "Assertive",
   DIR: "Directive",

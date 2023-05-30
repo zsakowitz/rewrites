@@ -1,5 +1,6 @@
 import { deepFreeze } from "../../helpers/deep-freeze"
 
+/** A phase. */
 export type Phase =
   | "PUN"
   | "ITR"
@@ -11,6 +12,7 @@ export type Phase =
   | "VAC"
   | "FLC"
 
+/** An array containing all phases. */
 export const ALL_PHASES: readonly Phase[] = /* @__PURE__ */ deepFreeze([
   "PUN",
   "ITR",
@@ -23,6 +25,7 @@ export const ALL_PHASES: readonly Phase[] = /* @__PURE__ */ deepFreeze([
   "FLC",
 ])
 
+/** An object mapping phases to their Ithkuilic translations. */
 export const PHASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   PUN: "ai",
   ITR: "au",
@@ -35,6 +38,7 @@ export const PHASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   FLC: "ui",
 })
 
+/** An object mapping phases to their names. */
 export const PHASE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   PUN: "Punctual",
   ITR: "Iterative",
@@ -47,6 +51,11 @@ export const PHASE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   FLC: "Fluctuative",
 })
 
+/**
+ * Converts a phase into Ithkuil.
+ * @param phase The phase to be converted.
+ * @returns Romanized Ithkuilic text representing the phase.
+ */
 export function phaseToIthkuil(phase: Phase) {
   return PHASE_TO_ITHKUIL_MAP[phase]
 }

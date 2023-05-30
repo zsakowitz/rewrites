@@ -18,7 +18,7 @@ export const ALL_MODULAR_ADJUNCT_SCOPES: readonly ModularAdjunctScope[] =
 
 /**
  * An object mapping from modular adjunct scopes to their Ithkuilic
- * counterparts.
+ * translations.
  */
 export const MODULAR_ADJUNCT_SCOPE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   "CASE/MOOD+ILL/VAL": "a",

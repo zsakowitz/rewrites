@@ -11,6 +11,7 @@ import {
   WithWYAlternative,
 } from "../../helpers/with-wy-alternative"
 
+/** A case. */
 export type Case =
   | "THM"
   | "INS"
@@ -81,6 +82,7 @@ export type Case =
   | "ELP"
   | "PLM"
 
+/** An array containing all cases. */
 export const ALL_CASES: readonly Case[] = /* @__PURE__ */ deepFreeze([
   "THM",
   "INS",
@@ -159,7 +161,9 @@ export const ALL_CASES: readonly Case[] = /* @__PURE__ */ deepFreeze([
   "PLM",
 ])
 
+/** An object mapping cases to their Ithkuilic translations. */
 export const CASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
+  /** The `false` branch is used in non-concatenated formatives. */
   false: {
     THM: "a",
     INS: "ä",
@@ -237,6 +241,8 @@ export const CASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
     ELP: "o'e",
     PLM: "o'a",
   },
+
+  /** The `true` branch is used in concatenated formatives. */
   true: {
     THM: "a",
     INS: "ä",
@@ -316,6 +322,7 @@ export const CASE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   },
 })
 
+/** An object mapping from cases to their names. */
 export const CASE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   THM: "Thematic",
   INS: "Instrumental",
@@ -394,6 +401,15 @@ export const CASE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   PLM: "Prolimitive",
 })
 
+/**
+ * Converts a case into Ithkuil.
+ * @param case_ The case to be converted.
+ * @param elideIfPossible Whether the THM case can be eliminated.
+ * @param isPartOfConcatenatedFormative Whether the case is part of a
+ * concatenated formative.
+ * @returns A string or `WithWYAlternative` containing romanized Ithkuilic text
+ * representing the case.
+ */
 export function caseToIthkuil(
   case_: Case,
   elideIfPossible: boolean,

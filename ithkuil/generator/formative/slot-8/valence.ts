@@ -1,5 +1,6 @@
 import { deepFreeze } from "../../helpers/deep-freeze"
 
+/** A valence. */
 export type Valence =
   | "MNO"
   | "PRL"
@@ -11,6 +12,7 @@ export type Valence =
   | "CNG"
   | "PTI"
 
+/** An array containing all valences. */
 export const ALL_VALENCES: readonly Valence[] = [
   "MNO",
   "PRL",
@@ -23,6 +25,7 @@ export const ALL_VALENCES: readonly Valence[] = [
   "PTI",
 ]
 
+/** An object mapping from valences to their Ithkuilic translations. */
 export const VALENCE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   MNO: "a",
   PRL: "ä",
@@ -33,8 +36,9 @@ export const VALENCE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   DEM: "o",
   CNG: "ü",
   PTI: "u",
-} satisfies Record<Valence, string>)
+})
 
+/** An object mapping from valences to their names. */
 export const VALENCE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   MNO: "Monoactive",
   PRL: "Parallel",
@@ -45,17 +49,21 @@ export const VALENCE_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   DEM: "Demonstrative",
   CNG: "Contingent",
   PTI: "Participatory",
-} satisfies Record<Valence, string>)
+})
 
+/**
+ * Converts a valence into Ithkuil.
+ * @param valence The valence to be converted.
+ * @param omitDefaultValence Whether MNO valence should be omitted.
+ * @returns Romanized Ithkuilic text representing the valence.
+ */
 export function valenceToIthkuil(
   valence: Valence,
-  allowOmittingDefaultValence: boolean,
+  omitDefaultValence: boolean,
 ): string {
-  const value = VALENCE_TO_ITHKUIL_MAP[valence]
-
-  if (allowOmittingDefaultValence && value == "a") {
+  if (omitDefaultValence && valence == "MNO") {
     return ""
   }
 
-  return value
+  return VALENCE_TO_ITHKUIL_MAP[valence]
 }

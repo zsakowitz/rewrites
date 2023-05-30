@@ -15,7 +15,7 @@ export const AFFILIATION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   VAR: "Variative",
 })
 
-/** An object mapping affiliations to their Ithkuilic counterparts. */
+/** An object mapping affiliations to their Ithkuilic translations. */
 export const AFFILIATION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   CSL: ["", ""],
   COA: ["r", "rļ"],

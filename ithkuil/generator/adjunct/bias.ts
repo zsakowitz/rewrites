@@ -130,7 +130,7 @@ export const ALL_BIAS_ADJUNCTS: readonly BiasAdjunct[] =
     "VEX",
   ])
 
-/** An object mapping from bias adjuncts to their Ithkuilic counterparts. */
+/** An object mapping from bias adjuncts to their Ithkuilic translations. */
 export const BIAS_ADJUNCT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   ACC: "lf",
   ACH: "mçt",

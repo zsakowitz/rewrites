@@ -18,12 +18,7 @@ const result = formativeToIthkuil({
     { type: 2, degree: 6, cs: "p" },
     { type: 3, degree: 3, cs: "kl" },
   ],
-  slotVIIAffixes: [
-    {
-      type: "ca",
-      ca: { configuration: "MSS" },
-    },
-  ],
+  slotVIIAffixes: [{ ca: { configuration: "MSS" } }],
   concatenatenationType: 2,
   case: "TSP",
   caseScope: "CCS",
@@ -53,10 +48,7 @@ const result3 = referentialToIthkuil({
   essence: "RPV",
   case: "IDP",
   case2: "INV",
-  affixes: [
-    { type: 2, degree: 7, cs: "k" },
-    { type: "ca", ca: { configuration: "MSS" } },
-  ],
+  affixes: [{ type: 2, degree: 7, cs: "k" }, { ca: { configuration: "MSS" } }],
 })
 
 strictEqual(result3, "tiuxpoiküötu'ó")
@@ -64,9 +56,7 @@ strictEqual(result3, "tiuxpoiküötu'ó")
 const result4 = formativeToIthkuil({
   root: "l",
   type: "UNF/C",
-  slotVIIAffixes: [
-    { type: "ref", referrent: "1m:BEN", case: "ERG", perspective: "G" },
-  ],
+  slotVIIAffixes: [{ referrent: "1m:BEN", case: "ERG", perspective: "G" }],
 })
 
 strictEqual(result4, "laloerļ")
@@ -122,10 +112,7 @@ const result9 = referentialToIthkuil({
   essence: "RPV",
   case: "IDP",
   case2: "INV",
-  affixes: [
-    { type: 2, degree: 7, cs: "k" },
-    { type: "ca", ca: { configuration: "MSS" } },
-  ],
+  affixes: [{ type: 2, degree: 7, cs: "k" }, { ca: { configuration: "MSS" } }],
 })
 
 strictEqual(result9, "ahliuxpoiküötu'ó")
@@ -161,7 +148,7 @@ strictEqual(result13, "aežraitļíöha")
 const result14 = formativeToIthkuil({
   type: "UNF/C",
   root: { cs: "c", degree: 3 },
-  slotVIIAffixes: [{ type: "ref", referrent: "1m:DET", case: "IND" }],
+  slotVIIAffixes: [{ referrent: "1m:DET", case: "IND" }],
   vn: "CNT",
 })
 

@@ -19,17 +19,34 @@ export * from "./context"
 export * from "./function"
 export * from "./specification"
 
+/** Information directly pertaining to Slot IV. */
 export type SlotIV = {
+  /** The function of the formative. */
   readonly function: Function
+
+  /** The specification of the formative. */
   readonly specification: Specification
+
+  /** The context of the formative. */
   readonly context: Context
 }
 
+/** Additional information relevant to Slot IV. */
 export type SlotIVMetadata = {
+  /** The codified contents of Slot III. */
   readonly slotIII: string
+
+  /**
+   * If the formative has an affixual root, this is the degree of that affix.
+   * Otherwise, it must be `undefined`.
+   */
   readonly affixualFormativeDegree?: AffixDegree
 }
 
+/**
+ * An object mapping from contexts, functions, and specifications to their
+ * Ithkuilic translations.
+ */
 export const SLOT_IV_MAP = /* @__PURE__ */ deepFreeze({
   EXS: {
     STA: { BSC: "a", CTE: "ä", CSV: "e", OBJ: "i" },
@@ -49,6 +66,9 @@ export const SLOT_IV_MAP = /* @__PURE__ */ deepFreeze({
   },
 })
 
+/**
+ * An object mapping from contexts to their indices in the standard vowel table.
+ */
 export const CONTEXT_TO_INDEX_MAP = /* @__PURE__ */ deepFreeze({
   EXS: 0,
   FNC: 1,
@@ -56,14 +76,22 @@ export const CONTEXT_TO_INDEX_MAP = /* @__PURE__ */ deepFreeze({
   AMG: 3,
 })
 
-export function slotIVToIthkuil(slot: SlotIV, metadata: SlotIVMetadata) {
-  if (metadata.affixualFormativeDegree != null) {
-    return ONE_INDEXED_STANDARD_VOWEL_TABLE[CONTEXT_TO_INDEX_MAP[slot.context]][
-      metadata.affixualFormativeDegree
-    ]
-  }
-
-  const value = SLOT_IV_MAP[slot.context][slot.function][slot.specification]
+/**
+ * Converts Slot IV into Ithkuil.
+ * @param slot The function, specification, and context of the formative.
+ * @param metadata Additional information relevant to Slot IV.
+ * @returns Romanized Ithkuilic text representing Slot IV.
+ */
+export function slotIVToIthkuil(
+  slot: SlotIV,
+  metadata: SlotIVMetadata,
+): string {
+  const value =
+    metadata.affixualFormativeDegree != null
+      ? ONE_INDEXED_STANDARD_VOWEL_TABLE[CONTEXT_TO_INDEX_MAP[slot.context]][
+          metadata.affixualFormativeDegree
+        ]
+      : SLOT_IV_MAP[slot.context][slot.function][slot.specification]
 
   if (typeof value == "string") {
     return value

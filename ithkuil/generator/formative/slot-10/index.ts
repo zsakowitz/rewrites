@@ -1,7 +1,15 @@
 import { applyStress, countVowelForms } from "../../helpers/stress"
 
+/** The stress type marked by Slot X. */
 export type SlotX = "UNF/C" | "UNF/K" | "FRM"
 
+/**
+ * Applies Slot X stress to an Ithkuilic word.
+ * @param word The word to apply stress to.
+ * @param stress The stress type to apply.
+ * @returns Romanized Ithkuilic text representing the full formative, including
+ * the stress, marked with an accent mark or circumflex.
+ */
 export function applySlotXStress(word: string, stress: SlotX) {
   const vowelFormCount = countVowelForms(word)
 

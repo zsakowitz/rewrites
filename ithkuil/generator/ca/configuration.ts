@@ -48,7 +48,7 @@ export const ALL_CONFIGURATIONS: readonly Configuration[] =
     "DFF",
   ])
 
-/** An object mapping from configurations to their Ithkuilic counterparts. */
+/** An object mapping from configurations to their Ithkuilic translations. */
 export const CONFIGURATION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   UPX: "",
   DPX: "s",

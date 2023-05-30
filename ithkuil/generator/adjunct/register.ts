@@ -15,7 +15,7 @@ export const ALL_REGISTER_ADJUNCTS: readonly RegisterAdjunct[] =
   /* @__PURE__ */ deepFreeze(["NRR", "DSV", "PNT", "SPF", "EXM", "CGT", "END"])
 
 /**
- * An object mapping from all register adjuncts to their Ithkuilic counterparts.
+ * An object mapping from all register adjuncts to their Ithkuilic translations.
  */
 export const REGISTER_ADJUNCT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   NRR: ["", ""] as [start: "", end: ""],

@@ -11,6 +11,7 @@ import {
   WithWYAlternative,
 } from "../../helpers/with-wy-alternative"
 
+/** An aspect. */
 export type Aspect =
   | "RTR"
   | "PRS"
@@ -49,6 +50,7 @@ export type Aspect =
   | "MTV"
   | "SQN"
 
+/** An array containing all aspects. */
 export const ALL_ASPECTS: readonly Aspect[] = /* @__PURE__ */ deepFreeze([
   "RTR",
   "PRS",
@@ -91,6 +93,7 @@ export const ALL_ASPECTS: readonly Aspect[] = /* @__PURE__ */ deepFreeze([
   "SQN",
 ])
 
+/** An object mapping aspects to their Ithkuilic translations. */
 export const ASPECT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   RTR: "a",
   PRS: "ä",
@@ -133,6 +136,7 @@ export const ASPECT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   SQN: "oa",
 })
 
+/** An object mapping aspects to their names. */
 export const ASPECT_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   RTR: "Retrospective",
   PRS: "Prospective",
@@ -175,6 +179,12 @@ export const ASPECT_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   SQN: "Sequential",
 })
 
+/**
+ * Converts an aspect into Ithkuil.
+ * @param aspect The aspect to be converted.
+ * @returns A string or `WithWYAlternative` containing romanized Ithkuilic text
+ * representing the aspect.
+ */
 export function aspectToIthkuil(aspect: Aspect): string | WithWYAlternative {
   return ASPECT_TO_ITHKUIL_MAP[aspect]
 }

@@ -9,7 +9,7 @@ export const ALL_SUPPLETIVE_ADJUNCT_TYPES: readonly SuppletiveAdjunctType[] =
 
 /**
  * An object mapping from suppletive adjunct types to their Ithkuilic
- * counterparts.
+ * translations.
  */
 export const SUPPLETIVE_ADJUNCT_TYPE_TO_ITHKUIL_MAP =
   /* @__PURE__ */ deepFreeze({

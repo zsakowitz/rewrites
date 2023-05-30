@@ -22,7 +22,7 @@ export const ALL_AFFIXUAL_ADJUNCT_SCOPES: readonly AffixualAdjunctScope[] =
 
 /**
  * An object mapping from affixual adjunct scopes to their Ithkuilic
-counterparts.
+translations.
  */
 export const AFFIXUAL_ADJUNCT_SCOPE_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze(
   {

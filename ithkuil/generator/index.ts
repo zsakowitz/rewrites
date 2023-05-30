@@ -5,6 +5,7 @@ export * from "./formative"
 export * from "./helpers/deep-freeze"
 export * from "./helpers/dipthongs"
 export * from "./helpers/expand"
+export * from "./helpers/fill-defaults"
 export * from "./helpers/insert-glottal-stop"
 export * from "./helpers/permutations"
 export * from "./helpers/stress"
@@ -12,3 +13,5 @@ export * from "./helpers/vowel-table"
 export * from "./helpers/with-wy-alternative"
 export * from "./phonotactics"
 export * from "./referential"
+
+// TODO: Slot IV/VI shortcuts

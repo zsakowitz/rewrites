@@ -1,5 +1,6 @@
 import { deepFreeze } from "../../helpers/deep-freeze"
 
+/** A validation. */
 export type Validation =
   | "OBS"
   | "REC"
@@ -11,6 +12,7 @@ export type Validation =
   | "ITU"
   | "INF"
 
+/** An array containing all validations. */
 export const ALL_VALIDATIONS: readonly Validation[] =
   /* @__PURE__ */ deepFreeze([
     "OBS",
@@ -24,6 +26,7 @@ export const ALL_VALIDATIONS: readonly Validation[] =
     "INF",
   ])
 
+/** An object mapping from validations to their names. */
 export const VALIDATION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   OBS: "Observational",
   REC: "Recollective",

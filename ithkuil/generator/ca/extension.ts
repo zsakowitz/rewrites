@@ -23,7 +23,7 @@ export const EXTENSION_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
   DPL: "Depletive",
 })
 
-/** An object mapping from extensions to their Ithkuilic counterparts. */
+/** An object mapping from extensions to their Ithkuilic translations. */
 export const EXTENSION_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
   DEL: ["", ""],
   PRX: ["t", "d"],

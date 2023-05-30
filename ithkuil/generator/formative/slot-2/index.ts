@@ -19,21 +19,37 @@ import type { Version } from "./version"
 export * from "./stem"
 export * from "./version"
 
+/** Information directly pertaining to Slot II. */
 export type SlotII = {
+  /** The stem of the formative. */
   readonly stem: Stem
-  readonly version: Version
 
-  /** This field is required in case Slot III is affixual. */
+  /** The version of the formative. */
+  readonly version: Version
+}
+
+/** Additional information relevant to Slot II. */
+export type SlotIIMetadata = {
+  /** The codified contents of Slot I. */
+  readonly slotI: string
+
+  /** The raw contents of Slot III. */
+  readonly slotIII: SlotIII
+
+  /** The affix shortcut (if any) indicated by Slot II. */
+  readonly affixShortcut?: "NEG/4" | "DCD/4" | "DCD/5"
+
+  /** Whether Slot V contains at least two affixes. */
+  readonly doesSlotVHaveAtLeastTwoAffixes: boolean
+
+  /** The function of the formative. */
   readonly function: Function
 }
 
-export type SlotIIMetadata = {
-  readonly slotI: string
-  readonly slotIII: SlotIII
-  readonly affixShortcut?: "NEG/4" | "DCD/4" | "DCD/5"
-  readonly doesSlotVHaveAtLeastTwoAffixes: boolean
-}
-
+/**
+ * An object mapping affix shortcuts, stems, and versions to their Ithkuilic
+ * translations.
+ */
 export const SLOT_II_MAP = /* @__PURE__ */ deepFreeze({
   undefined: [
     ["o", "ö"],
@@ -61,6 +77,12 @@ export const SLOT_II_MAP = /* @__PURE__ */ deepFreeze({
   ],
 })
 
+/**
+ * Converts Slot II into Ithkuil.
+ * @param slot The stem and version of the formative.
+ * @param metadata Additional information relevant to Slot II.
+ * @returns Romanized Ithkuilic text representing Slot II.
+ */
 export function slotIIToIthkuil(
   slot: SlotII,
   metadata: SlotIIMetadata,
@@ -71,10 +93,10 @@ export function slotIIToIthkuil(
 
   if (typeof metadata.slotIII == "object") {
     return slot.version == "CPT"
-      ? slot.function == "DYN"
+      ? metadata.function == "DYN"
         ? "oë"
         : "ëu"
-      : slot.function == "DYN"
+      : metadata.function == "DYN"
       ? "eë"
       : "ëi"
   }
