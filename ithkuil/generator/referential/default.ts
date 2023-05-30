@@ -1,13 +1,13 @@
 import type {
   PartialReferential,
-  PartialReferentialReferentialCore,
-  PartialSuppletiveReferentialCore,
   Referential,
   ReferentialReferentialCore,
   SuppletiveReferentialCore,
 } from "."
 import { deepFreeze } from "../helpers/deep-freeze"
+import { fillDefaults } from "../helpers/fill-defaults"
 
+/** The default referential (1m:NEU, M, THM, NRM). */
 export const DEFAULT_REFERENTIAL: ReferentialReferentialCore =
   /* @__PURE__ */ deepFreeze({
     referrents: ["1m:NEU"],
@@ -16,6 +16,7 @@ export const DEFAULT_REFERENTIAL: ReferentialReferentialCore =
     essence: "NRM",
   })
 
+/** The default suppletive referential (CAR, THM, NRM). */
 export const DEFAULT_SUPPLETIVE_REFERENTIAL: SuppletiveReferentialCore =
   /* @__PURE__ */ deepFreeze({
     type: "CAR",
@@ -23,6 +24,11 @@ export const DEFAULT_SUPPLETIVE_REFERENTIAL: SuppletiveReferentialCore =
     essence: "NRM",
   })
 
+/**
+ * Fills default values into empty slots of a referential/
+ * @param referential The referential to be filled.
+ * @returns A complete referential, with all default slots filled.
+ */
 export function fillInDefaultReferentialSlots(
   referential: PartialReferential,
 ): Referential {
@@ -38,20 +44,24 @@ export function fillInDefaultReferentialSlots(
     }
 
     return referential.type
-      ? {
-          ...DEFAULT_SUPPLETIVE_REFERENTIAL,
-          perspective2: "M",
-          // @ts-ignore
-          referrent2: "1m:NEU",
-          ...referential,
-        }
-      : {
-          ...DEFAULT_REFERENTIAL,
-          perspective2: "M",
-          // @ts-ignore
-          referrent2: "1m:NEU",
-          ...referential,
-        }
+      ? fillDefaults<Referential>(
+          {
+            ...DEFAULT_SUPPLETIVE_REFERENTIAL,
+            perspective2: "M",
+            // @ts-ignore
+            referrent2: "1m:NEU",
+          },
+          referential,
+        )
+      : fillDefaults<Referential>(
+          {
+            ...DEFAULT_REFERENTIAL,
+            perspective2: "M",
+            // @ts-ignore
+            referrent2: "1m:NEU",
+          },
+          referential,
+        )
   }
 
   if (
@@ -66,27 +76,25 @@ export function fillInDefaultReferentialSlots(
     }
 
     return referential.type
-      ? {
-          ...DEFAULT_SUPPLETIVE_REFERENTIAL,
-          specification: "BSC",
-          affixes: [],
-          ...referential,
-        }
-      : {
-          ...DEFAULT_REFERENTIAL,
-          specification: "BSC",
-          affixes: [],
-          ...referential,
-        }
+      ? fillDefaults<Referential>(
+          {
+            ...DEFAULT_SUPPLETIVE_REFERENTIAL,
+            specification: "BSC",
+            affixes: [],
+          },
+          referential,
+        )
+      : fillDefaults<Referential>(
+          {
+            ...DEFAULT_REFERENTIAL,
+            specification: "BSC",
+            affixes: [],
+          },
+          referential,
+        )
   }
 
   return referential.type
-    ? {
-        ...DEFAULT_SUPPLETIVE_REFERENTIAL,
-        ...(referential as PartialSuppletiveReferentialCore),
-      }
-    : {
-        ...DEFAULT_REFERENTIAL,
-        ...(referential as PartialReferentialReferentialCore),
-      }
+    ? fillDefaults(DEFAULT_SUPPLETIVE_REFERENTIAL, referential)
+    : fillDefaults(DEFAULT_REFERENTIAL, referential)
 }

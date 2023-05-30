@@ -1,5 +1,6 @@
 import { deepFreeze } from "../../helpers/deep-freeze"
 
+/** A referrent target. */
 export type ReferrentTarget =
   | "1m"
   | "2m"
@@ -13,6 +14,7 @@ export type ReferrentTarget =
   | "Obv"
   | "PVS"
 
+/** An array containing all referrent targets. */
 export const ALL_REFERRENT_TARGETS: readonly ReferrentTarget[] =
   /* @__PURE__ */ deepFreeze([
     "1m",
@@ -28,7 +30,8 @@ export const ALL_REFERRENT_TARGETS: readonly ReferrentTarget[] =
     "PVS",
   ])
 
-export const REFERRENT_TARGET_TO_NAME_MAP = /* @__PURE__ */ deepFreeze({
+/** An object mapping referrent targets to descriptions of them. */
+export const REFERRENT_TARGET_TO_DESCRIPTION_MAP = /* @__PURE__ */ deepFreeze({
   "1m": "monadic speaker",
   "2m": "monadic addressee",
   "2p": "polyadic addressee",

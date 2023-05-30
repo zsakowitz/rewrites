@@ -10,8 +10,22 @@ import {
   referentialPerspectiveToIthkuilAlt,
 } from "../perspective"
 
+/** A list of referrents. */
 export type ReferrentList = readonly [Referrent, ...Referrent[]]
 
+/**
+ * Converts a list of referrents into Ithkuil. Does not attempt to change the
+ * order of the referrents to create phonotactically permissible consonant
+ * clusters. As such, the generated clusters may be phonotactically invalid.
+ *
+ * To automatically rearrange the referrents to optimize for phonotactically
+ * correct consonant clusters, use {@link referrentListToIthkuil} instead.
+ *
+ * @param referrents A list of referrents.
+ * @param perspective The perspective to attach to said referrents.
+ * @param isReferentialAffix Whether this is used in a referential affix.
+ * @returns Romanized Ithkuilic text representing the referrent list.
+ */
 export function assembleReferrentList(
   referrents: ReferrentList,
   perspective: Perspective,
@@ -70,6 +84,19 @@ export function assembleReferrentList(
   return "ë" + output + persp
 }
 
+/**
+ * Converts a list of referrents into Ithkuil. Will automatically rearrange the
+ * order of the referrents to create phonotactically permissible consonant
+ * clusters. As such, the generated clusters will most often be phonotactically
+ * valid.
+ *
+ * To avoid automatically rearranging the referrents, use
+ * {@link assembleReferrentList} instead.
+ *
+ * @param referrents A list of referrents.
+ * @param perspective The perspective to attach to said referrents.
+ * @returns Romanized Ithkuilic text representing the referrent list.
+ */
 export function referrentListToIthkuil(
   referrents: ReferrentList,
   perspective: Perspective,
@@ -91,6 +118,12 @@ export function referrentListToIthkuil(
   }
 }
 
+/**
+ * Converts a referrent into an Ithkuilic referential affix.
+ * @param referrent The referrent to be converted.
+ * @param perspective The perspective to be attatched to the referrent.
+ * @returns Romanized Ithkuilic text representing the referrent.
+ */
 export function referentialAffixToIthkuil(
   referrent: Referrent,
   perspective: "M" | "G" | "N",
@@ -132,6 +165,11 @@ function nonReferentialAffixReferrentToIthkuil(referrent: Referrent) {
   return referrentToIthkuil(referrent, false)
 }
 
+/**
+ * Converts a list of referrents to an Ithkuilic personal reference root.
+ * @param list The referrents to be converted.
+ * @returns Romanized Ithkuilic text representing the referrent list.
+ */
 export function referrentListToPersonalReferenceRoot(list: ReferrentList) {
   const sorted = list.slice().sort().reverse()
 

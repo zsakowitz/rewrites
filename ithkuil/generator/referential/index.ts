@@ -27,6 +27,10 @@ export * from "./perspective"
 export * from "./referrent"
 export * from "./specification"
 
+/**
+ * The structure shared between all single-, dual-, and combination
+ * referentials.
+ */
 export type ReferentialReferentialCore = {
   readonly referrents: ReferrentList
   readonly perspective: Perspective
@@ -36,6 +40,7 @@ export type ReferentialReferentialCore = {
   readonly essence: Essence
 }
 
+/** The structure shared between all suppletive referentials. */
 export type SuppletiveReferentialCore = {
   readonly referrents?: undefined
   readonly perspective?: undefined
@@ -45,10 +50,16 @@ export type SuppletiveReferentialCore = {
   readonly essence: Essence
 }
 
+/** The core structure of a referential. */
 export type ReferentialCore =
   | ReferentialReferentialCore
   | SuppletiveReferentialCore
 
+/**
+ * The structure shared between all single-, dual-, and combination
+ * referentials, with all optional slots properly marked optional.
+ * Note that the `referrents` slot is still required.
+ */
 export type PartialReferentialReferentialCore = {
   readonly referrents: ReferrentList
   readonly perspective?: Perspective
@@ -58,6 +69,10 @@ export type PartialReferentialReferentialCore = {
   readonly essence?: Essence
 }
 
+/**
+ * The core structure of all suppletive referentials, with all optional slots
+ * properly marked optional. Note that the `type` slot is still required.
+ */
 export type PartialSuppletiveReferentialCore = {
   readonly referrents?: undefined
   readonly perspective?: undefined
@@ -67,10 +82,16 @@ export type PartialSuppletiveReferentialCore = {
   readonly essence?: Essence
 }
 
+/**
+ * The core structure of a referrent, with optional slots properly marked
+ * optional. Note that either the `referrents` slot or `type` slot must be
+ * present in instances of this type.
+ */
 export type PartialReferentialCore =
   | PartialReferentialReferentialCore
   | PartialSuppletiveReferentialCore
 
+/** A referential. */
 export type Referential =
   | (ReferentialCore & {
       readonly referrent2?: undefined
@@ -91,6 +112,7 @@ export type Referential =
       readonly affixes: readonly Affix[]
     })
 
+/** A referential, with optional slots properly marked optional. */
 export type PartialReferential =
   | (PartialReferentialCore & {
       readonly referrent2?: undefined
@@ -111,6 +133,11 @@ export type PartialReferential =
       readonly affixes?: readonly Affix[]
     })
 
+/**
+ * Converts a referential into Ithkuil.
+ * @param referential The referential to convert.
+ * @returns Romanized Ithkuilic text representing the referential.
+ */
 function completeReferentialToIthkuil(referential: Referential) {
   const slot1 = referential.referrents
     ? referrentListToIthkuil(referential.referrents, referential.perspective)
@@ -196,6 +223,11 @@ function completeReferentialToIthkuil(referential: Referential) {
   return applyReferentialEssence(slot1 + slot2, referential.essence)
 }
 
+/**
+ * Converts a referential into Ithkuil.
+ * @param referential The referential to convert.
+ * @returns Romanized Ithkuilic text representing the referential.
+ */
 export function referentialToIthkuil(referential: PartialReferential) {
   return completeReferentialToIthkuil(
     fillInDefaultReferentialSlots(referential),

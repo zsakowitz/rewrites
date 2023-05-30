@@ -6,6 +6,7 @@ export * from "./effect"
 export * from "./list"
 export * from "./target"
 
+/** A referrent. */
 export type Referrent =
   | "1m:NEU"
   | "2m:NEU"
@@ -41,7 +42,11 @@ export type Referrent =
   | "Obv:DET"
   | "PVS:DET"
 
+/** An object mapping referrents into their Ithkuilic counterparts. */
 export const REFERRENT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
+  /**
+   * The `false` branch is used in referentials and personal-reference roots.
+   */
   false: {
     "1m:NEU": "l",
     "2m:NEU": "s",
@@ -77,6 +82,8 @@ export const REFERRENT_TO_ITHKUIL_MAP = /* @__PURE__ */ deepFreeze({
     "Obv:DET": "řř",
     "PVS:DET": "ňň",
   },
+
+  /** The `true` branch is used in referential affixes. */
   true: {
     "1m:NEU": "l",
     "2m:NEU": "s",
@@ -121,7 +128,7 @@ export function referrentToIthkuil(
   return REFERRENT_TO_ITHKUIL_MAP[`${isReferentialAffix}`][referrent]
 }
 
-export type ReferrentObject = {
+export type ReferrentAsObject = {
   readonly target: ReferrentTarget
   readonly effect: ReferrentEffect
 }
@@ -162,12 +169,25 @@ export const REFERRENT_TO_REFERRENT_OBJECT_MAP = /* @__PURE__ */ deepFreeze({
   "PVS:DET": { target: "PVS", effect: "DET" },
 })
 
+/**
+ * Deconstructs an referrent into its separate components.
+ * @param referrent The referrent to be deconstructed.
+ * @returns An object containing the effect and target of the original
+ * referrent.
+ */
 export function referrentToReferrentObject(
   referrent: Referrent,
-): ReferrentObject {
+): ReferrentAsObject {
   return REFERRENT_TO_REFERRENT_OBJECT_MAP[referrent]
 }
 
-export function referrentObjectToReferrent(object: ReferrentObject): Referrent {
-  return `${object.target}:${object.effect}`
+/**
+ * Reconstructs a referrent object into a single referrent.
+ * @param referrentObject The referrent to be reconstructed.
+ * @returns A string representing the effect and target of the object.
+ */
+export function referrentObjectToReferrent(
+  referrentObject: ReferrentAsObject,
+): Referrent {
+  return `${referrentObject.target}:${referrentObject.effect}`
 }
