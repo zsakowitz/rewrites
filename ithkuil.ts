@@ -1,7 +1,7 @@
-import { referentialToIthkuil } from "ithkuil"
+import { referentialToIthkuil } from "@zsnout/ithkuil"
 
 const result = referentialToIthkuil({
-  referrents: ["1m:BEN"],
+  referents: ["1m:BEN"],
   specification: "CTE",
   affixes: [
     {
