@@ -24,6 +24,7 @@
     "@zsnout/ithkuil": "^0.1.6",
     "arcsecond": "^4.1.0",
     "color-string": "^1.9.1",
+    "csv-parse": "^5.4.0",
     "decimal.js": "^10.4.3",
     "es-observable-tests": "^0.3.0",
     "esbuild": "^0.17.19",
