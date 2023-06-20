@@ -24,9 +24,7 @@ export type Consonant =
 
 export const ALL_CONSONANTS = "pbtdkgmnrfvszcjl"
 export const ALL_L = "rl"
-export const ALL_S = "szcj"
 export const ALL_NL = "pbtdkgmnfvszcj"
-export const ALL_NS = "pbtdkgmnrfvl"
 
 export const disallowedClusters = Object.freeze({
   p: ["p", "b"],
@@ -78,11 +76,7 @@ export function isValidConsonantCluster(cluster: string) {
   }
 
   if (cluster.length == 3) {
-    return (
-      "lr".includes(cluster[0]!) ||
-      "szcj".includes(cluster[1]!) ||
-      "lr".includes(cluster[2]!)
-    )
+    return "lr".includes(cluster[0]!) || "lr".includes(cluster[2]!)
   }
 
   return true
@@ -132,20 +126,13 @@ export function allValidTriConsonantClusters() {
         add(L + NL + C)
       }
     }
-
-    for (const NS of ALL_NS) {
-      for (const S of ALL_S) {
-        add(C + S + NS)
-        add(NS + S + C)
-      }
-    }
   }
 
   return output
 }
 
 {
-  const clusters = shuffle(allValidTriConsonantClusters())
+  const clusters = shuffle(allValidDualConsonantClusters())
 
   console.log(JSON.stringify(clusters))
 }
