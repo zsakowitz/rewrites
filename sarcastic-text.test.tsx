@@ -1,7 +1,7 @@
 // An HTML page that shows a demo of the sArCaStIcIfY function.
 
-import { sArCaStIcIfY } from "./sarcastic-text"
-import { createMemo, createSignal, h, render } from "./solid"
+import { sArCaStIcIfY } from "./sarcastic-text.js"
+import { createMemo, createSignal, h, render } from "./solid.js"
 
 const [text, setText] = createSignal("")
 const output = createMemo(() => sArCaStIcIfY(text()))

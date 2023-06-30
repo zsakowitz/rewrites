@@ -1,8 +1,8 @@
 // #::exclude
 
-import { SubscriptionObserver, type SubscriberFunction } from "."
-import { getMethod } from "./get-method"
-import { throwTypeError } from "./throw-type-error"
+import { SubscriptionObserver, type SubscriberFunction } from "./index.js"
+import { getMethod } from "./get-method.js"
+import { throwTypeError } from "./throw-type-error.js"
 
 export function executeSubscriber<T>(
   subscriber: SubscriberFunction<T>,

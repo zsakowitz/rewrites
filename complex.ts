@@ -1,6 +1,6 @@
 // An arbitrary precision complex number library.
 
-import { Fraction } from "./fraction"
+import { Fraction } from "./fraction.js"
 
 export class Complex {
   readonly real: Fraction

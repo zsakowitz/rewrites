@@ -1,5 +1,5 @@
 import type { CaseScope } from "@zsnout/ithkuil"
-import { freezeNullPrototype } from "../null-proto-frozen"
+import { freezeNullPrototype } from "../null-proto-frozen.js"
 
 const CN_TO_CASE_SCOPE = freezeNullPrototype({
   h: "CCN",

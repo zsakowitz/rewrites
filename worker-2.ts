@@ -1,7 +1,7 @@
 // A simple interface for working with web workers.
 
-import { Queue } from "./queue"
-import { randomItem } from "./random-item"
+import { Queue } from "./queue.js"
+import { randomItem } from "./random-item.js"
 
 const workerSourceInitial = `
 "use strict";

@@ -1,4 +1,4 @@
-import * as Z from "../../parsers/parser-5"
+import * as Z from "../../parsers/parser-5.js"
 
 export type Vowel =
   | "a"

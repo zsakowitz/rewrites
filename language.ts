@@ -1,6 +1,6 @@
 // A parser for a custom language.
 
-import * as Z from "./parsers/parser-5"
+import * as Z from "./parsers/parser-5.js"
 
 function asWord<T extends string>(word: T): Word<T> {
   return { type: "word", word }

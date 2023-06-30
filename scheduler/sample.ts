@@ -7,8 +7,8 @@ import {
   ScheduleItem,
   endOfSleep,
   startOfSleep,
-} from "./constants"
-import { Time } from "./time"
+} from "./constants.js"
+import { Time } from "./time.js"
 
 let blockDate = 0
 

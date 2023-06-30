@@ -1,12 +1,12 @@
 // Prints an expression as LaTeX.
 
-import type { Expression } from "./expression-parser"
+import type { Expression } from "./expression-parser.js"
 import {
   BUILT_INS,
   BUILT_INS_WITH_COMPLEX_ALTERNATIVES,
   IMPLICIT_FUNCTION_BUILT_INS,
   SINGLE_CHARACTER_VARIABLES,
-} from "./types"
+} from "./types.js"
 
 const enum Precedence {
   Atom = 10,

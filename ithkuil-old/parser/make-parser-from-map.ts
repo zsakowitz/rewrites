@@ -1,4 +1,4 @@
-import * as Z from "../../parsers/parser-5"
+import * as Z from "../../parsers/parser-5.js"
 
 export function makeParserFromMap<T>(map: Record<string, T>): Z.Parser<T> {
   const items = Object.keys(map)

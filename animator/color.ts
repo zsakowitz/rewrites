@@ -1,8 +1,8 @@
 // Color type and helpers for Animator.
 
 import { get } from "color-string"
-import { linearMap } from "./transition"
-import { store, type Store } from "./value"
+import { linearMap } from "./transition.js"
+import { store, type Store } from "./value.js"
 
 export function color(value: string): Store<string> {
   return store(value, (percentage, start, end) => {

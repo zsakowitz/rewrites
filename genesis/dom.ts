@@ -1,6 +1,6 @@
 // Reactive DOM components.
 
-import { effect } from "./core"
+import { effect } from "./core.js"
 
 /** Creates a reactive text node. */
 export function text(value: unknown) {

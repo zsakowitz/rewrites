@@ -1,7 +1,7 @@
 // A renderable Node used in Animator.
 
-import { get, type MaybeValue } from "./value"
-import { getVector, type VectorLike } from "./vector"
+import { get, type MaybeValue } from "./value.js"
+import { getVector, type VectorLike } from "./vector.js"
 
 export interface NodeProps {
   x?: MaybeValue<number>

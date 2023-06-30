@@ -1,10 +1,10 @@
 // A Motion scene using rectangles.
 
-import { all } from "../action"
-import { rgb } from "../animation"
-import { preview } from "../preview"
-import { Rect } from "../rect"
-import { Scene } from "../scene"
+import { all } from "../action.js"
+import { rgb } from "../animation.js"
+import { preview } from "../preview.js"
+import { Rect } from "../rect.js"
+import { Scene } from "../scene.js"
 
 const scene = new Scene(function* (view) {
   const b = new Rect({ fill: "red", x: 800, y: 70, width: 300, height: 300 })

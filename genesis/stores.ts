@@ -1,6 +1,6 @@
 // Genesis stores to track values, objects, and computed properties.
 
-import { effect, event } from "./core"
+import { effect, event } from "./core.js"
 
 export type Signal<T> = readonly [get: () => T, set: (newValue: T) => void]
 

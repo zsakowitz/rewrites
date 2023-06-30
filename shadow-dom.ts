@@ -2,7 +2,7 @@
 
 /// <reference types="./jsx.d.ts" />
 
-import { createEffect } from "./signal"
+import { createEffect } from "./signal/index.js"
 
 export function fragment(parent: JSX.Parent): (child: JSX.Element) => void {
   const text = document.createTextNode("")

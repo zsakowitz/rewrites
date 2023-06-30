@@ -1,6 +1,6 @@
 // Parser arithmetic using parser-6.ts.
 
-import * as Z from "./parser-6"
+import * as Z from "./parser-6.js"
 
 const OptionalWhitespace = Z.voidify(Z.regex(/^\s*/))
 

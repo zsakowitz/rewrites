@@ -1,7 +1,7 @@
 // A lock that stores some data. Its data can only be read and written to during
 // an exclusive operation.
 
-import { Lock } from "./lock-2"
+import { Lock } from "./lock-2.js"
 
 export class DataLock<T> {
   #data: T

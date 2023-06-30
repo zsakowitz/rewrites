@@ -1,8 +1,8 @@
 // A scene runner for Motion.
 
-import type { Action, ActionIterator } from "./action"
-import { signal, untrack } from "./signal"
-import { View } from "./view"
+import type { Action, ActionIterator } from "./action.js"
+import { signal, untrack } from "./signal.js"
+import { View } from "./view.js"
 
 export class Scene {
   private readonly view = new View(this)

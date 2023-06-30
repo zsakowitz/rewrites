@@ -1,6 +1,6 @@
 // A constructor for HTML elements for Motion.
 
-import { effect, isSignal } from "./signal"
+import { effect, isSignal } from "./signal.js"
 
 type IfEquals<X, Y, A, B> = (<T>() => T extends X ? 1 : 2) extends <
   T,

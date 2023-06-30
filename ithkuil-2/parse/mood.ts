@@ -1,5 +1,5 @@
 import type { Mood } from "@zsnout/ithkuil"
-import { freezeNullPrototype } from "../null-proto-frozen"
+import { freezeNullPrototype } from "../null-proto-frozen.js"
 
 const CN_TO_MOOD = freezeNullPrototype({
   h: "FAC",

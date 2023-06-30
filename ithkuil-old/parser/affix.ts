@@ -1,7 +1,7 @@
-import * as Z from "../../parsers/parser-5"
-import type { CA } from "../types"
-import { CAComplex } from "./ca"
-import { makeParserFromMap } from "./make-parser-from-map"
+import * as Z from "../../parsers/parser-5.js"
+import type { CA } from "../types.js"
+import { CAComplex } from "./ca.js"
+import { makeParserFromMap } from "./make-parser-from-map.js"
 
 export type AffixDegree = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 0
 

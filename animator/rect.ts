@@ -1,7 +1,7 @@
 // A rectangle renderer for Animator.
 
-import { Node, type NodeProps } from "./node"
-import { get, type MaybeValue } from "./value"
+import { Node, type NodeProps } from "./node.js"
+import { get, type MaybeValue } from "./value.js"
 
 export interface RectProps extends NodeProps {
   width?: MaybeValue<number>

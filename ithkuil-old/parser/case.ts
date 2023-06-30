@@ -1,4 +1,4 @@
-import { makeParserFromMap } from "./make-parser-from-map"
+import { makeParserFromMap } from "./make-parser-from-map.js"
 
 export const caseMap = {
   a: "thematic",

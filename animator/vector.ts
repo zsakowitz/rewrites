@@ -1,6 +1,6 @@
 // A Vector type and helpers for it for Animator.
 
-import { get, type MaybeValue } from "./value"
+import { get, type MaybeValue } from "./value.js"
 
 export type Vector = { readonly x: number; readonly y: number }
 

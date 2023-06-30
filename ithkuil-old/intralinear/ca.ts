@@ -1,11 +1,11 @@
-import { joinWithSlashes } from "../helpers"
-import type { CA } from "../types"
+import { joinWithSlashes } from "../helpers.js"
+import type { CA } from "../types.js"
 import {
   affiliationMap,
   extensionMap,
   nonEmptyAffiliationMap,
   nonEmptyExtensionMap,
-} from "./maps"
+} from "./maps.js"
 
 export function caToIntralinear(ca: CA, showDefaults: boolean) {
   if (showDefaults) {

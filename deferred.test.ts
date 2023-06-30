@@ -6,7 +6,7 @@
 // Make sure to install `1.2.1`. No higher version, no lower version!
 
 import tests from "promises-aplus-tests"
-import { Deferred } from "./deferred"
+import { Deferred } from "./deferred.js"
 
 tests({
   pending: () => new Deferred(),

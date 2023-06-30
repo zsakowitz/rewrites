@@ -3,11 +3,11 @@ import {
   type Affix,
   type ReferentialAffixCase,
 } from "@zsnout/ithkuil"
-import type { ConsonantForm } from "../consonant-form"
-import type { VowelForm } from "../vowel-form"
-import { parseCa } from "./ca"
-import { parseCase } from "./case"
-import { parseReferentialAffixCs } from "./referential-affix"
+import type { ConsonantForm } from "../consonant-form.js"
+import type { VowelForm } from "../vowel-form.js"
+import { parseCa } from "./ca.js"
+import { parseCase } from "./case.js"
+import { parseReferentialAffixCs } from "./referential-affix.js"
 
 const INVALID_AFFIX_CS_FORMS = /* @__PURE__ */ Object.freeze([
   "w",

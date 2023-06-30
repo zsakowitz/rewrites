@@ -1,6 +1,6 @@
 // Parsers PEG-style grammars into a parser-5 style grammar.
 
-import * as Z from "./parser-5"
+import * as Z from "./parser-5.js"
 
 function indent(text: string) {
   return text.split("\n").join("\n  ")

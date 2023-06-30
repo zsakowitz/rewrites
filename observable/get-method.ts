@@ -1,6 +1,6 @@
 // #::exclude
 
-import { throwTypeError } from "./throw-type-error"
+import { throwTypeError } from "./throw-type-error.js"
 
 // https://tc39.es/ecma262/#sec-getmethod
 export function getMethod<T, K extends keyof any>(

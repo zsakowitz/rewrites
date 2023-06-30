@@ -1,7 +1,7 @@
 // A signal implementation designed specifically for animations.
 
-import type { Action } from "./action"
-import { linear, type Easer, type Interpolator } from "./animation"
+import type { Action } from "./action.js"
+import { linear, type Easer, type Interpolator } from "./animation.js"
 
 let currentEffect: (() => void) | undefined
 let currentTrackedSet: Set<Set<() => void>> | undefined

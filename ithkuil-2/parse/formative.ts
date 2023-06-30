@@ -16,14 +16,14 @@ import {
   type VN,
   type Version,
 } from "@zsnout/ithkuil"
-import { ConsonantForm } from "../consonant-form"
-import type { ParsedWord } from "../parsed-word"
-import { VowelForm } from "../vowel-form"
-import { parseCase } from "./case"
-import { parseCaseScope } from "./case-scope"
-import { parseIllocutionValidation } from "./illocution-validation"
-import { parseMood } from "./mood"
-import { parseAspect, parseNonAspectualVn } from "./vn"
+import { ConsonantForm } from "../consonant-form.js"
+import type { ParsedWord } from "../parsed-word.js"
+import { VowelForm } from "../vowel-form.js"
+import { parseCase } from "./case.js"
+import { parseCaseScope } from "./case-scope.js"
+import { parseIllocutionValidation } from "./illocution-validation.js"
+import { parseMood } from "./mood.js"
+import { parseAspect, parseNonAspectualVn } from "./vn.js"
 
 // Slot II data
 

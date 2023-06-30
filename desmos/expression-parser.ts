@@ -1,6 +1,6 @@
 // Parses simple math expressions.
 
-import * as Z from "../parsers/parser-5"
+import * as Z from "../parsers/parser-5.js"
 
 export type Number = {
   type: "number"
@@ -221,7 +221,7 @@ const plainNumber = Z.regex(/^\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?/).map<Number>(
     return {
       type: "number",
       complex: false,
-      value: +value,
+      value: +value!,
     }
   },
 )
@@ -250,8 +250,8 @@ const variable = Z.regex(
   /^(?!sum|prod|root|of)[A-Za-z][A-Za-z0-9]*/,
 ).map<Variable>(([value]) => ({
   type: "variable",
-  complex: value.startsWith("z") || value == "i",
-  name: value,
+  complex: value!.startsWith("z") || value == "i",
+  name: value!,
 }))
 
 const prefix = Z.seq(

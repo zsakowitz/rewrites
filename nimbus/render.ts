@@ -1,6 +1,6 @@
-/// <reference types="../jsx" />
+/// <reference types="../jsx.js" />
 
-import { effect } from "./reactivity"
+import { effect } from "./reactivity.js"
 
 export function render(parent: JSX.Parent, element: JSX.Element) {
   if (element == null) {

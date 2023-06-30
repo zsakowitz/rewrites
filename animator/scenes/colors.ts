@@ -1,9 +1,9 @@
 // An Animator scene with colored rectangles.
 
-import { color } from "../color"
-import { preview } from "../preview"
-import { Rect } from "../rect"
-import { Scene } from "../scene"
+import { color } from "../color.js"
+import { preview } from "../preview.js"
+import { Rect } from "../rect.js"
+import { Scene } from "../scene.js"
 
 const scene = new Scene(function* (view) {
   const red = color("red")

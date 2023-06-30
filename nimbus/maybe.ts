@@ -1,6 +1,6 @@
 // #::exclude
 
-import { get, memo, type MaybeFn } from "./reactivity"
+import { get, memo, type MaybeFn } from "./reactivity.js"
 
 export function Maybe<
   T extends JSX.Element,

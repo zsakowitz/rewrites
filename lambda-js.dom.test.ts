@@ -3,7 +3,7 @@
 // compiles to a lambda calculus expression rather than a number, pair, or
 // other representation.
 
-import * as L from "./lambda-js"
+import * as L from "./lambda-js.js"
 
 function run() {
   try {

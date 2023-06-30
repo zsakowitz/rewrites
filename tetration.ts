@@ -10,8 +10,11 @@
 // This file implements the extension proposed there. I'd provide an accompanying
 // Desmos graph, but Desmos doesn't understand tetration.
 
-import Decimal from "decimal.js"
-import { gamma } from "./gamma"
+import D from "decimal.js"
+import { gamma } from "./gamma.js"
+
+const Decimal = D as typeof D.default
+type Decimal = D.default
 
 function factorial(x: Decimal): Decimal {
   if (x.lessThan(0) && x.floor().equals(x)) {

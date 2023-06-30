@@ -1,7 +1,7 @@
 // A view manager for Motion.
 
-import { Node } from "./node"
-import { Scene } from "./scene"
+import { Node } from "./node.js"
+import { Scene } from "./scene.js"
 
 export class View {
   #nodes: (Node | undefined)[] = []

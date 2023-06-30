@@ -1,7 +1,7 @@
-import { ConsonantForm } from "./consonant-form"
-import { freezeNullPrototype } from "./null-proto-frozen"
-import { ParsedWord, type Stress } from "./parsed-word"
-import { VowelForm } from "./vowel-form"
+import { ConsonantForm } from "./consonant-form.js"
+import { freezeNullPrototype } from "./null-proto-frozen.js"
+import { ParsedWord, type Stress } from "./parsed-word.js"
+import { VowelForm } from "./vowel-form.js"
 
 export type LetterForm = VowelForm | ConsonantForm
 

@@ -1,11 +1,11 @@
 // An implementation of the Observable proposal.
 
-import { executeSubscriber } from "./execute-subscriber"
-import { getAsyncIterator } from "./get-async-iterator"
-import { getIterator } from "./get-iterator"
-import { getMethod } from "./get-method"
-import { hostReportError } from "./host-report-error"
-import { throwTypeError } from "./throw-type-error"
+import { executeSubscriber } from "./execute-subscriber.js"
+import { getAsyncIterator } from "./get-async-iterator.js"
+import { getIterator } from "./get-iterator.js"
+import { getMethod } from "./get-method.js"
+import { hostReportError } from "./host-report-error.js"
+import { throwTypeError } from "./throw-type-error.js"
 ;(Symbol as any).observable = Symbol.observable || Symbol("Symbol.observable")
 
 export interface Observer<in T> {

@@ -1,6 +1,6 @@
 // A reactive system that uses decorators instead of plain values.
 
-import { createEffect, createMemo, createSignal } from "./solid"
+import { createEffect, createMemo, createSignal } from "./solid.js"
 
 export function signal<This, Value>(
   value: ClassAccessorDecoratorTarget<This, Value>,

@@ -4,7 +4,7 @@
 // will produce unexpected and incorrect results.
 
 import JSZip from "jszip"
-import { shuffle } from "./shuffle"
+import { shuffle } from "./shuffle.js"
 
 type CharacterList = string[]
 type ReadonlyCharacterList = readonly string[]

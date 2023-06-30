@@ -1,6 +1,6 @@
 // A test file for the @logged decorator.
 
-import { logged } from "./logged"
+import { logged } from "./logged.js"
 
 @logged
 export class Person {

@@ -1,7 +1,7 @@
 // #::exclude
 
-import { getMethod } from "./get-method"
-import { throwTypeError } from "./throw-type-error"
+import { getMethod } from "./get-method.js"
+import { throwTypeError } from "./throw-type-error.js"
 
 export function getAsyncIterator<T>(obj: {
   [Symbol.asyncIterator]():

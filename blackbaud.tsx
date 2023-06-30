@@ -1,6 +1,6 @@
 // A Blackbaud scraper that gets data in a format kama sona can understand.
 
-import { h, render, signal } from "./yet-another-js-framework"
+import { h, render, signal } from "./yet-another-js-framework.js"
 
 function select<T extends HTMLElement>(
   parent: ParentNode,

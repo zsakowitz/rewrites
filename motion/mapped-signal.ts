@@ -1,13 +1,13 @@
 // A mapped signal type for Motion.
 
-import type { Easer, Interpolator } from "./animation"
+import type { Easer, Interpolator } from "./animation.js"
 import {
   isSignal,
   signal,
   untrack,
   type Signal,
   type SignalLike,
-} from "./signal"
+} from "./signal.js"
 
 function map<I, O>(
   value: SignalLike<I>,

@@ -1,5 +1,5 @@
-import { stringToCA } from "../ca"
-import { ConsonantGroup } from "./letters"
+import { stringToCA } from "../ca.js"
+import { ConsonantGroup } from "./letters.js"
 
 export const CAComplex = ConsonantGroup.map((value) => {
   const ca = stringToCA(value)

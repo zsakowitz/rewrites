@@ -1,6 +1,6 @@
 // #::exclude
 
-import { Sandpile } from "./sandpiles"
+import { Sandpile } from "./sandpiles.js"
 
 const pile = new Sandpile(40, 40)
 

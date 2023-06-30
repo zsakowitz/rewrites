@@ -1,7 +1,7 @@
 // Runs a generator function with async/await semantics in place of fn*/yield
 // keywords. #iterator #promise #rewrite
 
-import { Deferred } from "./deferred"
+import { Deferred } from "./deferred.js"
 
 export function asyncFn<T, P extends any[], R>(
   fn: (this: T, ...params: P) => Iterator<unknown, R, any>,

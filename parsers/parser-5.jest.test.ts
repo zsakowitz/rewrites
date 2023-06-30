@@ -5,7 +5,7 @@
 // reinstall jest for this script to work properly
 
 import { isDeepStrictEqual } from "util"
-import * as Z from "./parser-5"
+import * as Z from "./parser-5.js"
 import { expect } from "@jest/globals"
 
 // #region toBeOk, toBeErrored, toBeOkWith, toBeAt

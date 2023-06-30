@@ -1,7 +1,7 @@
-/// <reference types="../jsx" />
+/// <reference types="../jsx.js" />
 
-import { effect } from "./reactivity"
-import { render } from "./render"
+import { effect } from "./reactivity.js"
+import { render } from "./render.js"
 
 type HTMLProps = Partial<JSX.Helpers.HTMLProps<HTMLElement | SVGElement>>
 

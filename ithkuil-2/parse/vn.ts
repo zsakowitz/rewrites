@@ -7,7 +7,7 @@ import {
   type Aspect,
   type NonAspectualVN,
 } from "@zsnout/ithkuil"
-import type { VowelForm } from "../vowel-form"
+import type { VowelForm } from "../vowel-form.js"
 
 const NON_ASPECTUAL_VNS = [
   ,

@@ -3,7 +3,7 @@ import {
   asStandaloneAlternative,
   asUniplexAlternative,
   asWYAlternative,
-} from "./alternatives"
+} from "./alternatives.js"
 
 export const SLOT_II = {
   processual: ["o", "a", "e", "u"],

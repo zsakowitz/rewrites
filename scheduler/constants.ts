@@ -1,6 +1,6 @@
 // #::exclude
 
-import { Time } from "./time"
+import { Time } from "./time.js"
 
 export interface Deadline {
   readonly type: "deadline"

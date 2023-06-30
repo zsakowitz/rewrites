@@ -1,4 +1,4 @@
-import * as Z from "../../parsers/parser-5"
+import * as Z from "../../parsers/parser-5.js"
 import type {
   Effect,
   Essence,
@@ -6,11 +6,11 @@ import type {
   Referrent,
   ReferrentType,
   Specification,
-} from "../types"
-import { StandardAffix, type Affix } from "./affix"
-import { Case } from "./case"
-import { normalized } from "./helpers"
-import { makeParserFromMap } from "./make-parser-from-map"
+} from "../types.js"
+import { StandardAffix, type Affix } from "./affix.js"
+import { Case } from "./case.js"
+import { normalized } from "./helpers.js"
+import { makeParserFromMap } from "./make-parser-from-map.js"
 
 export const ReferentialCode = makeParserFromMap<{
   referrent: ReferrentType

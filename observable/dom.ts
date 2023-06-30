@@ -1,6 +1,6 @@
 // #::exclude
 
-import { Observable } from "."
+import { Observable } from "./index.js"
 
 export function listen<K extends keyof HTMLElementEventMap>(
   element: HTMLElement,

@@ -1,6 +1,6 @@
 // A brainf**k parser, executor, and macro transformer.
 
-import * as Z from "./parsers/parser-5"
+import * as Z from "./parsers/parser-5.js"
 
 type Character = "<" | ">" | "+" | "-" | "[" | "]" | "." | ","
 

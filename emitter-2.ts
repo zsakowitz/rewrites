@@ -1,6 +1,6 @@
 // A strongly types event emitter that uses async generators.
 
-import { Queue } from "./queue"
+import { Queue } from "./queue.js"
 
 export class Emitter<T extends { [x: keyof any]: (data?: any) => void }> {
   #queues: { [K in keyof T]?: Queue<Parameters<T[K]>[0]> } = Object.create(null)

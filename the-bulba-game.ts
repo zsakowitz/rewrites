@@ -1,7 +1,7 @@
 // A board generator for a fun game.
 
-import { randomItem } from "./random-item"
-import { shuffle } from "./shuffle"
+import { randomItem } from "./random-item.js"
+import { shuffle } from "./shuffle.js"
 
 function capitalize(text: string) {
   return text.slice(0, 1).toUpperCase() + text.slice(1)

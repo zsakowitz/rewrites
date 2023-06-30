@@ -1,7 +1,7 @@
 // Stores and store getters for Animator.
 
-import type { Action } from "./action"
-import { linearMap, type Interpolator, type Timing } from "./transition"
+import type { Action } from "./action.js"
+import { linearMap, type Interpolator, type Timing } from "./transition.js"
 
 export type Transition<T> = Action & {
   to(

@@ -1,8 +1,8 @@
 // A Point type and signal for Motion.
 
-import { linear } from "./animation"
-import { mappedSignal } from "./mapped-signal"
-import type { Signal, SignalLike } from "./signal"
+import { linear } from "./animation.js"
+import { mappedSignal } from "./mapped-signal.js"
+import type { Signal, SignalLike } from "./signal.js"
 
 export type Point = { x: number; y: number }
 export type PointLike = Point | number

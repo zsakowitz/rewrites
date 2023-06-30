@@ -230,10 +230,10 @@ var LR -> R
 
 export const BUILT_INS_WITH_COMPLEX_ALTERNATIVES = TYPINGS_SOURCE.split("\n")
   .filter((x): x is typeof x & `+${string}` => x.startsWith("+"))
-  .map((x) => x.split(" ", 1)[0].slice(1))
+  .map((x) => x.split(" ", 1)[0]!.slice(1))
 
 export const BUILT_INS = TYPINGS_SOURCE.split("\n")
-  .map((row) => row.split(" ")[0])
+  .map((row) => row.split(" ")[0]!)
   .filter((x): x is Exclude<typeof x, ""> => x != "")
   .filter((x): x is Exclude<typeof x, `+${string}`> => !x.startsWith("+"))
   .filter((item, index, array) => array.indexOf(item) == index)

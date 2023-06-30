@@ -1,7 +1,7 @@
 // A replica of perchance's parser and runner. May have a different feature set.
 // #parser #rewrite
 
-import * as Z from "./parser-5"
+import * as Z from "./parser-5.js"
 import { faker } from "@faker-js/faker/locale/en_US"
 
 namespace $ {

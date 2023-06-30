@@ -1,6 +1,6 @@
 // Adapted from npm's `gamma` to work with `decimal.js`.
 
-import Decimal from "decimal.js"
+import { Decimal } from "decimal.js"
 
 const g = 7
 

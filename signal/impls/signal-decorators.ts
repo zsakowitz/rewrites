@@ -7,7 +7,7 @@ import {
   useBatch,
   useUntrack,
   type Signal,
-} from "./signal"
+} from "./signal.js"
 
 /** A decorator that turns the given accessor into a reactive signal. */
 export function signal<This extends object, Value>(

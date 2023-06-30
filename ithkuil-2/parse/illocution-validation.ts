@@ -3,7 +3,7 @@ import {
   ALL_VALIDATIONS,
   type IllocutionOrValidation,
 } from "@zsnout/ithkuil"
-import type { VowelForm } from "../vowel-form"
+import type { VowelForm } from "../vowel-form.js"
 
 export function parseIllocutionValidation(
   vk: VowelForm,

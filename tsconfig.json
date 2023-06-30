@@ -5,7 +5,7 @@
     "checkJs": true,
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "jsx": "react",
     "jsxFactory": "h",
     "jsxFragmentFactory": "f",

@@ -1,7 +1,7 @@
 // View and Scene classes for Animator.
 
-import type { Action, ActionIterator } from "./action"
-import { Node } from "./node"
+import type { Action, ActionIterator } from "./action.js"
+import { Node } from "./node.js"
 
 export function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))

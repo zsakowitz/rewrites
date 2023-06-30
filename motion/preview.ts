@@ -1,8 +1,8 @@
 // A previewer for Motion scenes.
 
-import { html } from "./html"
-import { Scene } from "./scene"
-import { effect } from "./signal"
+import { html } from "./html.js"
+import { Scene } from "./scene.js"
+import { effect } from "./signal.js"
 
 const FPS = 60
 const MS_BETWEEN_FRAMES = FPS / 1000

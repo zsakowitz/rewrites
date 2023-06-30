@@ -3,12 +3,12 @@
 // replaces their operations (*, ^, exp, ln) with c_mult, c_pow, c_exp, and
 // other functions to easily allow the typing of complex expressions in Desmos.
 
-import { createEffect, createMemo, createSignal, h, render } from "../solid"
-import { expression } from "./expression-parser"
-import { printAST } from "./print-ast"
-import { printLaTeX } from "./print-latex"
 import katex from "katex"
 import "katex/dist/katex.css"
+import { createEffect, createMemo, createSignal, h, render } from "../solid.js"
+import { expression } from "./expression-parser.js"
+import { printAST } from "./print-ast.js"
+import { printLaTeX } from "./print-latex.js"
 
 const [script, setScript] = createSignal("x^2")
 
@@ -63,7 +63,9 @@ render(
           const value = parsed()
 
           if (value.ok) {
-            el.innerHTML = katex.renderToString(printLaTeX(value.value), {
+            el.innerHTML = (
+              katex as any as typeof katex.default
+            ).renderToString(printLaTeX(value.value), {
               displayMode: true,
             })
           } else {

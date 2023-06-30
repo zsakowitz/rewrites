@@ -1,6 +1,6 @@
 // #::exclude
 
-import { memo, signal } from "./decorators"
+import { memo, signal } from "./decorators.js"
 
 export class Adder {
   @signal

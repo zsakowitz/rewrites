@@ -1,6 +1,6 @@
 // Parses expressions using [parser-4.ts](./parser-4.ts).
 
-import * as Z from "./parser-4"
+import * as Z from "./parser-4.js"
 
 const Expression: Z.Parser<number> = Z.deferred(() =>
   Z.any(Level1, Parenthesized),

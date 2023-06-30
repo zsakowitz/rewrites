@@ -3,7 +3,7 @@ import {
   pickUniplexAlternative,
   type WithKPTAlternative,
   type WithStandaloneAlternative,
-} from "./alternatives"
+} from "./alternatives.js"
 import {
   AFFILIATION,
   CONFIGURATION,
@@ -15,7 +15,7 @@ import {
   type Essence,
   type Extension,
   type Perspective,
-} from "./types"
+} from "./types.js"
 
 export function configToString(configuration: Configuration) {
   if (configuration.similarity == null && configuration.separability == null) {

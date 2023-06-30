@@ -1,8 +1,8 @@
-import { joinWithHyphens, joinWithSlashes } from "../helpers"
-import { Referential } from "../parser/referential"
-import type { Referrent } from "../types"
-import { caseToSymbolMap } from "./case"
-import { essenceMap, specificationMap } from "./maps"
+import { joinWithHyphens, joinWithSlashes } from "../helpers.js"
+import { Referential } from "../parser/referential.js"
+import type { Referrent } from "../types.js"
+import { caseToSymbolMap } from "./case.js"
+import { essenceMap, specificationMap } from "./maps.js"
 
 export function referrentToIntralinear({
   effect,

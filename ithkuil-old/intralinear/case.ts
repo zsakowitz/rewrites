@@ -1,4 +1,4 @@
-import { Case } from "../parser/case"
+import { Case } from "../parser/case.js"
 
 export const caseToSymbolMap: Record<Case, string> = {
   thematic: "THM",

@@ -1,4 +1,4 @@
-import { shuffle } from "../shuffle"
+import { shuffle } from "../shuffle.js"
 
 export const CONSONANT = /^[pbtdkgmnrfvszcjl]$/iu
 

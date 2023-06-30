@@ -3,7 +3,7 @@
 import { spawn } from "child_process"
 import glob from "fast-glob"
 import { readFile, writeFile } from "fs/promises"
-import { shuffle } from "./shuffle"
+import { shuffle } from "./shuffle.js"
 
 function sortFilenames(files: string[]) {
   return shuffle(files)

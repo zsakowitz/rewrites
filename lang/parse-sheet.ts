@@ -3,7 +3,7 @@
 
 import { parse } from "csv-parse/browser/esm/sync"
 import "./sheet.css"
-import type { Affix, Value } from "./types"
+import type { Affix, Value } from "./types.js"
 
 export type CSVRow = {
   readonly Name: string

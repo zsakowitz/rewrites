@@ -1,5 +1,5 @@
-import { ConsonantForm } from "./consonant-form"
-import { VowelForm } from "./vowel-form"
+import { ConsonantForm } from "./consonant-form.js"
+import { VowelForm } from "./vowel-form.js"
 
 export type Stress =
   | "antepenultimate"
