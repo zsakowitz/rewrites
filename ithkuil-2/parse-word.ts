@@ -86,7 +86,7 @@ export function parseWord(text: string) {
   })
 
   const syllables = text.match(
-    /[aeiouäëöüáéíóúìùâêôû]'?|[aáeéëêoóuú][ií]|[aáeéëêoóií][uú]/g,
+    /[aáeéëêoóuúù][iíì]|[aáeéëêoóiíì][uúù]|[aeiouäëöüáéíóúìùâêôû]'?/g,
   )
 
   let stress: Stress

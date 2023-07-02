@@ -19,8 +19,10 @@ import {
 import { ConsonantForm } from "../consonant-form.js"
 import type { ParsedWord } from "../parsed-word.js"
 import { VowelForm } from "../vowel-form.js"
-import { parseCase } from "./case.js"
+import { parseAffix } from "./affix.js"
+import { parseCa, parseGeminatedCa } from "./ca.js"
 import { parseCaseScope } from "./case-scope.js"
+import { parseCase } from "./case.js"
 import { parseIllocutionValidation } from "./illocution-validation.js"
 import { parseMood } from "./mood.js"
 import { parseAspect, parseNonAspectualVn } from "./vn.js"
@@ -415,92 +417,137 @@ export function parseFormative(word: ParsedWord): PartialFormative {
     vn = isAspectual ? parseAspect(_vn) : parseNonAspectualVn(_vn)
   }
 
-  // We've dealt with Slots I, II, III, and IV by parsing from the left. We've
-  // dealt with Slots VIII, IX, and X by parsing from the right. Now it's time
-  // to tackle the difficult ones: V, VI, and VII.
+  if (caShortcut != "none") {
+    // Slot V: (VxCs...')
+    // (or slot VII if no Slot V exists)
+    const affixes: Affix[] = []
 
-  // // Slot V: CsVx... or VxCs...'
-  // {
-  //   if (caShortcut == "none") {
-  //     while (true) {
-  //       const cs = tokens.shift()
+    let isSlotV = false
 
-  //       if (cs == null) {
-  //         throw new Error("Expected Cs or Ca; found end of formative.")
-  //       }
+    while (tokens.length) {
+      const vx = tokens.shift()!
 
-  //       if (cs instanceof VowelForm) {
-  //         throw new Error("Expected Cs or Ca; found '" + cs + "'.")
-  //       }
+      if (vx instanceof ConsonantForm) {
+        throw new Error("Invalid Vx form: " + vx + ".")
+      }
 
-  //       if (cs.isGeminated()) {
-  //         // `cs` is a Ca form
-  //         tokens.unshift(cs)
-  //         break
-  //       }
+      const cs = tokens.shift()
 
-  //       const vx = tokens.shift()
+      if (cs == null) {
+        throw new Error("Found Vx form without corresponding Cs form.")
+      }
 
-  //       if (vx == null) {
-  //         throw new Error("Expected Vx; found end of formative.")
-  //       }
+      if (cs instanceof VowelForm) {
+        throw new Error("Invalid Cs form: " + cs + ".")
+      }
 
-  //       if (vx instanceof ConsonantForm) {
-  //         throw new Error("Expected Vx; found '" + vx + "'.")
-  //       }
+      affixes.push(
+        parseAffix(
+          vx,
+          cs,
+          affixes.length == 0 && (vx.hasGlottalStop || tokens.length == 0),
+        ),
+      )
 
-  //       slotVAffixes.push(
-  //         parseAffix(
-  //           vx,
-  //           cs,
-  //           slotVAffixes.length == 0 &&
-  //             tokens[0] instanceof ConsonantForm &&
-  //             tokens[0].isGeminated(),
-  //         ),
-  //       )
-  //     }
-  //   } else {
-  //     while (true) {
-  //       const vx = tokens.shift()
+      if (vx.hasGlottalStop) {
+        isSlotV = true
+        break
+      }
+    }
 
-  //       if (vx == null) {
-  //         throw new Error("Expected Vx; found end of formative.")
-  //       }
+    if (isSlotV) {
+      slotVAffixes = affixes
+    } else {
+      slotVIIAffixes = affixes
+    }
+  } else {
+    if (
+      tokens.some(
+        (token) => token instanceof ConsonantForm && token.isGeminated(),
+      )
+    ) {
+      // Slot V: (CsVx...)
+      // Slot VI: Ca
 
-  //       if (vx instanceof ConsonantForm) {
-  //         throw new Error("Expected Vx; found '" + vx + "'.")
-  //       }
+      while (tokens.length) {
+        const cs = tokens.shift()
 
-  //       const cs = tokens.shift()
+        if (cs == null) {
+          throw new Error("Expected Cs or Ca; found end of formative.")
+        }
 
-  //       if (cs == null) {
-  //         throw new Error("Expected Cs; found end of formative.")
-  //       }
+        if (cs instanceof VowelForm) {
+          throw new Error("Expected Cs or Ca; found " + cs + ".")
+        }
 
-  //       if (cs instanceof VowelForm) {
-  //         throw new Error("Expected Cs; found '" + cs + "'.")
-  //       }
+        if (cs.isGeminated()) {
+          ca = parseGeminatedCa(cs.text)
+          break
+        }
 
-  //       slotVAffixes.push(
-  //         parseAffix(
-  //           vx,
-  //           cs,
-  //           slotVAffixes.length == 0 &&
-  //             tokens[0] instanceof ConsonantForm &&
-  //             tokens[0].isGeminated(),
-  //         ),
-  //       )
-  //     }
-  //   }
-  // }
+        const vx = tokens.shift()
 
-  // // Slot VI: Ca
-  // ca: {
-  //   if (caShortcut != "none") {
-  //     break ca
-  //   }
-  //   // ...
-  // }
+        if (vx == null) {
+          throw new Error("Expected Vx to follow Cs; found end of formative.")
+        }
+
+        if (vx instanceof ConsonantForm) {
+          throw new Error("Invalid Vx form: " + vx + ".")
+        }
+
+        slotVAffixes.push(
+          parseAffix(
+            vx,
+            cs,
+            slotVAffixes.length == 0 &&
+              tokens[0] instanceof ConsonantForm &&
+              tokens[0].isGeminated(),
+          ),
+        )
+      }
+
+      if (ca == null) {
+        throw new Error("Failed to parse Ca slot.")
+      }
+    } else {
+      // Slot VI: Ca
+
+      const _ca = tokens.shift()
+
+      if (_ca == null) {
+        throw new Error("Expected Ca slot; found end of formative.")
+      }
+
+      if (_ca instanceof VowelForm) {
+        throw new Error("Invalid Ca slot: " + _ca + ".")
+      }
+
+      ca = parseCa(_ca.text)
+    }
+  }
+
+  // Slot VII: (VxCs...)
+  while (tokens.length) {
+    const vx = tokens.shift()!
+
+    if (vx instanceof ConsonantForm) {
+      throw new Error("Invalid Vx form: " + vx + ".")
+    }
+
+    const cs = tokens.shift()
+
+    if (cs == null) {
+      throw new Error("Found Vx form without corresponding Cs form.")
+    }
+
+    if (cs instanceof VowelForm) {
+      throw new Error("Invalid Cs form: " + cs + ".")
+    }
+
+    slotVIIAffixes.push(
+      parseAffix(vx, cs, slotVIIAffixes.length == 0 && tokens.length == 0),
+    )
+  }
 
   return makeFinalFormative()
 }

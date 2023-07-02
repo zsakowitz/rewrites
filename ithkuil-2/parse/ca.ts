@@ -11,3 +11,15 @@ export function parseCa(ca: string): PartialCA {
     essence: "NRM",
   }
 }
+
+export function parseGeminatedCa(ca: string): PartialCA {
+  // TODO: Implement a better Ca parser than just guessing :)
+
+  return {
+    affiliation: "CSL",
+    configuration: "UPX",
+    extension: "DEL",
+    perspective: "M",
+    essence: "NRM",
+  }
+}

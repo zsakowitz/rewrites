@@ -66,8 +66,14 @@ esbuild() {
   fi
 
   ensure_tmp_exists
-  npx esbuild $@ --outfile="$HOME/tmp/${@[-1]:t:r}.mjs" 2> "/dev/null"
-  echo "$HOME/tmp/${@[-1]:t:r}.mjs"
+
+  if [[ "$@" == *"--servedir"* ]]; then
+    npx esbuild $@ --outfile="$HOME/tmp/${@[-1]:t:r}.mjs"
+  else
+    npx esbuild $@ --outfile="$HOME/tmp/${@[-1]:t:r}.mjs" 2> /dev/null &&
+    echo "$HOME/tmp/${@[-1]:t:r}.mjs" ||
+    npx esbuild $@ --outfile="$HOME/tmp/${@[-1]:t:r}.mjs"
+  fi
 }
 
 ## Conditionally echoes a build flag in esbuild style (--flag=value). Note that

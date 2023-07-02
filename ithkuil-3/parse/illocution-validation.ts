@@ -3,13 +3,13 @@ import {
   ALL_VALIDATIONS,
   type IllocutionOrValidation,
 } from "@zsnout/ithkuil"
-import type { VowelForm } from "../vowel-form.js"
+import type { VowelForm } from "../forms.js"
 
 export function parseIllocutionValidation(
   vk: VowelForm,
 ): IllocutionOrValidation {
   if (vk.sequence == 1) {
-    const validation = ALL_VALIDATIONS[vk.value - 1]
+    const validation = ALL_VALIDATIONS[vk.degree - 1]
 
     if (validation != null) {
       return validation
@@ -17,7 +17,7 @@ export function parseIllocutionValidation(
   }
 
   if (vk.sequence == 2) {
-    const illocution = ALL_ILLOCUTIONS[vk.value - 1]
+    const illocution = ALL_ILLOCUTIONS[vk.degree - 1]
 
     if (illocution != null && illocution != "ASR") {
       return illocution
