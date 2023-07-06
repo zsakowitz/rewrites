@@ -19,6 +19,8 @@ import { ParsedWord } from "./ithkuil-3/parse-word.js"
 import { parseFormativeTokens } from "./ithkuil-3/parse/formative.js"
 import { tokenizeNonShortcutFormative } from "./ithkuil-3/tokenize/formative.js"
 import { randomItem } from "./random-item.js"
+import { preTransform } from "./regex/core.js"
+import { parseNonShortcutFormativeWithRegex } from "./regex/formative-parse.js"
 // import { simpleFormative } from "./regex/formative.js"
 
 export function randomFormative(): Formative {
@@ -84,18 +86,17 @@ export function randomFormative(): Formative {
 }
 
 console.time("creating formatives")
-const formatives = Array.from({ length: 1_000_000 }, () => {
+const testCases = Array.from({ length: 100_000 }, () => {
   const formative = randomFormative()
-  const ithkuil = formativeToIthkuil(formative)
-  return [formative, ithkuil] as const
+  const source = formativeToIthkuil(formative)
+  return [formative, source] as const
 })
 console.timeEnd("creating formatives")
 
-export function benchmark() {
+export function benchmarkAll() {
   let index = 0
-
   console.time("manual")
-  for (const [formative, source] of formatives) {
+  for (const [formative, source] of testCases) {
     index++
 
     const word = parseWord(source)
@@ -120,7 +121,7 @@ Formative: `,
 
   index = 0
   console.time("automatic")
-  for (const [formative, source] of formatives) {
+  for (const [formative, source] of testCases) {
     index++
 
     const word = ParsedWord.of(source)
@@ -131,6 +132,31 @@ Formative: `,
     } catch (error) {
       console.error(
         `'automatic' failed on input #${index} '${source}':
+  Word:`,
+        word,
+        `
+  Error: ${error instanceof Error ? error.message : String(error)}
+  Stack: ${error instanceof Error ? error.stack : "(not available)"}
+  Formative: `,
+        formative,
+      )
+      return
+    }
+  }
+  console.timeEnd("automatic")
+
+  index = 0
+  console.time("regex")
+  for (const [formative, source] of testCases) {
+    index++
+
+    const { stress, word } = preTransform(source)
+
+    try {
+      parseNonShortcutFormativeWithRegex(word, stress)
+    } catch (error) {
+      console.error(
+        `'regex' failed on input #${index} '${source}':
 Word:`,
         word,
         `
@@ -142,7 +168,123 @@ Formative: `,
       return
     }
   }
-  console.timeEnd("automatic")
+  console.timeEnd("regex")
 }
 
-benchmark()
+export function benchmarkManualAndRegex() {
+  let index = 0
+  console.time("manual")
+  for (const [formative, source] of testCases) {
+    index++
+
+    const word = parseWord(source)
+
+    try {
+      const parsed = parseFormative(word)
+    } catch (error) {
+      console.error(
+        `'manual' failed on input #${index} '${source}':
+Word:`,
+        word,
+        `
+Error: ${error instanceof Error ? error.message : String(error)}
+Stack: ${error instanceof Error ? error.stack : "(not available)"}
+Formative: `,
+        formative,
+      )
+      return
+    }
+  }
+  console.timeEnd("manual")
+
+  index = 0
+  console.time("regex")
+  for (const [formative, source] of testCases) {
+    index++
+
+    const { stress, word } = preTransform(source)
+
+    try {
+      parseNonShortcutFormativeWithRegex(word, stress)
+    } catch (error) {
+      console.error(
+        `'regex' failed on input #${index} '${source}':
+Word:`,
+        word,
+        `
+Error: ${error instanceof Error ? error.message : String(error)}
+Stack: ${error instanceof Error ? error.stack : "(not available)"}
+Formative: `,
+        formative,
+      )
+      return
+    }
+  }
+  console.timeEnd("regex")
+}
+
+export function testManual() {
+  let index = 0
+
+  for (const [formative, source] of testCases) {
+    index++
+
+    const word = parseWord(source)
+    const parsed = parseFormative(word)
+    const parsedAsIthkuil = formativeToIthkuil(parsed)
+
+    if (source != parsedAsIthkuil) {
+      console.error(
+        `Failed test case #${index}:
+Original:  ${source}
+Re-parsed: ${parsedAsIthkuil}
+Original formative: `,
+        formative,
+        "\nRe-parsed formative:",
+        parsed,
+      )
+
+      return
+    }
+  }
+}
+
+export function testRegex() {
+  let index = 0
+
+  for (const [formative, source] of testCases) {
+    index++
+
+    const { stress, word } = preTransform(source)
+    const parsed = parseNonShortcutFormativeWithRegex(word, stress)
+    const parsedAsIthkuil = formativeToIthkuil(parsed)
+
+    if (source != parsedAsIthkuil) {
+      console.error(
+        `Failed test case #${index}:
+Original:  ${source}
+Re-parsed: ${parsedAsIthkuil}
+Original formative: `,
+        formative,
+        "\nRe-parsed formative:",
+        parsed,
+      )
+
+      return
+    }
+  }
+
+  console.log("passed test cases")
+}
+
+export function benchmarkTest() {
+  console.time("manual")
+  testManual()
+  console.timeEnd("manual")
+
+  console.time("regex")
+  testRegex()
+  console.timeEnd("regex")
+}
+
+testRegex()

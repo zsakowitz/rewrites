@@ -35,9 +35,7 @@ export class VowelForm<S extends 1 | 2 | 3 | 4 = 1 | 2 | 3 | 4> {
     }
   }
 
-  static parse(
-    text: keyof typeof VOWEL_FORM_TO_OBJECT_MAP,
-  ): VowelForm | undefined
+  static parse(text: keyof typeof VOWEL_FORM_TO_OBJECT_MAP): VowelForm
 
   static parse(text: string): VowelForm | undefined
 
@@ -52,9 +50,24 @@ export class VowelForm<S extends 1 | 2 | 3 | 4 = 1 | 2 | 3 | 4> {
     }
   }
 
+  static parseOrThrow(text: keyof typeof VOWEL_FORM_TO_OBJECT_MAP): VowelForm
+  static parseOrThrow(text: string): VowelForm
+  static parseOrThrow(text: string): VowelForm {
+    let hasGlottalStop = text.includes("'")
+    text = text.replace(/'/g, "")
+
+    if (text in VOWEL_FORM_TO_OBJECT_MAP) {
+      return VOWEL_FORM_TO_OBJECT_MAP[
+        text as keyof typeof VOWEL_FORM_TO_OBJECT_MAP
+      ].withGlottalStop(hasGlottalStop)
+    }
+
+    throw new Error("Invalid vowel form: " + text + ".")
+  }
+
   constructor(
     readonly sequence: S,
-    readonly value: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
+    readonly degree: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
     readonly hasGlottalStop = false,
   ) {
     Object.freeze(this)
@@ -62,7 +75,7 @@ export class VowelForm<S extends 1 | 2 | 3 | 4 = 1 | 2 | 3 | 4> {
 
   toString(isAtEndOfWord: boolean): S extends 3 ? WithWYAlternative : string
   toString(isAtEndOfWord: boolean): string | WithWYAlternative {
-    const form = ALL_VOWEL_FORMS[this.sequence][this.value]
+    const form = ALL_VOWEL_FORMS[this.sequence][this.degree]
 
     if (this.hasGlottalStop) {
       return insertGlottalStop(form, isAtEndOfWord)
@@ -72,7 +85,7 @@ export class VowelForm<S extends 1 | 2 | 3 | 4 = 1 | 2 | 3 | 4> {
   }
 
   withGlottalStop(hasGlottalStop = true) {
-    return new VowelForm(this.sequence, this.value, hasGlottalStop)
+    return new VowelForm(this.sequence, this.degree, hasGlottalStop)
   }
 }
 

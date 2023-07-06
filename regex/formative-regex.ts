@@ -1,16 +1,14 @@
-import { any, anyText, end, seq, start } from "./index.js"
 import { C, CG, CNG, H, V } from "./core.js"
+import { any, anyText, end, seq, start } from "./index.js"
 
 export const ccNoShortcut = anyText("h", "hw")
 
-export const ccWithShortcut = anyText("h", "hw")
-
-export const simpleFormative = seq(
+export const nonShortcutFormative = seq(
   start,
 
   seq(
     // Slot I: Cc
-    ccNoShortcut.optional().asGroup(),
+    ccNoShortcut.asGroup().optional(),
 
     // Slot II: Vv
     V.asGroup(),
@@ -40,12 +38,10 @@ export const simpleFormative = seq(
   seq(V, CNG).zeroOrMore().asGroup(),
 
   // Slot VIII: (VnCn)
-  seq(V, H).optional().asGroup(),
+  seq(V.asGroup(), H.asGroup()).optional(),
 
   // Slot IX: (Vc/Vf/Vk)
-  V.optional().asGroup(),
+  V.asGroup().optional(),
 
   end,
 ).compile()
-
-console.log(simpleFormative)

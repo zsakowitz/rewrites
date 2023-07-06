@@ -1,15 +1,24 @@
-import {
-  ALL_ILLOCUTIONS,
-  ALL_VALIDATIONS,
-  type IllocutionOrValidation,
-} from "@zsnout/ithkuil"
+import { ALL_VALIDATIONS, type IllocutionOrValidation } from "@zsnout/ithkuil"
 import type { VowelForm } from "../vowel-form.js"
+
+const ILLOCUTIONS = [
+  ,
+  "DIR",
+  "DEC",
+  "IRG",
+  "VRF",
+  ,
+  "ADM",
+  "POT",
+  "HOR",
+  "CNJ",
+] as const
 
 export function parseIllocutionValidation(
   vk: VowelForm,
 ): IllocutionOrValidation {
   if (vk.sequence == 1) {
-    const validation = ALL_VALIDATIONS[vk.value - 1]
+    const validation = ALL_VALIDATIONS[vk.degree - 1]
 
     if (validation != null) {
       return validation
@@ -17,9 +26,9 @@ export function parseIllocutionValidation(
   }
 
   if (vk.sequence == 2) {
-    const illocution = ALL_ILLOCUTIONS[vk.value - 1]
+    const illocution = ILLOCUTIONS[vk.degree]
 
-    if (illocution != null && illocution != "ASR") {
+    if (illocution != null) {
       return illocution
     }
   }

@@ -18,17 +18,17 @@ const NON_ASPECTUAL_VNS = [
 ] as const
 
 export function parseNonAspectualVn(vn: VowelForm): NonAspectualVN {
-  if (vn.value == 0) {
+  if (vn.degree == 0) {
     throw new Error("Invalid Vn form: '" + vn + "'.")
   }
 
-  return NON_ASPECTUAL_VNS[vn.sequence][vn.value]!
+  return NON_ASPECTUAL_VNS[vn.sequence][vn.degree - 1]!
 }
 
 export function parseAspect(vn: VowelForm): Aspect {
-  if (vn.value == 0) {
+  if (vn.degree == 0) {
     throw new Error("Invalid Vn form: '" + vn + "'.")
   }
 
-  return ALL_ASPECTS[(vn.sequence - 1) * 9 + (vn.value - 1)]!
+  return ALL_ASPECTS[(vn.sequence - 1) * 9 + (vn.degree - 1)]!
 }

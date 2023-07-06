@@ -57,17 +57,14 @@ export function preTransform(word: string) {
 
   word = word
     .toLowerCase()
-    .replace(
-      /ḍ|đ|ı|ì|ȷ|ł|ḷ|l͕|n͕|ṇ|ṛ|r͕|ṭ|ŧ|ù|‘|’/g,
-      (x) => (LETTER_SUBSTITUTIONS as any)[x],
-    )
+    .replace(/[ḍđıìȷłḷṇṛṭŧù‘’]|l͕|n͕|r͕/g, (x) => (LETTER_SUBSTITUTIONS as any)[x])
 
   if (word.startsWith("'")) {
     word = word.slice(1)
   }
 
   const syllables = word.match(
-    /[aeëou][iìí]|[aeëio][uùú]|[aeiouäëöüìùáéíóúâêôû]/g,
+    /[aáeéëêoóuú][ií]|[aáeéëêiíoó][uú]|[aeiouäëöüáéíóúâêôû]/g,
   )
 
   let stress: Stress

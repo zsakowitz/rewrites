@@ -1,6 +1,5 @@
 import {
   type Affix,
-  type AffixShortcut,
   type CAShortcutType,
   type Case,
   type CaseScope,
@@ -64,9 +63,9 @@ const VOWEL_SEQUENCE_TO_CA_SHORTCUTS = {
 const VOWEL_SEQUENCE_TO_AFFIX_SHORTCUTS = [
   ,
   ,
-  "NEG/4",
-  "DCD/4",
-  "DCD/5",
+  { cs: "r", type: 1, degree: 4 },
+  { cs: "t", type: 1, degree: 4 },
+  { cs: "t", type: 1, degree: 5 },
 ] as const
 
 // Slot IV data
@@ -100,7 +99,7 @@ export function parseFormative(word: ParsedWord): PartialFormative {
 
   let stem: Stem
   let version: Version
-  let affixShortcut: AffixShortcut | undefined
+  let affixShortcut: Affix | undefined
 
   let root: string
 
@@ -127,23 +126,9 @@ export function parseFormative(word: ParsedWord): PartialFormative {
   let relation: "UNF/C" | "UNF/K" | "FRM"
 
   function makeFinalFormative(): PartialFormative {
-    if (affixShortcut == "NEG/4") {
+    if (affixShortcut) {
       slotVIIAffixes.push({
-        degree: 4,
-        type: 1,
-        cs: "r",
-      })
-    } else if (affixShortcut == "DCD/4") {
-      slotVIIAffixes.push({
-        cs: "t",
-        degree: 4,
-        type: 1,
-      })
-    } else if (affixShortcut == "DCD/5") {
-      slotVIIAffixes.push({
-        cs: "t",
-        degree: 5,
-        type: 1,
+        ...affixShortcut,
       })
     }
 
@@ -234,12 +219,12 @@ export function parseFormative(word: ParsedWord): PartialFormative {
       throw new Error("Expected Vv; found end of formative.")
     }
 
-    if (vv.value == 0 || vv.value == 5) {
+    if (vv.degree == 0 || vv.degree == 5) {
       throw new Error("Invalid Vv slot: '" + vv + "'.")
     }
 
-    stem = VALUE_TO_STEM[vv.value]
-    version = VALUE_TO_VERSION[vv.value]
+    stem = VALUE_TO_STEM[vv.degree]
+    version = VALUE_TO_VERSION[vv.degree]
 
     if (caShortcut == "none") {
       affixShortcut = VOWEL_SEQUENCE_TO_AFFIX_SHORTCUTS[vv.sequence]
@@ -297,7 +282,7 @@ export function parseFormative(word: ParsedWord): PartialFormative {
       throw new Error("Expected Vr slot; found consonant form '" + vr + "'.")
     }
 
-    if (vr.value == 0 || vr.value == 5) {
+    if (vr.degree == 0 || vr.degree == 5) {
       throw new Error("Invalid Vr slot '" + vr + "'.")
     }
 
@@ -306,8 +291,8 @@ export function parseFormative(word: ParsedWord): PartialFormative {
     }
 
     context = VOWEL_SEQUENCE_TO_CONTEXT[vr.sequence]
-    specification = VALUE_TO_SPECIFICATION[vr.value]
-    func = vr.value < 5 ? "STA" : "DYN"
+    specification = VALUE_TO_SPECIFICATION[vr.degree]
+    func = vr.degree < 5 ? "STA" : "DYN"
   }
 
   // Because Slots V and VI are weird, we'll try parsing from the right now.
@@ -444,7 +429,7 @@ export function parseFormative(word: ParsedWord): PartialFormative {
       affixes.push(
         parseAffix(
           vx,
-          cs,
+          cs.text,
           affixes.length == 0 && (vx.hasGlottalStop || tokens.length == 0),
         ),
       )
@@ -498,7 +483,7 @@ export function parseFormative(word: ParsedWord): PartialFormative {
         slotVAffixes.push(
           parseAffix(
             vx,
-            cs,
+            cs.text,
             slotVAffixes.length == 0 &&
               tokens[0] instanceof ConsonantForm &&
               tokens[0].isGeminated(),
@@ -545,7 +530,7 @@ export function parseFormative(word: ParsedWord): PartialFormative {
     }
 
     slotVIIAffixes.push(
-      parseAffix(vx, cs, slotVIIAffixes.length == 0 && tokens.length == 0),
+      parseAffix(vx, cs.text, slotVIIAffixes.length == 0 && tokens.length == 0),
     )
   }
 
