@@ -1,4 +1,3 @@
-import type { Formative } from "@zsnout/ithkuil"
 import {
   ALL_AFFILIATIONS,
   ALL_CONFIGURATIONS,
@@ -9,12 +8,10 @@ import {
   ALL_PERSPECTIVES,
   ALL_SPECIFICATIONS,
   formativeToIthkuil,
-} from "@zsnout/ithkuil"
+  type Formative,
+} from "@zsnout/ithkuil/generate"
 import { parseWord } from "./ithkuil-2/parse-word.js"
 import { parseFormative } from "./ithkuil-2/parse/formative.js"
-// import { ParsedWord } from "./ithkuil-3/parse-word.js"
-// import { parseFormativeTokens } from "./ithkuil-3/parse/formative.js"
-// import { tokenizeNonShortcutFormative } from "./ithkuil-3/tokenize/formative.js"
 import { ParsedWord } from "./ithkuil-3/parse-word.js"
 import { parseFormativeTokens } from "./ithkuil-3/parse/formative.js"
 import { tokenizeNonShortcutFormative } from "./ithkuil-3/tokenize/formative.js"

@@ -1,4 +1,4 @@
-import { formativeToIthkuil, type Formative } from "@zsnout/ithkuil"
+import { formativeToIthkuil, type Formative } from "@zsnout/ithkuil/generate"
 
 const formative: Formative = {
   type: "FRM",

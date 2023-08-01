@@ -15,7 +15,10 @@
     "strict": true,
     "strictFunctionTypes": true,
     "target": "ES2022",
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@/jsx-runtime": ["./node_modules/@zsnout/ithkuil/script/jsx-runtime.js"]
+    }
   },
   "exclude": ["node_modules", "dist"]
 }

@@ -1,4 +1,4 @@
-import { formativeToIthkuil } from "@zsnout/ithkuil"
+import { formativeToIthkuil } from "@zsnout/ithkuil/generate"
 
 const result = formativeToIthkuil({
   root: "l",
