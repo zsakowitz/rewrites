@@ -28,7 +28,7 @@ export function renderStack(
   let height = 0
 
   for (const block of blocks) {
-    const [container, w, h] = render(block, instance)
+    const [container, w, h] = render(block, instance, false)
     const y = getBBox(container).y
 
     container.setAttribute("transform", `translate(0,${-y + height})`)

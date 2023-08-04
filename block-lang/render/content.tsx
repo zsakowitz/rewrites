@@ -66,9 +66,9 @@ function getPaddingSize(
       : content.type == "field"
       ? "round"
       : content.type == "dropdown"
-      ? content.shape == "rect"
-        ? "rect"
-        : "round"
+      ? content.shape == "round"
+        ? "round"
+        : "rect"
       : undefined
 
   if (contentShape == "text") {
@@ -86,7 +86,15 @@ function getPaddingSize(
   }
 
   if (contentShape == "rect") {
-    return isStatement ? 8 : shape == "sharp" ? (isEmbedded ? 24 : 20) : 12
+    return isStatement
+      ? 8
+      : shape == "sharp"
+      ? isEmbedded
+        ? 24
+        : 20
+      : shape == "round"
+      ? 16
+      : 12
   }
 
   if (contentShape == "sharp") {
@@ -135,7 +143,7 @@ export function renderContent(
   let isNotFirst = false
   for (const item of items) {
     const extraSpace = 8 * +isNotFirst
-    let x = getBBox(g).width + extraSpace
+    let x = getBBox(g).x + getBBox(g).width + extraSpace
 
     if (item && typeof item == "object" && isTopNotched && x < 40) {
       x = 40
@@ -160,6 +168,7 @@ export function renderContent(
           type: "round",
         },
         instance,
+        true,
       )
 
       if (!item.embedded) {
@@ -185,6 +194,7 @@ export function renderContent(
           type: "sharp",
         },
         instance,
+        true,
       )
 
       height = Math.max(h + 8, height)
@@ -205,6 +215,7 @@ export function renderContent(
           type: item.shape == "round" ? "round" : "rect",
         },
         instance,
+        true,
       )
 
       height = Math.max(h + 8, height)
@@ -217,7 +228,7 @@ export function renderContent(
 
       g.appendChild(arrow)
     } else if (item.type != "script") {
-      const [container, _, h] = render(item, instance)
+      const [container, _, h] = render(item, instance, true)
 
       height = Math.max(h + 8, height)
       container.setAttribute("transform", `translate(${x},0)`)
@@ -235,7 +246,7 @@ export function renderContent(
   const leftPadding = getPaddingSize(content.type, first, content.isField)
   const rightPadding = getPaddingSize(content.type, last, content.isField)
 
-  const width = getBBox(g).width + leftPadding + rightPadding
+  const width = getBBox(g).x + getBBox(g).width + leftPadding + rightPadding
   const minimumWidth =
     content.type == "block" || content.type == "tail"
       ? 60

@@ -1,11 +1,12 @@
 /* @jsxRuntime automatic */
 /* @jsxImportSource @zsnout/ithkuil/script */
 
+import { CLASS_BLOCK } from "../interactive/classes.js"
+import type { BlockLangInstance } from "../interactive/instance.js"
+import type { Block, Item, Script } from "../types.js"
 import { renderContainer } from "./container.js"
 import { renderContent } from "./content.js"
 import { renderStack } from "./stack.js"
-import type { Block, Item, Script } from "../types.js"
-import type { BlockLangInstance } from "../interactive/instance.js"
 
 export function splitBlockItems(
   items: readonly Item[],
@@ -29,6 +30,7 @@ export function splitBlockItems(
 export function render(
   block: Block,
   instance: BlockLangInstance,
+  isEmbedded: boolean,
 ): [g: SVGGElement, width: number, height: number] {
   const [items, scriptItems] = splitBlockItems(block.items)
 
@@ -52,6 +54,7 @@ export function render(
     const item = items[index + 1]!
 
     let [scriptContent, , scriptHeight] = renderStack(script.blocks, instance)
+
     let [itemContent, , itemHeight] = renderContent(block, item, true, instance)
 
     if (scriptHeight < 24) {
@@ -89,6 +92,11 @@ export function render(
     scripts: scripts as any,
   })
 
+  if (!isEmbedded) {
+    container.classList.add(CLASS_BLOCK)
+  }
+
+  instance.setBlock(container, block)
   container.appendChild(content)
 
   for (const [, , scriptContent, infoContent] of scripts) {
