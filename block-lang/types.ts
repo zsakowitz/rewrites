@@ -4,14 +4,26 @@ export type StatementShape = "block" | "head" | "tail"
 export type ExpressionShape = "rect" | "round" | "sharp"
 export type Shape = StatementShape | ExpressionShape
 
-export type Script = {
+export interface Script {
   readonly type: "script"
   readonly blocks: readonly Block[]
 }
 
-export type MutableScript = {
+export interface MutableScript {
   type: "script"
-  blocks: Block[]
+  blocks: MutableBlock[]
+}
+
+export interface Field {
+  readonly type: "field"
+  readonly value?: number | string | bigint | undefined
+  readonly embedded?: Block | undefined
+}
+
+export interface MutableField {
+  type: "field"
+  value?: number | string | bigint | undefined
+  embedded?: MutableBlock | undefined
 }
 
 export type Item =
@@ -20,11 +32,7 @@ export type Item =
   | bigint
   | Block
   | Script
-  | {
-      readonly type: "field"
-      readonly value?: number | string | bigint | undefined
-      readonly embedded?: Block | undefined
-    }
+  | Field
   | {
       readonly type: "boolean"
       readonly embedded?: Block | undefined
@@ -45,47 +53,43 @@ export type MutableItem =
   | bigint
   | Block
   | Script
-  | {
-      type: "field"
-      value?: number | string | bigint | undefined
-      embedded?: Block | undefined
-    }
+  | MutableField
   | {
       type: "boolean"
-      embedded?: Block | undefined
+      embedded?: MutableBlock | undefined
     }
   | {
       type: "dropdown"
       shape?: "rect" | "round" | undefined
       value?: number | string | bigint | undefined
-      embedded?: Block | undefined
+      embedded?: MutableBlock | undefined
     }
   | {
       type: "dropdown-arrow"
     }
 
-export type Block = {
+export interface Block {
   readonly color: Color
   readonly isField?: boolean | undefined
   readonly items: readonly Item[]
   readonly type: Shape
 }
 
-export type MutableBlock = {
+export interface MutableBlock {
   color: Color
   isField?: boolean | undefined
-  items: Item[]
+  items: MutableItem[]
   type: Shape
 }
 
-export type Stack = {
+export interface Stack {
   readonly x: number
   readonly y: number
   readonly blocks: readonly Block[]
 }
 
-export type MutableStack = {
+export interface MutableStack {
   x: number
   y: number
-  blocks: Block[]
+  blocks: MutableBlock[]
 }

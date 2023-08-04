@@ -1,98 +1,110 @@
 /* @jsxRuntime automatic */
 /* @jsxImportSource @zsnout/ithkuil/script */
 
-import { fitViewBox } from "@zsnout/ithkuil/script"
-import { COLORS, renderStack } from "./render/index.js"
-import type { Item } from "./types.js"
+import { BlockLangInstance } from "./interactive/instance.js"
+import { COLORS } from "./render/index.js"
+import type { Block, Item } from "./types.js"
 
-const items: Item[] = [
-  "move forward",
-  {
-    type: "field",
-    value: 10,
-    embedded: {
-      type: "round",
-      color: COLORS.green,
-      items: [
-        "when",
-        {
-          type: "sharp",
-          color: COLORS.lightBlue,
-          items: [
-            "is",
-            {
-              type: "round",
-              color: COLORS.lightBlue,
-              items: ["mouse-pointer"],
-            },
-            "down?",
-          ],
-        },
-        "then",
-        { type: "field", value: 23 },
-        "else",
-        { type: "field", value: 45 },
-      ],
+function makeItems(): Item[] {
+  return [
+    "move forward",
+    {
+      type: "field",
+      value: 10,
+      embedded: {
+        type: "round",
+        color: COLORS.green,
+        items: [
+          "when",
+          {
+            type: "sharp",
+            color: COLORS.lightBlue,
+            items: [
+              "is",
+              {
+                type: "round",
+                color: COLORS.lightBlue,
+                items: ["mouse-pointer"],
+              },
+              "down?",
+            ],
+          },
+          "then",
+          { type: "field", value: 23 },
+          "else",
+          { type: "field", value: 45 },
+        ],
+      },
     },
+  ]
+}
+
+const blocks: Block[] = [
+  {
+    type: "head",
+    color: COLORS.yellow,
+    items: [
+      ...makeItems(),
+      {
+        type: "script",
+        blocks: [
+          {
+            type: "block",
+            color: COLORS.blue,
+            items: makeItems(),
+          },
+          {
+            type: "block",
+            color: COLORS.magenta,
+            items: makeItems(),
+          },
+        ],
+      },
+      {
+        type: "script",
+        blocks: [
+          {
+            type: "block",
+            color: COLORS.blue,
+            items: makeItems(),
+          },
+          {
+            type: "block",
+            color: COLORS.magenta,
+            items: makeItems(),
+          },
+        ],
+      },
+    ],
+  },
+  {
+    type: "block",
+    color: COLORS.purple,
+    items: makeItems(),
+  },
+  {
+    type: "tail",
+    color: COLORS.red,
+    items: makeItems(),
   },
 ]
 
-const svg = (
-  <svg>
-    {
-      renderStack([
-        {
-          type: "head",
-          color: COLORS.yellow,
-          items: [
-            ...items,
-            {
-              type: "script",
-              blocks: [
-                {
-                  type: "block",
-                  color: COLORS.blue,
-                  items,
-                },
-                {
-                  type: "block",
-                  color: COLORS.magenta,
-                  items,
-                },
-              ],
-            },
-            {
-              type: "script",
-              blocks: [
-                {
-                  type: "block",
-                  color: COLORS.blue,
-                  items,
-                },
-                {
-                  type: "block",
-                  color: COLORS.magenta,
-                  items,
-                },
-              ],
-            },
-          ],
-        },
-        {
-          type: "block",
-          color: COLORS.purple,
-          items,
-        },
-        {
-          type: "tail",
-          color: COLORS.red,
-          items,
-        },
-      ])[0]
-    }
-  </svg>
-) as SVGSVGElement
+const instance = new BlockLangInstance()
 
-fitViewBox(svg as SVGSVGElement, 10)
+instance.load([
+  {
+    x: 0,
+    y: 0,
+    blocks: [
+      {
+        color: COLORS.red,
+        type: "round",
+        items: ["get", { type: "field" }],
+      },
+    ],
+  },
+  { x: 0, y: 80, blocks },
+])
+instance.render()
 
-document.body.append(svg)
+document.body.append(instance.container)

@@ -1,6 +1,7 @@
 /* @jsxRuntime automatic */
 /* @jsxImportSource @zsnout/ithkuil/script */
 
+import { CLASS_FIELD } from "../interactive/classes.js"
 import type { BlockLangInstance } from "../interactive/instance.js"
 import type { Block, Item, Shape } from "../types.js"
 import { FIELD_TEXT_COLOR } from "./colors.js"
@@ -100,21 +101,27 @@ function getPaddingSize(
 }
 
 export function renderText(text: string, fill: string) {
-  return (
+  const el = (
     <text
       dominant-baseline="middle"
       fill={fill}
       font-family="'Helvetica Neue', Helvetica, sans-serif"
       font-weight={500}
       y={2}
-    >
-      {text}
-    </text>
+    />
   ) as SVGTextElement
+
+  el.innerHTML = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/ +/g, (x) => "&nbsp;" + "&zwnj;&nbsp;".repeat(x.length - 1))
+
+  return el
 }
 
 export function renderContent(
-  content: Omit<Block, "items">,
+  content: Block,
   items: readonly Item[],
   isAfterScript: boolean,
   instance: BlockLangInstance,
@@ -155,6 +162,12 @@ export function renderContent(
         instance,
       )
 
+      if (!item.embedded) {
+        container.style.cursor = "text"
+        container.classList.add(CLASS_FIELD)
+      }
+
+      instance.setField(container, item)
       height = Math.max(h + 8, height)
       container.setAttribute("transform", `translate(${x},0)`)
       g.appendChild(container)
