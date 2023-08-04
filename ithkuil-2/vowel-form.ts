@@ -8,7 +8,7 @@ import {
   UO_ÖÄ,
   UÖ_ÖË,
   WithWYAlternative,
-} from "@zsnout/ithkuil"
+} from "@zsnout/ithkuil/generate"
 import { insertGlottalStop } from "./insert-glottal-stop.js"
 
 export const ALL_VOWEL_FORMS = [

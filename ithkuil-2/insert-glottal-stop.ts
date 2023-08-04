@@ -1,4 +1,4 @@
-import { WithWYAlternative } from "@zsnout/ithkuil"
+import { WithWYAlternative } from "@zsnout/ithkuil/generate"
 
 function insertGlottalStopIntoText(text: string, isAtEndOfWord: boolean) {
   if (isAtEndOfWord) {
@@ -52,7 +52,7 @@ export function insertGlottalStop(
 
   return new WithWYAlternative(
     insertGlottalStopIntoText(text.defaultValue, isAtEndOfWord),
-    insertGlottalStopIntoText(text.precededByW, isAtEndOfWord),
-    insertGlottalStopIntoText(text.precededByY, isAtEndOfWord),
+    insertGlottalStopIntoText(text.valueAfterW, isAtEndOfWord),
+    insertGlottalStopIntoText(text.valueAfterY, isAtEndOfWord),
   )
 }

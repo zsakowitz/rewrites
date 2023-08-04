@@ -27,6 +27,12 @@
       "options": {
         "printWidth": 40
       }
+    },
+    {
+      "files": "block-lang/**/*",
+      "options": {
+        "singleAttributePerLine": true
+      }
     }
   ]
 }

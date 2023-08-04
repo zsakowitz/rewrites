@@ -1,4 +1,4 @@
-import { ALL_CASES_SKIPPING_DEGREE_8 } from "@zsnout/ithkuil"
+import { ALL_CASES_SKIPPING_DEGREE_8 } from "@zsnout/ithkuil/generate"
 import type { VowelForm } from "../vowel-form.js"
 
 export function parseCase(vc: VowelForm, isCaseOver36 = vc.hasGlottalStop) {

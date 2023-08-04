@@ -1,4 +1,7 @@
-import { ALL_VALIDATIONS, type IllocutionOrValidation } from "@zsnout/ithkuil"
+import {
+  ALL_VALIDATIONS,
+  type IllocutionOrValidation,
+} from "@zsnout/ithkuil/generate"
 import type { VowelForm } from "../vowel-form.js"
 
 const ILLOCUTIONS = [

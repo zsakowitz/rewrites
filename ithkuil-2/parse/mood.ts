@@ -1,4 +1,4 @@
-import type { Mood } from "@zsnout/ithkuil"
+import type { Mood } from "@zsnout/ithkuil/generate"
 import { freezeNullPrototype } from "../null-proto-frozen.js"
 
 const CN_TO_MOOD = freezeNullPrototype({

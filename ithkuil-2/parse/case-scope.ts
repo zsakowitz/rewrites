@@ -1,4 +1,4 @@
-import type { CaseScope } from "@zsnout/ithkuil"
+import type { CaseScope } from "@zsnout/ithkuil/generate"
 import { freezeNullPrototype } from "../null-proto-frozen.js"
 
 const CN_TO_CASE_SCOPE = freezeNullPrototype({

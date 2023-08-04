@@ -1,4 +1,4 @@
-import { type PartialCA, type PartialFormative } from "@zsnout/ithkuil"
+import { type PartialCA, type PartialFormative } from "@zsnout/ithkuil/generate"
 import type { tokenizeFormative } from "../tokenize/formative.js"
 import { parseAffix } from "./affix.js"
 import { parseCa } from "./ca.js"

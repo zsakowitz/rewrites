@@ -8,7 +8,7 @@ import {
   type CaseScope,
   type Mood,
   type NonAspectualVN,
-} from "@zsnout/ithkuil"
+} from "@zsnout/ithkuil/generate"
 import type { VowelForm } from "../forms.js"
 import { freeze } from "../freeze.js"
 

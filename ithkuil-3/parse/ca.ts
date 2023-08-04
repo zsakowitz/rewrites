@@ -7,7 +7,7 @@ import {
   caToIthkuil,
   geminatedCAToIthkuil,
   type PartialCA,
-} from "@zsnout/ithkuil"
+} from "@zsnout/ithkuil/generate"
 
 const ALL_CA_FORMS = new Map<string, PartialCA>()
 

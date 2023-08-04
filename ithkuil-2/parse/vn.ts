@@ -6,7 +6,7 @@ import {
   ALL_VALENCES,
   type Aspect,
   type NonAspectualVN,
-} from "@zsnout/ithkuil"
+} from "@zsnout/ithkuil/generate"
 import type { VowelForm } from "../vowel-form.js"
 
 const NON_ASPECTUAL_VNS = [

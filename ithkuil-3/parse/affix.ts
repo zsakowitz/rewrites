@@ -2,7 +2,7 @@ import {
   ALL_CASES,
   type Affix,
   type ReferentialAffixCase,
-} from "@zsnout/ithkuil"
+} from "@zsnout/ithkuil/generate"
 import type { VowelForm } from "../forms.js"
 import { parseCa } from "./ca.js"
 import { parseCase } from "./case.js"

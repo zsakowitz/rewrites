@@ -1,4 +1,4 @@
-import type { Affix, PartialFormative } from "@zsnout/ithkuil"
+import type { Affix, PartialFormative } from "@zsnout/ithkuil/generate"
 import { parseAffix } from "../ithkuil-2/parse/affix.js"
 import { parseCa, parseGeminatedCa } from "../ithkuil-2/parse/ca.js"
 import { parseCaseScope } from "../ithkuil-2/parse/case-scope.js"

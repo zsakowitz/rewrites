@@ -1,4 +1,7 @@
-import { REFERENT_TO_ITHKUIL_MAP, type Referent } from "@zsnout/ithkuil"
+import {
+  REFERENT_TO_ITHKUIL_MAP,
+  type Referent,
+} from "@zsnout/ithkuil/generate"
 
 export function parseReferentialAffixCs(cs: string): {
   referent: Referent

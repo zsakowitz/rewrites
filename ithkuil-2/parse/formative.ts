@@ -14,7 +14,7 @@ import {
   type Stem,
   type VN,
   type Version,
-} from "@zsnout/ithkuil"
+} from "@zsnout/ithkuil/generate"
 import { ConsonantForm } from "../consonant-form.js"
 import type { ParsedWord } from "../parsed-word.js"
 import { VowelForm } from "../vowel-form.js"
