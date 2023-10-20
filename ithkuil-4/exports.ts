@@ -23,5 +23,6 @@ declare namespace ExportsDotJS {
 }
 
 export const { app, db, auth, provider, firebaseConfig } = (await import(
-  "/exports.js" as any
+  // @ts-ignore
+  "/exports.js".toString()
 )) as typeof ExportsDotJS

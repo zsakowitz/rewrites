@@ -8,7 +8,7 @@ import { db } from "./exports.js"
 export type DateString = string & { __date?: string }
 export type GoogleAccountID = string & { __googleAccountId?: string }
 
-class CC {
+export class CC {
   readonly d: string
   readonly title: string
   readonly description: string
@@ -120,7 +120,7 @@ class CC {
   }
 }
 
-async function getCCs() {
+export async function getCCs() {
   const q = query(collection(db, "Common Classrooms"))
 
   const querySnapshot: any[] = (await getDocs(q)).docs
@@ -158,7 +158,7 @@ async function getCCs() {
   return data
 }
 
-class User {
+export class User {
   constructor(
     readonly campusID: string,
     readonly commonClassroom: string | null | undefined,
@@ -188,7 +188,7 @@ class User {
   }
 }
 
-async function getUsers() {
+export async function getUsers() {
   const q = query(collection(db, "Users"))
 
   const querySnapshot: any[] = (await getDocs(q)).docs
