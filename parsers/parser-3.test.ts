@@ -191,7 +191,7 @@ const Object = sequence(
   text("}"),
 ).map(
   ([, , props]) =>
-    `{\n  ${indent(
+    `({\n  ${indent(
       props
         .map(
           ([key, , value]) =>
@@ -202,7 +202,7 @@ const Object = sequence(
             }`,
         )
         .join(",\n"),
-    )}\n}`,
+    )}\n})`,
 )
 
 const Await = sequence(text("@"), OptionalWhitespace, Expression).map(
@@ -247,4 +247,8 @@ function compile(text: string) {
 
 function evaluate(text: string) {
   return (0, eval)(compile(text))
+}
+
+function cst(text: string) {
+  return evaluate(text.replace(/\d+/g, "#$&"))
 }

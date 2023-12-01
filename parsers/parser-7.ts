@@ -532,3 +532,40 @@ const Mapped = _Mapped
   var many1 = <Matcher extends Parser>(matcher: Matcher) =>
     new Many1Parser(matcher)
 }
+
+const hello = text("hello")
+const manyHellos = many(hello)
+const result = manyHellos.parse("hellohellogoodbyehello")
+console.log(result)
+// The object above is the type annotation of `result`. TypeScript knows that
+// `result` contains those exact properties, in that exact order.
+
+const hellosWithSpaces = seq(text("hello"), many(text(" hello")))
+const result2 = hellosWithSpaces.parse("hello hello hello world")
+console.log(result2)
+// They match perfectly! The `readonly` annotation just tell TypeScript
+// that we shouldn't modify the object.
+
+// This is an error.
+// result2.index = 23
+
+// If I spread out the value, TypeScript will let me modify it.
+const result3 = { ...result2 }
+result3.index = 17
+// But not to 23, because 23 != 17.
+// Now it's happy.
+
+// Final example: a basic arithmetic parser.
+const digit = char("0123456789")
+const number = many1(digit)
+const addSubPart = seq(char("+-"), number)
+const expression = seq(number, many(addSubPart))
+// That should work.
+// That means we went over the type system's limits.
+// I'll try reducing the complexity.
+// That didn't work.
+// Let's try removing spaces.
+// It worked!!!!
+const result4 = expression.parse("23+45")
+console.log(JSON.stringify(result4, null, 2))
+// Time to double-check. And yup, they match.
