@@ -70,6 +70,10 @@ export function allConjuncts() {
     /** @type {string} */
     text,
   ) {
+    if (/(.)\1\1/.test(text)) {
+      return
+    }
+
     const matches = text.match(/(.)\1/g)
 
     if (!matches) {
@@ -97,19 +101,49 @@ export function allConjuncts() {
 
   for (const a of ALL_LETTERS) {
     add(a)
+  }
 
+  for (const a of ALL_LETTERS) {
     for (const b of ALL_LETTERS) {
       add(a + b)
+    }
+  }
 
+  for (const a of ALL_LETTERS) {
+    for (const b of ALL_LETTERS) {
       for (const c of ALL_LETTERS) {
         add(a + b + c)
+      }
+    }
+  }
 
+  for (const a of ALL_LETTERS) {
+    for (const b of ALL_LETTERS) {
+      for (const c of ALL_LETTERS) {
         for (const d of ALL_LETTERS) {
           add(a + b + c + d)
+        }
+      }
+    }
+  }
 
+  for (const a of ALL_LETTERS) {
+    for (const b of ALL_LETTERS) {
+      for (const c of ALL_LETTERS) {
+        for (const d of ALL_LETTERS) {
           for (const e of ALL_LETTERS) {
             add(a + b + c + d + e)
+          }
+        }
+      }
+    }
+  }
 
+  for (const a of ALL_LETTERS) {
+    for (const b of ALL_LETTERS) {
+      for (const c of ALL_LETTERS) {
+        for (const d of ALL_LETTERS) {
+          for (const e of ALL_LETTERS) {
             for (const f of ALL_LETTERS) {
               add(a + b + c + d + e + f)
             }
