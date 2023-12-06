@@ -139,13 +139,14 @@ export async function genMany(count: number) {
   return fs.writeFileSync("./input.txt", data)
 }
 
-await genMany(10_000)
-
 const input = readFileSync("./input.txt", "utf8")
 const start = Date.now()
 input.split("\n").map((x) => {
   try {
     const result = parseFormative(x)
+    if (!result) {
+      throw new Error()
+    }
   } catch (value) {
     throw new Error(x + ": " + String(value))
   }
