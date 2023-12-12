@@ -66,7 +66,7 @@ const PROHIBITED_CONJUNCTS =
 // This is any sequences of categories you want to prohibit
 
 const PROHIBITED_SEQUENCES = new RegExp(
-  "PPP, FFF, SSS, CCC, NNN, RRR, LLL, HHH, YYY".replace(/, /g, "|"),
+  replaceCategories("(?!(.)\1|.(.)\2)(?:PPP|FFF|SSS|CCC|NNN|RRR|LLL|HHH|YYY)"),
 )
 
 // This is the final conjuncts list, filtered properly.
