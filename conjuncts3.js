@@ -18,6 +18,7 @@ function generateList(/** @type {string} */ source) {
 }
 
 function replaceCategories(/** @type {string} */ text) {
+  // The capital letters here represent categories of letters.
   const replacements = {
     P: "ptkbdg",
     F: "fvţḑçxļ",
@@ -32,6 +33,8 @@ function replaceCategories(/** @type {string} */ text) {
 
   return text.replace(/[A-Z]/g, (x) => "[" + replacements[x] + "]")
 }
+
+// Adjust these lists using the categories above.
 
 const one = "P, F, S, C, L, R, N"
 
@@ -51,17 +54,25 @@ const five =
 
 const all = [one, two, hForms, three, four, five].join(", ").replace(/, /g, "|")
 
+// This is the original conjuncts list, unfiltered.
+
 const conjuncts = generateList(replaceCategories(all))
 
+// This is any conjuncts you want to prohibit.
+
 const PROHIBITED_CONJUNCTS =
-  /.'|[td][szšžcżčjţḑ]|[kg][xň]|kg|gk|td|dt|pb|bp|fv|vf|ţḑ|ḑţ|cż|żc|čj|jč|čc|jc|čż|jż|[šž][cż]|sż|s[zšž]|z[sšž]|š[szž]|ž[szš]|[cżčj][szšž]|[szšž]ç|ç[szšž]|[cżčj]ç|ç[żj]|ļç|çļ|hç|çh|xç|n[cżčj]|m[pb][fvtdţḑ]|n(?:k[sš]|g[zž])|n[pb]|n[fv].|ň[kgxy]|x[szšžçgļňyhř]|[bdghç]ļ|ļ[szšžhç]|[ļxç]h$|[rh]ř|řr|[wy]./
+  /.'|[td][szšžcżčjţḑ]|[kg][xň]|kg|gk|td|dt|pb|bp|fv|vf|ţḑ|ḑţ|cż|żc|čj|jč|čc|jc|čż|jż|[šž][cż]|sż|s[zšž]|z[sšž]|š[szž]|ž[szš]|[cżčj][szšž]|[szšž]ç|ç[szšž]|[cżčj]ç|ç[żj]|ļç|çļ|hç|çh|xç|n[cżčj]|m[pb][fvtdţḑ]|n(?:k[sš]|g[zž])|n[pb]|n[fv].|ň[kgxy]|x[szšžçgļňyhř]|[bdghç]ļ|ļ[szšžhç]|[ļxç]h$|[rh]ř|řr|[wy].|ḑs|ḑš|ḑz|ḑž|nň/
 
-const conjunctsJQ = conjuncts.filter(
-  (conjunct) => !PROHIBITED_CONJUNCTS.test(conjunct),
+// This is any sequences of categories you want to prohibit
+
+const PROHIBITED_SEQUENCES = new RegExp(
+  "PPP, FFF, SSS, CCC, NNN, RRR, LLL, HHH, YYY".replace(/, /g, "|"),
 )
 
-const PROHIBITED_CONJUNCTS_2 = /ḑs|ḑš|ḑz|ḑž|nň/
+// This is the final conjuncts list, filtered properly.
 
-const conjunctsLK = conjunctsJQ.filter(
-  (conjunct) => !PROHIBITED_CONJUNCTS_2.test(conjunct),
+const finalConjuncts = conjuncts.filter(
+  (x) => !(PROHIBITED_CONJUNCTS.test(x) || PROHIBITED_SEQUENCES.test(x)),
 )
+
+// finalConjuncts contains final list
