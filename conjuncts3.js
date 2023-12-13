@@ -20,12 +20,16 @@ function generateList(/** @type {string} */ source) {
 function replaceCategories(/** @type {string} */ text) {
   // The capital letters here represent categories of letters.
   const replacements = {
-    P: "ptkbdg",
-    F: "fvţḑçxļ",
-    S: "szšž",
-    C: "cẓčj",
+    B: "bdg",
+    P: "ptk",
+    V: "vḑ",
+    F: "fţçxļ",
+    J: "ẓj",
+    C: "cč",
+    Z: "zž",
+    S: "sš",
     N: "mnň",
-    R: "rř",
+    R: "rřl",
     L: "l",
     H: "h",
     Y: "wy",
@@ -51,7 +55,9 @@ const PROHIBITED_CONJUNCTS =
 // This is any sequences of categories you want to prohibit
 
 const PROHIBITED_SEQUENCES = new RegExp(
-  replaceCategories("(?!(.)\1|.(.)\2)(?:PPP|FFF|SSS|CCC|NNN|RRR|LLL|HHH|YYY)"),
+  replaceCategories(
+    "(?!(.)\\1|.(.)\\2)(?:BBB|PPP|VVV|FFF|JJJ|CCC|ZZZ|SSS|NNN|RRR|HHH|YYY)",
+  ),
 )
 
 // This is the final conjuncts list, filtered properly.
