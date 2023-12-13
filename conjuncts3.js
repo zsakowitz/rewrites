@@ -1,5 +1,7 @@
 // @ts-check
 
+import { writeFileSync } from "fs"
+
 function generateList(/** @type {string} */ source) {
   return source.split("|").flatMap((segment) => {
     const matches = (segment.match(/\[[^[\]]+\]|[^[\]]/g) || []).map((match) =>
@@ -38,6 +40,16 @@ function replaceCategories(/** @type {string} */ text) {
   return text.replace(/[A-Z]/g, (x) => "[" + replacements[x] + "]")
 }
 
+function getUnique(/** @type {string[]} */ array) {
+  const output = Object.create(null)
+
+  for (const el of array) {
+    output[el] = true
+  }
+
+  return Object.keys(output)
+}
+
 // Adjust these lists using the categories above.
 
 const all =
@@ -45,25 +57,35 @@ const all =
 
 // This is the original conjuncts list, unfiltered.
 
-const conjuncts = generateList(replaceCategories(all))
+const uncheckedConjuncts = generateList(replaceCategories(all))
 
 // This is any conjuncts you want to prohibit.
 
-const PROHIBITED_CONJUNCTS =
+const PROHIBITED =
   /.'|[td][szšžcżčjţḑ]|[kg][xň]|kg|gk|td|dt|pb|bp|fv|vf|ţḑ|ḑţ|cż|żc|čj|jč|čc|jc|čż|jż|[šž][cż]|sż|s[zšž]|z[sšž]|š[szž]|ž[szš]|[cżčj][szšž]|[szšž]ç|ç[szšž]|[cżčj]ç|ç[żj]|ļç|çļ|hç|çh|xç|n[cżčj]|m[pb][fvtdţḑ]|n(?:k[sš]|g[zž])|n[pb]|n[fv].|ň[kgxy]|x[szšžçgļňyhř]|[bdghç]ļ|ļ[szšžhç]|[ļxç]h$|[rh]ř|řr|[wy].|ḑs|ḑš|ḑz|ḑž|nň/
 
 // This is any sequences of categories you want to prohibit
 
-const PROHIBITED_SEQUENCES = new RegExp(
+const PROHIBITED_SEQS = new RegExp(
   replaceCategories(
+    // the `(?!(.)\\1|.(.)\\2)` says that the rules don't apple to XX_ or _XX forms, where X is anything
+    // the rest just says we can't have three things of the same category in a row
     "(?!(.)\\1|.(.)\\2)(?:BBB|PPP|VVV|FFF|JJJ|CCC|ZZZ|SSS|NNN|RRR|HHH|YYY)",
   ),
 )
 
-// This is the final conjuncts list, filtered properly.
-
-const finalConjuncts = conjuncts.filter(
-  (x) => !(PROHIBITED_CONJUNCTS.test(x) || PROHIBITED_SEQUENCES.test(x)),
+const conjuncts = getUnique(
+  uncheckedConjuncts.filter(
+    (x) => !(PROHIBITED.test(x) || PROHIBITED_SEQS.test(x)),
+  ),
+).sort((a, b) =>
+  a.length < b.length
+    ? -1
+    : a.length > b.length
+    ? 1
+    : a < b
+    ? -1
+    : a > b
+    ? 1
+    : 0,
 )
-
-// finalConjuncts contains final list
