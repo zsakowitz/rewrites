@@ -60,7 +60,19 @@ function getUnique(/** @type {string[]} */ array) {
 }
 
 // This is the original conjuncts list, unfiltered.
-const uncheckedConjuncts = generateList(replaceCategories(all))
+const uncheckedConjuncts = generateList(replaceCategories(all)).map((x) => {
+  if (x.length >= 3) {
+    if (x.endsWith("hy")) {
+      return x.slice(0, -2) + "ç"
+    }
+
+    if (x.endsWith("hl")) {
+      return x.slice(0, -2) + "ļ"
+    }
+  }
+
+  return x
+})
 
 // This is any conjuncts you want to prohibit.
 const PROHIBITED =
@@ -94,3 +106,5 @@ const conjuncts = getUnique(
       ? 1
       : 0,
   )
+
+import("fs").then((x) => x.writeFileSync("conjuncts.txt", conjuncts.join("\n")))
