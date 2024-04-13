@@ -124,3 +124,58 @@ export class Fraction implements FractionLike {
     return `${this.top}/${this.bottom}`
   }
 }
+
+function factorial(n: bigint): bigint {
+  let product = 1n
+
+  for (let i = 2n; i <= n; i++) {
+    product *= i
+  }
+
+  return product
+}
+
+function fraction(a: number | bigint, b: number | bigint): Fraction {
+  return new Fraction(1n, factorial(BigInt(a)) * factorial(BigInt(b)))
+}
+
+const x = [
+  fraction(1, 31),
+  fraction(3, 29),
+  fraction(5, 27),
+  fraction(7, 25),
+  fraction(9, 23),
+  fraction(11, 21),
+  fraction(13, 19),
+  fraction(15, 17),
+]
+
+const y = x.reduce((a, b) => a.plus(b))
+
+const z = y.times(new Fraction(factorial(32n), 1n))
+
+const w = [1, 0].flatMap((ericaA) =>
+  [1, 0].flatMap((ericaB) =>
+    [1, 0].flatMap((alanA) =>
+      [1, 0]
+        .filter((alanB) => ericaA + ericaB > alanA + alanB)
+        .flatMap((alanB) =>
+          [1, 0].flatMap((ericaC) =>
+            [1, 0].flatMap((ericaD) =>
+              [1, 0].flatMap((alanC) =>
+                [1, 0].flatMap((alanD) =>
+                  [1, 0].flatMap((ericaE) =>
+                    [1, 0].flatMap(
+                      (alanE) =>
+                        ericaA + ericaB + ericaC + ericaD + ericaE >
+                        alanA + alanB + alanC + alanD + alanE,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ),
+  ),
+)
