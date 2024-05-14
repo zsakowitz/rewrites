@@ -159,7 +159,7 @@ export function sortDefs(script: Script): Result<OrderedScript, string> {
   }
 }
 
-export const BASE_DEFS: Script = {
+export const script: Script = {
   pi: {
     type: "kval",
     kind: "float",
@@ -181,6 +181,18 @@ export const BASE_DEFS: Script = {
     args: ["d"],
     out: { type: "var", name: "d" },
   },
+  f: {
+    type: "val",
+    value: { type: "call", name: "c", args: [{ type: "var", name: "b" }] },
+  },
 }
 
-console.log(JSON.stringify(sortDefs(BASE_DEFS), undefined, 2))
+const orderedResult = sortDefs(script)
+
+if (!orderedResult.ok) {
+  throw new Error()
+}
+
+const ordered = orderedResult.value
+
+function getTypes() {}
