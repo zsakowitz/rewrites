@@ -62,17 +62,14 @@ export class Score {
       cc[i] = undefined
     }
 
-    return new Score(marks, ogc)
+    return new Score(marks, guess)
   }
 
   readonly hits: { readonly [char: string]: number }
   readonly misses: { readonly [char: string]: true }
 
-  constructor(
-    readonly marks: readonly ScoreMark[],
-    readonly guess: readonly string[],
-  ) {
-    if (marks.length != guess.length) {
+  constructor(readonly marks: readonly ScoreMark[], readonly guess: Word) {
+    if (marks.length != guess.word.length) {
       throw new Error("`marks` and `guess` arrays must have same length.")
     }
 
@@ -82,9 +79,9 @@ export class Score {
     const hits: Record<string, number> = (this.hits = Object.create(null))
     const misses: Record<string, true> = (this.misses = Object.create(null))
 
-    for (let i = 0; i < guess.length; i++) {
+    for (let i = 0; i < guess.word.length; i++) {
       const mark = marks[i]!
-      const char = guess[i]!
+      const char = guess.word[i]!
 
       // If grey, note that we missed it. This means we have an exact value.
       if (mark == null) {
@@ -131,8 +128,8 @@ export class Word {
   }
 
   matches(score: Score): boolean {
-    for (let i = 0; i < score.guess.length; i++) {
-      if (score.marks[i] == "correct" && this.word[i] !== score.guess[i]) {
+    for (let i = 0; i < score.guess.word.length; i++) {
+      if (score.marks[i] == "correct" && this.word[i] !== score.guess.word[i]) {
         return false
       }
     }
@@ -154,10 +151,87 @@ export class Word {
 
     return true
   }
+
+  toString() {
+    return this.word.join("")
+  }
 }
 
 export class WordList {
   constructor(readonly words: readonly Word[]) {}
+
+  matchesWord(guess: Word) {
+    return new WordList(
+      this.words.filter((word) => word.matches(Score.of(word, guess))),
+    )
+  }
+
+  matchesScore(score: Score) {
+    return this.words.filter((x) => {
+      const my = Score.of(x, score.guess)
+      return my.marks.join(",") == score.marks.join(",")
+    })
+  }
+
+  toString() {
+    return this.words.join(", ")
+  }
+
+  bestSingleLayerGuesses() {
+    return this.words
+      .map((guess) => {
+        const filtered = this.matchesWord(guess)
+        return [guess, filtered.words.length, filtered.toString()] as const
+      })
+      .sort(([, a], [, b]) => a - b)
+  }
+
+  bestSecondLayerGuesses() {
+    return this.words
+      .flatMap((guess1) => {
+        const f1 = this.matchesWord(guess1)
+        return f1.words.map((guess2) => {
+          const f2 = f1.matchesWord(guess2)
+          return { guess1, guess2, size: f2.words.length, words: f2.toString() }
+        })
+      })
+      .sort((a, b) => a.size - b.size)
+  }
+
+  bestThirdLayerGuesses() {
+    return this.words
+      .flatMap((guess1) => {
+        const f1 = this.matchesWord(guess1)
+        return f1.words
+          .filter((guess2) => guess2 >= guess1)
+          .map((guess2) => {
+            const f2 = f1.matchesWord(guess2)
+            return {
+              guess1,
+              guess2,
+              f2,
+              size: f2.words.length,
+              words: f2.toString(),
+            }
+          })
+      })
+      .sort((a, b) => a.size - b.size)
+      .flatMap(({ guess1, guess2, f2 }) => {
+        return f2.words
+          .filter((guess3) => guess3 >= guess2)
+          .map((guess3) => {
+            const f3 = f2.matchesWord(guess3)
+            return {
+              guess1: guess1.toString(),
+              guess2: guess2.toString(),
+              guess3: guess3.toString(),
+              size: f3.words.length,
+              words: f3.toString(),
+            }
+          })
+      })
+      .sort((a, b) => a.size - b.size)
+  }
 }
 
 export const all = new WordList(
