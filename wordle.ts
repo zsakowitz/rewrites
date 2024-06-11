@@ -152,6 +152,13 @@ export class Word {
     return true
   }
 
+  equals(other: Word): boolean {
+    return (
+      this.word.length == other.word.length &&
+      this.word.every((a, i) => other.word[i] === a)
+    )
+  }
+
   toString() {
     return this.word.join("")
   }
@@ -160,6 +167,10 @@ export class Word {
 export class WordList {
   constructor(readonly words: readonly Word[]) {}
 
+  includes(word: Word) {
+    return this.words.some((a) => a.equals(word))
+  }
+
   matchesWord(guess: Word) {
     return new WordList(
       this.words.filter((word) => word.matches(Score.of(word, guess))),
@@ -167,14 +178,32 @@ export class WordList {
   }
 
   matchesScore(score: Score) {
-    return this.words.filter((x) => {
-      const my = Score.of(x, score.guess)
-      return my.marks.join(",") == score.marks.join(",")
-    })
+    return new WordList(
+      this.words.filter((x) => {
+        const my = Score.of(x, score.guess)
+        return my.marks.join(",") == score.marks.join(",")
+      }),
+    )
   }
 
   toString() {
     return this.words.join(", ")
+  }
+
+  filter(
+    predicate: (word: Word, index: number, array: WordList) => unknown,
+  ): WordList {
+    const p = (word: Word, index: number) => predicate(word, index, this)
+    return new WordList(this.words.filter(p))
+  }
+
+  best() {
+    return this.words
+      .map((guess) => {
+        const filtered = this.matchesWord(guess)
+        return [guess, filtered.words.length] as const
+      })
+      .reduce((a, b) => (a[1] <= b[1] ? a : b))
   }
 
   bestSingleLayerGuesses() {
@@ -184,6 +213,18 @@ export class WordList {
         return [guess, filtered.words.length, filtered.toString()] as const
       })
       .sort(([, a], [, b]) => a - b)
+  }
+
+  best2() {
+    return this.words
+      .flatMap((guess1) => {
+        const f1 = this.matchesWord(guess1)
+        return f1.words.map((guess2) => {
+          const f2 = f1.matchesWord(guess2)
+          return { guess1, guess2, size: f2.words.length, words: f2.toString() }
+        })
+      })
+      .reduce((a, b) => (a.size <= b.size ? a : b))
   }
 
   bestSecondLayerGuesses() {
@@ -196,6 +237,45 @@ export class WordList {
         })
       })
       .sort((a, b) => a.size - b.size)
+  }
+
+  best4() {
+    return this.words
+      .flatMap((guess1) => {
+        const f1 = this.matchesWord(guess1)
+        return f1.words
+          .filter((guess2) => guess2 >= guess1)
+          .map((guess2) => {
+            const f2 = f1.matchesWord(guess2)
+            return {
+              guess1,
+              guess2,
+              f2,
+              size: f2.words.length,
+            }
+          })
+      })
+      .sort((a, b) => a.size - b.size)
+      .slice(0, 100)
+      .flatMap(({ guess1, guess2, f2 }) => {
+        return f2.words
+          .filter((guess3) => guess3 >= guess2)
+          .map((guess3) => {
+            const f3 = f2.matchesWord(guess3)
+            return { guess1, guess2, guess3, size: f3.words.length, f3 }
+          })
+      })
+      .sort((a, b) => a.size - b.size)
+      .slice(0, 100)
+      .flatMap(({ guess1, guess2, guess3, f3 }) => {
+        return f3.words
+          .filter((guess4) => guess4 >= guess3)
+          .map((guess4) => {
+            const f4 = f3.matchesWord(guess4)
+            return { guess1, guess2, guess3, guess4, size: f4.words.length }
+          })
+      })
+      .reduce((a, b) => (a.size < b.size ? a : b))
   }
 
   bestThirdLayerGuesses() {
@@ -232,6 +312,59 @@ export class WordList {
       })
       .sort((a, b) => a.size - b.size)
   }
+
+  simulateAll(initial: Word) {
+    let allOk = true
+    const all: [string, number][] = []
+
+    for (const correct of this.words) {
+      const { attempts, log, ok } = simulate(correct, this, initial)
+      all.push([correct.toString(), attempts])
+
+      if (ok) {
+        console.groupCollapsed(`Guessed "${correct}" in ${attempts} tries.`)
+        for (const phrase of log) {
+          console.log(phrase)
+        }
+        console.groupEnd()
+      } else {
+        allOk = false
+        console.groupCollapsed(`Failed to guess "${correct}".`)
+        for (const phrase of log) {
+          console.log(phrase)
+        }
+        console.groupEnd()
+      }
+    }
+
+    return {
+      word: initial.toString(),
+      max: all.reduce((a, b) => (a > b[1] ? a : b[1]), -Infinity),
+      avg: +(all.reduce((a, [, b]) => a + b, 0) / all.length).toPrecision(5),
+      ok: allOk,
+      data: all,
+    }
+  }
+
+  simulateAllWithAllInitials() {
+    const { log, group, groupEnd } = console
+    console.log = () => {}
+    console.group = log
+    console.groupEnd = () => {}
+    const data = this.words
+      .map((word) => this.simulateAll(word))
+      .sort((a, b) => a.avg - b.avg)
+    Object.assign(console, { log, group, groupEnd })
+    return data
+  }
+
+  tsv() {
+    const data = this.simulateAllWithAllInitials()
+    return data.map(
+      (initial) =>
+        initial.word + "\t" + initial.data.map((x) => x[1]).join("\t"),
+    )
+  }
 }
 
 export const all = new WordList(
@@ -239,3 +372,57 @@ export const all = new WordList(
     .split(" ")
     .map((word) => Word.of(word)),
 )
+
+export function simulate(correct: Word, list: WordList, initial: Word) {
+  if (!list.includes(correct)) {
+    throw new Error("Correct word is not in allowed word list.")
+  }
+
+  if (!list.includes(initial)) {
+    throw new Error("Initial guess is not in allowed word list.")
+  }
+
+  let i: Word | undefined = initial
+
+  const log: string[] = []
+  let attempts = 0
+
+  log.push(`Starting with ${list.words.length} words...`)
+
+  while (list.words.length > 1) {
+    const guess =
+      i ||
+      (() => {
+        const b = list.best4()
+        return (
+          [
+            [b.guess1, list.matchesWord(b.guess1)],
+            [b.guess2, list.matchesWord(b.guess2)],
+            [b.guess3, list.matchesWord(b.guess3)],
+            [b.guess4, list.matchesWord(b.guess4)],
+          ] as const
+        ).reduce((a, b) => (a[1].words.length < b[1].words.length ? a : b))[0]
+      })()
+    i = undefined
+    const score = Score.of(correct, guess)
+    list = list.matchesScore(score)
+    log.push(`Guessed "${guess}". ${list.words.length} words left.`)
+    attempts += 1
+  }
+
+  if (list.words.length == 0) {
+    log.push("Word list is empty.")
+    return { log, ok: false, attempts }
+  }
+
+  const final = list.words[0]!
+
+  if (!final.equals(correct)) {
+    log.push(`"${final}" is the only remaining option, but it is incorrect.`)
+    return { log, ok: false, attempts }
+  }
+
+  log.push(`"${final}" is the only remaining option.`)
+  log.push("Done.")
+  return { log, ok: true, attempts }
+}
