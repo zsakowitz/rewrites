@@ -25,7 +25,7 @@ function debug(value: ScriptValue | Value | string) {
   console.groupEnd()
 }
 
-// debug(fn("add_then_square", [local("e"), local("pi")]))
-// debug(fn("square", [local("pi")]))
+debug(fn("add_then_square", [local("e"), local("pi")]))
+debug(fn("square", [local("pi")]))
 debug(scriptifier.struct({ a: scriptifier.valueToScript(local("pi")) }))
 debug(scriptifier.struct({ a: scriptifier.valueToScript(local("e")) }))

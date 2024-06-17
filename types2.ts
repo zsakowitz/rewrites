@@ -1,11 +1,13 @@
-export type KindName = "float" | "bool"
+export type KindName = "float" | "int" | "bool"
 
 export class Kind {
   readonly type = "kind"
   readonly str: string
-  // readonly list: number | true | undefined
 
-  constructor(readonly kind: KindName) {
+  constructor(
+    readonly kind: KindName,
+    readonly list?: number | true | undefined,
+  ) {
     this.str = this.kind
     Object.freeze(this)
   }
@@ -14,15 +16,23 @@ export class Kind {
     return this.str
   }
 
-  toGlsl(): string {
+  toGlsl(scriptifier: Scriptifier): string {
     const raw = {
       float: "float",
       bool: "bool",
+      int: "int",
     }[this.kind]
 
-    // if (this.list === true) {
-    //   return `List<${raw}>`
-    // }
+    if (typeof this.list == "number") {
+      return `${raw}[${this.list}]`
+    }
+
+    if (this.list === true) {
+      return scriptifier.structKind({
+        length: new Kind("int"),
+        data: new Kind(this.kind, 10_000),
+      })
+    }
 
     return raw
   }
@@ -125,6 +135,7 @@ export class ScriptValue {
       {
         bool: `${this} ? 1.0 : 0.0 / 0.0`,
         float: this.script,
+        int: `float(${this})`,
       }[this.kind.kind],
       new Kind("float"),
     )
@@ -299,8 +310,8 @@ export class Scriptifier {
     }
 
     this.fns[fnName] = new ScriptValue(
-      `${retval.kind.toGlsl()} ${fnName}(${hashedParams
-        .map((x) => `${x.kind.toGlsl()} ${x.script}`)
+      `${retval.kind.toGlsl(this)} ${fnName}(${hashedParams
+        .map((x) => `${x.kind.toGlsl(this)} ${x.script}`)
         .join(",")}) { return ${retval.script}; }`,
       retval.kind,
     )
@@ -315,10 +326,23 @@ export class Scriptifier {
       return `${name}(${entries.map((x) => x[1]).join(", ")})`
     }
     this.structs[name] = `struct ${name} {${entries
-      .map(([name, value]) => `\n  ${value.kind.toGlsl()} ${name};`)
+      .map(([name, value]) => `\n  ${value.kind.toGlsl(this)} ${name};`)
       .join("")}
 };`
     return `${name}(${entries.map((x) => x[1]).join(", ")})`
+  }
+
+  structKind(fields: Record<string, Kind>): string {
+    const entries = Object.entries(fields).sort(([a], [b]) => (a < b ? -1 : 1))
+    const name = this.names.structFromKind(entries)
+    if (name in this.structs) {
+      return name
+    }
+    this.structs[name] = `struct ${name} {${entries
+      .map(([name, value]) => `\n  ${value.toGlsl(this)} ${name};`)
+      .join("")}
+};`
+    return `${name}`
   }
 }
 
