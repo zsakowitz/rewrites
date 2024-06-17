@@ -1,8 +1,10 @@
+export type KindName = "float" | "floatlist" | "bool"
+
 export class Kind {
   readonly type = "kind"
   readonly str: string
 
-  constructor(readonly kind: "float" | "floatlist" | "bool") {
+  constructor(readonly kind: KindName) {
     this.str = this.kind
     Object.freeze(this)
   }
@@ -48,7 +50,7 @@ export type Locals = { [name: string]: ScriptValue | undefined }
 
 export type GlobalScript = { readonly [name: string]: Item | undefined }
 
-export type Fn = (args: ScriptValue[]) => ScriptValue
+export type Fn = (this: Scriptifier, args: ScriptValue[]) => ScriptValue
 
 export class Error extends globalThis.Error {}
 
@@ -64,27 +66,21 @@ export class LocalFunctionsNotSupportedError extends globalThis.Error {
   }
 }
 
-export class UsageTracker {
-  readonly fns: { [fn: string]: string } = Object.create(null)
-
-  constructor() {
-    Object.freeze(this)
-  }
-}
+export type GlobalFns = { [fn: string | symbol]: string }
 
 export class NameHasher {
   static random() {
-    return "x_custom_" + Math.random().toString().slice(2)
+    return "xx_userfn_" + Math.random().toString().slice(2)
   }
 
-  readonly names: { [itemName: string]: { [kind: string]: string } } =
+  readonly names: { [item: string | symbol]: { [kind: string]: string } } =
     Object.create(null)
 
   constructor() {
     Object.freeze(this)
   }
 
-  get(name: string, kind: Kind | Signature) {
+  get(name: string | symbol, kind: Kind | Signature) {
     const kinds = (this.names[name] ??= Object.create(null))
     return (kinds[kind.str] ??= NameHasher.random())
   }
@@ -102,7 +98,7 @@ export class Scriptifier {
   constructor(
     readonly globals: GlobalScript = Object.create(null),
     readonly locals: Locals = Object.create(null),
-    readonly tracker = new UsageTracker(),
+    readonly fns: GlobalFns = Object.create(null),
     readonly names = new NameHasher(),
     readonly implicitFn: Fn = () => {
       throw new Error(
@@ -215,9 +211,9 @@ export class Scriptifier {
 
         const fnName = this.names.get(name, fnSignature)
 
-        this.tracker.fns[
-          fnName
-        ] = `${retval.kind.toGlsl()} ${fnName}() { return ${retval.script}; }`
+        this.fns[fnName] = `${retval.kind.toGlsl()} ${fnName}() { return ${
+          retval.script
+        }; }`
 
         return new ScriptValue(
           `(${fnName}(${args.map((x) => x.script)}))`,
@@ -226,32 +222,58 @@ export class Scriptifier {
       }
 
       case "bfn": {
-        return item.call(args)
+        return item.call.call(this, args)
       }
     }
   }
+
+  addHelper(name: string | symbol, signature: Kind | Signature, code: string) {
+    this.fns[this.names.get(name, signature)] = code
+  }
+}
+
+export class Bval {
+  readonly type = "val"
+  readonly value: Value
+
+  constructor(name: string, kind: Kind) {
+    this.value = Object.freeze({
+      type: "bval",
+      value: new ScriptValue(name, kind),
+    })
+    Object.freeze(this)
+  }
+}
+
+export class Bfn {
+  readonly type = "bfn"
+
+  constructor(readonly call: Fn) {}
 }
 
 const basic = new Scriptifier({
-  pi: {
-    type: "val",
-    value: {
-      type: "bval",
-      value: new ScriptValue("3.14159", new Kind("float")),
-    },
-  },
-  true: {
-    type: "val",
-    value: {
-      type: "bval",
-      value: new ScriptValue("true", new Kind("bool")),
-    },
-  },
-  false: {
-    type: "val",
-    value: {
-      type: "bval",
-      value: new ScriptValue("false", new Kind("bool")),
-    },
-  },
+  pi: new Bval("3.14159", new Kind("float")),
+  true: new Bval("true", new Kind("bool")),
+  false: new Bval("false", new Kind("bool")),
+  "+": new Bfn(function (args) {
+    if (args.length <= 1) {
+      throw new Error("Must add at least two items.")
+    }
+
+    const ADDABLE_TYPES = ["float", "floatlist"] satisfies KindName[]
+
+    if (
+      args.every(
+        (
+          item,
+        ): item is typeof item & {
+          kind: { kind: (typeof ADDABLE_TYPES)[number] }
+        } => ADDABLE_TYPES.includes(item.kind.kind as any),
+      )
+    ) {
+      const current = args.unshift()!
+    }
+
+    throw new Error(`Addition is not supported on type ${args[0]!.kind}.`)
+  }),
 })
