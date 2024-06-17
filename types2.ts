@@ -52,9 +52,10 @@ export type Item =
   | { type: "fn"; args: string[]; value: Value }
   | { type: "bfn"; call: Fn }
 
+export type Globals = { readonly [name: string]: Item | undefined }
 export type Locals = { [name: string]: ScriptValue | undefined }
-
-export type GlobalScript = { readonly [name: string]: Item | undefined }
+export type Functions = { [name: string | symbol]: ScriptValue }
+export type Structs = { [name: string]: string }
 
 export type Fn = (this: Scriptifier, args: ScriptValue[]) => ScriptValue
 
@@ -72,8 +73,6 @@ export class LocalFunctionsNotSupportedError extends globalThis.Error {
   }
 }
 
-export type GlobalFns = { [fn: string | symbol]: ScriptValue }
-
 export class NameHasher {
   static random() {
     return "xx" + Math.random().toString().slice(2, 12)
@@ -89,6 +88,22 @@ export class NameHasher {
   get(name: string | symbol, kind: Kind | Signature) {
     const kinds = (this.names[name] ??= Object.create(null))
     return (kinds[kind.str] ??= NameHasher.random())
+  }
+
+  structFromEntries(entries: [string, ScriptValue][]) {
+    const name = `struct(${entries
+      .map(([name, value]) => `${value.kind} ${name}`)
+      .join(",")})`
+    const kinds = (this.names[name] ??= Object.create(null))
+    return (kinds["__struct"] ??= NameHasher.random())
+  }
+
+  structFromKind(entries: [string, Kind][]) {
+    const name = `struct(${entries
+      .map(([name, value]) => `${value} ${name}`)
+      .join(",")})`
+    const kinds = (this.names[name] ??= Object.create(null))
+    return (kinds["__struct"] ??= NameHasher.random())
   }
 }
 
@@ -129,11 +144,12 @@ function defaultPointFn(this: Scriptifier, args: ScriptValue[]): ScriptValue {
 
 export class Scriptifier {
   locals: Locals = Object.create(null)
-  fns: GlobalFns = Object.create(null)
+  fns: Functions = Object.create(null)
+  structs: Structs = Object.create(null)
   names = new NameHasher()
 
   constructor(
-    readonly globals: GlobalScript = Object.create(null),
+    readonly globals: Globals = Object.create(null),
     readonly implicitFn: Fn = defaultImplicitFn,
     readonly pointFn: Fn = defaultPointFn,
   ) {
@@ -150,7 +166,7 @@ export class Scriptifier {
     return new Scriptifier(this.globals, this.implicitFn, this.pointFn)
   }
 
-  extend(globals: GlobalScript): Scriptifier {
+  extend(globals: Globals): Scriptifier {
     return new Scriptifier(
       Object.assign(Object.create(null), this.globals, globals),
       this.implicitFn,
@@ -218,7 +234,6 @@ export class Scriptifier {
   }
 
   fnToScript(name: string, item: Item, args: ScriptValue[]): ScriptValue {
-    // MUST RECORD FUNCTION SOURCE IN `tracker`
     switch (item.type) {
       case "val":
         throw new Error("TODO: implement implicit multiplication")
@@ -291,6 +306,19 @@ export class Scriptifier {
     )
 
     return new ScriptValue(`${fnName}(${args.join(", ")})`, retval.kind)
+  }
+
+  struct(fields: Record<string, ScriptValue>): string {
+    const entries = Object.entries(fields).sort(([a], [b]) => (a < b ? -1 : 1))
+    const name = this.names.structFromEntries(entries)
+    if (name in this.structs) {
+      return `${name}(${entries.map((x) => x[1]).join(", ")})`
+    }
+    this.structs[name] = `struct ${name} {${entries
+      .map(([name, value]) => `\n  ${value.kind.toGlsl()} ${name};`)
+      .join("")}
+};`
+    return `${name}(${entries.map((x) => x[1]).join(", ")})`
   }
 }
 
