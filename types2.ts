@@ -1,3 +1,5 @@
+const MAX_DYNAMIC_LIST_SIZE = 10_000
+
 export type KindName = "float" | "int" | "bool"
 
 export class Kind {
@@ -10,6 +12,22 @@ export class Kind {
   ) {
     this.str = this.kind
     Object.freeze(this)
+  }
+
+  asNonList() {
+    if (this.list == null) {
+      throw new Error("Already is a list.")
+    }
+
+    return new Kind(this.kind)
+  }
+
+  asList(list: number | true) {
+    if (this.list != null) {
+      throw new Error("Cannot nest lists.")
+    }
+
+    return new Kind(this.kind, list)
   }
 
   toString(): string {
@@ -30,7 +48,7 @@ export class Kind {
     if (this.list === true) {
       return scriptifier.structKind({
         length: new Kind("int"),
-        data: new Kind(this.kind, 10_000),
+        data: new Kind(this.kind, MAX_DYNAMIC_LIST_SIZE),
       })
     }
 
@@ -84,8 +102,12 @@ export class LocalFunctionsNotSupportedError extends globalThis.Error {
 }
 
 export class NameHasher {
-  static random() {
-    return "xx" + Math.random().toString().slice(2, 12)
+  static random(hint: string | symbol) {
+    return (
+      "xx" +
+      String(hint).replace(/[^A-Za-z0-9]/g, "") +
+      Math.random().toString().slice(2, 6)
+    )
   }
 
   readonly names: { [item: string | symbol]: { [kind: string]: string } } =
@@ -97,7 +119,7 @@ export class NameHasher {
 
   get(name: string | symbol, kind: Kind | Signature) {
     const kinds = (this.names[name] ??= Object.create(null))
-    return (kinds[kind.str] ??= NameHasher.random())
+    return (kinds[kind.str] ??= NameHasher.random(name))
   }
 
   structFromEntries(entries: [string, ScriptValue][]) {
@@ -105,7 +127,7 @@ export class NameHasher {
       .map(([name, value]) => `${value.kind} ${name}`)
       .join(",")})`
     const kinds = (this.names[name] ??= Object.create(null))
-    return (kinds["__struct"] ??= NameHasher.random())
+    return (kinds["__struct"] ??= NameHasher.random("struct"))
   }
 
   structFromKind(entries: [string, Kind][]) {
@@ -113,7 +135,7 @@ export class NameHasher {
       .map(([name, value]) => `${value} ${name}`)
       .join(",")})`
     const kinds = (this.names[name] ??= Object.create(null))
-    return (kinds["__struct"] ??= NameHasher.random())
+    return (kinds["__struct"] ??= NameHasher.random("struct"))
   }
 }
 
@@ -278,12 +300,13 @@ export class Scriptifier {
   // `callFn` should not be called with name "+" twice with the same argument
   // kinds and a different return value.
   callFn<const T extends readonly ScriptValue[]>(
-    name: string,
+    name: string | symbol,
     args: T,
     value: (args: {
-      [K in keyof T]: Omit<T[K], "script"> & { script: string }
+      [K in keyof T]: ScriptValue
     }) => ScriptValue,
-    getArgName: (index: number) => string = NameHasher.random,
+    getArgName: (index: number) => string = (index) =>
+      NameHasher.random(index + "arg"),
   ): ScriptValue {
     const fnSignature = new Signature(args.map((x) => x.kind))
     const fnName = this.names.get(name, fnSignature)
@@ -312,7 +335,11 @@ export class Scriptifier {
     this.fns[fnName] = new ScriptValue(
       `${retval.kind.toGlsl(this)} ${fnName}(${hashedParams
         .map((x) => `${x.kind.toGlsl(this)} ${x.script}`)
-        .join(",")}) { return ${retval.script}; }`,
+        .join(",")}) {${
+        retval.script.includes("return")
+          ? "\n" + retval.script + "\n"
+          : " return " + retval.script + "; "
+      }}`,
       retval.kind,
     )
 
@@ -344,16 +371,115 @@ export class Scriptifier {
 };`
     return `${name}`
   }
+
+  // INVARIANT: `fn` should be identical for any call with a given `name`
+  collate<const T extends readonly ScriptValue[]>(
+    name: string | symbol,
+    args: T,
+    fn: (args: {
+      [K in keyof T]: ScriptValue & { kind: { list: undefined } }
+    }) => ScriptValue,
+  ): ScriptValue {
+    if (args.every((x) => x.kind.list == null)) {
+      return fn(args as any)
+    }
+
+    if (
+      args.every((x) => x.kind.list == null || typeof x.kind.list == "number")
+    ) {
+      const size = args.reduce(
+        (a, b) =>
+          typeof b.kind.list == "number" ? Math.min(b.kind.list, a) : a,
+        Infinity,
+      )
+      return this.callFn(name, args, (args) => {
+        const index = NameHasher.random("input")
+        const output = NameHasher.random("output")
+        const value: ScriptValue = fn(
+          args.map((arg) => {
+            if (typeof arg.kind.list == "number") {
+              return new ScriptValue(`${arg}[${index}]`, arg.kind.asNonList())
+            } else {
+              return arg
+            }
+          }) as any,
+        )
+        const retkind = value.kind.asList(size)
+        return new ScriptValue(
+          // TODO: how to properly initialize this list given its length
+          `${retkind.toGlsl(this)} ${output} = [];
+for (int ${index} = 0; ${index} < ${size}; ${index}++) {
+  ${output}[${index}] = ${value};
+}
+return ${output};`,
+          retkind,
+        )
+      })
+    }
+
+    const maxSize = args.reduce(
+      (a, b) => (typeof b.kind.list == "number" ? Math.min(b.kind.list, a) : a),
+      MAX_DYNAMIC_LIST_SIZE,
+    )
+    return this.callFn(name, args, (args) => {
+      const index = NameHasher.random("index")
+      const output = NameHasher.random("output")
+      const size = NameHasher.random("size")
+      const value: ScriptValue = fn(
+        args.map((arg) => {
+          if (typeof arg.kind.list == "number") {
+            return new ScriptValue(`${arg}[${index}]`, arg.kind.asNonList())
+          } else if (arg.kind.list == true) {
+            return new ScriptValue(
+              `${arg}.data[${index}]`,
+              arg.kind.asNonList(),
+            )
+          } else {
+            return arg
+          }
+        }) as any,
+      )
+      const retkind = value.kind.asList(true)
+      return new ScriptValue(
+        // TODO: how to properly initialize this list given its length
+        `${value.kind
+          .asList(MAX_DYNAMIC_LIST_SIZE)
+          .toGlsl(this)} ${output} = [];
+int ${size} = ${args.reduce((size, arg) => {
+          if (arg.kind.list === true) {
+            return new ScriptValue(
+              `min(${size}, ${arg}.length)`,
+              new Kind("int"),
+            )
+          } else {
+            return size
+          }
+        }, new ScriptValue("" + maxSize, new Kind("int")))};
+for (int ${index} = 0; ${index} < ${MAX_DYNAMIC_LIST_SIZE}; ${index}++) {
+  if (${index} >= ${size}) { break; }
+  ${output}[${index}] = ${value};
+}
+return ${this.struct({
+          length: new ScriptValue(size, new Kind("int")),
+          data: new ScriptValue(
+            output,
+            value.kind.asList(MAX_DYNAMIC_LIST_SIZE),
+          ),
+        })};`,
+        retkind,
+      )
+    })
+  }
 }
 
 export class Bval {
   readonly type = "val"
   readonly value: Value
 
-  constructor(name: string, kind: Kind) {
+  constructor(value: string, kind: Kind) {
     this.value = Object.freeze({
       type: "bval",
-      value: new ScriptValue(name, kind),
+      value: new ScriptValue(value, kind),
     })
     Object.freeze(this)
   }
