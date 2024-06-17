@@ -1,32 +1,38 @@
-export type KindName = "float" | "floatlist" | "bool"
+export type KindName = "float" | "bool"
 
 export class Kind {
   readonly type = "kind"
   readonly str: string
+  // readonly list: number | true | undefined
 
   constructor(readonly kind: KindName) {
     this.str = this.kind
     Object.freeze(this)
   }
 
-  toString() {
+  toString(): string {
     return this.str
   }
 
-  toGlsl() {
-    return {
+  toGlsl(): string {
+    const raw = {
       float: "float",
-      floatlist: "float[]",
       bool: "bool",
     }[this.kind]
+
+    // if (this.list === true) {
+    //   return `List<${raw}>`
+    // }
+
+    return raw
   }
 }
 
 export class Signature {
   readonly str: string
 
-  constructor(readonly args: Kind[], readonly output: Kind) {
-    this.str = `(${this.args.join(",")}->${this.output})`
+  constructor(readonly args: Kind[]) {
+    this.str = `(${this.args.join(",")}->)`
     Object.freeze(this)
   }
 
@@ -36,7 +42,7 @@ export class Signature {
 }
 
 export type Value =
-  | { type: "var"; name: string }
+  | { type: "local"; name: string }
   | { type: "bind"; name: string; bound: Value; contents: Value }
   | { type: "fn"; name: string; args: Value[] }
   | { type: "bval"; value: ScriptValue }
@@ -66,11 +72,11 @@ export class LocalFunctionsNotSupportedError extends globalThis.Error {
   }
 }
 
-export type GlobalFns = { [fn: string | symbol]: string }
+export type GlobalFns = { [fn: string | symbol]: ScriptValue }
 
 export class NameHasher {
   static random() {
-    return "xx_userfn_" + Math.random().toString().slice(2)
+    return "xx" + Math.random().toString().slice(2, 12)
   }
 
   readonly names: { [item: string | symbol]: { [kind: string]: string } } =
@@ -87,29 +93,69 @@ export class NameHasher {
 }
 
 export class ScriptValue {
+  static readonly boollistToFloatlist = Symbol()
+
   constructor(readonly script: string, readonly kind: Kind) {
     Object.freeze(this)
   }
 
-  #_ = 2
+  #brand: unknown
+
+  toString() {
+    return `(${this.script})`
+  }
+
+  toFloat() {
+    return new ScriptValue(
+      {
+        bool: `${this} ? 1.0 : 0.0 / 0.0`,
+        float: this.script,
+      }[this.kind.kind],
+      new Kind("float"),
+    )
+  }
+}
+
+function defaultImplicitFn(
+  this: Scriptifier,
+  args: ScriptValue[],
+): ScriptValue {
+  throw new Error("This calculator does not support implicit multiplication.")
+}
+
+function defaultPointFn(this: Scriptifier, args: ScriptValue[]): ScriptValue {
+  throw new Error("This calculator does not support points.")
 }
 
 export class Scriptifier {
+  locals: Locals = Object.create(null)
+  fns: GlobalFns = Object.create(null)
+  names = new NameHasher()
+
   constructor(
     readonly globals: GlobalScript = Object.create(null),
-    readonly locals: Locals = Object.create(null),
-    readonly fns: GlobalFns = Object.create(null),
-    readonly names = new NameHasher(),
-    readonly implicitFn: Fn = () => {
-      throw new Error(
-        "This calculator does not support implicit multiplication.",
-      )
-    },
-    readonly pointFn: Fn = () => {
-      throw new Error("This calculator does not support points.")
-    },
+    readonly implicitFn: Fn = defaultImplicitFn,
+    readonly pointFn: Fn = defaultPointFn,
   ) {
     Object.freeze(this)
+  }
+
+  reset() {
+    this.locals = Object.create(null)
+    this.fns = Object.create(null)
+    this.names = new NameHasher()
+  }
+
+  clone(): Scriptifier {
+    return new Scriptifier(this.globals, this.implicitFn, this.pointFn)
+  }
+
+  extend(globals: GlobalScript): Scriptifier {
+    return new Scriptifier(
+      Object.assign(Object.create(null), this.globals, globals),
+      this.implicitFn,
+      this.pointFn,
+    )
   }
 
   valueToScript(value: Value): ScriptValue {
@@ -119,7 +165,7 @@ export class Scriptifier {
       case "bval":
         return value.value
 
-      case "var": {
+      case "local": {
         const l = locals[value.name]
         if (l) {
           return l
@@ -182,42 +228,15 @@ export class Scriptifier {
           throw new Error(`${name} takes ${item.args.length} parameters.`)
         }
 
-        const argNames: string[] = []
-        const old = Object.create(null)
-        for (let index = 0; index < item.args.length; index++) {
-          const argName: string = item.args[index]!
-          if (argName in old) {
-            throw new Error(
-              `${name} cannot have multiple parameters named ${argName}.`,
-            )
-          }
-          const value = args[index]!
-          old[argName] = this.locals[argName]
-          const hashedName = this.names.get(argName, value.kind)
-          argNames.push(hashedName)
-          this.locals[argName] = new ScriptValue(hashedName, value.kind)
+        if (item.args.some((x, i, a) => a.indexOf(x) != i)) {
+          throw new Error(`${name} has multiple parameters with the same name.`)
         }
 
-        const retval = this.valueToScript(item.value)
-
-        for (const name in old) {
-          this.locals[name] = old[name]
-        }
-
-        const fnSignature = new Signature(
-          args.map((x) => x.kind),
-          retval.kind,
-        )
-
-        const fnName = this.names.get(name, fnSignature)
-
-        this.fns[fnName] = `${retval.kind.toGlsl()} ${fnName}() { return ${
-          retval.script
-        }; }`
-
-        return new ScriptValue(
-          `(${fnName}(${args.map((x) => x.script)}))`,
-          retval.kind,
+        return this.callFn(
+          name,
+          args,
+          () => this.valueToScript(item.value),
+          (index) => item.args[index]!,
         )
       }
 
@@ -227,8 +246,51 @@ export class Scriptifier {
     }
   }
 
-  addHelper(name: string | symbol, signature: Kind | Signature, code: string) {
-    this.fns[this.names.get(name, signature)] = code
+  // INVARIANT: the output returned by `value` should be relatively equal
+  // no matter where this instance of `callFn` is called.
+  //
+  // `callFn` should not be called with name "+" twice with the same argument
+  // kinds and a different return value.
+  callFn<const T extends readonly ScriptValue[]>(
+    name: string,
+    args: T,
+    value: (args: {
+      [K in keyof T]: Omit<T[K], "script"> & { script: string }
+    }) => ScriptValue,
+    getArgName: (index: number) => string = NameHasher.random,
+  ): ScriptValue {
+    const fnSignature = new Signature(args.map((x) => x.kind))
+    const fnName = this.names.get(name, fnSignature)
+    const cachedFn = this.fns[fnName]
+    if (cachedFn) {
+      return new ScriptValue(`${fnName}(${args.join(", ")})`, cachedFn.kind)
+    }
+
+    const hashedParams: ScriptValue[] = []
+    const old = Object.create(null)
+    for (let index = 0; index < args.length; index++) {
+      const value = args[index]!
+      const argName = getArgName(index)
+      old[argName] = this.locals[argName]
+      const hashedName = this.names.get(argName, value.kind)
+      hashedParams.push(new ScriptValue(hashedName, value.kind))
+      this.locals[argName] = new ScriptValue(hashedName, value.kind)
+    }
+
+    const retval = value(hashedParams as any)
+
+    for (const name in old) {
+      this.locals[name] = old[name]
+    }
+
+    this.fns[fnName] = new ScriptValue(
+      `${retval.kind.toGlsl()} ${fnName}(${hashedParams
+        .map((x) => `${x.kind.toGlsl()} ${x.script}`)
+        .join(",")}) { return ${retval.script}; }`,
+      retval.kind,
+    )
+
+    return new ScriptValue(`${fnName}(${args.join(", ")})`, retval.kind)
   }
 }
 
@@ -251,31 +313,72 @@ export class Bfn {
   constructor(readonly call: Fn) {}
 }
 
-const basic = new Scriptifier({
-  pi: new Bval("3.14159", new Kind("float")),
+export const basic = new Scriptifier({
+  pi: new Bval("" + Math.PI, new Kind("float")),
+  e: new Bval("" + Math.E, new Kind("float")),
   true: new Bval("true", new Kind("bool")),
   false: new Bval("false", new Kind("bool")),
   "+": new Bfn(function (args) {
-    if (args.length <= 1) {
-      throw new Error("Must add at least two items.")
+    // prefix `+` operator
+    if (args.length == 1) {
+      return args[0]!
     }
 
-    const ADDABLE_TYPES = ["float", "floatlist"] satisfies KindName[]
-
-    if (
-      args.every(
-        (
-          item,
-        ): item is typeof item & {
-          kind: { kind: (typeof ADDABLE_TYPES)[number] }
-        } => ADDABLE_TYPES.includes(item.kind.kind as any),
-      )
-    ) {
-      const current = args.unshift()!
-
-      // TODO:
+    if (args.length != 2) {
+      throw new Error("`+` needs something on either side.")
     }
 
-    throw new Error(`Addition is not supported on type ${args[0]!.kind}.`)
+    return new ScriptValue(
+      `${args[0]!.toFloat()} + ${args[1]!.toFloat()}`,
+      new Kind("float"),
+    )
+  }),
+  "-": new Bfn(function (args) {
+    // prefix `-` operator
+    if (args.length == 1) {
+      return new ScriptValue(`-${args[0]!.toFloat()}`, new Kind("float"))
+    }
+
+    if (args.length != 2) {
+      throw new Error("`-` needs something on either side.")
+    }
+
+    return new ScriptValue(
+      `${args[0]!.toFloat()} - ${args[1]!.toFloat()}`,
+      new Kind("float"),
+    )
+  }),
+  odot: new Bfn(function (args) {
+    if (args.length != 2) {
+      throw new Error("`\\odot` needs something on either side.")
+    }
+
+    return new ScriptValue(
+      `${args[0]!.toFloat()} * ${args[1]!.toFloat()}`,
+      new Kind("float"),
+    )
+  }),
+  odiv: new Bfn(function (args) {
+    if (args.length != 2) {
+      throw new Error("`\\odiv` needs something on either side.")
+    }
+
+    return new ScriptValue(
+      `${args[0]!.toFloat()} / ${args[1]!.toFloat()}`,
+      new Kind("float"),
+    )
   }),
 })
+
+// prettier-ignore
+export const local = (name: string): Value =>
+  ({ type: "local", name })
+// prettier-ignore
+export const bind = (name: string, bound: Value, contents: Value): Value =>
+  ({ type: "bind", name, bound, contents })
+// prettier-ignore
+export const fn = (name: string, args: Value[]): Value =>
+  ({ type: "fn", name, args })
+// prettier-ignore
+export const bval = (name: string, kind: Kind): Value =>
+  ({ type: "bval", value: new ScriptValue(name, kind) })
