@@ -10,6 +10,14 @@ export class Kind {
   toString() {
     return this.str
   }
+
+  toGlsl() {
+    return {
+      float: "float",
+      floatlist: "float[]",
+      bool: "bool",
+    }[this.kind]
+  }
 }
 
 export class Signature {
@@ -33,12 +41,14 @@ export type Value =
 export type Item =
   | { type: "val"; value: Value }
   | { type: "fn"; args: string[]; value: Value }
-  | { type: "bval"; kind: Kind }
-  | { type: "bfn"; kind: Signature[] }
+  | { type: "bval"; value: ScriptValue }
+  | { type: "bfn"; call: Fn }
 
-export type MutableScript = { [name: string]: Item | undefined }
+export type Locals = { [name: string]: ScriptValue | undefined }
 
-export type Script = { readonly [name: string]: Item | undefined }
+export type GlobalScript = { readonly [name: string]: Item | undefined }
+
+export type Fn = (args: ScriptValue[]) => ScriptValue
 
 export class Error extends globalThis.Error {}
 
@@ -60,27 +70,6 @@ export class UsageTracker {
   constructor() {
     Object.freeze(this)
   }
-
-  // addKind(name: string, kind: Kind) {
-  //   this.#add(name, kind)
-  // }
-
-  // addSignature(name: string, signature: Signature) {
-  //   this.#add(name, signature)
-  // }
-
-  // #add(name: string, kind: Kind | Signature) {
-  //   let usages = this.usages[name]
-  //   if (!usages) {
-  //     usages = this.usages[name] = []
-  //   }
-
-  //   if (usages.some((x) => x.str == kind.str)) {
-  //     return
-  //   }
-
-  //   usages.push(kind)
-  // }
 }
 
 export class NameHasher {
@@ -101,75 +90,147 @@ export class NameHasher {
   }
 }
 
-export type ScriptValue = { script: string; kind: Kind }
-export type ScriptFn = { call(args: string[]): ScriptValue; kind: Kind }
-
-export function valueToScript(
-  value: Value,
-  global: Script,
-  local: MutableScript,
-  tracker: UsageTracker,
-  names: NameHasher,
-): ScriptValue {
-  switch (value.type) {
-    case "var": {
-      const v = local[value.name] ?? global[value.name]
-      if (v == null) {
-        throw new MissingError(value.name)
-      }
-
-      return itemToScript(v, global, local, tracker, names)
-    }
-    case "bind": {
-      const prev = local[value.name]
-      local[value.name] = { type: "val", value: value.bound }
-      const data = valueToScript(value.contents, global, local, tracker, names)
-      local[value.name] = prev
-      return data
-    }
-    case "fn": {
-      if (local[value.name] != null) {
-        throw new LocalFunctionsNotSupportedError(value.name)
-      }
-
-      const g = global[value.name]
-      if (g == null) {
-        throw new MissingError(value.name)
-      }
-
-      const args = value.args.map((value) =>
-        valueToScript(value, global, local, tracker, names),
-      )
-
-      const data = fnToScript(
-        g,
-        args.map((x) => x.kind),
-        global,
-        local,
-        tracker,
-        names,
-      )
-
-      return data.call(args.map((x) => x.script))
-    }
+export class ScriptValue {
+  constructor(readonly script: string, readonly kind: Kind) {
+    Object.freeze(this)
   }
+
+  #_ = 2
 }
 
-export function itemToScript(
-  item: Item,
-  global: Script,
-  local: MutableScript,
-  tracker: UsageTracker,
-  names: NameHasher,
-): ScriptValue {}
+export class Scriptifier {
+  constructor(
+    readonly global: GlobalScript = Object.create(null),
+    readonly local: Locals = Object.create(null),
+    readonly tracker = new UsageTracker(),
+    readonly names = new NameHasher(),
+    readonly implicitFn: Fn = () => {
+      throw new Error(
+        "This calculator does not support implicit multiplication.",
+      )
+    },
+    readonly pointFn: Fn = () => {
+      throw new Error("This calculator does not support points.")
+    },
+  ) {
+    Object.freeze(this)
+  }
 
-export function fnToScript(
-  item: Item,
-  args: Kind[],
-  global: Script,
-  local: MutableScript,
-  tracker: UsageTracker,
-  names: NameHasher,
-): ScriptFn {
-  // MUST RECORD FUNCTION SOURCE IN `tracker`
+  valueToScript(value: Value): ScriptValue {
+    const { local, global } = this
+
+    switch (value.type) {
+      case "var": {
+        const l = local[value.name]
+        if (l) {
+          return l
+        }
+
+        const g = global[value.name]
+        if (g) {
+          return this.itemToScript(value.name, g)
+        }
+
+        throw new MissingError(value.name)
+      }
+
+      case "bind": {
+        const prev = local[value.name]
+        local[value.name] = this.valueToScript(value.bound)
+        const data = this.valueToScript(value.contents)
+        local[value.name] = prev
+        return data
+      }
+
+      case "fn": {
+        if (local[value.name] != null) {
+          throw new LocalFunctionsNotSupportedError(value.name)
+        }
+
+        const g = global[value.name]
+        if (g == null) {
+          throw new MissingError(value.name)
+        }
+
+        const args = value.args.map((value) => this.valueToScript(value))
+
+        return this.fnToScript(value.name, g, args)
+      }
+    }
+  }
+
+  itemToScript(name: string, item: Item): ScriptValue {
+    switch (item.type) {
+      case "val":
+        return this.valueToScript(item.value)
+
+      case "fn":
+        throw new Error(`${name} is a function. Try using parentheses.`)
+
+      case "bval":
+        return item.value
+
+      case "bfn":
+        throw new Error(`${name} is a function. Try using parentheses.`)
+    }
+  }
+
+  fnToScript(name: string, item: Item, args: ScriptValue[]): ScriptValue {
+    // MUST RECORD FUNCTION SOURCE IN `tracker`
+    switch (item.type) {
+      case "val":
+        throw new Error("TODO: implement implicit multiplication")
+
+      case "fn": {
+        if (item.args.length != args.length) {
+          throw new Error(`${name} takes ${item.args.length} parameters.`)
+        }
+
+        const argNames: string[] = []
+        const old = Object.create(null)
+        for (let index = 0; index < item.args.length; index++) {
+          const argName: string = item.args[index]!
+          if (argName in old) {
+            throw new Error(
+              `${name} cannot have multiple parameters named ${argName}.`,
+            )
+          }
+          const value = args[index]!
+          old[argName] = this.local[argName]
+          const hashedName = this.names.get(argName, value.kind)
+          argNames.push(hashedName)
+          this.local[argName] = new ScriptValue(hashedName, value.kind)
+        }
+
+        const retval = this.valueToScript(item.value)
+
+        for (const name in old) {
+          this.local[name] = old[name]
+        }
+
+        const fnSignature = new Signature(
+          args.map((x) => x.kind),
+          retval.kind,
+        )
+
+        const fnName = this.names.get(name, fnSignature)
+
+        this.tracker.fns[
+          fnName
+        ] = `${retval.kind.toGlsl()} ${fnName}() { return ${retval.script}; }`
+
+        return new ScriptValue(
+          `(${fnName}(${args.map((x) => x.script)}))`,
+          retval.kind,
+        )
+      }
+
+      case "bval":
+        throw new Error("TODO: implement implicit multiplication")
+
+      case "bfn": {
+        return item.call(args)
+      }
+    }
+  }
 }
