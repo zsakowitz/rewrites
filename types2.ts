@@ -106,7 +106,7 @@ export class NameHasher {
     return (
       "xx" +
       String(hint).replace(/[^A-Za-z0-9]/g, "") +
-      Math.random().toString().slice(2, 6)
+      Math.random().toString().slice(2)
     )
   }
 
