@@ -37,11 +37,11 @@ export type Value =
   | { type: "var"; name: string }
   | { type: "bind"; name: string; bound: Value; contents: Value }
   | { type: "fn"; name: string; args: Value[] }
+  | { type: "bval"; value: ScriptValue }
 
 export type Item =
   | { type: "val"; value: Value }
   | { type: "fn"; args: string[]; value: Value }
-  | { type: "bval"; value: ScriptValue }
   | { type: "bfn"; call: Fn }
 
 export type Locals = { [name: string]: ScriptValue | undefined }
@@ -100,8 +100,8 @@ export class ScriptValue {
 
 export class Scriptifier {
   constructor(
-    readonly global: GlobalScript = Object.create(null),
-    readonly local: Locals = Object.create(null),
+    readonly globals: GlobalScript = Object.create(null),
+    readonly locals: Locals = Object.create(null),
     readonly tracker = new UsageTracker(),
     readonly names = new NameHasher(),
     readonly implicitFn: Fn = () => {
@@ -117,16 +117,19 @@ export class Scriptifier {
   }
 
   valueToScript(value: Value): ScriptValue {
-    const { local, global } = this
+    const { locals, globals } = this
 
     switch (value.type) {
+      case "bval":
+        return value.value
+
       case "var": {
-        const l = local[value.name]
+        const l = locals[value.name]
         if (l) {
           return l
         }
 
-        const g = global[value.name]
+        const g = globals[value.name]
         if (g) {
           return this.itemToScript(value.name, g)
         }
@@ -135,19 +138,19 @@ export class Scriptifier {
       }
 
       case "bind": {
-        const prev = local[value.name]
-        local[value.name] = this.valueToScript(value.bound)
+        const prev = locals[value.name]
+        locals[value.name] = this.valueToScript(value.bound)
         const data = this.valueToScript(value.contents)
-        local[value.name] = prev
+        locals[value.name] = prev
         return data
       }
 
       case "fn": {
-        if (local[value.name] != null) {
+        if (locals[value.name] != null) {
           throw new LocalFunctionsNotSupportedError(value.name)
         }
 
-        const g = global[value.name]
+        const g = globals[value.name]
         if (g == null) {
           throw new MissingError(value.name)
         }
@@ -166,9 +169,6 @@ export class Scriptifier {
 
       case "fn":
         throw new Error(`${name} is a function. Try using parentheses.`)
-
-      case "bval":
-        return item.value
 
       case "bfn":
         throw new Error(`${name} is a function. Try using parentheses.`)
@@ -196,16 +196,16 @@ export class Scriptifier {
             )
           }
           const value = args[index]!
-          old[argName] = this.local[argName]
+          old[argName] = this.locals[argName]
           const hashedName = this.names.get(argName, value.kind)
           argNames.push(hashedName)
-          this.local[argName] = new ScriptValue(hashedName, value.kind)
+          this.locals[argName] = new ScriptValue(hashedName, value.kind)
         }
 
         const retval = this.valueToScript(item.value)
 
         for (const name in old) {
-          this.local[name] = old[name]
+          this.locals[name] = old[name]
         }
 
         const fnSignature = new Signature(
@@ -225,12 +225,33 @@ export class Scriptifier {
         )
       }
 
-      case "bval":
-        throw new Error("TODO: implement implicit multiplication")
-
       case "bfn": {
         return item.call(args)
       }
     }
   }
 }
+
+const basic = new Scriptifier({
+  pi: {
+    type: "val",
+    value: {
+      type: "bval",
+      value: new ScriptValue("3.14159", new Kind("float")),
+    },
+  },
+  true: {
+    type: "val",
+    value: {
+      type: "bval",
+      value: new ScriptValue("true", new Kind("bool")),
+    },
+  },
+  false: {
+    type: "val",
+    value: {
+      type: "bval",
+      value: new ScriptValue("false", new Kind("bool")),
+    },
+  },
+})
