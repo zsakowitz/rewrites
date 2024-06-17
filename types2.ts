@@ -272,6 +272,8 @@ const basic = new Scriptifier({
       )
     ) {
       const current = args.unshift()!
+
+      // TODO:
     }
 
     throw new Error(`Addition is not supported on type ${args[0]!.kind}.`)
