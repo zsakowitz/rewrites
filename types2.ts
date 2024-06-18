@@ -71,7 +71,7 @@ export class Signature {
 
 export type Value =
   | { type: "local"; name: string }
-  | { type: "bind"; name: string; bound: Value; contents: Value }
+  | { type: "bind"; name: string; bound: Value | ScriptValue; contents: Value }
   | { type: "fn"; name: string; args: Value[] }
   | { type: "bval"; value: ScriptValue }
 
@@ -82,7 +82,8 @@ export type Item =
 
 export type Globals = { readonly [name: string]: Item | undefined }
 export type Locals = { [name: string]: ScriptValue | undefined }
-export type Functions = { [name: string | symbol]: ScriptValue }
+export type Functions = { [name: string | symbol]: ScriptBlock }
+export type Blocks = { [name: string]: ScriptBlock }
 export type Structs = { [name: string]: string }
 
 export type Fn = (this: Scriptifier, args: ScriptValue[]) => ScriptValue
@@ -139,27 +140,81 @@ export class NameHasher {
   }
 }
 
-export class ScriptValue {
-  static readonly boollistToFloatlist = Symbol()
-
+export class ScriptBlock {
   constructor(readonly script: string, readonly kind: Kind) {
-    Object.freeze(this)
+    if (!(this instanceof ScriptValue)) {
+      Object.freeze(this)
+    }
   }
-
-  #brand: unknown
 
   toString() {
     return `(${this.script})`
   }
 
-  toFloat() {
-    return new ScriptValue(
-      {
-        bool: `${this} ? 1.0 : 0.0 / 0.0`,
-        float: this.script,
-        int: `float(${this})`,
-      }[this.kind.kind],
-      new Kind("float"),
+  #_: unknown
+}
+
+export class ScriptValue extends ScriptBlock {
+  static of(kind: Kind) {
+    return (
+      strings: TemplateStringsArray,
+      ...interps: (
+        | number
+        | string
+        | bigint
+        | ScriptValue
+        | readonly ScriptValue[]
+      )[]
+    ): ScriptValue => {
+      return new ScriptValue(
+        String.raw({ raw: strings }, ...interps),
+        kind,
+        interps.reduce((a, b) => {
+          if (Array.isArray(b)) {
+            for (const el of b) {
+              Object.assign(a, el.locals)
+            }
+          } else if (b instanceof ScriptValue) {
+            Object.assign(a, b.locals)
+          }
+
+          return a
+        }, Object.create(null)),
+      )
+    }
+  }
+
+  static float = ScriptValue.of(new Kind("float"))
+  static int = ScriptValue.of(new Kind("int"))
+  static bool = ScriptValue.of(new Kind("bool"))
+
+  static readonly boollistToFloatlist = Symbol()
+
+  static local(name: string, kind: Kind) {
+    return new ScriptValue(name, kind, { name: kind })
+  }
+
+  constructor(
+    readonly script: string,
+    readonly kind: Kind,
+    readonly locals: Record<string, Kind>,
+  ) {
+    super(script, kind)
+    Object.freeze(this)
+  }
+
+  static readonly toFloat = Symbol("script value to float")
+
+  toFloat(scriptifier: Scriptifier) {
+    return scriptifier.collate(
+      ScriptValue.toFloat,
+      [this],
+      ([x]) =>
+        ({
+          bool: ScriptValue.float`${this} ? 1.0 : 0.0 / 0.0`,
+          float: this,
+          int: ScriptValue.float`float(${this})`,
+        }[x.kind.kind]),
     )
   }
 }
@@ -179,6 +234,7 @@ export class Scriptifier {
   locals: Locals = Object.create(null)
   fns: Functions = Object.create(null)
   structs: Structs = Object.create(null)
+  blocks: Blocks = Object.create(null)
   names = new NameHasher()
 
   constructor(
@@ -207,7 +263,11 @@ export class Scriptifier {
     )
   }
 
-  valueToScript(value: Value): ScriptValue {
+  valueToScript(value: Value | ScriptValue): ScriptValue {
+    if (value instanceof ScriptValue) {
+      return value
+    }
+
     const { locals, globals } = this
 
     switch (value.type) {
@@ -304,7 +364,7 @@ export class Scriptifier {
     args: T,
     value: (args: {
       [K in keyof T]: ScriptValue
-    }) => ScriptValue,
+    }) => ScriptBlock,
     getArgName: (index: number) => string = (index) =>
       NameHasher.random(index + "arg"),
   ): ScriptValue {
@@ -312,7 +372,7 @@ export class Scriptifier {
     const fnName = this.names.get(name, fnSignature)
     const cachedFn = this.fns[fnName]
     if (cachedFn) {
-      return new ScriptValue(`${fnName}(${args.join(", ")})`, cachedFn.kind)
+      return ScriptValue.of(cachedFn.kind)`${fnName}(${args})`
     }
 
     const hashedParams: ScriptValue[] = []
@@ -322,8 +382,8 @@ export class Scriptifier {
       const argName = getArgName(index)
       old[argName] = this.locals[argName]
       const hashedName = this.names.get(argName, value.kind)
-      hashedParams.push(new ScriptValue(hashedName, value.kind))
-      this.locals[argName] = new ScriptValue(hashedName, value.kind)
+      hashedParams.push(ScriptValue.local(hashedName, value.kind))
+      this.locals[argName] = ScriptValue.local(hashedName, value.kind)
     }
 
     const retval = value(hashedParams as any)
@@ -332,7 +392,7 @@ export class Scriptifier {
       this.locals[name] = old[name]
     }
 
-    this.fns[fnName] = new ScriptValue(
+    this.fns[fnName] = new ScriptBlock(
       `${retval.kind.toGlsl(this)} ${fnName}(${hashedParams
         .map((x) => `${x.kind.toGlsl(this)} ${x.script}`)
         .join(",")}) {${
@@ -343,7 +403,7 @@ export class Scriptifier {
       retval.kind,
     )
 
-    return new ScriptValue(`${fnName}(${args.join(", ")})`, retval.kind)
+    return ScriptValue.of(retval.kind)`${fnName}(${args})`
   }
 
   struct(fields: Record<string, ScriptValue>): string {
@@ -393,19 +453,22 @@ export class Scriptifier {
         Infinity,
       )
       return this.callFn(name, args, (args) => {
-        const index = NameHasher.random("input")
+        const index = ScriptValue.local(
+          NameHasher.random("input"),
+          new Kind("int"),
+        )
         const output = NameHasher.random("output")
         const value: ScriptValue = fn(
           args.map((arg) => {
             if (typeof arg.kind.list == "number") {
-              return new ScriptValue(`${arg}[${index}]`, arg.kind.asNonList())
+              return ScriptValue.of(arg.kind.asNonList())`${arg}[${index}]`
             } else {
               return arg
             }
           }) as any,
         )
         const retkind = value.kind.asList(size)
-        return new ScriptValue(
+        return new ScriptBlock(
           // TODO: how to properly initialize this list given its length
           `${retkind.toGlsl(this)} ${output} = [];
 for (int ${index} = 0; ${index} < ${size}; ${index}++) {
@@ -422,53 +485,156 @@ return ${output};`,
       MAX_DYNAMIC_LIST_SIZE,
     )
     return this.callFn(name, args, (args) => {
-      const index = NameHasher.random("index")
-      const output = NameHasher.random("output")
-      const size = NameHasher.random("size")
+      const index = ScriptValue.local(
+        NameHasher.random("index"),
+        new Kind("int"),
+      )
+      const size = ScriptValue.local(NameHasher.random("size"), new Kind("int"))
       const value: ScriptValue = fn(
         args.map((arg) => {
           if (typeof arg.kind.list == "number") {
-            return new ScriptValue(`${arg}[${index}]`, arg.kind.asNonList())
+            return ScriptValue.of(arg.kind.asNonList())`${arg}[${index}]`
           } else if (arg.kind.list == true) {
-            return new ScriptValue(
-              `${arg}.data[${index}]`,
-              arg.kind.asNonList(),
-            )
+            return ScriptValue.of(arg.kind.asNonList())`${arg}.data[${index}]`
           } else {
             return arg
           }
         }) as any,
       )
+      const output = ScriptValue.local(
+        NameHasher.random("output"),
+        value.kind.asList(MAX_DYNAMIC_LIST_SIZE),
+      )
       const retkind = value.kind.asList(true)
-      return new ScriptValue(
+      return new ScriptBlock(
         // TODO: how to properly initialize this list given its length
         `${value.kind
           .asList(MAX_DYNAMIC_LIST_SIZE)
           .toGlsl(this)} ${output} = [];
 int ${size} = ${args.reduce((size, arg) => {
           if (arg.kind.list === true) {
-            return new ScriptValue(
-              `min(${size}, ${arg}.length)`,
-              new Kind("int"),
-            )
+            return ScriptValue.int`min(${size}, ${arg}.length)`
           } else {
             return size
           }
-        }, new ScriptValue("" + maxSize, new Kind("int")))};
+        }, ScriptValue.int`${maxSize}`)}
 for (int ${index} = 0; ${index} < ${MAX_DYNAMIC_LIST_SIZE}; ${index}++) {
   if (${index} >= ${size}) { break; }
   ${output}[${index}] = ${value};
 }
 return ${this.struct({
-          length: new ScriptValue(size, new Kind("int")),
-          data: new ScriptValue(
-            output,
-            value.kind.asList(MAX_DYNAMIC_LIST_SIZE),
-          ),
+          length: ScriptValue.int`${size}`,
+          data: output,
         })};`,
         retkind,
       )
     })
+  }
+
+  block(kind: Kind, locals: Record<string, ScriptValue> = Object.create(null)) {
+    return (strings: TemplateStringsArray, ...interps: BlockInterpolation[]) =>
+      this.blockExplicit(strings, interps, locals, kind)
+  }
+
+  blockExplicit(
+    strings: TemplateStringsArray,
+    interps: BlockInterpolation[],
+    locals: Record<string, ScriptValue> = Object.create(null),
+    kind: Kind,
+  ): ScriptValue {
+    locals = Object.assign(Object.create(null), locals)
+
+    for (const interp of interps) {
+      if (typeof interp == "object") {
+        for (const local in interp.locals) {
+          locals[local] = ScriptValue.local(local, interp.locals[local]!)
+        }
+      }
+    }
+
+    const entries = Object.entries(locals)
+
+    const old = Object.create(null)
+    for (const key in locals) {
+      old[key] = this.locals[key]
+      this.locals[key] = locals[key]
+    }
+
+    const value = String.raw({ raw: strings }, ...interps)
+
+    const name = NameHasher.random(Symbol())
+
+    this.blocks[name] = new ScriptBlock(
+      `${kind} ${name}(${entries
+        .map(([key, { kind }]) => `${kind.toGlsl(this)} ${key}`)
+        .join(",")}) {\n  ${value}\n}`,
+      kind,
+    )
+
+    for (const key in old) {
+      this.locals[key] = old[key]
+    }
+
+    return ScriptValue.of(kind)`${name}(${entries.map(([, x]) => x)})`
+  }
+}
+
+export type BlockInterpolation =
+  | string
+  | number
+  | boolean
+  | ScriptValue
+  | BlockInner
+
+export class BlockInner {
+  static of(kind: Kind) {
+    return (
+      strings: TemplateStringsArray,
+      ...interps: (
+        | number
+        | string
+        | bigint
+        | ScriptValue
+        | BlockInner
+        | readonly (ScriptValue | BlockInner)[]
+      )[]
+    ): ScriptValue => {
+      const locals = Object.create(null)
+
+      for (const item of interps) {
+        if (Array.isArray(item)) {
+          for (const el of item) {
+            Object.assign(locals, el.locals)
+          }
+        } else if (typeof item == "object") {
+          Object.assign(locals, item.locals)
+        }
+      }
+
+      return new ScriptValue(
+        String.raw({ raw: strings }, ...interps),
+        kind,
+        locals,
+      )
+    }
+  }
+
+  static join(contents: BlockInner[], joiner: string): BlockInner {
+    const locals = Object.create(null)
+
+    for (const item of contents) {
+      Object.assign(locals, item.locals)
+    }
+
+    return new BlockInner(contents.join(joiner), locals)
+  }
+
+  constructor(readonly source: string, readonly locals: Record<string, Kind>) {
+    Object.freeze(this)
+  }
+
+  toString() {
+    return this.source
   }
 }
 
@@ -479,7 +645,7 @@ export class Bval {
   constructor(value: string, kind: Kind) {
     this.value = Object.freeze({
       type: "bval",
-      value: new ScriptValue(value, kind),
+      value: new ScriptValue(value, kind, Object.create(null)),
     })
     Object.freeze(this)
   }
@@ -506,45 +672,18 @@ export const basic = new Scriptifier({
       throw new Error("`+` needs something on either side.")
     }
 
-    return new ScriptValue(
-      `${args[0]!.toFloat()} + ${args[1]!.toFloat()}`,
-      new Kind("float"),
-    )
-  }),
-  "-": new Bfn(function (args) {
-    // prefix `-` operator
-    if (args.length == 1) {
-      return new ScriptValue(`-${args[0]!.toFloat()}`, new Kind("float"))
-    }
-
-    if (args.length != 2) {
-      throw new Error("`-` needs something on either side.")
-    }
-
-    return new ScriptValue(
-      `${args[0]!.toFloat()} - ${args[1]!.toFloat()}`,
-      new Kind("float"),
-    )
+    return ScriptValue.float`${args[0]!.toFloat(
+      this,
+    )} + ${args[1]!.toFloat(this)}`
   }),
   odot: new Bfn(function (args) {
     if (args.length != 2) {
       throw new Error("`\\odot` needs something on either side.")
     }
 
-    return new ScriptValue(
-      `${args[0]!.toFloat()} * ${args[1]!.toFloat()}`,
-      new Kind("float"),
-    )
-  }),
-  odiv: new Bfn(function (args) {
-    if (args.length != 2) {
-      throw new Error("`\\odiv` needs something on either side.")
-    }
-
-    return new ScriptValue(
-      `${args[0]!.toFloat()} / ${args[1]!.toFloat()}`,
-      new Kind("float"),
-    )
+    return ScriptValue.float`${args[0]!.toFloat(
+      this,
+    )} * ${args[1]!.toFloat(this)}`
   }),
 })
 
@@ -552,11 +691,11 @@ export const basic = new Scriptifier({
 export const local = (name: string): Value =>
   ({ type: "local", name })
 // prettier-ignore
-export const bind = (name: string, bound: Value, contents: Value): Value =>
+export const bind = (name: string, bound: Value|ScriptValue, contents: Value): Value =>
   ({ type: "bind", name, bound, contents })
 // prettier-ignore
 export const fn = (name: string, args: Value[]): Value =>
   ({ type: "fn", name, args })
 // prettier-ignore
-export const bval = (name: string, kind: Kind): Value =>
-  ({ type: "bval", value: new ScriptValue(name, kind) })
+export const bval = (value: string, kind: Kind): Value =>
+  ({ type: "bval", value: new ScriptValue(value, kind, Object.create(null)) })
