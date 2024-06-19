@@ -354,6 +354,53 @@ export class Scriptifier {
     }
   }
 
+  block(kind: Kind, locals: Record<string, ScriptValue> = Object.create(null)) {
+    return (strings: TemplateStringsArray, ...interps: BlockInterpolation[]) =>
+      this.blockExplicit(strings, interps, locals, kind)
+  }
+
+  blockExplicit(
+    strings: TemplateStringsArray,
+    interps: BlockInterpolation[],
+    locals: Record<string, ScriptValue> = Object.create(null),
+    kind: Kind,
+  ): ScriptValue {
+    locals = Object.assign(Object.create(null), locals)
+
+    for (const interp of interps) {
+      if (typeof interp == "object") {
+        for (const local in interp.locals) {
+          locals[local] = ScriptValue.local(local, interp.locals[local]!)
+        }
+      }
+    }
+
+    const entries = Object.entries(locals)
+
+    const old = Object.create(null)
+    for (const key in locals) {
+      old[key] = this.locals[key]
+      this.locals[key] = locals[key]
+    }
+
+    const value = String.raw({ raw: strings }, ...interps)
+
+    const name = NameHasher.random(Symbol())
+
+    this.blocks[name] = new ScriptBlock(
+      `${kind} ${name}(${entries
+        .map(([key, { kind }]) => `${kind.toGlsl(this)} ${key}`)
+        .join(",")}) {\n  ${value}\n}`,
+      kind,
+    )
+
+    for (const key in old) {
+      this.locals[key] = old[key]
+    }
+
+    return ScriptValue.of(kind)`${name}(${entries.map(([, x]) => x)})`
+  }
+
   // INVARIANT: the output returned by `value` should be relatively equal
   // no matter where this instance of `callFn` is called.
   //
@@ -529,53 +576,6 @@ return ${this.struct({
         retkind,
       )
     })
-  }
-
-  block(kind: Kind, locals: Record<string, ScriptValue> = Object.create(null)) {
-    return (strings: TemplateStringsArray, ...interps: BlockInterpolation[]) =>
-      this.blockExplicit(strings, interps, locals, kind)
-  }
-
-  blockExplicit(
-    strings: TemplateStringsArray,
-    interps: BlockInterpolation[],
-    locals: Record<string, ScriptValue> = Object.create(null),
-    kind: Kind,
-  ): ScriptValue {
-    locals = Object.assign(Object.create(null), locals)
-
-    for (const interp of interps) {
-      if (typeof interp == "object") {
-        for (const local in interp.locals) {
-          locals[local] = ScriptValue.local(local, interp.locals[local]!)
-        }
-      }
-    }
-
-    const entries = Object.entries(locals)
-
-    const old = Object.create(null)
-    for (const key in locals) {
-      old[key] = this.locals[key]
-      this.locals[key] = locals[key]
-    }
-
-    const value = String.raw({ raw: strings }, ...interps)
-
-    const name = NameHasher.random(Symbol())
-
-    this.blocks[name] = new ScriptBlock(
-      `${kind} ${name}(${entries
-        .map(([key, { kind }]) => `${kind.toGlsl(this)} ${key}`)
-        .join(",")}) {\n  ${value}\n}`,
-      kind,
-    )
-
-    for (const key in old) {
-      this.locals[key] = old[key]
-    }
-
-    return ScriptValue.of(kind)`${name}(${entries.map(([, x]) => x)})`
   }
 }
 
