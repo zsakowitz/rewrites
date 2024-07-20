@@ -1,4 +1,4 @@
-import { paths5, sakawi } from "./sakawi.js"
+import { mu1, paths5, sakawi } from "./sakawi.js"
 
 const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
 svg.setAttribute("width", "1202px")
@@ -52,6 +52,11 @@ const chars = hiragana + katakana + kanji
 // trace(paths6.slice(18).join(" "), katakana, 8)
 // trace(paths6.slice(11).join(" "), hiragana + katakana, 10)
 // trace(paths6.slice(11).join(" "), kanji.repeat(3), 8)
-trace(sakawi, (hiragana + katakana).repeat(5), 6, 0.5)
+
+// trace(paths5.slice(0, 7).join(" "), hiragana, 10)
+// trace(paths5.slice(7, 10).join(" "), katakana, 10)
+// trace(paths5.slice(10).join(" "), kanji.slice(0, 25), 10)
+
+trace(mu1.join(" "), hiragana, 20)
 
 export {}
