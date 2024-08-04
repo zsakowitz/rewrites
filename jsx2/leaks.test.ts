@@ -1,13 +1,4 @@
-import {
-  batch,
-  context,
-  effect,
-  memo,
-  onCleanup,
-  root,
-  signal,
-  untrack,
-} from "./core"
+import { batch, effect, memo, onCleanup, root, signal, untrack } from "./core"
 
 const [x, setX] = signal(23, function (a, b) {
   console.log(this)
@@ -53,5 +44,3 @@ batch(function () {
 root(function () {
   console.log(this)
 })
-
-const q = context<number>()
