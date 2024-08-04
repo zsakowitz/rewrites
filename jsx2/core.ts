@@ -197,7 +197,9 @@ class Memo<in out T> extends Reactor implements SignalLike {
 export type Setter<T> = {
   <U extends Exclude<T, Function>>(value: U): U
   <U extends Exclude<T, Function>>(fn: (value: T) => U): U
-} & (undefined extends T ? (value?: undefined) => undefined : unknown)
+  (value: Exclude<T, Function>): T
+  (fn: () => T): T
+}
 
 export interface Root<T> {
   value: T
@@ -298,9 +300,33 @@ export function root<T>(fn: () => T): Root<T> {
   }
 }
 
+/**
+ * This returns a function. That function, when called, calls its argument in
+ * the same scope and tracking context as the original call to `preserve`.
+ */
+export function preserveTracking(): <T>(fn: () => T) => T {
+  const scope = currentScope
+  const reactor = currentReactor
+  return (fn)=>{
+    const parentScope = currentScope
+    const parentReactor = currentReactor
+    try {
+      currentScope=scope
+      currentReactor=reactor
+      return fn()
+    } finally {
+      currentScope=parentScope
+      currentReactor=parentReactor
+    }
+  }
+}
+
 export interface Context<T, Default extends T | undefined> {
   /** Renders an element with a given value for this context provider. */
-  <V>(props: { value: T; children: V }): V
+  <U>(props: { value: T; children: U }): U
+
+  /** Calls a function with a particular value for this context. */
+  with<U>(value: () => T, fn: () => U): U
 
   /** Gets the value of the context, or throws if it does not exist. */
   get(): T
@@ -328,17 +354,24 @@ export function context<T>(
   const id = Symbol()
 
   function Provider<V>(props: { value: T; children: V }): V {
+    return Provider.with(
+      () => props.value,
+      () => props.children,
+    )
+  }
+
+  Provider.with = <U>(value: () => T, fn: () => U): U => {
     const scope = new Scope()
     scope.context = {
       ...scope.context,
       get [id]() {
-        return props.value
+        return value()
       },
     }
     const parentScope = currentScope
     try {
       currentScope = scope
-      return untrack(() => props.children)
+      return untrack(fn)
     } finally {
       currentScope = parentScope
     }

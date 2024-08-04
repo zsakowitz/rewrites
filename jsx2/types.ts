@@ -1,4 +1,7 @@
-// copied from solid, added prettier, and added `()=>Element` to `Element` union
+/**
+ * Copied from Solid.js with `() => Element` and `PromiseLike<Element>` added to
+ * possible element types.
+ */
 
 import * as csstype from "csstype"
 
@@ -20,6 +23,8 @@ export declare namespace JSX {
     | null
     | undefined
     | (() => Element)
+    | PromiseLike<Element>
+
   interface ElementClass {
     // empty, libs can define requirements downstream
   }
