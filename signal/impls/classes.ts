@@ -23,6 +23,16 @@ let currentReactor: Reactor | null = null
 class Scope {
   readonly cleanups = new Set<() => void>()
   readonly parent: Scope | undefined
+
+  cleanup() {
+    const all = [...this.cleanups]
+    this.cleanups.clear()
+    for (const c of all) {
+      try {
+        c()
+      } catch {}
+    }
+  }
 }
 
 abstract class Reactor extends Scope {
@@ -50,7 +60,8 @@ class ImmediateEffect<T> extends Reactor {
     let parentScope = currentScope
     let parentReactor = currentReactor
     try {
-      this.value = (currentScope = currentReactor = this).effect(this.value)
+      currentScope = currentReactor = this
+      this.value = (0, this.effect)(this.value)
     } finally {
       currentScope = parentScope
       currentReactor = parentReactor
@@ -79,10 +90,11 @@ class Signal<in out T> implements SignalLike {
   }
 
   set(v: T): T {
-    if (this.equal(this.value, v)) {
+    const last = this.value
+    this.value = v
+    if (this.equal(last, v)) {
       return v
     }
-    this.value = v
     this.reactors.forEach(schedule)
     runAll()
     return v
@@ -126,11 +138,12 @@ class Memo<in out T> extends Reactor implements SignalLike {
     let parentScope = currentScope
     let parentReactor = currentReactor
     try {
-      const next = (currentScope = currentReactor = this).compute(this.value)
-      const equal = this.equal(this.value, next)
-      if (!equal) {
-        this.value = next
-      }
+      currentScope = currentReactor = this
+      this.cleanup()
+      const old = this.value
+      const next = this.compute(this.value)
+      const equal = this.equal(old, next)
+      this.value = next
       this.stale = false
       return equal
     } finally {
@@ -140,7 +153,9 @@ class Memo<in out T> extends Reactor implements SignalLike {
   }
 
   get(): T {
+    console.log("INTERNAL getting memo")
     if (currentReactor) {
+      console.log("INTERNAL marking reactor")
       this.reactors.add(currentReactor)
       currentReactor.signals.add(this)
     }
@@ -206,6 +221,24 @@ export function memo<T>(
 ) {
   const memo = new Memo(compute, initial, equal)
   return memo.get.bind(memo)
+}
+
+export function onCleanup(fn: () => void) {
+  if (currentScope) {
+    currentScope.cleanups.add(fn)
+  }
+}
+
+export function untrack<T>(fn: () => T): T {
+  let parentScope = currentScope
+  let parentReactor = currentReactor
+  try {
+    currentScope = currentReactor = null
+    return fn()
+  } finally {
+    currentScope = parentScope
+    currentReactor = parentReactor
+  }
 }
 
 /**
