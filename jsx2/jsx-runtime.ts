@@ -1,4 +1,4 @@
-import { immediateEffect, memo, onCleanup, root } from "../classes"
+import { immediateEffect, memo, onCleanup, root } from "./core"
 
 export function render(el: HTMLElement, fn: () => JSX.Element) {
   return root(() => insert(el, null, fn())).dispose

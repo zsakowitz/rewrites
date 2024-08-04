@@ -1,4 +1,4 @@
-import { immediateEffect, memo, onCleanup, signal, untrack } from "./classes.js"
+import { immediateEffect, memo, onCleanup, signal, untrack } from "./core"
 
 console.group("section 1")
 

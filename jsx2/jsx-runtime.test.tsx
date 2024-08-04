@@ -1,8 +1,8 @@
 /** @jsxRuntime automatic */
-/** @jsxImportSource ./classes2 */
+/** @jsxImportSource . */
 
-import { memo, signal, untrack } from "./classes"
-import { render, type JSX } from "./classes2/jsx-runtime"
+import { memo, signal, untrack } from "./core"
+import { render, type JSX } from "./jsx-runtime"
 
 type Truthy<T> = Exclude<T & {}, 0 | "" | false | 0n>
 
