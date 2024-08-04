@@ -25,11 +25,13 @@ let currentReactor: Reactor | null = null
 let isBatched = false
 
 class Scope {
+  context: Record<symbol, any> | undefined
   readonly cleanups = new Set<() => void>()
 
   constructor() {
     if (currentScope) {
       currentScope.cleanups.add(this.cleanup.bind(this))
+      this.context = currentScope.context
     }
   }
 
@@ -294,4 +296,75 @@ export function root<T>(fn: () => T): Root<T> {
     value,
     dispose: scope.cleanup.bind(scope),
   }
+}
+
+export interface Context<T, Default extends T | undefined> {
+  /** Renders an element with a given value for this context provider. */
+  <V>(props: { value: T; children: V }): V
+
+  /** Gets the value of the context, or throws if it does not exist. */
+  get(): T
+
+  /**
+   * Gets the value of the context, returning the default value if called from
+   * outside the context provider.
+   */
+  getSafe(): T | Default
+
+  /** The unique id representing this context. */
+  id: symbol
+}
+
+// value is definitely assigned
+export function context<T>(defaultValue: T): Context<T, T>
+
+// value might be undefined
+export function context<T>(defaultValue?: T | undefined): Context<T, undefined>
+
+// implementation
+export function context<T>(
+  defaultValue?: T | undefined,
+): Context<T, undefined> {
+  const id = Symbol()
+
+  function Provider<V>(props: { value: T; children: V }): V {
+    const scope = new Scope()
+    scope.context = {
+      ...scope.context,
+      get [id]() {
+        return props.value
+      },
+    }
+    const parentScope = currentScope
+    try {
+      currentScope = scope
+      return untrack(() => props.children)
+    } finally {
+      currentScope = parentScope
+    }
+  }
+
+  Provider.get = () => {
+    const context = currentScope?.context
+    if (context && id in context) {
+      return context[id]
+    } else {
+      throw new Error(
+        "Context value was accessed outside of its context provider.",
+      )
+    }
+  }
+
+  Provider.getSafe = () => {
+    const context = currentScope?.context
+    if (context && id in context) {
+      return context[id]
+    } else {
+      return defaultValue
+    }
+  }
+
+  Provider.id = id
+
+  return Provider
 }
