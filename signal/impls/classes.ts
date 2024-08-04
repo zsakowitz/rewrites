@@ -11,6 +11,9 @@ function schedule(item: Reactor) {
 }
 
 function runAll() {
+  if (isBatched) {
+    return
+  }
   for (const item of scheduled) {
     scheduled.delete(item)
     item.fn()
@@ -19,6 +22,7 @@ function runAll() {
 
 let currentScope: Scope | null = null
 let currentReactor: Reactor | null = null
+let isBatched = false
 
 class Scope {
   readonly cleanups = new Set<() => void>()
@@ -104,15 +108,16 @@ class Signal<in out T> implements SignalLike {
     return this.value
   }
 
-  set(v: T): T {
+  set(v: Exclude<T, Function> | ((prev: T) => T)): T {
     const last = this.value
-    this.value = v
-    if (this.equal(last, v)) {
-      return v
+    const next = typeof v == "function" ? (v as (prev: T) => T)(last) : v
+    this.value = next
+    if (this.equal(last, next)) {
+      return next
     }
     this.reactors.forEach(schedule)
     runAll()
-    return v
+    return next
   }
 }
 
@@ -178,6 +183,11 @@ class Memo<in out T> extends Reactor implements SignalLike {
   }
 }
 
+export type Setter<T> = {
+  <U extends Exclude<T, Function>>(value: U): U
+  <U extends Exclude<T, Function>>(fn: (value: T) => U): U
+} & (undefined extends T ? (value?: undefined) => undefined : unknown)
+
 export interface Root<T> {
   value: T
   dispose(): void
@@ -195,7 +205,7 @@ export function immediateEffect<T>(
   new ImmediateEffect(fn, initial)
 }
 
-export type SignalArray<T> = [Signal<T>["get"], Signal<T>["set"]]
+export type SignalArray<T> = [() => T, Setter<T>]
 
 // value is definitely assigned
 export function signal<T>(
@@ -255,6 +265,19 @@ export function untrack<T>(fn: () => T): T {
     return fn()
   } finally {
     currentReactor = parentReactor
+  }
+}
+
+export function batch<T>(fn: () => T): T {
+  if (isBatched) {
+    return fn()
+  }
+  isBatched = true
+  try {
+    return fn()
+  } finally {
+    isBatched = false
+    runAll()
   }
 }
 
