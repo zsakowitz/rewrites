@@ -3,7 +3,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "moduleResolution": "nodenext",
+    "moduleResolution": "Bundler",
     "jsx": "react",
     "jsxFactory": "h",
     "jsxFragmentFactory": "f",
