@@ -1,6 +1,6 @@
 /** @jsxImportSource . */
 
-import { signal } from "./core"
+import { effect, memo, signal } from "./core"
 import { render } from "./jsx-runtime"
 
 function Main() {

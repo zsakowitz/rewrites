@@ -1,4 +1,4 @@
-import { effect, memo, onCleanup, root } from "./core"
+import { effect, onCleanup, root } from "./core"
 import type { JSX } from "./types"
 
 export function render(el: HTMLElement, fn: () => JSX.Element) {
@@ -39,8 +39,7 @@ export function insert(
   if (typeof children == "function") {
     const comment = document.createComment("")
     parent.insertBefore(comment, before)
-    const m = memo(children)
-    effect(memo(() => insert(parent, comment, m())))
+    effect(() => insert(parent, comment, children()))
     return
   }
 

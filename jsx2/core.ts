@@ -57,7 +57,7 @@ class Scope {
 abstract class Reactor extends Scope {
   readonly signals = new Set<SignalLike>()
 
-  abstract fn(this: this): void
+  abstract fn(): void
 
   constructor() {
     super()
@@ -65,7 +65,7 @@ abstract class Reactor extends Scope {
 }
 
 class Effect<T> extends Reactor {
-  constructor(readonly effect: (this: void, value: T) => T, public value: T) {
+  constructor(readonly effect: (value: T) => T, public value: T) {
     super()
     onCleanup(() => {
       console.log("effect was cleaned up")
@@ -77,7 +77,7 @@ class Effect<T> extends Reactor {
     this.fn()
   }
 
-  fn(this: this): void {
+  fn(): void {
     for (const s of this.signals) {
       s.reactors.delete(this)
     }
@@ -87,7 +87,9 @@ class Effect<T> extends Reactor {
     let parentReactor = currentReactor
     try {
       currentScope = currentReactor = this
-      this.value = (0, this.effect)(this.value)
+      this.cleanup()
+      const next = (0, this.effect)(this.value)
+      this.value = next
     } finally {
       currentScope = parentScope
       currentReactor = parentReactor
@@ -119,7 +121,7 @@ class Signal<in out T> implements SignalLike {
     const last = this.value
     const next = typeof v == "function" ? (v as (prev: T) => T)(last) : v
     this.value = next
-    if (this.equal(last, next)) {
+    if ((0, this.equal)(last, next)) {
       return next
     }
     this.reactors.forEach(schedule)
@@ -142,7 +144,7 @@ class Memo<in out T> extends Reactor implements SignalLike {
 
   readonly reactors = new Set<Reactor>()
 
-  fn(this: this): void {
+  fn(): void {
     this.stale = true
     if (this.reactors.size) {
       const equal = this.update()
@@ -169,8 +171,8 @@ class Memo<in out T> extends Reactor implements SignalLike {
       currentScope = currentReactor = this
       this.cleanup()
       const old = this.value
-      const next = this.compute(this.value)
-      const equal = this.equal(old, next)
+      const next = (0, this.compute)(old)
+      const equal = (0, this.equal)(old, next)
       this.value = next
       this.stale = false
       return equal
@@ -181,9 +183,7 @@ class Memo<in out T> extends Reactor implements SignalLike {
   }
 
   get(): T {
-    console.log("memo running")
     if (currentReactor) {
-      console.log("inside reactor", currentReactor)
       this.reactors.add(currentReactor)
       currentReactor.signals.add(this)
     }
