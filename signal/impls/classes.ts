@@ -22,7 +22,6 @@ let currentReactor: Reactor | null = null
 
 class Scope {
   readonly cleanups = new Set<() => void>()
-  readonly parent: Scope | undefined
 
   cleanup() {
     const all = [...this.cleanups]
@@ -31,6 +30,16 @@ class Scope {
       try {
         c()
       } catch {}
+    }
+  }
+
+  run<T>(fn: () => T): T {
+    const parentScope = currentScope
+    try {
+      currentScope = this
+      return fn()
+    } finally {
+      currentScope = parentScope
     }
   }
 }
@@ -163,6 +172,11 @@ class Memo<in out T> extends Reactor implements SignalLike {
   }
 }
 
+export interface Root<T> {
+  value: T
+  dispose(): void
+}
+
 export function immediateEffect<T>(fn: (value: T) => T, initial: T): void
 export function immediateEffect<T>(
   fn: (value: T | undefined) => T | undefined,
@@ -238,17 +252,19 @@ export function untrack<T>(fn: () => T): T {
   }
 }
 
+export function root<T>(fn: () => T): Root<T> {
+  const scope = new Scope()
+  const value = scope.run(fn)
+  return {
+    value,
+    dispose: scope.cleanup.bind(scope),
+  }
+}
+
 /**
  * Things to add
  *
- * ## Functionality
- *
- * Memos and signals dispose their old values
- *
  * ## Functions
  *
- * - root
- * - cleanup
- * - untrack
  * - batch
  */
