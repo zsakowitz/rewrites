@@ -23,8 +23,14 @@ let currentReactor: Reactor | null = null
 class Scope {
   readonly cleanups = new Set<() => void>()
 
+  constructor() {
+    if (currentScope) {
+      currentScope.cleanups.add(this.cleanup.bind(this))
+    }
+  }
+
   cleanup() {
-    const all = [...this.cleanups]
+    const all = [...this.cleanups].reverse()
     this.cleanups.clear()
     for (const c of all) {
       try {
