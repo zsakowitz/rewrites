@@ -80,10 +80,7 @@ const shown = Show(name, () => {
 })
 
 // memos do nothing unless they're watched
-immediateEffect(() => {
-  console.log("reading memo")
-  shown()
-})
+immediateEffect(() => shown())
 
 console.log("setting ''")
 setName("")
