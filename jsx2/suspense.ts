@@ -9,7 +9,10 @@ const SuspendContext = context<{
  * Renders `value` and `fallback`, displaying `fallback` until all added
  * resources in `value` have settled.
  */
-export function suspend<T, U>(value: () => T, fallback: () => U): () => T | U {
+export function Suspense<T, U>(props: {
+  children: T
+  fallback?: U
+}): () => T | U | undefined {
   let pendingResources = 0
   const [showFallback, setShowFallback] = signal(false)
   let disposeFallback: (() => void) | undefined
@@ -33,8 +36,9 @@ export function suspend<T, U>(value: () => T, fallback: () => U): () => T | U {
     SuspendContext.with(
       () => store,
       () => {
-        const rendered = memo(() => value())
-        return memo((prev): T | U => {
+        const rendered = memo(() => props.children)
+
+        return memo<T | U | undefined>((prev) => {
           if (!showFallback()) {
             if (disposeFallback) {
               disposeFallback()
@@ -47,8 +51,9 @@ export function suspend<T, U>(value: () => T, fallback: () => U): () => T | U {
             return prev!
           }
 
-          const rootValue = root(() => fallback())
+          const rootValue = root(() => props.fallback)
           disposeFallback = rootValue.dispose
+
           return rootValue.value
         })
       },
