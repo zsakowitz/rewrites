@@ -102,7 +102,7 @@ class Signal<in out T> implements SignalLike {
 }
 
 class Memo<in out T> extends Reactor implements SignalLike {
-  public stale = false
+  public stale = true
 
   constructor(
     readonly compute: (last: T | undefined) => T,
@@ -110,6 +110,7 @@ class Memo<in out T> extends Reactor implements SignalLike {
     readonly equal: (a: T, b: T) => boolean = (a, b) => a === b,
   ) {
     super()
+    this.update()
   }
 
   readonly reactors = new Set<Reactor>()
