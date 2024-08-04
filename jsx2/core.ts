@@ -64,9 +64,16 @@ abstract class Reactor extends Scope {
   }
 }
 
-class ImmediateEffect<T> extends Reactor {
+class Effect<T> extends Reactor {
   constructor(readonly effect: (this: void, value: T) => T, public value: T) {
     super()
+    onCleanup(() => {
+      console.log("effect was cleaned up")
+      for (const s of this.signals) {
+        s.reactors.delete(this)
+      }
+      this.signals.clear()
+    })
     this.fn()
   }
 
@@ -174,7 +181,9 @@ class Memo<in out T> extends Reactor implements SignalLike {
   }
 
   get(): T {
+    console.log("memo running")
     if (currentReactor) {
+      console.log("inside reactor", currentReactor)
       this.reactors.add(currentReactor)
       currentReactor.signals.add(this)
     }
@@ -193,16 +202,13 @@ export interface Root<T> {
   dispose(): void
 }
 
-export function immediateEffect<T>(fn: (value: T) => T, initial: T): void
-export function immediateEffect<T>(
+export function effect<T>(fn: (value: T) => T, initial: T): void
+export function effect<T>(
   fn: (value: T | undefined) => T | undefined,
   initial?: T,
 ): void
-export function immediateEffect<T>(
-  fn: (value: T | undefined) => T,
-  initial?: T,
-) {
-  new ImmediateEffect(fn, initial)
+export function effect<T>(fn: (value: T | undefined) => T, initial?: T) {
+  new Effect(fn, initial)
 }
 
 export type SignalArray<T> = [() => T, Setter<T>]
@@ -289,11 +295,3 @@ export function root<T>(fn: () => T): Root<T> {
     dispose: scope.cleanup.bind(scope),
   }
 }
-
-/**
- * Things to add
- *
- * ## Functions
- *
- * - batch
- */

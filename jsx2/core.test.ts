@@ -1,4 +1,4 @@
-import { immediateEffect, memo, onCleanup, signal, untrack } from "./core"
+import { effect, memo, onCleanup, signal, untrack } from "./core"
 
 console.group("section 1")
 
@@ -14,7 +14,7 @@ console.group("section 1")
 const [x, setX] = signal(23)
 const [exitEarly, setExitEarly] = signal(false)
 
-immediateEffect(() => {
+effect(() => {
   console.log("effect is running")
   if (exitEarly()) {
     console.log("exit early")
@@ -80,7 +80,7 @@ const shown = Show(name, () => {
 })
 
 // memos do nothing unless they're watched
-immediateEffect(() => shown())
+effect(() => shown())
 
 console.log("setting ''")
 setName("")

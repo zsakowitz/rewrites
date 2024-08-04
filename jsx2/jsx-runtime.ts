@@ -1,4 +1,5 @@
-import { immediateEffect, memo, onCleanup, root } from "./core"
+import { effect, memo, onCleanup, root } from "./core"
+import type { JSX } from "./types"
 
 export function render(el: HTMLElement, fn: () => JSX.Element) {
   return root(() => insert(el, null, fn())).dispose
@@ -23,19 +24,23 @@ export function h(
 
   const el = document.createElement(tag)
   insert(el, null, props?.children ?? children)
-  if (props?.ref) {
+  if (typeof props?.ref == "function") {
     props.ref(el as never)
   }
   console.log(el)
   return el
 }
 
-function insert(parent: Node, before: Node | null, children: JSX.Element) {
+export function insert(
+  parent: Node,
+  before: Node | null,
+  children: JSX.Element,
+) {
   if (typeof children == "function") {
     const comment = document.createComment("")
     parent.insertBefore(comment, before)
     const m = memo(children)
-    immediateEffect(() => insert(parent, comment, m()))
+    effect(memo(() => insert(parent, comment, m())))
     return
   }
 
@@ -59,28 +64,4 @@ function insert(parent: Node, before: Node | null, children: JSX.Element) {
   }
 }
 
-export namespace JSX {
-  export type Element =
-    | string
-    | number
-    | bigint
-    | boolean
-    | (() => Element)
-    | Element[]
-    | Node
-    | null
-    | undefined
-
-  export type IntrinsicElements = {
-    [K in keyof HTMLElementTagNameMap]: {
-      ref?(el: HTMLElementTagNameMap[K]): void
-      children?: JSX.Element
-    }
-  }
-
-  export interface ElementChildrenAttribute {
-    children: {}
-  }
-}
-
-export { h as jsx, h as jsxs }
+export { h as jsx, h as jsxs, type JSX }
