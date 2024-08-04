@@ -1,9 +1,9 @@
-import { createImmediateEffect, createSignal } from "./classes.js"
+import { immediateEffect, signal } from "./classes.js"
 
-const [x, setX] = createSignal(23)
-const [exitEarly, setExitEarly] = createSignal(false)
+const [x, setX] = signal(23)
+const [exitEarly, setExitEarly] = signal(false)
 
-createImmediateEffect(() => {
+immediateEffect(() => {
   console.log("effect is running")
   if (exitEarly()) {
     console.log("exit early")

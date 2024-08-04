@@ -26,7 +26,7 @@ class Scope {
 }
 
 abstract class Reactor extends Scope {
-  readonly signals = new Set<Signal<any>>()
+  readonly signals = new Set<SignalLike>()
 
   abstract fn(this: this): void
 
@@ -58,7 +58,11 @@ class ImmediateEffect<T> extends Reactor {
   }
 }
 
-class Signal<in out T> {
+interface SignalLike {
+  readonly reactors: Set<Reactor>
+}
+
+class Signal<in out T> implements SignalLike {
   constructor(
     private value: T,
     private readonly equal: (a: T, b: T) => boolean = (a, b) => a === b,
@@ -85,12 +89,72 @@ class Signal<in out T> {
   }
 }
 
-export function createImmediateEffect<T>(fn: (value: T) => T, initial: T): void
-export function createImmediateEffect<T>(
+class Memo<in out T> extends Reactor implements SignalLike {
+  public stale = false
+
+  constructor(
+    readonly compute: (last: T | undefined) => T,
+    private value: T,
+    readonly equal: (a: T, b: T) => boolean = (a, b) => a === b,
+  ) {
+    super()
+  }
+
+  readonly reactors = new Set<Reactor>()
+
+  fn(this: this): void {
+    this.stale = true
+    if (this.reactors.size) {
+      const equal = this.update()
+      if (!equal) {
+        this.reactors.forEach(schedule)
+        runAll()
+      }
+    }
+  }
+
+  /** Returns `true` if the memo's value stayed the same. */
+  update() {
+    if (!this.stale) {
+      return true
+    }
+
+    for (const s of this.signals) {
+      s.reactors.delete(this)
+    }
+    this.signals.clear()
+    let parentScope = currentScope
+    let parentReactor = currentReactor
+    try {
+      const next = (currentScope = currentReactor = this).compute(this.value)
+      const equal = this.equal(this.value, next)
+      if (!equal) {
+        this.value = next
+      }
+      this.stale = false
+      return equal
+    } finally {
+      currentScope = parentScope
+      currentReactor = parentReactor
+    }
+  }
+
+  get(): T {
+    if (currentReactor) {
+      this.reactors.add(currentReactor)
+      currentReactor.signals.add(this)
+    }
+    this.update()
+    return this.value
+  }
+}
+
+export function immediateEffect<T>(fn: (value: T) => T, initial: T): void
+export function immediateEffect<T>(
   fn: (value: T | undefined) => T | undefined,
   initial?: T,
 ): void
-export function createImmediateEffect<T>(
+export function immediateEffect<T>(
   fn: (value: T | undefined) => T,
   initial?: T,
 ) {
@@ -99,15 +163,20 @@ export function createImmediateEffect<T>(
 
 export type SignalArray<T> = [Signal<T>["get"], Signal<T>["set"]]
 
-export function createSignal<T>(
+// value is definitely assigned
+export function signal<T>(
   value: T,
   equal?: (a: T, b: T) => boolean,
 ): SignalArray<T>
-export function createSignal<T>(
+
+// value might be undefined
+export function signal<T>(
   value?: T,
   equal?: (a: T | undefined, b: T | undefined) => boolean,
 ): SignalArray<T | undefined>
-export function createSignal<T>(
+
+// implementation
+export function signal<T>(
   value?: T,
   equal?: (a: T | undefined, b: T | undefined) => boolean,
 ) {
@@ -115,4 +184,41 @@ export function createSignal<T>(
   return [signal.get.bind(signal), signal.set.bind(signal)]
 }
 
-// needed: root, memo, cleanup, untrack, batch
+// value is definitely assigned
+export function memo<T>(
+  compute: (last: T) => T,
+  initial: T,
+  equal?: (a: T, b: T) => boolean,
+): () => T
+
+// value might be undefined
+export function memo<T>(
+  compute: (last: T | undefined) => T,
+  initial?: T,
+  equal?: (a: T | undefined, b: T | undefined) => boolean,
+): () => T
+
+// implementation
+export function memo<T>(
+  compute: (last?: T) => T,
+  initial?: T,
+  equal?: (a: T | undefined, b: T | undefined) => boolean,
+) {
+  const memo = new Memo(compute, initial, equal)
+  return memo.get.bind(memo)
+}
+
+/**
+ * Things to add
+ *
+ * ## Functionality
+ *
+ * Memos and signals dispose their old values
+ *
+ * ## Functions
+ *
+ * - root
+ * - cleanup
+ * - untrack
+ * - batch
+ */
