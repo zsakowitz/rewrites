@@ -154,9 +154,7 @@ class Memo<in out T> extends Reactor implements SignalLike {
   }
 
   get(): T {
-    console.log("INTERNAL getting memo")
     if (currentReactor) {
-      console.log("INTERNAL marking reactor")
       this.reactors.add(currentReactor)
       currentReactor.signals.add(this)
     }
@@ -231,13 +229,11 @@ export function onCleanup(fn: () => void) {
 }
 
 export function untrack<T>(fn: () => T): T {
-  let parentScope = currentScope
   let parentReactor = currentReactor
   try {
-    currentScope = currentReactor = null
+    currentReactor = null
     return fn()
   } finally {
-    currentScope = parentScope
     currentReactor = parentReactor
   }
 }
