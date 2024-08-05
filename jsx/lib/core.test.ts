@@ -50,7 +50,7 @@ function Show<T, U>(
   when: () => T,
   children: (fn: () => Truthy<T>) => U,
 ): () => U | undefined {
-  const getValue = memo(when, undefined, (a, b) => !a === !b)
+  const getValue = memo(when, { equal: (a, b) => !a === !b })
 
   return memo(() => {
     const value = getValue()

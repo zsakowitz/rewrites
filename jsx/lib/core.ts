@@ -24,8 +24,7 @@ let currentScope: Scope | null = null
 let currentReactor: Reactor | null = null
 let isBatched = false
 
-export const NAME_INTERNAL = Symbol()
-export type Name = string | typeof NAME_INTERNAL | undefined
+export type Name = string | undefined
 
 class Named {
   readonly name: Name

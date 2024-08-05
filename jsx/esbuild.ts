@@ -1,10 +1,10 @@
-/// <reference types="./env" />
+/// <reference types="./lib/env" />
 
 import { context } from "esbuild"
 import babel from "esbuild-plugin-babel"
 
 let ctx = await context({
-  entryPoints: ["./jsx2/index.tsx"],
+  entryPoints: ["./jsx/index.tsx"],
   bundle: true,
   outdir: process.env.HOME + "/tmp",
   platform: "node",

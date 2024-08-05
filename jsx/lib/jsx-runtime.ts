@@ -2,7 +2,7 @@ import { effect, onCleanup, preserveTracking, root } from "./core"
 import type { JSX } from "./types"
 
 export function render(el: HTMLElement, fn: () => JSX.Element) {
-  return root(() => insert(el, null, fn())).dispose
+  return root(() => insertEl(el, null, fn())).dispose
 }
 
 export function h(
@@ -23,14 +23,14 @@ export function h(
   }
 
   const el = document.createElement(tag)
-  insert(el, null, props?.children ?? children)
+  insertEl(el, null, props?.children ?? children)
   if (typeof props?.ref == "function") {
     props.ref(el as never)
   }
   return el
 }
 
-export function insert(
+export function insertEl(
   parent: Node,
   before: Node | null,
   children: JSX.Element,
@@ -38,13 +38,13 @@ export function insert(
   if (typeof children == "function") {
     const anchor = document.createComment("")
     parent.insertBefore(anchor, before)
-    effect(() => insert(parent, anchor, children()))
+    effect(() => insertEl(parent, anchor, children()))
     return
   }
 
   if (Array.isArray(children)) {
     for (const grandchild of children) {
-      insert(parent, before, grandchild)
+      insertEl(parent, before, grandchild)
     }
     return
   }
@@ -67,7 +67,7 @@ export function insert(
     Promise.resolve(
       // cast to `any` is needed to stop typescript thinking it's infinite
       children as any,
-    ).then((value) => recall(() => insert(parent, anchor, value)))
+    ).then((value) => recall(() => insertEl(parent, anchor, value)))
 
     return
   }
@@ -79,4 +79,4 @@ export function insert(
   }
 }
 
-export { h as jsx, h as jsxs, type JSX }
+export { type JSX }

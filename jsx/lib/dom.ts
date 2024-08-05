@@ -1,5 +1,5 @@
 import { untrack } from "./core"
-import { insert as insertEl, type JSX } from "./jsx-runtime"
+import { insertEl, type JSX } from "./jsx-runtime"
 import { addResource } from "./suspense"
 
 export function template(html: string, isCE: boolean, isSVG: boolean) {

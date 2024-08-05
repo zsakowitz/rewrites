@@ -1,8 +1,6 @@
-/** @jsxImportSource . */
+/** @jsxImportSource ./lib */
 
-import { signal } from "./core"
-import { render } from "./jsx-runtime"
-import { resource, Suspense } from "./suspense"
+import { render, resource, signal, Suspense } from "./lib"
 
 async function AsyncComponent() {
   await new Promise((r) => setTimeout(r, 4000))

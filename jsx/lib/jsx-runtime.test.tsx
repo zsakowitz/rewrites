@@ -13,7 +13,7 @@ function Show<T, U extends JSX.Element>({
   when(): T
   children: Exclude<U, Function> | ((fn: () => Truthy<T>) => U)
 }): () => U | undefined {
-  const getValue = memo(when, undefined, (a, b) => !a === !b)
+  const getValue = memo(when, { equal: (a, b) => !a === !b })
 
   return memo(() => {
     const value = getValue()
