@@ -24,11 +24,26 @@ let currentScope: Scope | null = null
 let currentReactor: Reactor | null = null
 let isBatched = false
 
-class Scope {
+export const NAME_INTERNAL = Symbol()
+export type Name = string | typeof NAME_INTERNAL | undefined
+
+class Named {
+  readonly name: Name
+
+  constructor(options: BaseOptions | undefined) {
+    if (options?.name) {
+      this.name = options.name
+    }
+  }
+}
+
+class Scope extends Named {
   context: Record<symbol, any> | undefined
   readonly cleanups = new Set<() => void>()
 
-  constructor() {
+  constructor(options: BaseOptions | undefined) {
+    super(options)
+
     if (currentScope) {
       currentScope.cleanups.add(this.cleanup.bind(this))
       this.context = currentScope.context
@@ -61,14 +76,9 @@ abstract class Reactor extends Scope {
 
   abstract fn(): void
 
-  constructor() {
-    super()
-  }
-}
+  constructor(options: BaseOptions | undefined) {
+    super(options)
 
-class Effect<T> extends Reactor {
-  constructor(readonly effect: (value: T) => T, public value: T) {
-    super()
     onCleanup(() => {
       console.log("effect was cleaned up")
       for (const s of this.signals) {
@@ -76,6 +86,21 @@ class Effect<T> extends Reactor {
       }
       this.signals.clear()
     })
+  }
+}
+
+class Effect<T> extends Reactor {
+  public value: T
+
+  constructor(
+    readonly effect: (value: T) => T,
+    options: EffectOptions<T> | undefined,
+  ) {
+    super(options)
+
+    // this is okay since we have total control over possible code paths
+    this.value = options?.initial!
+
     this.fn()
   }
 
@@ -103,11 +128,19 @@ interface SignalLike {
   readonly reactors: Set<Reactor>
 }
 
-class Signal<in out T> implements SignalLike {
-  constructor(
-    private value: T,
-    private readonly equal: (a: T, b: T) => boolean = (a, b) => a === b,
-  ) {}
+export interface SignalOptions<T> extends BaseOptions {
+  equal?(a: T, b: T): boolean
+}
+
+const IDENTITY_EQUALITY = (a: unknown, b: unknown) => a === b
+
+class Signal<in out T> extends Named implements SignalLike {
+  equal: (a: T, b: T) => boolean
+
+  constructor(private value: T, options: SignalOptions<T> | undefined) {
+    super(options)
+    this.equal = options?.equal ?? IDENTITY_EQUALITY
+  }
 
   readonly reactors = new Set<Reactor>()
 
@@ -132,15 +165,22 @@ class Signal<in out T> implements SignalLike {
   }
 }
 
+export interface MemoOptions<T> extends SignalOptions<T> {
+  initial?: T
+}
+
 class Memo<in out T> extends Reactor implements SignalLike {
   public stale = true
+  private value: T
+  readonly equal: (a: T, b: T) => boolean
 
   constructor(
     readonly compute: (last: T | undefined) => T,
-    private value: T,
-    readonly equal: (a: T, b: T) => boolean = (a, b) => a === b,
+    options: MemoOptions<T> | undefined,
   ) {
-    super()
+    super(options)
+    this.value = options?.initial! // okay since we control it
+    this.equal = options?.equal ?? IDENTITY_EQUALITY
     this.update()
   }
 
@@ -198,7 +238,7 @@ export type Setter<T> = {
   <U extends Exclude<T, Function>>(value: U): U
   <U extends Exclude<T, Function>>(fn: (value: T) => U): U
   (value: Exclude<T, Function>): T
-  (fn: () => T): T
+  (fn: (value: T) => T): T
 }
 
 export interface Root<T> {
@@ -206,59 +246,61 @@ export interface Root<T> {
   dispose(): void
 }
 
-export function effect<T>(fn: (value: T) => T, initial: T): void
+export interface BaseOptions {
+  name?: Name
+}
+
+export interface EffectOptions<T> extends BaseOptions {
+  initial?: T
+}
+
+export function effect<T>(
+  fn: (value: T) => T,
+  options: EffectOptions<T> & { initial: T },
+): void
 export function effect<T>(
   fn: (value: T | undefined) => T | undefined,
-  initial?: T,
+  options?: EffectOptions<T>,
 ): void
-export function effect<T>(fn: (value: T | undefined) => T, initial?: T) {
-  new Effect(fn, initial)
+export function effect<T>(
+  fn: (value: T | undefined) => T,
+  options?: EffectOptions<T>,
+) {
+  new Effect(fn, options)
 }
 
 export type SignalArray<T> = [() => T, Setter<T>]
 
 // value is definitely assigned
-export function signal<T>(
-  value: T,
-  equal?: (a: T, b: T) => boolean,
-): SignalArray<T>
+export function signal<T>(value: T, options?: SignalOptions<T>): SignalArray<T>
 
 // value might be undefined
 export function signal<T>(
   value?: T,
-  equal?: (a: T | undefined, b: T | undefined) => boolean,
+  options?: SignalOptions<T>,
 ): SignalArray<T | undefined>
 
 // implementation
-export function signal<T>(
-  value?: T,
-  equal?: (a: T | undefined, b: T | undefined) => boolean,
-) {
-  const signal = new Signal(value, equal)
+export function signal<T>(value?: T, options?: SignalOptions<T>) {
+  const signal = new Signal(value, options)
   return [signal.get.bind(signal), signal.set.bind(signal)]
 }
 
 // value is definitely assigned
 export function memo<T>(
   compute: (last: T) => T,
-  initial: T,
-  equal?: (a: T, b: T) => boolean,
+  options: MemoOptions<T> & { initial: T },
 ): () => T
 
 // value might be undefined
 export function memo<T>(
   compute: (last: T | undefined) => T,
-  initial?: T,
-  equal?: (a: T | undefined, b: T | undefined) => boolean,
+  options?: MemoOptions<T>,
 ): () => T
 
 // implementation
-export function memo<T>(
-  compute: (last?: T) => T,
-  initial?: T,
-  equal?: (a: T | undefined, b: T | undefined) => boolean,
-) {
-  const memo = new Memo(compute, initial, equal)
+export function memo<T>(compute: (last?: T) => T, options?: MemoOptions<T>) {
+  const memo = new Memo(compute, options)
   return memo.get.bind(memo)
 }
 
@@ -291,8 +333,8 @@ export function batch<T>(fn: () => T): T {
   }
 }
 
-export function root<T>(fn: () => T): Root<T> {
-  const scope = new Scope()
+export function root<T>(fn: () => T, options?: BaseOptions): Root<T> {
+  const scope = new Scope(options)
   const value = scope.run(fn)
   return {
     value,
@@ -307,26 +349,23 @@ export function root<T>(fn: () => T): Root<T> {
 export function preserveTracking(): <T>(fn: () => T) => T {
   const scope = currentScope
   const reactor = currentReactor
-  return (fn)=>{
+  return (fn) => {
     const parentScope = currentScope
     const parentReactor = currentReactor
     try {
-      currentScope=scope
-      currentReactor=reactor
+      currentScope = scope
+      currentReactor = reactor
       return fn()
     } finally {
-      currentScope=parentScope
-      currentReactor=parentReactor
+      currentScope = parentScope
+      currentReactor = parentReactor
     }
   }
 }
 
 export interface Context<T, Default extends T | undefined> {
   /** Renders an element with a given value for this context provider. */
-  <U>(props: { value: T; children: U }): U
-
-  /** Calls a function with a particular value for this context. */
-  with<U>(value: () => T, fn: () => U): U
+  <U>(props: { value: T; children: U; name?: Name }): U
 
   /** Gets the value of the context, or throws if it does not exist. */
   get(): T
@@ -342,36 +381,36 @@ export interface Context<T, Default extends T | undefined> {
 }
 
 // value is definitely assigned
-export function context<T>(defaultValue: T): Context<T, T>
+export function context<T>(
+  defaultValue: T,
+  options?: BaseOptions,
+): Context<T, T>
 
 // value might be undefined
-export function context<T>(defaultValue?: T | undefined): Context<T, undefined>
+export function context<T>(
+  defaultValue?: T | undefined,
+  options?: BaseOptions,
+): Context<T, undefined>
 
 // implementation
 export function context<T>(
   defaultValue?: T | undefined,
+  options?: BaseOptions,
 ): Context<T, undefined> {
   const id = Symbol()
 
-  function Provider<V>(props: { value: T; children: V }): V {
-    return Provider.with(
-      () => props.value,
-      () => props.children,
-    )
-  }
-
-  Provider.with = <U>(value: () => T, fn: () => U): U => {
-    const scope = new Scope()
+  function Provider<V>(props: { value: T; children: V; name?: Name }): V {
+    const scope = new Scope(props)
     scope.context = {
       ...scope.context,
       get [id]() {
-        return value()
+        return props.value
       },
     }
     const parentScope = currentScope
     try {
       currentScope = scope
-      return untrack(fn)
+      return untrack(() => props.children)
     } finally {
       currentScope = parentScope
     }
