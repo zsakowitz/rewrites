@@ -2,7 +2,7 @@
 
 import { signal } from "./core"
 import { render } from "./jsx-runtime"
-import { Suspense } from "./suspense"
+import { resource, Suspense } from "./suspense"
 
 async function AsyncComponent() {
   await new Promise((r) => setTimeout(r, 4000))
@@ -11,6 +11,10 @@ async function AsyncComponent() {
 
 function Main() {
   const [data, setData] = signal("23")
+  const [hi] = resource(async () => {
+    await new Promise((r) => setTimeout(r, 3000))
+    return "no"
+  })
   return (
     <div>
       <h1>hello</h1>
@@ -22,6 +26,7 @@ function Main() {
       <Suspense fallback="this should take a moment" name="the big one">
         <AsyncComponent />
       </Suspense>
+      <Suspense fallback="this one uses dynamic accesses">{hi()}</Suspense>
     </div>
   )
 }

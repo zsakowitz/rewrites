@@ -3,7 +3,6 @@ import {
   batch,
   context,
   memo,
-  root,
   signal,
   untrack,
   type MemoOptions,
@@ -61,25 +60,26 @@ export function Suspense<T, U>(props: {
     value: store,
     get children() {
       const children = memo(() => props.children)
-      let dispose: (() => void) | undefined
-      return memo<T | U | undefined>((prev) => {
-        if (showFallback()) {
-          if (dispose) {
-            return prev!
-          }
+      return memo(() => (showFallback() ? props.fallback : children()))
+      // let dispose: (() => void) | undefined
+      // return memo<T | U | undefined>((prev) => {
+      //   if (showFallback()) {
+      //     if (dispose) {
+      //       return prev!
+      //     }
 
-          const rooted = root(() => props.fallback)
-          dispose = rooted.dispose
-          return rooted.value
-        } else {
-          if (dispose) {
-            dispose()
-          }
-          dispose = undefined
+      //     const rooted = root(() => props.fallback)
+      //     dispose = rooted.dispose
+      //     return rooted.value
+      //   } else {
+      //     if (dispose) {
+      //       dispose()
+      //     }
+      //     dispose = undefined
 
-          return children()
-        }
-      })
+      //     return children()
+      //   }
+      // })
     },
   })
 }
@@ -165,7 +165,6 @@ export function resource<T>(
   fetcher: () => T,
   options?: MemoOptions<T>,
 ): ResourceMaybeUninit<T> {
-  const settle = addResource()
   const [state, setState] = signal<StateMaybeUninit<T>["state"]>(
     options && "initial" in options ? "refreshing" : "pending",
   )
@@ -197,12 +196,23 @@ export function resource<T>(
     },
   })
 
+  let settlers: (() => void)[] = []
+
   const get = memo(fetcher)
   let fetchId = 0
 
   refetch()
 
   return [source as any, { refetch, mutate: mutate as Setter<T | undefined> }]
+
+  function settle() {
+    settlers.forEach((x) => {
+      try {
+        x()
+      } catch {}
+    })
+    settlers = []
+  }
 
   async function refetch() {
     const id = ++fetchId
@@ -262,8 +272,10 @@ export function resource<T>(
 
   function source() {
     if (state() == "errored") {
+      addResource() // the return value is intentionally never called
       throw data()
     } else {
+      settlers.push(addResource())
       return data()
     }
   }
