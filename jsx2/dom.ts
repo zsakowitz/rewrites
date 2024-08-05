@@ -1,5 +1,6 @@
 import { untrack } from "./core"
 import { insert as insertEl, type JSX } from "./jsx-runtime"
+import { addResource } from "./suspense"
 
 export function template(html: string, isCE: boolean, isSVG: boolean) {
   let node: Node | undefined
@@ -18,6 +19,21 @@ export function insert(parent: Node, item: JSX.Element) {
   insertEl(parent, null, item)
 }
 
-export function createComponent<T, U>(fn: (x: T) => U, props: T): U {
-  return untrack(() => fn(props))
+export function createComponent<T, U extends JSX.Element>(
+  fn: (x: T) => U,
+  props: T,
+): U {
+  const result = untrack(() => fn(props))
+
+  if (
+    result &&
+    (typeof result == "object" || typeof result == "function") &&
+    "then" in result &&
+    typeof result.then == "function"
+  ) {
+    result.then(addResource())
+    return result
+  }
+
+  return result
 }

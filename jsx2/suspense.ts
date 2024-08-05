@@ -7,6 +7,7 @@ import {
   signal,
   untrack,
   type MemoOptions,
+  type Name,
 } from "./core"
 
 const SuspendContext = context<{
@@ -18,18 +19,33 @@ const SuspendContext = context<{
  * Renders `value` and `fallback`, displaying `fallback` until all added
  * resources in `value` have settled.
  */
+// definitely initialized
+export function Suspense<T, U>(props: {
+  children: T
+  fallback: U
+  name?: Name
+}): () => T | U
+
+// possibly undefined
 export function Suspense<T, U>(props: {
   children: T
   fallback?: U
+  name?: Name
+}): () => T | U | undefined
+
+// implementation
+export function Suspense<T, U>(props: {
+  children: T
+  fallback?: U
+  name?: Name
 }): () => T | U | undefined {
   let pendingResources = 0
-  const [showFallback, setShowFallback] = signal(false)
-  let disposeFallback: (() => void) | undefined
+  const [showFallback, setShowFallback] = signal(false, props)
 
   const store = {
     inc() {
       pendingResources++
-      if (pendingResources == 1) {
+      if (pendingResources > 0) {
         setShowFallback(true)
       }
     },
@@ -41,33 +57,31 @@ export function Suspense<T, U>(props: {
     },
   }
 
-  return untrack(() =>
-    SuspendContext({
-      value: store,
-      get children() {
-        const rendered = memo(() => props.children)
-
-        return memo<T | U | undefined>((prev) => {
-          if (!showFallback()) {
-            if (disposeFallback) {
-              disposeFallback()
-            }
-            disposeFallback = undefined
-            return rendered()
-          }
-
-          if (disposeFallback) {
+  return SuspendContext({
+    value: store,
+    get children() {
+      const children = memo(() => props.children)
+      let dispose: (() => void) | undefined
+      return memo<T | U | undefined>((prev) => {
+        if (showFallback()) {
+          if (dispose) {
             return prev!
           }
 
-          const rootValue = root(() => props.fallback)
-          disposeFallback = rootValue.dispose
+          const rooted = root(() => props.fallback)
+          dispose = rooted.dispose
+          return rooted.value
+        } else {
+          if (dispose) {
+            dispose()
+          }
+          dispose = undefined
 
-          return rootValue.value
-        })
-      },
-    }),
-  )
+          return children()
+        }
+      })
+    },
+  })
 }
 
 /**

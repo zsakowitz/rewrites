@@ -1,6 +1,5 @@
 import { effect, onCleanup, preserveTracking, root } from "./core"
-import { addResource } from "./suspense"
-import { JSX } from "./types"
+import type { JSX } from "./types"
 
 export function render(el: HTMLElement, fn: () => JSX.Element) {
   return root(() => insert(el, null, fn())).dispose
@@ -28,7 +27,6 @@ export function h(
   if (typeof props?.ref == "function") {
     props.ref(el as never)
   }
-  console.log(el)
   return el
 }
 
@@ -62,26 +60,14 @@ export function insert(
     typeof children == "object" &&
     typeof children.then == "function"
   ) {
-    const settle = addResource()
     const anchor = document.createComment("")
     parent.insertBefore(anchor, before)
     const recall = preserveTracking()
 
-    // this prevents us from accidentally inserting duplicate elements
-    let isSet = false
-
     Promise.resolve(
       // cast to `any` is needed to stop typescript thinking it's infinite
       children as any,
-    ).then((value) => {
-      if (!isSet) {
-        isSet = true
-        recall(() => {
-          settle()
-          insert(parent, anchor, value)
-        })
-      }
-    })
+    ).then((value) => recall(() => insert(parent, anchor, value)))
 
     return
   }

@@ -403,9 +403,7 @@ export function context<T>(
     const scope = new Scope(props)
     scope.context = {
       ...scope.context,
-      get [id]() {
-        return props.value
-      },
+      [id]: props.value,
     }
     const parentScope = currentScope
     try {
