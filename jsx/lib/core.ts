@@ -79,7 +79,6 @@ abstract class Reactor extends Scope {
     super(options)
 
     onCleanup(() => {
-      console.log("effect was cleaned up")
       for (const s of this.signals) {
         s.reactors.delete(this)
       }

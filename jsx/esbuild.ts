@@ -1,15 +1,29 @@
 /// <reference types="./lib/env" />
 
-import { context } from "esbuild"
+import { build, context, type BuildOptions } from "esbuild"
 import babel from "esbuild-plugin-babel"
 
-let ctx = await context({
+const opts: BuildOptions = {
   entryPoints: ["./jsx/index.tsx"],
   bundle: true,
   outdir: process.env.HOME + "/tmp",
   platform: "node",
   plugins: [babel()],
-})
+}
+
+if (process.argv.includes("--build")) {
+  await build(opts)
+  console.log(process.env.HOME + "/tmp/index.js")
+  process.exit()
+}
+
+if (process.argv.includes("--minify")) {
+  await build({ ...opts, minify: true })
+  console.log(process.env.HOME + "/tmp/index.js")
+  process.exit()
+}
+
+const ctx = await context(opts)
 
 await ctx.watch()
 
