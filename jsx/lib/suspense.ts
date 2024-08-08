@@ -61,25 +61,6 @@ export function Suspense<T, U>(props: {
     get children() {
       const children = memo(() => props.children)
       return memo(() => (showFallback() ? props.fallback : children()))
-      // let dispose: (() => void) | undefined
-      // return memo<T | U | undefined>((prev) => {
-      //   if (showFallback()) {
-      //     if (dispose) {
-      //       return prev!
-      //     }
-
-      //     const rooted = root(() => props.fallback)
-      //     dispose = rooted.dispose
-      //     return rooted.value
-      //   } else {
-      //     if (dispose) {
-      //       dispose()
-      //     }
-      //     dispose = undefined
-
-      //     return children()
-      //   }
-      // })
     },
   })
 }

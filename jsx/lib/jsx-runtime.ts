@@ -1,4 +1,4 @@
-import { effect, onCleanup, preserveTracking, root } from "./core"
+import { immediateEffect, onCleanup, preserveTracking, root } from "./core"
 import type { JSX } from "./types"
 
 export function render(el: HTMLElement, fn: () => JSX.Element) {
@@ -38,7 +38,7 @@ export function insertEl(
   if (typeof children == "function") {
     const anchor = document.createComment("")
     parent.insertBefore(anchor, before)
-    effect(() => insertEl(parent, anchor, children()))
+    immediateEffect(() => insertEl(parent, anchor, children()))
     return
   }
 

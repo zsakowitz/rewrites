@@ -39,13 +39,42 @@ class Named {
 class Scope extends Named {
   context: Record<symbol, any> | undefined
   readonly cleanups = new Set<() => void>()
+  private readonly owns: Scope[] = []
+  /** How many suspension levels are active (inheritable from parents). */
+  private suspended = 0
+  /** Effects queued to run after rendering is complete. */
+  private readonly queued = new Set<Reactor>()
 
-  constructor(options: BaseOptions | undefined) {
+  constructor(options: BaseOptions | undefined, parent = currentScope) {
     super(options)
 
-    if (currentScope) {
-      currentScope.cleanups.add(this.cleanup.bind(this))
-      this.context = currentScope.context
+    if (parent) {
+      parent.cleanups.add(this.cleanup.bind(this))
+      parent.owns.push(this)
+      this.context = parent.context
+      this.suspended = parent.suspended
+    }
+  }
+
+  suspend() {
+    this.suspended++
+    this.owns.forEach((child) => child.suspend())
+  }
+
+  unsuspend() {
+    this.suspended--
+    const parentScope = currentScope
+    const parentReactor = currentReactor
+    try {
+      currentScope = this
+      currentReactor = null
+      this.owns.forEach((child) => child.unsuspend())
+      const queued = Array.from(this.queued)
+      this.queued.clear()
+      queued.forEach((reactor) => reactor.fn())
+    } finally {
+      currentScope = parentScope
+      currentReactor = parentReactor
     }
   }
 
@@ -61,11 +90,22 @@ class Scope extends Named {
 
   run<T>(fn: () => T): T {
     const parentScope = currentScope
+    const parentReactor = currentReactor
     try {
       currentScope = this
+      currentReactor = null
       return fn()
     } finally {
       currentScope = parentScope
+      currentReactor = parentReactor
+    }
+  }
+
+  queue(reactor: Reactor) {
+    if (this.suspended) {
+      this.queued.add(reactor)
+    } else {
+      reactor.fn()
     }
   }
 }
@@ -87,7 +127,7 @@ abstract class Reactor extends Scope {
   }
 }
 
-class Effect<T> extends Reactor {
+class ImmediateEffect<T> extends Reactor {
   public value: T
 
   constructor(
@@ -113,7 +153,46 @@ class Effect<T> extends Reactor {
     try {
       currentScope = currentReactor = this
       this.cleanup()
-      const next = (0, this.effect)(this.value)
+      const next = batch(() => (0, this.effect)(this.value))
+      this.value = next
+    } finally {
+      currentScope = parentScope
+      currentReactor = parentReactor
+    }
+  }
+}
+
+class Effect<T> extends Reactor {
+  public value: T
+
+  constructor(
+    readonly effect: (value: T) => T,
+    options: EffectOptions<T> | undefined,
+  ) {
+    super(options)
+
+    // this is okay since we have total control over possible code paths
+    this.value = options?.initial!
+
+    if (currentScope) {
+      currentScope.queue(this)
+    } else {
+      this.fn()
+    }
+  }
+
+  fn(): void {
+    for (const s of this.signals) {
+      s.reactors.delete(this)
+    }
+    this.signals.clear()
+
+    let parentScope = currentScope
+    let parentReactor = currentReactor
+    try {
+      currentScope = currentReactor = this
+      this.cleanup()
+      const next = batch(() => (0, this.effect)(this.value))
       this.value = next
     } finally {
       currentScope = parentScope
@@ -252,6 +331,23 @@ export interface EffectOptions<T> extends BaseOptions {
   initial?: T
 }
 
+/** Creates an effect which is executed immediately. */
+export function immediateEffect<T>(
+  fn: (value: T) => T,
+  options: EffectOptions<T> & { initial: T },
+): void
+export function immediateEffect<T>(
+  fn: (value: T | undefined) => T | undefined,
+  options?: EffectOptions<T>,
+): void
+export function immediateEffect<T>(
+  fn: (value: T | undefined) => T,
+  options?: EffectOptions<T>,
+) {
+  new ImmediateEffect(fn, options)
+}
+
+/** Creates an effect which is deferred until rendering has completed. */
 export function effect<T>(
   fn: (value: T) => T,
   options: EffectOptions<T> & { initial: T },

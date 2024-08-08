@@ -1,4 +1,12 @@
-import { batch, effect, memo, onCleanup, root, signal, untrack } from "./core"
+import {
+  batch,
+  immediateEffect,
+  memo,
+  onCleanup,
+  root,
+  signal,
+  untrack,
+} from "./core"
 
 const [x, setX] = signal(23, function (a, b) {
   console.log(this)
@@ -20,7 +28,7 @@ setX(function () {
   return 89
 })
 
-effect(function () {
+immediateEffect(function () {
   onCleanup(function () {
     console.log(this)
   })
