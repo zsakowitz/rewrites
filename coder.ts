@@ -32,7 +32,12 @@ export abstract class Encoder<T> {
   /** Overwritable when `bytes.length` is constant */
   abstract bytes(bytes: Uint8Array): void
 
-  /** Dynamically sized */
+  /**
+   * Dynamically sized
+   *
+   * Suitable for array sizes, as JavaScript arrays have a maximum length of
+   * `2³² - 1`.
+   */
   writeU32(val: number) {
     const buf = new ArrayBuffer(4)
     new DataView(buf).setUint32(0, val)
@@ -234,6 +239,10 @@ export class VecBit {
     this.vec.setAddr(Math.floor(addr / 8))
     this.spaceLeft = addr % 8
   }
+
+  data() {
+    return this.vec.data()
+  }
 }
 
 export class DualArrayEncoder extends Encoder<[number, number]> {
@@ -260,13 +269,31 @@ export class DualArrayEncoder extends Encoder<[number, number]> {
   bytes(bytes: Uint8Array): void {
     this.u8s.pushAll(bytes)
   }
+
+  toBlob(): Blob {
+    const bits = this.bits.data()
+    const bytes = this.u8s.data()
+
+    const bitlen = new DataView(new ArrayBuffer(4))
+    bitlen.setUint32(0, bits.length)
+
+    return new Blob([bitlen, bits, bytes])
+  }
 }
 
 export class DualArrayDecoder extends Decoder<[number, number]> {
   private readonly u8s
   private readonly bits
 
-  constructor(u8: Uint8Array, bits: Uint8Array) {
+  static async fromBlob(blob: Blob) {
+    const buf = await blob.arrayBuffer()
+    const bitlen = new DataView(buf.slice(0, 4)).getUint32(0)
+    const bits = new Uint8Array(buf, 4, bitlen)
+    const bytes = new Uint8Array(buf, 4 + bitlen)
+    return new DualArrayDecoder(bits, bytes)
+  }
+
+  constructor(bits: Uint8Array, u8: Uint8Array) {
     super()
     this.u8s = new VecU8(u8)
     this.bits = new VecBit(bits)
