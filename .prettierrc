@@ -4,7 +4,7 @@
   "trailingComma": "all",
   "overrides": [
     {
-      "files": "lambda.js",
+      "files": "lambda-in-js.js",
       "options": { "arrowParens": "avoid", "semi": false }
     },
     {
