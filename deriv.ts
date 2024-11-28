@@ -211,7 +211,8 @@ export function str(expr: Expr): string {
     case "call":
       return (
         expr.name +
-        (["", "¹", "²", "³", "⁴"][expr.ticks] || "'".repeat(expr.ticks)) +
+        (["", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"][expr.ticks] ||
+          "'".repeat(expr.ticks)) +
         (expr.body.type == "x" ? "" : "(" + str(expr.body) + ")")
       )
     case "prod":
@@ -225,9 +226,8 @@ export function estr(expr: Expr): string {
   return "\n  " + expand(expr).map(sort).sort(order).map(str).join("\n+ ")
 }
 
-console.log(estr(INITIAL))
-console.log(estr(deriv(INITIAL)))
-console.log(estr(deriv(deriv(INITIAL))))
-console.log(estr(deriv(deriv(deriv(INITIAL)))))
-console.log(estr(deriv(deriv(deriv(deriv(INITIAL))))))
-console.log(estr(deriv(deriv(deriv(deriv(deriv(INITIAL)))))))
+let i: Expr = INITIAL
+for (let x = 1; x < 9; x++) {
+  i = deriv(i)
+  console.log(estr(i).split("\n").length - 1)
+}
