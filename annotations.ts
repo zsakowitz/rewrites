@@ -1,3 +1,7 @@
+// Utilities for figuring out the relation between pages annotated in a book
+// when examined a few times and total percentage of pages annotated in that
+// same book.
+
 import { shuffle } from "./shuffle"
 
 export function runOnce(

@@ -3,13 +3,16 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 204 files
+standard library implemented solely in the TS type system. Enjoy the 338 files
 this repository has to offer.
 
 # File listing
 
 **[#.ts](./#.ts)** (parser): A parser for a programming language where every
 instruction is a single symbol.
+
+**[2048.ts](./2048.ts)**: A bot for running algorithms on the 2048 board found
+(I believe) at https://2048game.com/.
 
 **[README.ts](./README.ts)**: The README generator for this repo.
 
@@ -18,6 +21,10 @@ Promise-like syntax and then-chaining.
 
 **[animation.ts](./animation.ts)**: Draws a cool animation with points and lines
 connecting them.
+
+**[annotations.ts](./annotations.ts)**: Utilities for figuring out the relation
+between pages annotated in a book when examined a few times and total percentage
+of pages annotated in that same book.
 
 **[any.ts](./any.ts)**: A value that returns itself for any and all operations.
 Type: `any`.
@@ -53,6 +60,10 @@ Incomplete.
 proper keyboard shortcuts to StackBlitz and doubles the speed of a video in
 YouTube when activated.
 
+**[complex.ts](./complex.ts)**: An arbitrary precision complex number library.
+
+**[conjuncts3.js](./conjuncts3.js)**: @ts-check
+
 **[curry.ts](./curry.ts)** (typesystem): A TypeScript type for currying
 functions.
 
@@ -85,6 +96,9 @@ event listeners.
 **[emitter-2.ts](./emitter-2.ts)**: A strongly types event emitter that uses
 async generators.
 
+**[enchants.ts](./enchants.ts)**: Sourced from
+https://github.com/iamcal/enchant-order/blob/main/data.js
+
 **[encode-uri.js](./encode-uri.js)**: Encodes standard input into a javascript:
 bookmark.
 
@@ -105,7 +119,13 @@ library for CodeMirror v6.
 **[fraction.ts](./fraction.ts)**: Expresses arbitrary precision fractions using
 bigints.
 
+**[gamma.ts](./gamma.ts)**: Adapted from npm's `gamma` to work with
+`decimal.js`.
+
 **[hooks.ts](./hooks.ts)** (rewrite): An implementation of React Hooks.
+
+**[hurgschetax.ts](./hurgschetax.ts)**:
+https://stackoverflow.com/a/37580979/17763661
 
 **[imply.ts](./imply.ts)**: All boolean operations implemented from a single
 IMPLY gate.
@@ -297,7 +317,11 @@ costs low. Functional style.
 
 **[tetration.ts](./tetration.ts)**: Tetration is repeated exponentiation. It is
 defined for any base `a` and any natural "exponent" `n` as the following: a^^0 =
-1, a^^n = a^(a^^(n-1)).
+1, a^^n = a^(a^^(n-1)). However, it can be extended to complex exponents using
+formulas. One of these such extensions is available on MathOverflow at
+https://mathoverflow.net/a/259371. This file implements the extension proposed
+there. I'd provide an accompanying Desmos graph, but Desmos doesn't understand
+tetration.
 
 **[the-bulba-game.ts](./the-bulba-game.ts)**: A board generator for a fun game.
 
@@ -339,6 +363,9 @@ the WebAuthn API.
 **[wikipedia.ts](./wikipedia.ts)**: An engine that can look through Wikipedia
 links.
 
+**[wordle.ts](./wordle.ts)**: Everything is strings of characters to avoid
+Unicode weirdness.
+
 **[worker-1.ts](./worker-1.ts)**: A simple way to run functions off the main
 thread with one-way or bi-directional communication.
 
@@ -347,6 +374,10 @@ workers.
 
 **[yet-another-js-framework.tsx](./yet-another-js-framework.tsx)**: Yet another
 JS framework.
+
+**[ytm-playlist-urls-only.ts](./ytm-playlist-urls-only.ts)**: Prints the URLs to
+audio files of a YouTube playlist. To run it, type
+`zsh node $(esbuild ytm-playlist-urls-only.ts) -- "YOUR_PLAYLIST_URL" `
 
 **[ytm-playlist.ts](./ytm-playlist.ts)**: Downloads a YouTube playlist as MP3
 files.
@@ -421,6 +452,12 @@ render an object.
 **[genesis/stores.ts](./genesis/stores.ts)**: Genesis stores to track values,
 objects, and computed properties.
 
+**[ithkuil-3/tokenize/formative.ts](./ithkuil-3/tokenize/formative.ts)**: (H?
+V)? C V C (VC...) (VH)? V? (H? V)? C V (CV...) CG (VC...) (VH)? V?
+
+**[ithkuil-4/els.ts](./ithkuil-4/els.ts)**: const source = ["2x+1", "x+y",
+"2y+1", "x-2", "y-6", "9"]
+
 **[javascript-weirdness/missing-private-fields.ts](./javascript-weirdness/missing-private-fields.ts)**
 (x): Creates a class object which is missing one of its private fields it's
 supposed to have, leading to issues with ` in instance`.
@@ -429,6 +466,12 @@ supposed to have, leading to issues with ` in instance`.
 Utilities for creating private fields on plain objects. As is noted in the
 proposal (tc39/proposal-class-fields), private fields are really syntax sugar
 for WeakMaps, so this is allowed.
+
+**[jsx/esbuild.ts](./jsx/esbuild.ts)**: / <reference types="./lib/env" />
+
+**[lang/parse-sheet.ts](./lang/parse-sheet.ts)**: Parses CSV data from the
+Lexicon spreadsheet linked below:
+https://docs.google.com/spreadsheets/d/1qpxvttgr-3KufzZU9b5sFkOF6pr8elWyKmr7xkjP-Ds/edit
 
 **[motion/action.ts](./motion/action.ts)**: An action type and helpers for
 Motion.
@@ -460,9 +503,9 @@ specifically for animations.
 **[motion/scenes/rectangles.ts](./motion/scenes/rectangles.ts)**: A Motion scene
 using rectangles.
 
-**[nimbus/h.ts](./nimbus/h.ts)**: / <reference types="../jsx" />
+**[nimbus/h.ts](./nimbus/h.ts)**: / <reference types="../jsx.js" />
 
-**[nimbus/render.ts](./nimbus/render.ts)**: / <reference types="../jsx" />
+**[nimbus/render.ts](./nimbus/render.ts)**: / <reference types="../jsx.js" />
 
 **[observable/index.ts](./observable/index.ts)**: An implementation of the
 Observable proposal.
@@ -516,6 +559,8 @@ type safe system for parsing text. Works with `--noEmit`.
 **[parsers/parser-7.types.ts](./parsers/parser-7.types.ts)**: Extra types for
 parser-7.
 
+**[regex/index-precise.ts](./regex/index-precise.ts)**: @ts-nocheck
+
 **[scheduler/time.ts](./scheduler/time.ts)**: A `Time` class that stores hours
 and minutes. Can be used to create random times, convert a time to a date, or
 create a range of random times.
@@ -525,24 +570,17 @@ with signals in classes easy.
 
 **[signal/index.ts](./signal/index.ts)**: Another implementation of signals.
 
-**[signal/impls/minimal.ts](./signal/impls/minimal.ts)**: A minimal
-implementation of signals that assumes effects will never throw.
+**[signal/impls/01-svelte-stores.ts](./signal/impls/01-svelte-stores.ts)**
+(rewrite): An implementation of Svelte stores.
 
-**[signal/impls/reactive-js.ts](./signal/impls/reactive-js.ts)**: A library with
-reactive primitives
+**[signal/impls/02-solid-stores.ts](./signal/impls/02-solid-stores.ts)**
+(rewrite): An implementation of SolidJS's signals, effects, and memos.
 
-**[signal/impls/signal-decorators.ts](./signal/impls/signal-decorators.ts)**: A
-set of decorators that make working with signals, memos, and effects easier.
+**[signal/impls/03-tiny-store.ts](./signal/impls/03-tiny-store.ts)**: A simple
+signal, effect, memo, and computed library based on SolidJS.
 
-**[signal/impls/signal.ts](./signal/impls/signal.ts)**: A signal implementation
-featuring effects, signals, memos, caching, `untrack`, `batch`, and
-unsubscribing.
-
-**[signal/impls/solid-stores.ts](./signal/impls/solid-stores.ts)** (rewrite): An
-implementation of SolidJS's signals, effects, and memos.
-
-**[signal/impls/stores.ts](./signal/impls/stores.ts)**: An implementation and
-comparison of stores from multiple frameworks, each with: `derived`, which
+**[signal/impls/04-stores.ts](./signal/impls/04-stores.ts)**: An implementation
+and comparison of stores from multiple frameworks, each with: `derived`, which
 creates a store whose value is computed based on other stores; `effect`, which
 runs an effect when the values of one or more stores change; `get`, which
 retrieves the value of a store; `readable`, which creates a store that is
@@ -550,11 +588,18 @@ read-only; `untrack`, which performs a side effect on multiple stores without
 subscribing to them; and `writable`, which creates a store that is readable and
 writable.
 
-**[signal/impls/svelte-stores.ts](./signal/impls/svelte-stores.ts)** (rewrite):
-An implementation of Svelte stores.
+**[signal/impls/05-signal.ts](./signal/impls/05-signal.ts)**: A signal
+implementation featuring effects, signals, memos, caching, `untrack`, `batch`,
+and unsubscribing.
 
-**[signal/impls/tiny-store.ts](./signal/impls/tiny-store.ts)**: A simple signal,
-effect, memo, and computed library based on SolidJS.
+**[signal/impls/06-signal-decorators.ts](./signal/impls/06-signal-decorators.ts)**:
+A set of decorators that make working with signals, memos, and effects easier.
 
-**[signal/impls/with-roots.ts](./signal/impls/with-roots.ts)**: A signal
+**[signal/impls/07-reactive-js.ts](./signal/impls/07-reactive-js.ts)**: A
+library with reactive primitives
+
+**[signal/impls/08-minimal.ts](./signal/impls/08-minimal.ts)**: A minimal
+implementation of signals that assumes effects will never throw.
+
+**[signal/impls/09-with-roots.ts](./signal/impls/09-with-roots.ts)**: A signal
 implementation that allows for cleanup functions.

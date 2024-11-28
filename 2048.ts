@@ -1,3 +1,6 @@
+// A bot for running algorithms on the 2048 board found (I believe) at
+// https://2048game.com/.
+
 type CellValue =
   | 2
   | 4

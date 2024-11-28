@@ -81,6 +81,10 @@ const bodies = sortFilenames(files).map(async (path) => {
 
   const body = info.join(" ").replace(/#\w+/g, "").replace(/\s+/g, " ").trim()
 
+  if (!body) {
+    return ""
+  }
+
   return `**[${path}](./${path})**${tags ? " (" + tags + ")" : ""}${
     body ? ": " + body : ""
   }`
