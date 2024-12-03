@@ -276,3 +276,92 @@ Object.prototype.log = function () {
   console.log(this)
   return this
 }
+
+Number.prototype.max = function (...args) {
+  return Math.max(this, ...args)
+}
+
+Number.prototype.min = function (...args) {
+  return Math.min(this, ...args)
+}
+
+const CLAMP_WARN = Symbol("using .clamp() with max<min")
+Number.prototype.clamp = function (min, max) {
+  if (max < min) {
+    warn(CLAMP_WARN)
+  }
+  if (this < min) return min
+  if (this > max) return max
+  return this
+}
+
+Number.prototype.floor = function () {
+  return Math.floor(this)
+}
+
+Number.prototype.ceil = function () {
+  return Math.ceil(this)
+}
+
+Number.prototype.abs = function () {
+  return Math.abs(this)
+}
+
+String.prototype.count = function (arg) {
+  if (typeof arg == "string") {
+    return (this.length - this.replaceAll(arg, "").length) / arg.length
+  }
+}
+
+String.prototype.chars = function () {
+  return this.split("")
+}
+
+Number.prototype.sub = function (b) {
+  return this - b
+}
+
+Object.prototype.do = function (f) {
+  return f(this)
+}
+
+globalThis.kbr = (f) => {
+  class Break {
+    v
+  }
+
+  const lastBr = globalThis.br
+  try {
+    globalThis.br = function (v) {
+      const br = new Break()
+      br.v = v
+      throw br
+    }
+    return f()
+  } catch (error) {
+    if (error instanceof Break) {
+      return error.v
+    } else {
+      return
+    }
+  } finally {
+    globalThis.br = lastBr
+  }
+}
+
+Array.prototype.reduceRaw = Array.prototype.reduce
+Array.prototype.reduceRightRaw = Array.prototype.reduceRight
+
+Array.prototype.reduce = function (f, acc) {
+  return kbr(() =>
+    arguments.length == 1 ? this.reduceRaw(f) : this.reduceRaw(f, acc),
+  )
+}
+
+Array.prototype.reduceRight = function (f, acc) {
+  return kbr(() =>
+    arguments.length == 1
+      ? this.reduceRightRaw(f)
+      : this.reduceRightRaw(f, acc),
+  )
+}
