@@ -1,3 +1,5 @@
+"use strict"
+
 if (typeof process != "undefined") {
   const fs = await import("fs")
   globalThis.input = (x) =>
@@ -12,38 +14,26 @@ globalThis.check = (actual, expected) => {
   }
 }
 
-function warn(name, f) {
-  let didWarn = false
+const DID_WARN = new WeakMap()
+function warn(name) {
+  if (!DID_WARN.get(name)) {
+    console.warn(`${name} IS A CRIME AND MAY RESULT IN INCORRECT BEHAVIOR`)
+    DID_WARN.set(name, true)
+    setTimeout(() => DID_WARN.delete(name))
+  }
+}
+
+function addWarning(proto, key, sym) {
+  const original = proto[key]
   return function () {
-    if (!didWarn) {
-      console.warn(`using ${name} is BAD BAD BAD BAD DIE SAKAWI BAIIIII`)
-      setTimeout(() => (didWarn = false))
-    }
-    return f.apply(this, arguments)
+    warn(sym)
+    return original.apply(this, arguments)
   }
 }
-
-globalThis.fnify = function (x) {
-  if (Symbol.fnify in x) {
-    return x[Symbol.fnify]()
-  }
-
-  if (typeof x == "function") {
-    return x
-  }
-
-  if (x instanceof RegExp) {
-    return (text) => x.test(text)
-  }
-
-  return (y) => x === y
-}
-
-Symbol.fnify ??= Symbol("fnify")
 
 Array.prototype.sby = Array.prototype.sort
 
-Array.prototype.sort = warn("Array.prototype.sort", Array.prototype.sort)
+addWarning(Array.prototype, "sort", Symbol("Array.prototype.sort"))
 
 Array.prototype.sum = function (f = (x) => +x) {
   return this.reduce((a, b) => a + f(b), 0)
@@ -132,16 +122,18 @@ Number.prototype.sd = function (other) {
   return this - other
 }
 
-Array.prototype.is = function (val) {
-  return this.filter(fnify(val))
+Array.prototype.filterByFnRaw = Array.prototype.filter
+
+Array.prototype.filter = function (val) {
+  return this.filterByFnRaw(val.fn())
 }
 
 Array.prototype.count = function (val) {
-  return this.is(val).length
+  return this.filter(val).length
 }
 
 Array.prototype.w = function (size) {
-  return Array.from({ length: this.length - size }, (_, i) =>
+  return Array.from({ length: this.length - size + 1 }, (_, i) =>
     Array.from({ length: size }, (_, j) => this[i + j]),
   )
 }
@@ -178,7 +170,16 @@ Array.prototype.isneg = function () {
   return this.every((x) => x.isneg())
 }
 
+const WARN_RANGE_TO_INVERTED = Symbol("passed an inverted range to 'rangeTo'")
 globalThis.rangeTo = function (min, max) {
+  if (max < min) {
+    warn()
+  }
+
+  function has(x) {
+    return x % 1 === 0 && min <= x && x < max
+  }
+
   return Object.assign(
     (function* () {
       for (let i = min; i < max; i++) {
@@ -186,23 +187,17 @@ globalThis.rangeTo = function (min, max) {
       }
     })(),
     {
-      [Symbol.fnify]() {
-        return function (x) {
-          return x % 1 === 0 && min <= x && x < max
-        }
-      },
-      has(x) {
-        return x % 1 === 0 && min <= x && x < max
-      },
+      fn: () => has,
+      has,
     },
   )
 }
 
-globalThis.rx = function (min, max) {
+globalThis.rx = function (min, max, step) {
   return typeof max == "undefined" ? rangeTo(0, min) : rangeTo(min, max)
 }
 
-globalThis.ri = function (min, max) {
+globalThis.ri = function (min, max, step) {
   return typeof max == "undefined" ? rangeTo(0, min + 1) : rangeTo(min, max + 1)
 }
 
@@ -211,19 +206,22 @@ Object.prototype.iter = function () {
 }
 
 Array.prototype.everyany = Array.prototype.everyAny = function (...fns) {
-  return fns.reduce((a, fn) => a || this.every(fn), false)
+  for (const fn of fns) {
+    if (this.every(fn)) return true
+  }
+  return false
 }
 
 Array.prototype.everyFn = Array.prototype.every
 
 Array.prototype.every = function (f = (x) => x) {
-  return this.everyFn(fnify(f))
+  return this.everyFn(f.fn())
 }
 
 Array.prototype.someFn = Array.prototype.some
 
 Array.prototype.some = function (f = (x) => x) {
-  return this.someFn(fnify(f))
+  return this.someFn(f.fn())
 }
 
 Array.prototype.none = function (f) {
@@ -234,7 +232,7 @@ Array.prototype.wo = function (idx) {
   return this.toSpliced(idx, 1)
 }
 
-Array.prototype.idxs = Array.prototype.indexes = function (f) {
+Array.prototype.idxs = Array.prototype.indexes = function (f = (x) => x) {
   return this.map((_value, index, array) => f(index, array))
 }
 
@@ -251,4 +249,30 @@ Iterator.prototype.sum = function (f = (x) => x.num()) {
 
 Iterator.prototype.prod = function (f = (x) => x.num()) {
   return this.reduce((a, b) => a * f(b), 1)
+}
+
+Number.prototype.check = function (expected) {
+  check(this, expected)
+  return this
+}
+
+Function.prototype.fn = function () {
+  return this
+}
+
+Number.prototype.fn = function () {
+  return (x) => x === this
+}
+
+String.prototype.fn = function () {
+  return (x) => (x instanceof RegExp ? this.test(x) : x === this)
+}
+
+RegExp.prototype.fn = function () {
+  return (x) => this.test(x)
+}
+
+Object.prototype.log = function () {
+  console.log(this)
+  return this
 }
