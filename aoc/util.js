@@ -365,3 +365,50 @@ Array.prototype.reduceRight = function (f, acc) {
       : this.reduceRightRaw(f, acc),
   )
 }
+
+globalThis.PointRaw = class Point {
+  x
+  y
+  z
+
+  constructor(x, y, z) {
+    this.x = x
+    this.y = y
+    this.z = z
+  }
+
+  fn() {
+    return (x) => this.eq(x)
+  }
+
+  eq(other) {
+    return (
+      this.x === other.x &&
+      this.y === other.y &&
+      (this.z === undefined || this.z === other.z)
+    )
+  }
+
+  /** Index in a grid like
+   *
+   * ```
+   * 1 3 6 10
+   * 2 5 9
+   * 4 8
+   * 7
+   * ```
+   */
+  idxbrbrbr() {
+    return ((this.y + this.x - 1) * (this.y + this.x - 2)) / 2 + this.x
+  }
+}
+
+globalThis.pt =
+  globalThis.Pt =
+  globalThis.point =
+  globalThis.Point =
+    function (x, y, z) {
+      return new PointRaw(x, y, z)
+    }
+
+pt.prototype = PointRaw.prototype
