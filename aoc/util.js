@@ -23,11 +23,18 @@ if (typeof process == "object") {
 const DID_WARN = new WeakMap()
 function warn(name) {
   if (!DID_WARN.get(name)) {
-    const error = new Error(`WARN: ${name.toString().slice(7, -1)}`)
-    let [msg, ...stack] = error.stack.lines()
-    stack = stack.join("\n")
-    if (stack) stack = "\n" + stack
-    console.warn(colors.red + msg + colors.dim + stack + colors.reset)
+    const label = `WARN: ${name.toString().slice(7, -1)}`
+
+    if (typeof process == "undefined") {
+      console.warn(label)
+    } else {
+      const error = new Error(label)
+      let [msg, ...stack] = error.stack.lines()
+      stack = stack.join("\n")
+      if (stack) stack = "\n" + stack
+      console.warn(colors.red + msg + colors.dim + stack + colors.reset)
+    }
+
     DID_WARN.set(name, true)
     setTimeout(() => DID_WARN.delete(name))
   }
