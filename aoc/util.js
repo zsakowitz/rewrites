@@ -1,5 +1,18 @@
 "use strict"
 
+const colors = {
+  black: "\u001b[30m",
+  blue: "\u001b[34m",
+  cyan: "\u001b[36m",
+  dim: "\u001b[2m",
+  green: "\u001b[32m",
+  magenta: "\u001b[35m",
+  red: "\u001b[31m",
+  reset: "\u001b[0m",
+  white: "\u001b[37m",
+  yellow: "\u001b[33m",
+}
+
 let /** @type {import("node:fs")} */ fs
 let /** @type {import("node:path")} */ path
 if (typeof process == "object") {
@@ -10,7 +23,11 @@ if (typeof process == "object") {
 const DID_WARN = new WeakMap()
 function warn(name) {
   if (!DID_WARN.get(name)) {
-    console.warn(`WARN: ${name.toString().slice(7, -1)}`)
+    const error = new Error(`WARN: ${name.toString().slice(7, -1)}`)
+    let [msg, ...stack] = error.stack.lines()
+    stack = stack.join("\n")
+    if (stack) stack = "\n" + stack
+    console.warn(colors.red + msg + colors.dim + stack + colors.reset)
     DID_WARN.set(name, true)
     setTimeout(() => DID_WARN.delete(name))
   }
@@ -383,9 +400,11 @@ Iterator.prototype.prod = function (f = (x) => +x) {
 
 Number.prototype.check = function (expected) {
   if (this !== expected) {
-    throw new Error(`expected ${expected} but got ${this}`)
+    throw new Error(
+      `${colors.red}FAILED: expected ${expected} but got ${this}${colors.reset}`,
+    )
   } else {
-    console.log(`everythings fine with ${expected}`)
+    console.log(`${colors.green}PASSED: ${expected}${colors.reset}`)
   }
   return this
 }
@@ -393,7 +412,7 @@ Number.prototype.check = function (expected) {
 Object.prototype.check = function (expected) {
   console.error(this)
   throw new Error(
-    `expected ${expected} but got the above (TOTALLY DIFFERENT DATATYPES)`,
+    `${colors.red}FAILED: expected ${expected} but got the above (TOTALLY DIFFERENT DATA TYPES)${colors.reset}`,
   )
 }
 
@@ -575,6 +594,38 @@ globalThis.PointRaw = class Point {
       this.z === undefined ? undefined : this.z + p.z,
     )
   }
+
+  t() {
+    return this.add(pt(0, -1, 0))
+  }
+
+  b() {
+    return this.add(pt(0, 1, 0))
+  }
+
+  l() {
+    return this.add(pt(-1, 0, 0))
+  }
+
+  r() {
+    return this.add(pt(1, 0, 0))
+  }
+
+  tl() {
+    return this.add(pt(-1, -1, 0))
+  }
+
+  tr() {
+    return this.add(pt(1, -1, 0))
+  }
+
+  bl() {
+    return this.add(pt(-1, 1, 0))
+  }
+
+  br() {
+    return this.add(pt(1, 1, 0))
+  }
 }
 
 globalThis.pt =
@@ -638,7 +689,9 @@ Array.prototype.lcm = function (...args) {
 }
 
 const symfetchinginput = Symbol("fetching input... will return promise")
-
+const symimplicitinput = Symbol(
+  "using implicit arguments for 'input()' will break tomorrow",
+)
 globalThis.input = function (year = today()[0], day = today()[1]) {
   if (
     typeof year != "number" ||
@@ -652,6 +705,9 @@ globalThis.input = function (year = today()[0], day = today()[1]) {
   const url = `https://adventofcode.com/${year}/day/${day}/input`
 
   if (typeof process == "object") {
+    if (arguments.length != 2) {
+      warn(symimplicitinput)
+    }
     const file = new URL(
       "./.aoc/" + code,
       new URL("file://" + process.env.PWD + "/"),
@@ -780,7 +836,7 @@ globalThis.Grid = class Grid extends Array {
   }
 
   get(v) {
-    return this[v.i][v.j]
+    return this[v.i]?.[v.j]
   }
 
   has(v) {
@@ -794,6 +850,9 @@ globalThis.Grid = class Grid extends Array {
   diag(pt, x, y) {
     if (Math.abs(x) != Math.abs(y)) {
       throw new Error("Called .diag() with values of different sizes")
+    }
+    if (!this.has(pt)) {
+      return null
     }
     const row = [this.get(pt)]
     if (x < 0) {

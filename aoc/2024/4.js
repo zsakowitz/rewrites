@@ -24,22 +24,17 @@ import "../util.js"
 
 // p2
 {
-  const i = input()
-  const a = i.lines().map((x) => x.chars())
-  let b = 0
-  for (let i = 1; i < a.length - 1; i++) {
-    for (let j = 1; j < a[0].length - 1; j++) {
-      b += +(
-        +(
-          a[i - 1]?.[j - 1] + a[i]?.[j] + a[i + 1]?.[j + 1] == "MAS" ||
-          a[i - 1]?.[j - 1] + a[i]?.[j] + a[i + 1]?.[j + 1] == "SAM"
-        ) &&
-        +(
-          a[i - 1]?.[j + 1] + a[i]?.[j] + a[i + 1]?.[j - 1] == "MAS" ||
-          a[i - 1]?.[j + 1] + a[i]?.[j] + a[i + 1]?.[j - 1] == "SAM"
-        )
+  const i = input(2024, 4)
+  const a = i.grid()
+  a.k()
+    .sum((pt) => {
+      const { i, j } = pt
+      return +(
+        (a.diag(pt.tl(), 2, 2)?.join("") == "MAS" ||
+          a.diag(pt.tl(), 2, 2)?.join("") == "SAM") &&
+        (a[i - 1]?.[j + 1] + a[i]?.[j] + a[i + 1]?.[j - 1] == "MAS" ||
+          a[i - 1]?.[j + 1] + a[i]?.[j] + a[i + 1]?.[j - 1] == "SAM")
       )
-    }
-  }
-  b.check(1923)
+    })
+    .check(1923)
 }
