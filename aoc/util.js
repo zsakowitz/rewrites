@@ -633,9 +633,11 @@ globalThis.input = function (year = today()[0], day = today()[1]) {
   }
 
   if (typeof localStorage == "object") {
-    warn(symcachedinput)
     const value = localStorage.getItem(code)
-    if (value) return value
+    if (value) {
+      warn(symcachedinput)
+      return value
+    }
   }
 
   const req = new XMLHttpRequest()
