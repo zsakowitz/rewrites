@@ -512,6 +512,22 @@ globalThis.PointRaw = class Point {
   y
   z
 
+  get r() {
+    return this.y
+  }
+
+  get c() {
+    return this.x
+  }
+
+  get i() {
+    return this.y
+  }
+
+  get j() {
+    return this.x
+  }
+
   constructor(x, y, z) {
     this.x = x
     this.y = y
@@ -693,4 +709,69 @@ Object.prototype.kbr = function (f) {
 
 Array.prototype.rbr = function (f, acc) {
   return kbr(() => this.reduce(f, acc))
+}
+
+String.prototype.tx = function () {
+  return this.lines()
+    .map((x) => x.chars())
+    .tx()
+    .map((x) => x.join(""))
+    .join("\n")
+}
+
+String.prototype.grid = function () {
+  return this.lines()
+    .map((x) => x.chars())
+    .grid()
+}
+
+globalThis.Grid = class Grid extends Array {
+  arr() {
+    this.__proto__ = Array.prototype
+    return this
+  }
+
+  str() {
+    return this.map((x) => x.join("")).join("\n")
+  }
+
+  *enum() {
+    for (let i = 0; i < this.length; i++) {
+      const row = this[i]
+      for (let j = 0; j < row.length; j++) {
+        yield [row[j], pt(j, i)]
+      }
+    }
+  }
+
+  *v() {
+    for (let i = 0; i < this.length; i++) {
+      const row = this[i]
+      for (let j = 0; j < row.length; j++) {
+        yield row[j]
+      }
+    }
+  }
+
+  *k() {
+    for (let i = 0; i < this.length; i++) {
+      const row = this[i]
+      for (let j = 0; j < row.length; j++) {
+        yield pt(j, i)
+      }
+    }
+  }
+
+  get(v) {
+    return this[v.y][v.x]
+  }
+
+  col(i) {
+    return this.map((row) => row[i])
+  }
+}
+
+Array.prototype.grid = function () {
+  this.__proto__ = Grid.prototype
+  return this
 }

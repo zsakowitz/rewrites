@@ -3,13 +3,13 @@ import "./load.js"
 
 if (isMainThread) {
   const queued = [
-    "./2015/day1.js",
-    "./2015/day25.js",
+    "./2015/1.js",
+    "./2015/25.js",
 
-    "./2024/day1.js",
-    "./2024/day2.js",
-    "./2024/day3.js",
-    "./2024/day4.js",
+    "./2024/1.js",
+    "./2024/2.js",
+    "./2024/3.js",
+    "./2024/4.js",
   ]
 
   for (let i = 0; i < 8; i++) {
