@@ -4,31 +4,21 @@ import "../util.js"
 {
   const i = input(2024, 4)
   const a = i.grid()
-  let b = 0
-  for (const { i, j } of a.k()) {
-    b +=
-      +(
-        a[i][j] + a[i + 1]?.[j + 1] + a[i + 2]?.[j + 2] + a[i + 3]?.[j + 3] ==
-        "XMAS"
-      ) +
-      +(
-        a[i][j] + a[i + 1]?.[j + 1] + a[i + 2]?.[j + 2] + a[i + 3]?.[j + 3] ==
-        "SAMX"
-      ) +
-      +(
-        a[i][j] + a[i - 1]?.[j + 1] + a[i - 2]?.[j + 2] + a[i - 3]?.[j + 3] ==
-        "XMAS"
-      ) +
-      +(
-        a[i][j] + a[i - 1]?.[j + 1] + a[i - 2]?.[j + 2] + a[i - 3]?.[j + 3] ==
-        "SAMX"
-      )
-  }
+
   ;(
-    b +
-    i.match(/XMAS/g).length +
-    i.match(/SAMX/g).length +
-    i.tx().do((i) => i.match(/XMAS/g).length + i.match(/SAMX/g).length)
+    i
+      .grid()
+      .k()
+      .sum(
+        (q) =>
+          (a.diag(q, 3, 3)?.join("") == "XMAS") +
+          (a.diag(q, 3, 3)?.join("") == "SAMX") +
+          (a.diag(q, 3, -3)?.join("") == "XMAS") +
+          (a.diag(q, 3, -3)?.join("") == "SAMX"),
+      ) +
+    i.count("XMAS") +
+    i.count("SAMX") +
+    i.tx().do((i) => i.count("XMAS") + i.count("SAMX"))
   ).check(2504)
 }
 

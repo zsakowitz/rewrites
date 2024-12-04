@@ -50,15 +50,16 @@ addWarning(
   },
 )
 
-const symsum = Symbol(".sum() is returning a non-number")
+const symsum = Symbol(".sum() returned a non-number")
+
 Array.prototype.sum = function (f = (x) => +x) {
-  const val = this.reduce((a, b) => a + f(b), 0)
+  const val = this.reduce((a, b, i, arr) => a + f(b, i, arr), 0)
   if (typeof val != "number") warn(symsum)
   return val
 }
 
 Array.prototype.prod = function (f = (x) => +x) {
-  return this.reduce((a, b) => a * f(b), 1)
+  return this.reduce((a, b, i, arr) => a * f(b, i, arr), 1)
 }
 
 RegExp.prototype.captures = function (text, f = (x) => x.slice(1)) {
@@ -364,11 +365,19 @@ String.prototype.wo = function (wo) {
   return this.replaceAll(wo, "")
 }
 
+const symsumtoomanyargs = Symbol(
+  "called Iterator.sum with more than 1 expected parameter",
+)
 Iterator.prototype.sum = function (f = (x) => +x) {
+  if (f.length > 1) warn(symsumtoomanyargs)
   return this.reduce((a, b) => a + f(b), 0)
 }
 
+const symprodtoomanyargs = Symbol(
+  "called Iterator.prod with more than 1 expected parameter",
+)
 Iterator.prototype.prod = function (f = (x) => +x) {
+  if (f.length > 1) warn(symprodtoomanyargs)
   return this.reduce((a, b) => a * f(b), 1)
 }
 
@@ -557,6 +566,14 @@ globalThis.PointRaw = class Point {
    */
   idxbrbrbr() {
     return ((this.y + this.x - 1) * (this.y + this.x - 2)) / 2 + this.x
+  }
+
+  add(p) {
+    return pt(
+      this.x + p.x,
+      this.y + p.y,
+      this.z === undefined ? undefined : this.z + p.z,
+    )
   }
 }
 
@@ -763,11 +780,36 @@ globalThis.Grid = class Grid extends Array {
   }
 
   get(v) {
-    return this[v.y][v.x]
+    return this[v.i][v.j]
+  }
+
+  has(v) {
+    return rx(0, this.length).has(v.i) && rx(0, this[v.i].length).has(v.j)
   }
 
   col(i) {
     return this.map((row) => row[i])
+  }
+
+  diag(pt, x, y) {
+    if (Math.abs(x) != Math.abs(y)) {
+      throw new Error("Called .diag() with values of different sizes")
+    }
+    const row = [this.get(pt)]
+    if (x < 0) {
+      for (const v of ri(1, -x)) {
+        const o = pt.add(point(v, -v * Math.sign(y)))
+        if (this.has(o)) row.push(this.get(o))
+        else return null
+      }
+    } else {
+      for (const v of ri(1, x)) {
+        const o = pt.add(point(v, v * Math.sign(y)))
+        if (this.has(o)) row.push(this.get(o))
+        else return null
+      }
+    }
+    return row
   }
 }
 
