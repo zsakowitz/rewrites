@@ -32,3 +32,6 @@ coverage
 dist
 story.ohm-bundle.d.ts
 ytm
+
+# aoc
+aoc/.aoc

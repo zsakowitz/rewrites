@@ -1,23 +1,16 @@
 "use strict"
 
-if (typeof process != "undefined") {
-  const fs = await import("fs")
-  globalThis.input = (x) =>
-    fs.readFileSync(new URL("./" + x, import.meta.url).pathname, "utf8")
-}
-
-globalThis.check = (actual, expected) => {
-  if (actual !== expected) {
-    throw new Error(`expected ${expected} but got ${actual}`)
-  } else {
-    console.log(`everythings fine with ${expected}`)
-  }
+let /** @type {import("node:fs")} */ fs
+let /** @type {import("node:path")} */ path
+if (typeof process == "object") {
+  fs = await import("node:fs")
+  path = await import("node:path")
 }
 
 const DID_WARN = new WeakMap()
 function warn(name) {
   if (!DID_WARN.get(name)) {
-    console.warn(`UNSAFE: ${name.toString().slice(7, -1)}`)
+    console.warn(`WARN: ${name.toString().slice(7, -1)}`)
     DID_WARN.set(name, true)
     setTimeout(() => DID_WARN.delete(name))
   }
@@ -57,8 +50,11 @@ addWarning(
   },
 )
 
+const symsum = Symbol(".sum() is returning a non-number")
 Array.prototype.sum = function (f = (x) => +x) {
-  return this.reduce((a, b) => a + f(b), 0)
+  const val = this.reduce((a, b) => a + f(b), 0)
+  if (typeof val != "number") warn(symsum)
+  return val
 }
 
 Array.prototype.prod = function (f = (x) => +x) {
@@ -88,7 +84,7 @@ Array.prototype.key = function (key) {
   }
 }
 
-function defineNum(name, fromString, conv = (x) => Number(x)) {
+function defineNum(name, fromString, single = false, conv = (x) => Number(x)) {
   Array.prototype[name] = function () {
     return this.map((x) => x[name]())
   }
@@ -106,37 +102,48 @@ function defineNum(name, fromString, conv = (x) => Number(x)) {
   }
 
   String.prototype[name] = function () {
+    if (single) return conv(this)
     return this.match(fromString)?.map(conv) || []
   }
 
-  const regexp = function (text) {
-    return this.matchAll(text).map((x) => x[name]())
-  }
+  if (single) {
+    const sym = Symbol(`using singular .${name} on a regex`)
 
-  Object.defineProperty(RegExp.prototype, name, {
-    configurable: true,
-    get() {
-      return regexp.bind(this)
-    },
-  })
+    Object.defineProperty(RegExp.prototype, name, {
+      configurable: true,
+      get() {
+        warn(sym)
+        return (text) => conv(text)
+      },
+    })
+  } else {
+    const regexp = function (text) {
+      return this.matchAll(text).map((x) => x[name]())
+    }
+
+    Object.defineProperty(RegExp.prototype, name, {
+      configurable: true,
+      get() {
+        return regexp.bind(this)
+      },
+    })
+  }
 }
 
-defineNum("num", /^.*$/)
-defineNum("bigint", /^.*$/, BigInt)
+defineNum("num", /^.*$/, true)
+defineNum("bigint", /^.*$/, true, BigInt)
 
 defineNum("nums", /-?\d+(?:\.\d+)?/g)
 defineNum("ints", /-?\d+/g)
 defineNum("uints", /\d+/g)
 defineNum("digits", /\d/g)
-const symdigitnames = Symbol(
-  "digitnames does not give the same order forwards and backwards; `23twone` is parsed as `232`, not `231`. be aware",
-)
+
 defineNum(
-  "digitnames",
+  "digitnamesfwd",
   /\d|one|two|three|four|five|six|seven|eight|nine/g,
-  (x) => {
-    warn(symdigitnames)
-    return [
+  false,
+  (x) =>
+    [
       null,
       "one",
       "two",
@@ -149,12 +156,12 @@ defineNum(
       "nine",
     ]
       .indexOf(x)
-      .m1(() => Number(x))
-  },
+      .m1(() => Number(x)),
 )
 defineNum(
   "digitnamesrev",
   /\d|one|two|three|four|five|six|seven|eight|nine/g,
+  false,
   (x) =>
     [
       null,
@@ -176,7 +183,7 @@ String.prototype.digitnamesrev = function () {
   return (
     this.reverse().match(/\d|enin|thgie|neves|xis|evif|ruof|eerht|owt|eno/g) ||
     []
-  ).map((x) => x.reverse())
+  ).map((x) => x.reverse().digitnamesfwd())
 }
 
 String.prototype.reverse = function () {
@@ -287,7 +294,7 @@ globalThis.rangeTo = function (min, max) {
   }
 
   function has(x) {
-    return x % 1 === 0 && min <= x && x < max
+    return Number.isSafeInteger(x) && min <= x && x < max
   }
 
   return Object.assign(
@@ -303,11 +310,11 @@ globalThis.rangeTo = function (min, max) {
   )
 }
 
-globalThis.rx = function (min, max, step) {
+globalThis.rx = function (min, max) {
   return typeof max == "undefined" ? rangeTo(0, min) : rangeTo(min, max)
 }
 
-globalThis.ri = function (min, max, step) {
+globalThis.ri = function (min, max) {
   return typeof max == "undefined" ? rangeTo(0, min + 1) : rangeTo(min, max + 1)
 }
 
@@ -362,8 +369,19 @@ Iterator.prototype.prod = function (f = (x) => +x) {
 }
 
 Number.prototype.check = function (expected) {
-  check(this, expected)
+  if (this !== expected) {
+    throw new Error(`expected ${expected} but got ${this}`)
+  } else {
+    console.log(`everythings fine with ${expected}`)
+  }
   return this
+}
+
+Object.prototype.check = function (expected) {
+  console.error(this)
+  throw new Error(
+    `expected ${expected} but got the above (TOTALLY DIFFERENT DATATYPES)`,
+  )
 }
 
 Function.prototype.fn = function () {
@@ -571,4 +589,85 @@ Array.prototype.gcd = function (...args) {
 
 Array.prototype.lcm = function (...args) {
   return lcm(...this, ...args.nums())
+}
+
+const symcachedinput = Symbol("using cached input")
+const symfetchinginput = Symbol("fetching input... will return promise")
+
+globalThis.input = function (year = today()[0], day = today()[1]) {
+  if (
+    typeof year != "number" ||
+    !ri(2015, 20000).has(year) ||
+    !ri(1, 25).has(day)
+  ) {
+    throw new Error("Invalid year or day.")
+  }
+
+  const code = `sakawitools/${year}-${day}/input`
+  const url = `https://adventofcode.com/${year}/day/${day}/input`
+
+  if (typeof process == "object") {
+    const file = new URL("./.aoc/" + code, import.meta.url).pathname
+    if (fs.existsSync(file)) {
+      warn(symcachedinput)
+      return fs.readFileSync(file, "utf8")
+    }
+
+    warn(symfetchinginput)
+    return fetch(url, {
+      headers: { cookie: process.env.SAKAWITOOLS_AOC_COOKIE },
+    })
+      .then((response) => {
+        if (response.ok) return response.text()
+        throw new Error("Failed to fetch input.")
+      })
+      .then(async (text) => {
+        if (text.endsWith("\n")) text = text.slice(0, -1)
+        await fs.promises.mkdir(path.dirname(file), { recursive: true })
+        fs.writeFileSync(file, text)
+        return text
+      })
+  }
+
+  if (typeof localStorage == "object") {
+    warn(symcachedinput)
+    const value = localStorage.getItem(code)
+    if (value) return value
+  }
+
+  const req = new XMLHttpRequest()
+
+  console.log(url)
+  req.open("GET", url, false)
+  req.send()
+  if (req.status == 200) {
+    localStorage.setItem(code, req.response)
+    return req.response
+  } else {
+    throw new Error("getting input failed", req.response)
+  }
+}
+
+globalThis.today = function () {
+  const today = new Date(
+    Date.now() + // now
+      new Date().getTimezoneOffset() * 60 * 1000 - // move to UTC
+      5 * 60 * 60 * 1000, // move to EST
+  )
+
+  return [today.getFullYear(), today.getDate()]
+}
+
+Array.prototype.by = function (other) {
+  other = other.toArray()
+  return this.flatMap((x) => other.map((y) => [x, y]))
+}
+
+Iterator.prototype.by = function (other) {
+  other = other.toArray()
+  return this.flatMap((x) => other.map((y) => [x, y]))
+}
+
+Array.prototype.toArray = function () {
+  return this
 }

@@ -1,4 +1,4 @@
-import "./util.js"
+import "./load.js"
 
 import "./2015/day1.js"
 import "./2015/day25.js"
