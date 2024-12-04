@@ -468,10 +468,7 @@ Number.prototype.abs = function () {
 }
 
 String.prototype.count = function (arg) {
-  if (typeof arg == "string") {
-    return (this.length - this.replaceAll(arg, "").length) / arg.length
-  } else if (arg instanceof RegExp) {
-  }
+  return arg.counttarget(this)
 }
 
 String.prototype.counttarget = function (source) {
@@ -480,6 +477,10 @@ String.prototype.counttarget = function (source) {
 
 RegExp.prototype.counttarget = function (source) {
   return source.matchAll(this).count(() => 1)
+}
+
+Array.prototype.counttarget = function (source) {
+  return this.sum((target) => target.counttarget(source))
 }
 
 String.prototype.chars = function () {
@@ -539,6 +540,7 @@ globalThis.PointRaw = class Point {
   x
   y
   z
+  g
 
   get r() {
     return this.y
@@ -556,10 +558,11 @@ globalThis.PointRaw = class Point {
     return this.x
   }
 
-  constructor(x, y, z) {
+  constructor(x, y, z, g) {
     this.x = x
     this.y = y
     this.z = z
+    this.g = g
   }
 
   fn() {
@@ -592,6 +595,7 @@ globalThis.PointRaw = class Point {
       this.x + p.x,
       this.y + p.y,
       this.z === undefined ? undefined : this.z + p.z,
+      this.g,
     )
   }
 
@@ -626,14 +630,51 @@ globalThis.PointRaw = class Point {
   br() {
     return this.add(pt(1, 1, 0))
   }
+
+  get v() {
+    if (!this.g) {
+      throw new Error("Cannot get value of `Point` without owner.")
+    }
+    return this.g[this.i]?.[this.j]
+  }
+
+  set v(v) {
+    if (!this.g) {
+      throw new Error("Cannot set value of `Point` without owner.")
+    }
+    if (!this.g[this.i]) {
+      throw new Error("`Point` is out of bounds; cannot set its value.")
+    }
+    this.g[this.i][this.j] = v
+  }
+
+  diag(x, y) {
+    if (!this.g) {
+      throw new Error(
+        "Cannot get points along a diagonal from a `Point` without an owner.",
+      )
+    }
+
+    return this.g.diag(this, x, y)
+  }
+
+  dful(x, y) {
+    if (!this.g) {
+      throw new Error(
+        "Cannot get points along a diagonal from a `Point` without an owner.",
+      )
+    }
+
+    return this.g.dful(this, x, y)
+  }
 }
 
 globalThis.pt =
   globalThis.Pt =
   globalThis.point =
   globalThis.Point =
-    function (x, y, z) {
-      return new PointRaw(x, y, z)
+    function () {
+      return new PointRaw(...arguments)
     }
 
 pt.prototype = PointRaw.prototype
@@ -808,15 +849,6 @@ globalThis.Grid = class Grid extends Array {
     return this.map((x) => x.join("")).join("\n")
   }
 
-  *enum() {
-    for (let i = 0; i < this.length; i++) {
-      const row = this[i]
-      for (let j = 0; j < row.length; j++) {
-        yield [row[j], pt(j, i)]
-      }
-    }
-  }
-
   *v() {
     for (let i = 0; i < this.length; i++) {
       const row = this[i]
@@ -830,7 +862,7 @@ globalThis.Grid = class Grid extends Array {
     for (let i = 0; i < this.length; i++) {
       const row = this[i]
       for (let j = 0; j < row.length; j++) {
-        yield pt(j, i)
+        yield pt(j, i, undefined, this)
       }
     }
   }
@@ -848,6 +880,30 @@ globalThis.Grid = class Grid extends Array {
   }
 
   diag(pt, x, y) {
+    if (Math.abs(x) != Math.abs(y)) {
+      throw new Error("Called .diag() with values of different sizes")
+    }
+    if (!this.has(pt)) {
+      return []
+    }
+    const row = [this.get(pt)]
+    if (x < 0) {
+      for (const v of ri(1, -x)) {
+        const o = pt.add(point(-v, v * Math.sign(y)))
+        if (this.has(o)) row.push(this.get(o))
+        else return row
+      }
+    } else if (x > 0) {
+      for (const v of ri(1, x)) {
+        const o = pt.add(point(v, v * Math.sign(y)))
+        if (this.has(o)) row.push(this.get(o))
+        else return row
+      }
+    }
+    return row
+  }
+
+  dful(pt, x, y) {
     if (Math.abs(x) != Math.abs(y)) {
       throw new Error("Called .diag() with values of different sizes")
     }
@@ -875,4 +931,24 @@ globalThis.Grid = class Grid extends Array {
 Array.prototype.grid = function () {
   this.__proto__ = Grid.prototype
   return this
+}
+
+String.prototype.is = function (arg) {
+  return arg.stringis(this)
+}
+
+String.prototype.stringis = function (self) {
+  return self == this
+}
+
+Array.prototype.stringis = function (self) {
+  return this.some((x) => x.stringis(self))
+}
+
+RegExp.prototype.stringis = function (self) {
+  return this.test(self)
+}
+
+String.prototype.mx = function () {
+  return [this, this.reverse()]
 }
