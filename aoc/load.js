@@ -1,10 +1,10 @@
 import "./util.js"
 
+const [year, day] = today()
+
 await Promise.all([
-  ...ri(2015, 2023)
+  ...ri(2015, year - 1)
     .by(ri(1, 25))
     .map(([x, y]) => input(x, y)),
-  input(2024, 1),
-  input(2024, 2),
-  input(2024, 3),
+  ...ri(1, day).map((x) => input(year, x)),
 ])

@@ -603,11 +603,14 @@ globalThis.input = function (year = today()[0], day = today()[1]) {
     throw new Error("Invalid year or day.")
   }
 
-  const code = `sakawitools/${year}-${day}/input`
+  const code = `ilowi/${year}/${day}/input`
   const url = `https://adventofcode.com/${year}/day/${day}/input`
 
   if (typeof process == "object") {
-    const file = new URL("./.aoc/" + code, import.meta.url).pathname
+    const file = new URL(
+      "./.aoc/" + code,
+      new URL("file://" + process.env.PWD + "/"),
+    ).pathname
     if (fs.existsSync(file)) {
       warn(symcachedinput)
       return fs.readFileSync(file, "utf8")
@@ -619,7 +622,7 @@ globalThis.input = function (year = today()[0], day = today()[1]) {
     })
       .then((response) => {
         if (response.ok) return response.text()
-        throw new Error("Failed to fetch input.")
+        throw new Error(`Failed to fetch input for ${year}/${day}.`)
       })
       .then(async (text) => {
         if (text.endsWith("\n")) text = text.slice(0, -1)
