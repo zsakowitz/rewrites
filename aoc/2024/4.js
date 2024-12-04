@@ -23,8 +23,8 @@ a.k()
   .sum(
     (pt) =>
       +(
-        pt.tl().diag(2, 2).join("").is("SAM".mx()) &&
-        pt.tr().diag(-2, 2).join("").is("SAM".mx())
+        pt.lt().diag(2, 2).join("").is("SAM".mx()) &&
+        pt.rt().diag(-2, 2).join("").is("SAM".mx())
       ),
   )
   .check(1923)

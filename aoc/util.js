@@ -409,6 +409,25 @@ Number.prototype.check = function (expected) {
   return this
 }
 
+const symstringcheck = Symbol(
+  "calling .check() on a string; pass 'YESIMSURE' as second arg to hide warning",
+)
+String.prototype.check = function (expected, yesimsure) {
+  if (yesimsure !== "YESIMSURE") {
+    warn(symstringcheck)
+  }
+
+  if (this !== expected) {
+    throw new Error(
+      `${colors.red}FAILED: expected ${expected} but got ${this}${colors.reset}`,
+    )
+  } else {
+    console.log(`${colors.green}PASSED: ${expected}${colors.reset}`)
+  }
+
+  return this
+}
+
 Object.prototype.check = function (expected) {
   console.error(this)
   throw new Error(
@@ -536,6 +555,10 @@ globalThis.kbr = (f) => {
 //   )
 // }
 
+const symtltrblbr = Symbol(
+  "using Point.[tb][lr] is not recommended as it does not match the x-y order or arguments; use Point.[lr][tb] instead",
+)
+
 globalThis.PointRaw = class Point {
   x
   y
@@ -615,19 +638,39 @@ globalThis.PointRaw = class Point {
     return this.add(pt(1, 0, 0))
   }
 
-  tl() {
+  get tl() {
+    warn(symtltrblbr)
+    return this.lt
+  }
+
+  get tr() {
+    warn(symtltrblbr)
+    return this.rt
+  }
+
+  get bl() {
+    warn(symtltrblbr)
+    return this.lb
+  }
+
+  get br() {
+    warn(symtltrblbr)
+    return this.rb
+  }
+
+  lt() {
     return this.add(pt(-1, -1, 0))
   }
 
-  tr() {
+  rt() {
     return this.add(pt(1, -1, 0))
   }
 
-  bl() {
+  lb() {
     return this.add(pt(-1, 1, 0))
   }
 
-  br() {
+  rb() {
     return this.add(pt(1, 1, 0))
   }
 
@@ -952,3 +995,90 @@ RegExp.prototype.stringis = function (self) {
 String.prototype.mx = function () {
   return [this, this.reverse()]
 }
+
+const symnbbadoffset = Symbol("offset to '...'.nb() is positive")
+const symnbcharnotfound = Symbol(
+  "character passed to '...'.nb() is not in digits list",
+)
+const symnooffset = Symbol("implicitly using 0 as offset to .nb()")
+String.prototype.nb = function (base, offset) {
+  if (offset === undefined) {
+    warn(symnooffset)
+    offset = 0
+  }
+
+  const digits = base.asnumberbase()
+
+  return this.chars()
+    .map((char) =>
+      digits.indexOf(char).m1(() => {
+        warn(symnbcharnotfound)
+        return false
+      }),
+    )
+    .filter((x) => x !== false)
+    .map((x) => x + offset)
+    .reduce((a, b) => digits.length * a + b, 0)
+}
+
+const symnbalbadbase = Symbol("123.nbal() expects an odd numbered base")
+Number.prototype.nbal = function (base) {
+  const digits = base.asnumberbase()
+
+  if (!Number.isSafeInteger(digits.length) || !(digits.length % 2)) {
+    warn(symnbalbadbase)
+  }
+
+  const offset = (1 - digits.length) / 2
+
+  let o = ""
+  let n = this
+
+  while (n != 0) {
+    const m5 = Math.round(n / digits.length) * digits.length
+    const diff = n - m5
+    o = digits[diff - offset] + o
+    n = m5 / digits.length
+  }
+
+  return o
+}
+
+String.prototype.asnumberbase = function () {
+  return this.split("")
+}
+
+Number.prototype.asnumberbase = function () {
+  return Array.from({ length: base }, (_, i) => "" + i)
+}
+
+Array.prototype.asnumberbase = function () {
+  return this.map((x) => "" + x)
+}
+
+addWarning(
+  Array.prototype,
+  "toString",
+  Symbol("implicitly converting array to string"),
+)
+addWarning(
+  Object.prototype,
+  "toString",
+  Symbol("implicitly converting object to string"),
+)
+addWarning(
+  Function.prototype,
+  "toString",
+  Symbol("implicitly converting function to string"),
+)
+
+const symnbisactuallynbal = Symbol(
+  "if calling 123.nb(), you either want .toString(base) for normal bases or .nbal(base) for a balanced base; defaulting to .nbal()",
+)
+Object.defineProperty(Number.prototype, "nb", {
+  configurable: true,
+  get() {
+    warn(symnbisactuallynbal)
+    return this.nbal
+  },
+})
