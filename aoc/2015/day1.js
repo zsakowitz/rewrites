@@ -6,5 +6,5 @@ input(2015, 1)
 
 input(2015, 1)
   .chars()
-  .reduce((a, b, idx) => (b == ")" ? (a == 0 ? br(idx + 1) : a - 1) : a + 1), 0)
+  .rbr((a, b, idx) => (b == ")" ? (a == 0 ? br(idx + 1) : a - 1) : a + 1), 0)
   .check(1795)

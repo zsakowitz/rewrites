@@ -249,6 +249,10 @@ Array.prototype.count = function (val) {
   return this.filter(val).length
 }
 
+Iterator.prototype.count = function (val) {
+  return this.filter(val).reduce((a) => a + 1, 0)
+}
+
 Array.prototype.w = function (size) {
   return Array.from({ length: this.length - size + 1 }, (_, i) =>
     Array.from({ length: size }, (_, j) => this[i + j]),
@@ -438,7 +442,16 @@ Number.prototype.abs = function () {
 String.prototype.count = function (arg) {
   if (typeof arg == "string") {
     return (this.length - this.replaceAll(arg, "").length) / arg.length
+  } else if (arg instanceof RegExp) {
   }
+}
+
+String.prototype.counttarget = function (source) {
+  return (source.length - source.replaceAll(this, "").length) / this.length
+}
+
+RegExp.prototype.counttarget = function (source) {
+  return source.matchAll(this).count(() => 1)
 }
 
 String.prototype.chars = function () {
@@ -477,22 +490,22 @@ globalThis.kbr = (f) => {
   }
 }
 
-Array.prototype.reduceRaw = Array.prototype.reduce
-Array.prototype.reduceRightRaw = Array.prototype.reduceRight
-
-Array.prototype.reduce = function (f, acc) {
-  return kbr(() =>
-    arguments.length == 1 ? this.reduceRaw(f) : this.reduceRaw(f, acc),
-  )
-}
-
-Array.prototype.reduceRight = function (f, acc) {
-  return kbr(() =>
-    arguments.length == 1
-      ? this.reduceRightRaw(f)
-      : this.reduceRightRaw(f, acc),
-  )
-}
+// Array.prototype.reduceRaw = Array.prototype.reduce
+// Array.prototype.reduceRightRaw = Array.prototype.reduceRight
+//
+// Array.prototype.reduce = function (f, acc) {
+//   return kbr(() =>
+//     arguments.length == 1 ? this.reduceRaw(f) : this.reduceRaw(f, acc),
+//   )
+// }
+//
+// Array.prototype.reduceRight = function (f, acc) {
+//   return kbr(() =>
+//     arguments.length == 1
+//       ? this.reduceRightRaw(f)
+//       : this.reduceRightRaw(f, acc),
+//   )
+// }
 
 globalThis.PointRaw = class Point {
   x
@@ -591,7 +604,6 @@ Array.prototype.lcm = function (...args) {
   return lcm(...this, ...args.nums())
 }
 
-const symcachedinput = Symbol("using cached input")
 const symfetchinginput = Symbol("fetching input... will return promise")
 
 globalThis.input = function (year = today()[0], day = today()[1]) {
@@ -612,7 +624,6 @@ globalThis.input = function (year = today()[0], day = today()[1]) {
       new URL("file://" + process.env.PWD + "/"),
     ).pathname
     if (fs.existsSync(file)) {
-      warn(symcachedinput)
       return fs.readFileSync(file, "utf8")
     }
 
@@ -635,7 +646,6 @@ globalThis.input = function (year = today()[0], day = today()[1]) {
   if (typeof localStorage == "object") {
     const value = localStorage.getItem(code)
     if (value) {
-      warn(symcachedinput)
       return value
     }
   }
@@ -675,4 +685,12 @@ Iterator.prototype.by = function (other) {
 
 Array.prototype.toArray = function () {
   return this
+}
+
+Object.prototype.kbr = function (f) {
+  return kbr(() => f(this))
+}
+
+Array.prototype.rbr = function (f, acc) {
+  return kbr(() => this.reduce(f, acc))
 }
