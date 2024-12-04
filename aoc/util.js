@@ -17,23 +17,45 @@ globalThis.check = (actual, expected) => {
 const DID_WARN = new WeakMap()
 function warn(name) {
   if (!DID_WARN.get(name)) {
-    console.warn(`${name} IS A CRIME AND MAY RESULT IN INCORRECT BEHAVIOR`)
+    console.warn(`UNSAFE: ${name.toString().slice(7, -1)}`)
     DID_WARN.set(name, true)
     setTimeout(() => DID_WARN.delete(name))
   }
 }
 
-function addWarning(proto, key, sym) {
+function addWarning(proto, key, sym, filter = () => true) {
   const original = proto[key]
   return function () {
-    warn(sym)
+    if (filter.apply(this, arguments)) {
+      warn(sym)
+    }
     return original.apply(this, arguments)
   }
 }
 
 Array.prototype.sby = Array.prototype.sort
 
-addWarning(Array.prototype, "sort", Symbol("Array.prototype.sort"))
+addWarning(
+  Array.prototype,
+  "sort",
+  Symbol("[...].sort without explicit sorting function"),
+)
+addWarning(
+  Array.prototype,
+  "join",
+  Symbol("[...].join without explicit joiner specified; defaulting to comma"),
+  function () {
+    return arguments.length == 0
+  },
+)
+addWarning(
+  String.prototype,
+  "split",
+  Symbol("'...'.split without explicit splitter specified"),
+  function () {
+    return arguments.length == 0
+  },
+)
 
 Array.prototype.sum = function (f = (x) => +x) {
   return this.reduce((a, b) => a + f(b), 0)
@@ -66,36 +88,124 @@ Array.prototype.key = function (key) {
   }
 }
 
-Array.prototype.num = function () {
-  return this.map((x) => x.num())
+function defineNum(name, fromString, conv = (x) => Number(x)) {
+  Array.prototype[name] = function () {
+    return this.map((x) => x[name]())
+  }
+
+  Iterator.prototype[name] = function () {
+    return this.map((x) => x[name]())
+  }
+
+  Number.prototype[name] = function () {
+    return conv(this)
+  }
+
+  BigInt.prototype[name] = function () {
+    return conv(this)
+  }
+
+  String.prototype[name] = function () {
+    return this.match(fromString)?.map(conv) || []
+  }
+
+  const regexp = function (text) {
+    return this.matchAll(text).map((x) => x[name]())
+  }
+
+  Object.defineProperty(RegExp.prototype, name, {
+    configurable: true,
+    get() {
+      return regexp.bind(this)
+    },
+  })
 }
 
-String.prototype.num = function () {
-  return +this
+defineNum("num", /^.*$/)
+defineNum("bigint", /^.*$/, BigInt)
+
+defineNum("nums", /-?\d+(?:\.\d+)?/g)
+defineNum("ints", /-?\d+/g)
+defineNum("uints", /\d+/g)
+defineNum("digits", /\d/g)
+const symdigitnames = Symbol(
+  "digitnames does not give the same order forwards and backwards; `23twone` is parsed as `232`, not `231`. be aware",
+)
+defineNum(
+  "digitnames",
+  /\d|one|two|three|four|five|six|seven|eight|nine/g,
+  (x) => {
+    warn(symdigitnames)
+    return [
+      null,
+      "one",
+      "two",
+      "three",
+      "four",
+      "five",
+      "six",
+      "seven",
+      "eight",
+      "nine",
+    ]
+      .indexOf(x)
+      .m1(() => Number(x))
+  },
+)
+defineNum(
+  "digitnamesrev",
+  /\d|one|two|three|four|five|six|seven|eight|nine/g,
+  (x) =>
+    [
+      null,
+      "one",
+      "two",
+      "three",
+      "four",
+      "five",
+      "six",
+      "seven",
+      "eight",
+      "nine",
+    ]
+      .indexOf(x)
+      .m1(() => Number(x)),
+)
+
+String.prototype.digitnamesrev = function () {
+  return (
+    this.reverse().match(/\d|enin|thgie|neves|xis|evif|ruof|eerht|owt|eno/g) ||
+    []
+  ).map((x) => x.reverse())
 }
 
-Number.prototype.num = function () {
-  return this
+String.prototype.reverse = function () {
+  return this.chars().reverse().join("")
 }
 
-BigInt.prototype.num = function () {
-  return Number(this)
+String.prototype.digit = function () {
+  return [
+    Symbol(),
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+  ]
+    .indexOf(this)
+    .m1(() => Number(this))
 }
 
-Array.prototype.bigint = function () {
-  return this.map((x) => x.bigint())
-}
-
-String.prototype.bigint = function () {
-  return BigInt(this)
-}
-
-Number.prototype.bigint = function () {
-  return BigInt(this)
-}
-
-BigInt.prototype.bigint = function () {
-  return this
+Number.prototype.m1 = function (f) {
+  if (this == -1) {
+    return f()
+  } else {
+    return this
+  }
 }
 
 String.prototype.lines = function () {
@@ -243,11 +353,11 @@ String.prototype.wo = function (wo) {
   return this.replaceAll(wo, "")
 }
 
-Iterator.prototype.sum = function (f = (x) => x.num()) {
+Iterator.prototype.sum = function (f = (x) => +x) {
   return this.reduce((a, b) => a + f(b), 0)
 }
 
-Iterator.prototype.prod = function (f = (x) => x.num()) {
+Iterator.prototype.prod = function (f = (x) => +x) {
   return this.reduce((a, b) => a * f(b), 1)
 }
 
@@ -272,8 +382,8 @@ RegExp.prototype.fn = function () {
   return (x) => this.test(x)
 }
 
-Object.prototype.log = function () {
-  console.log(this)
+Object.prototype.log = function (...args) {
+  console.log(this, ...args)
   return this
 }
 
@@ -342,7 +452,7 @@ globalThis.kbr = (f) => {
     if (error instanceof Break) {
       return error.v
     } else {
-      return
+      throw error
     }
   } finally {
     globalThis.br = lastBr
@@ -412,3 +522,53 @@ globalThis.pt =
     }
 
 pt.prototype = PointRaw.prototype
+
+Object.defineProperty(Array.prototype, "last", {
+  configurable: true,
+  get() {
+    return this[this.length - 1]
+  },
+  set(v) {
+    this[this.length - 1] = v
+  },
+})
+
+const warngcd = Symbol("calling 'gcd' with zero arguments returns NaN")
+globalThis.gcd = function (a, b, ...rest) {
+  if (arguments.length == 0) {
+    warn(warngcd)
+    return NaN
+  }
+  if (arguments.length == 1) return a
+  if (rest.length) return gcd(gcd(a, b), ...rest)
+  while (b != 0) [a, b] = [b, a % b]
+  return a
+}
+
+const warnlcm = Symbol("calling 'lcm' with zero arguments returns NaN")
+globalThis.lcm = function (a, b, ...rest) {
+  if (arguments.length == 0) {
+    warn(warnlcm)
+    return NaN
+  }
+  if (arguments.length == 1) return a
+  if (rest.length) return lcm(lcm(a, b), ...rest)
+  if (a > b) return (a / gcd(a, b)) * b
+  else return (b / gcd(a, b)) * a
+}
+
+Number.prototype.gcd = function (...args) {
+  return gcd(this, ...args.nums())
+}
+
+Number.prototype.lcm = function (...args) {
+  return lcm(this, ...args.nums())
+}
+
+Array.prototype.gcd = function (...args) {
+  return gcd(...this, ...args.nums())
+}
+
+Array.prototype.lcm = function (...args) {
+  return lcm(...this, ...args.nums())
+}
