@@ -21,13 +21,7 @@ data
       .by(ri(r - 1, r + 1))
       .some((x) => g[x[1]]?.[x[0]]?.is(/[^0-9.]/)),
   )
-  .map(
-    ([r, a, b]) =>
-      +g[r]
-        .slice(a, b + 1)
-        .join("")
-        .log(),
-  )
+  .map(([r, a, b]) => +g[r].slice(a, b + 1).join(""))
   .sum()
   .check(527144) // part 1
 

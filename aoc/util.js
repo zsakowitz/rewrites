@@ -809,7 +809,7 @@ globalThis.input = function (year = today()[0], day = today()[1]) {
 
     warn(symfetchinginput)
     return fetch(url, {
-      headers: { cookie: process.env.SAKAWITOOLS_AOC_COOKIE },
+      headers: { cookie: process.env.ILOWI_AOC_COOKIE },
     })
       .then((response) => {
         if (response.ok) return response.text()
