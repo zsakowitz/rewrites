@@ -1,10 +1,8 @@
 import "../util.js"
 
-const [a, b] = input(2024, 5).split("\n\n")
-
-const sheets = b.lines().map((x) => x.split(",").num())
-
-const rules = a.lines().map((x) => x.split("|").num())
+const [a, b] = input(2024, 5).on`\n\n`
+const sheets = b.lines().on`,`.num()
+const rules = a.lines().on`|`.num()
 
 const afters = {}
 for (const [a, b] of rules) {

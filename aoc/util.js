@@ -1155,6 +1155,14 @@ function load() {
     return this.split(label)
   }
 
+  Array.prototype.on = function (label) {
+    if (Array.isArray(label)) {
+      label = String.raw({ raw: label }, ...[].slice.call(arguments, 1))
+    }
+
+    return this.map((x) => x.on(label))
+  }
+
   Array.prototype.fm = function (f) {
     return this.map(f).filter((x) => x != null)
   }
