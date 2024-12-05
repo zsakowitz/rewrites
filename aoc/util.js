@@ -55,7 +55,9 @@ Array.prototype.sby = Array.prototype.sort
 addWarning(
   Array.prototype,
   "sort",
-  Symbol("[...].sort without explicit sorting function"),
+  Symbol(
+    "[...].sort implicitly using string order; you might want .s() for numerical order or .sby() for sorting by a certain function",
+  ),
 )
 addWarning(
   Array.prototype,
@@ -74,7 +76,9 @@ addWarning(
   },
 )
 
-const symsum = Symbol(".sum() returned a non-number")
+const symsum = Symbol(
+  ".sum() returned a non-number; use .join() to join strings if needed",
+)
 
 Array.prototype.sum = function (f = (x) => +x) {
   const val = this.reduce((a, b, i, arr) => a + f(b, i, arr), 0)
@@ -86,12 +90,28 @@ Array.prototype.prod = function (f = (x) => +x) {
   return this.reduce((a, b, i, arr) => a * f(b, i, arr), 1)
 }
 
-RegExp.prototype.captures = function (text, f = (x) => x.slice(1)) {
-  return text.matchAll(this).map(f).toArray()
+RegExp.prototype.captures = RegExp.prototype.cap = function (
+  text,
+  f = (x) => x.slice(1),
+) {
+  f = f.regexcapturefn()
+  if (this.global) {
+    return text.matchAll(this).map(f).toArray()
+  } else {
+    return f(text.match(this))
+  }
 }
 
-String.prototype.captures = function (regex, f = (x) => x.slice(1)) {
-  return this.matchAll(regex).map(f).toArray()
+Function.prototype.regexcapturefn = function () {
+  return this
+}
+
+Number.prototype.regexcapturefn = function () {
+  return (groups) => groups[this]
+}
+
+String.prototype.captures = String.prototype.cap = function (regex, ...rest) {
+  return regex.cap(this, ...rest)
 }
 
 Array.prototype.tx = function () {
@@ -891,8 +911,7 @@ String.prototype.grid = function () {
 
 globalThis.Grid = class Grid extends Array {
   arr() {
-    this.__proto__ = Array.prototype
-    return this
+    return Array.from(this)
   }
 
   str() {
@@ -979,8 +998,7 @@ globalThis.Grid = class Grid extends Array {
 }
 
 Array.prototype.grid = function () {
-  this.__proto__ = Grid.prototype
-  return this
+  return Grid.from(this)
 }
 
 String.prototype.is = function (arg) {
@@ -1089,3 +1107,15 @@ Object.defineProperty(Number.prototype, "nb", {
     return this.nbal
   },
 })
+
+String.prototype.on = function (label) {
+  if (Array.isArray(label)) {
+    label = String.raw({ raw: label }, ...[].slice.call(arguments, 1))
+  }
+
+  return this.split(label)
+}
+
+Array.prototype.fm = function (f) {
+  return this.map(f).filter((x) => x != null)
+}
