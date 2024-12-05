@@ -9,28 +9,23 @@ for (const [a, b] of rules) {
   ;(afters[a] ??= []).push(b)
 }
 
+function ok(sheet) {
+  return rules.every(([a, b]) => {
+    const ai = sheet.i(a)
+    const bi = sheet.i(b)
+    if (ai != -1 && bi != -1) return ai < bi
+    else return true
+  })
+}
+
 // part 1:
 sheets
-  .filter((sheet) => {
-    return rules.every(([a, b]) => {
-      const ai = sheet.indexOf(a)
-      const bi = sheet.indexOf(b)
-      if (ai != -1 && bi != -1) return ai < bi
-      else return true
-    })
-  })
-  .sum((x) => x[(x.length - 1) / 2])
+  .filter(ok)
+  .sum((x) => x.mid())
   .check(6949)
 
 sheets
-  .filter((sheet) => {
-    return !rules.every(([a, b]) => {
-      const ai = sheet.indexOf(a)
-      const bi = sheet.indexOf(b)
-      if (ai != -1 && bi != -1) return ai < bi
-      else return true
-    })
-  })
-  .map((x) => x.sort((a, b) => (afters[a].includes(b) ? -1 : 1)))
-  .sum((x) => x[(x.length - 1) / 2])
+  .filter(ok.inv())
+  .map((x) => x.sby((a, b) => afters[a].includes(b).s()))
+  .sum((x) => x.mid())
   .check(4145)

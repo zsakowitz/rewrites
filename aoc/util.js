@@ -21,8 +21,10 @@ function load() {
     yellow: "\u001b[33m",
   }
 
+  let disableWarnings = false
   const DID_WARN = new WeakMap()
   function warn(name) {
+    if (disableWarnings) return
     if (!DID_WARN.get(name)) {
       const label = `WARN: ${name.toString().slice(7, -1)}`
 
@@ -43,7 +45,7 @@ function load() {
 
   function addWarning(proto, key, sym, filter = () => true) {
     const original = proto[key]
-    return function () {
+    proto[key] = function () {
       if (filter.apply(this, arguments)) {
         warn(sym)
       }
@@ -51,7 +53,18 @@ function load() {
     }
   }
 
-  Array.prototype.sby = Array.prototype.sort
+  Array.prototype.sbyRawUnsafe = Array.prototype.sort
+
+  const symsbybool = Symbol("returning non-number from .sby()")
+  Array.prototype.sby = Array.prototype.sort = function (fn) {
+    return this.sbyRawUnsafe((a, b) => {
+      const val = fn(a, b)
+      if (typeof val != "number") {
+        warn(symsbybool)
+      }
+      return val
+    })
+  }
 
   addWarning(
     Array.prototype,
@@ -64,23 +77,22 @@ function load() {
     Array.prototype,
     "join",
     Symbol("[...].join without explicit joiner specified; defaulting to comma"),
-    function () {
-      return arguments.length == 0
+    function (x) {
+      return x === undefined
     },
   )
   addWarning(
     String.prototype,
     "split",
     Symbol("'...'.split without explicit splitter specified"),
-    function () {
-      return arguments.length == 0
+    function (x) {
+      return x === undefined
     },
   )
 
   const symsum = Symbol(
     ".sum() returned a non-number; use .join() to join strings if needed",
   )
-
   Array.prototype.sum = function (f = (x) => +x) {
     const val = this.reduce((a, b, i, arr) => a + f(b, i, arr), 0)
     if (typeof val != "number") warn(symsum)
@@ -152,9 +164,14 @@ function load() {
       return conv(this)
     }
 
-    String.prototype[name] = function () {
-      if (single) return conv(this)
-      return this.match(fromString)?.map(conv) || []
+    if (single) {
+      String.prototype[name] = function () {
+        return conv(this)
+      }
+    } else {
+      String.prototype[name] = function () {
+        return this.match(fromString)?.map((x) => conv(x)) || []
+      }
     }
 
     if (single) {
@@ -205,9 +222,7 @@ function load() {
         "seven",
         "eight",
         "nine",
-      ]
-        .indexOf(x)
-        .m1(() => Number(x)),
+      ].i(x, Number(x)),
   )
   defineNum(
     "digitnamesrev",
@@ -225,9 +240,7 @@ function load() {
         "seven",
         "eight",
         "nine",
-      ]
-        .indexOf(x)
-        .m1(() => Number(x)),
+      ].i(x, Number(x)),
   )
 
   String.prototype.digitnamesrev = function () {
@@ -1120,22 +1133,6 @@ function load() {
     return this.map((x) => "" + x)
   }
 
-  addWarning(
-    Array.prototype,
-    "toString",
-    Symbol("implicitly converting array to string"),
-  )
-  addWarning(
-    Object.prototype,
-    "toString",
-    Symbol("implicitly converting object to string"),
-  )
-  addWarning(
-    Function.prototype,
-    "toString",
-    Symbol("implicitly converting function to string"),
-  )
-
   const symnbisactuallynbal = Symbol(
     "if calling 123.nb(), you either want .toString(base) for normal bases or .nbal(base) for a balanced base; defaulting to .nbal()",
   )
@@ -1191,6 +1188,57 @@ function load() {
 
   Number.prototype.numberis = function (self) {
     return self === this
+  }
+
+  const symarrayim1nonnum = Symbol(
+    "passed non-number to 'm1' argument of [...].i()",
+  )
+  Array.prototype.i = function (el, m1) {
+    const val = this.indexOf(el)
+    if (val == -1) {
+      if (m1 === undefined) return -1
+      if (typeof m1 == "function") return m1(val)
+      if (typeof m1 != "number") warn(symarrayim1nonnum)
+      return m1
+    } else {
+      return val
+    }
+  }
+
+  Function.prototype.inv = function () {
+    const self = this
+    return function () {
+      return !self.apply(this, arguments)
+    }
+  }
+
+  Array.prototype.reject = function (val) {
+    return this.filterByFnRaw(val.fnboolpredicate().inv())
+  }
+
+  const symboolfnboolpredicate = Symbol(
+    "using 'true' or 'false' as a boolean predicate",
+  )
+  Boolean.fnboolpredicate = function () {
+    warn(symboolfnboolpredicate)
+    return () => this
+  }
+
+  const symmidnonoddlength = Symbol("getting middle value fails on even arrays")
+  Array.prototype.mid = function () {
+    if (!(this.length % 2)) {
+      warn(symmidnonoddlength)
+    }
+
+    return this[(this.length - 1) / 2]
+  }
+
+  Boolean.prototype.s = function () {
+    if (this) {
+      return -1
+    } else {
+      return 1
+    }
   }
 }
 
