@@ -170,32 +170,33 @@ function load() {
       }
     } else {
       String.prototype[name] = function () {
+        const matches = this.match(fromString)
         return this.match(fromString)?.map((x) => conv(x)) || []
       }
     }
 
-    if (single) {
-      const sym = Symbol(`using singular .${name} on a regex`)
-
-      Object.defineProperty(RegExp.prototype, name, {
-        configurable: true,
-        get() {
-          warn(sym)
-          return (text) => conv(text)
-        },
-      })
-    } else {
-      const regexp = function (text) {
-        return this.matchAll(text).map((x) => x[name]())
-      }
-
-      Object.defineProperty(RegExp.prototype, name, {
-        configurable: true,
-        get() {
-          return regexp.bind(this)
-        },
-      })
-    }
+    //     if (single) {
+    //       const sym = Symbol(`using singular .${name} on a regex`)
+    //
+    //       Object.defineProperty(RegExp.prototype, name, {
+    //         configurable: true,
+    //         get() {
+    //           warn(sym)
+    //           return (text) => conv(text)
+    //         },
+    //       })
+    //     } else {
+    //       const regexp = function (text) {
+    //         return this.matchAll(text).map((x) => x[name]())
+    //       }
+    //
+    //       Object.defineProperty(RegExp.prototype, name, {
+    //         configurable: true,
+    //         get() {
+    //           return regexp.bind(this)
+    //         },
+    //       })
+    //     }
   }
 
   defineNum("num", /^.*$/, true)
@@ -206,41 +207,30 @@ function load() {
   defineNum("uints", /\d+/g)
   defineNum("digits", /\d/g)
 
+  const digitnamelist = [
+    null,
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+  ]
+
   defineNum(
     "digitnamesfwd",
     /\d|one|two|three|four|five|six|seven|eight|nine/g,
     false,
-    (x) =>
-      [
-        null,
-        "one",
-        "two",
-        "three",
-        "four",
-        "five",
-        "six",
-        "seven",
-        "eight",
-        "nine",
-      ].i(x, Number(x)),
+    (x) => digitnamelist.i(x, +x),
   )
   defineNum(
     "digitnamesrev",
     /\d|one|two|three|four|five|six|seven|eight|nine/g,
     false,
-    (x) =>
-      [
-        null,
-        "one",
-        "two",
-        "three",
-        "four",
-        "five",
-        "six",
-        "seven",
-        "eight",
-        "nine",
-      ].i(x, Number(x)),
+    (x) => digitnamelist.i(x, +x),
   )
 
   String.prototype.digitnamesrev = function () {
@@ -248,7 +238,7 @@ function load() {
       this.reverse().match(
         /\d|enin|thgie|neves|xis|evif|ruof|eerht|owt|eno/g,
       ) || []
-    ).map((x) => x.reverse().digitnamesfwd())
+    ).map((x) => x.reverse().do((x) => digitnamelist.i(x, +x)))
   }
 
   String.prototype.reverse = function () {
