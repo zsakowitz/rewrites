@@ -1175,13 +1175,3 @@ Number.prototype.is = function (other) {
 Number.prototype.numberis = function (self) {
   return self === this
 }
-
-"world hello goodbye hello wow people hi nope"
-  .sws()
-  .xon("hello")
-  .check(
-    [["world"], ["goodbye"], ["wow", "people", "hi", "nope"]],
-    "YUPIKNOW",
-    "YUPIKNOW",
-    "YESIMSURE",
-  )
