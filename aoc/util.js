@@ -287,7 +287,7 @@ Number.prototype.sd = function (other) {
 Array.prototype.filterByFnRaw = Array.prototype.filter
 
 Array.prototype.filter = function (val) {
-  return this.filterByFnRaw(val.fn())
+  return this.filterByFnRaw(val.fnboolpredicate())
 }
 
 Array.prototype.count = function (val) {
@@ -339,7 +339,7 @@ Array.prototype.isneg = function () {
 const WARN_RANGE_TO_INVERTED = Symbol("passed an inverted range to 'rangeTo'")
 globalThis.rangeTo = function (min, max) {
   if (max < min) {
-    warn()
+    warn(WARN_RANGE_TO_INVERTED)
   }
 
   function has(x) {
@@ -353,8 +353,9 @@ globalThis.rangeTo = function (min, max) {
       }
     })(),
     {
-      fn: () => has,
+      fnboolpredicate: () => has,
       has,
+      numberis: has,
     },
   )
 }
@@ -381,13 +382,13 @@ Array.prototype.everyany = Array.prototype.everyAny = function (...fns) {
 Array.prototype.everyFn = Array.prototype.every
 
 Array.prototype.every = function (f = (x) => x) {
-  return this.everyFn(f.fn())
+  return this.everyFn(f.fnboolpredicate())
 }
 
 Array.prototype.someFn = Array.prototype.some
 
 Array.prototype.some = function (f = (x) => x) {
-  return this.someFn(f.fn())
+  return this.someFn(f.fnboolpredicate())
 }
 
 Array.prototype.none = function (f) {
@@ -455,6 +456,35 @@ String.prototype.check = function (expected, yesimsure) {
   return this
 }
 
+const symarraycheck = Symbol(
+  "calling .check() on an array; pass 'YUPIKNOW' as second arg to hide warning",
+)
+Array.prototype.check = function (expected, yupiknow, ...assertions) {
+  if (yupiknow !== "YUPIKNOW") {
+    warn(symarraycheck)
+  }
+
+  if (!Array.isArray(expected)) {
+    console.log({ actual: this, expected })
+    throw new Error(
+      "<actual>.check(<expected>) called with non-array value for <expected>",
+    )
+  }
+
+  if (this.length !== expected.length) {
+    console.log({ actual: this, expected })
+    throw new Error(
+      "<actual>.check(<expected>) called with different array lengths",
+    )
+  }
+
+  console.group(`${colors.blue}checking array${colors.reset}`)
+  for (const [k, v] of expected.entries()) {
+    v.check(this[k], ...assertions)
+  }
+  console.groupEnd()
+}
+
 Object.prototype.check = function (expected) {
   console.error(this)
   throw new Error(
@@ -462,19 +492,19 @@ Object.prototype.check = function (expected) {
   )
 }
 
-Function.prototype.fn = function () {
+Function.prototype.fnboolpredicate = function () {
   return this
 }
 
-Number.prototype.fn = function () {
+Number.prototype.fnboolpredicate = function () {
   return (x) => x === this
 }
 
-String.prototype.fn = function () {
+String.prototype.fnboolpredicate = function () {
   return (x) => (x instanceof RegExp ? this.test(x) : x === this)
 }
 
-RegExp.prototype.fn = function () {
+RegExp.prototype.fnboolpredicate = function () {
   return (x) => this.test(x)
 }
 
@@ -615,7 +645,7 @@ globalThis.PointRaw = class Point {
     this.g = g
   }
 
-  fn() {
+  fnboolpredicate() {
     return (x) => this.eq(x)
   }
 
@@ -1119,3 +1149,39 @@ String.prototype.on = function (label) {
 Array.prototype.fm = function (f) {
   return this.map(f).filter((x) => x != null)
 }
+
+Array.prototype.xon = function (el) {
+  const groups = []
+  for (const x of this) {
+    if (x.is(el)) {
+      groups.push([])
+    } else if (groups.last) {
+      groups.last.push(x)
+    } else {
+      groups.push([x])
+    }
+  }
+  return groups
+}
+
+Array.prototype.noempty = function () {
+  return this.filter((x) => x.length !== 0)
+}
+
+Number.prototype.is = function (other) {
+  return other.numberis(this)
+}
+
+Number.prototype.numberis = function (self) {
+  return self === this
+}
+
+"world hello goodbye hello wow people hi nope"
+  .sws()
+  .xon("hello")
+  .check(
+    [["world"], ["goodbye"], ["wow", "people", "hi", "nope"]],
+    "YUPIKNOW",
+    "YUPIKNOW",
+    "YESIMSURE",
+  )
