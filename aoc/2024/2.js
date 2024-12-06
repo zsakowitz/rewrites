@@ -14,6 +14,6 @@ input(2024, 2)
   .count(
     (row) =>
       row.sd().everyany(ri(1, 3), ri(-3, -1)) ||
-      row.idxs().some((i) => row.wo(i).sd().everyany(ri(1, 3), ri(-3, -1))),
+      row.k().some((i) => row.wo(i).sd().everyany(ri(1, 3), ri(-3, -1))),
   )
   .check(621)

@@ -1230,6 +1230,36 @@ function load() {
       return 1
     }
   }
+
+  Array.prototype.wi = function (i, v) {
+    return this.toSpliced(i, 0, v)
+  }
+
+  Array.prototype.ins = function (i, v) {
+    this.splice(i, 0, v)
+    return this
+  }
+
+  Array.prototype.k = function () {
+    return this.idxs()
+  }
+
+  Array.prototype.perms = function* () {
+    if (this.length == 0) {
+      yield []
+      return
+    }
+    const rest = this.slice(1)
+    for (const perm of rest.perms()) {
+      for (let i = 0; i <= rest.length; i++) {
+        yield perm.wi(i, this[0])
+      }
+    }
+  }
+
+  Array.prototype.unique = function () {
+    return Array.from(new Set(this))
+  }
 }
 
 if (!globalThis.DID_LOAD_ILOWI) {
