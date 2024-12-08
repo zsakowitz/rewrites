@@ -657,6 +657,10 @@ function load() {
       this.g = g
     }
 
+    c90() {
+      return pt(-this.y, this.x)
+    }
+
     fnboolpredicate() {
       return (x) => this.eq(x)
     }
@@ -785,9 +789,9 @@ function load() {
     globalThis.Pt =
     globalThis.point =
     globalThis.Point =
-      function () {
+      Object.assign(function () {
         return new PointRaw(...arguments)
-      }
+      }, PointRaw)
 
   pt.prototype = PointRaw.prototype
 
@@ -958,6 +962,15 @@ function load() {
 
     str() {
       return this.map((x) => x.join("")).join("\n")
+    }
+
+    fi(f) {
+      f = f.fnboolpredicate()
+      for (const pt of this.k()) {
+        if (f(pt.v, pt)) {
+          return pt
+        }
+      }
     }
 
     *v() {
