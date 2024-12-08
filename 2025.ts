@@ -14,14 +14,14 @@ const OP1: Op<readonly [Value]>[] = [
       return false
     }
 
-    return [value, `(${x[1]})!`]
+    return [value, `(${x[1]}!)`]
   },
 
   (x) => {
     const value = Math.sqrt(x[0])
 
     if (Number.isSafeInteger(value)) {
-      return [value, `√(${x[1]})`]
+      return [value, `(√${x[1]})`]
     } else {
       return false
     }
@@ -66,8 +66,15 @@ function run2(a: readonly Value[], b: readonly Value[]): Value[] {
   return run1(run2Raw(a, b))
 }
 
-function v(source: readonly string[]): Value {
-  return [+source[0]!, source[0]!]
+function v(source: string): Value {
+  return [
+    +source,
+    source.match(/^[.0]+$/)
+      ? "0"
+      : source.endsWith(".")
+      ? source.slice(0, -1)
+      : source,
+  ]
 }
 
 function d(source: readonly string[]) {
@@ -75,7 +82,7 @@ function d(source: readonly string[]) {
   return run1(
     unique(
       Array.from({ length: source.length + 1 }, (_, i) =>
-        v([s.toSpliced(i, 1, ".").join("")]),
+        v(s.toSpliced(i, 0, ".").join("")),
       ),
     ),
   )
@@ -85,29 +92,26 @@ const D2 = d`2`
 const D0 = d`0`
 const D5 = d`5`
 
-const D02 = run2(D0, D2).concat(d`02`, d`20`)
-const D05 = run2(D0, D5).concat(d`05`, d`50`)
-const D22 = run2(D2, D2).concat(d`22`)
-const D25 = run2(D2, D5).concat(d`25`, d`52`)
+const D02 = [d`02`, d`20`, run2(D0, D2)].flat()
+const D05 = [d`05`, d`50`, run2(D0, D5)].flat()
+const D22 = [d`22`, run2(D2, D2)].flat()
+const D25 = [d`25`, d`52`, run2(D2, D5)].flat()
 
-const D022 = [run2(D0, D22), run2(D2, D02), d`022`, d`220`, d`202`].flat()
-const D225 = [run2(D5, D22), run2(D2, D25), d`522`, d`225`, d`252`].flat()
+const D022 = [d`022`, d`220`, d`202`, run2(D0, D22), run2(D2, D02)].flat()
+const D225 = [d`522`, d`225`, d`252`, run2(D5, D22), run2(D2, D25)].flat()
 const D025 = [
-  run2(D0, D25),
-  run2(D2, D05),
-  run2(D5, D02),
   d`025`,
   d`052`,
   d`250`,
   d`205`,
   d`502`,
   d`520`,
+  run2(D0, D25),
+  run2(D2, D05),
+  run2(D5, D02),
 ].flat()
 
 const D0225 = [
-  run2(D0, D225),
-  run2(D2, D025),
-  run2(D5, D022),
   d`0225`,
   d`0252`,
   d`0522`,
@@ -120,6 +124,9 @@ const D0225 = [
   d`5022`,
   d`5202`,
   d`5220`,
+  run2(D0, D225),
+  run2(D2, D025),
+  run2(D5, D022),
 ].flat()
 
 const ints = unique(
@@ -137,7 +144,11 @@ const floats = unique(
 ).sort((a, b) => a[0] - b[0])
 
 for (const [a, label] of ints) {
-  console.log(`${a.toString().padEnd(15, " ")} ${label}`)
+  console.log(
+    `${a.toString().padEnd(15, " ")} ${
+      label.startsWith("(") && label.endsWith(")") ? label.slice(1, -1) : label
+    }`,
+  )
 }
 console.log("FLOATS")
 for (const [a, label] of floats) {
