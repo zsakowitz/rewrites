@@ -24,7 +24,7 @@ export function marks(correctRaw: Word, guessedRaw: Word): Marks {
   const guessed: ArrMut<string | null> = guessedRaw.slice() as any
   const score: ArrMut<Mark> = [0, 0, 0, 0, 0]
 
-  for (let i = 0; i < correctRaw.length; i++) {
+  for (let i = 0; i < 5; i++) {
     if (correct[i] == guessed[i]) {
       score[i] = 2
       guessed[i] = null
@@ -32,7 +32,7 @@ export function marks(correctRaw: Word, guessedRaw: Word): Marks {
     }
   }
 
-  for (let i = 0; i < correctRaw.length; i++) {
+  for (let i = 0; i < 5; i++) {
     const c = guessed[i]
     if (c == null) continue
 
