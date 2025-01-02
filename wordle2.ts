@@ -7,66 +7,48 @@ export type Word = Arr<string>
 export type Mark = 0 | 1 | 2
 export type Marks = number
 
-export type WordList = readonly Word[]
+export type WordList = readonly number[]
 
-const markCache = new Map<Word, Map<Word, Marks>>()
+const marks = (() => {
+  function marks(correctRaw: Word, guessedRaw: Word): Marks {
+    const correct: ArrMut<string | null> = correctRaw.slice() as any
+    const guessed: ArrMut<string | null> = guessedRaw.slice() as any
+    const score: ArrMut<Mark> = [0, 0, 0, 0, 0]
 
-export function marks(correctRaw: Word, guessedRaw: Word): Marks {
-  let cache = markCache.get(correctRaw)
-  if (cache?.has(guessedRaw)) {
-    return cache.get(guessedRaw)!
-  } else if (!cache) {
-    cache = new Map()
-    markCache.set(correctRaw, cache)
+    for (let i = 0; i < 5; i++) {
+      if (correct[i] == guessed[i]) {
+        score[i] = 2
+        guessed[i] = null
+        correct[i] = null
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      const c = guessed[i]
+      if (c == null) continue
+
+      const j = correct.indexOf(c)
+      if (j == -1) continue
+
+      correct[j] = null
+      score[i] = 1
+    }
+
+    return score.reduceRight<number>((a, b) => 3 * a + b, 0)
   }
 
-  const correct: ArrMut<string | null> = correctRaw.slice() as any
-  const guessed: ArrMut<string | null> = guessedRaw.slice() as any
-  const score: ArrMut<Mark> = [0, 0, 0, 0, 0]
-
-  for (let i = 0; i < 5; i++) {
-    if (correct[i] == guessed[i]) {
-      score[i] = 2
-      guessed[i] = null
-      correct[i] = null
+  const map: Marks[] = []
+  for (const [i, correct] of answers.entries()) {
+    for (const [j, guess] of answers.entries()) {
+      map[answers.length * i + j] = marks(correct, guess)
     }
   }
 
-  for (let i = 0; i < 5; i++) {
-    const c = guessed[i]
-    if (c == null) continue
+  return (correct: number, guessed: number) =>
+    map[answers.length * correct + guessed]
+})()
 
-    const j = correct.indexOf(c)
-    if (j == -1) continue
-
-    correct[j] = null
-    score[i] = 1
-  }
-
-  const value = score.reduceRight<number>((a, b) => 3 * a + b, 0)
-  cache.set(guessedRaw, value)
-  return value
-}
-
-export namespace marks {
-  export function expand(marks: Marks): ArrMut<Mark> {
-    return [
-      marks % 3,
-      (marks = Math.floor(marks / 3)) % 3,
-      (marks = Math.floor(marks / 3)) % 3,
-      (marks = Math.floor(marks / 3)) % 3,
-      (marks = Math.floor(marks / 3)) % 3,
-    ] as any
-  }
-
-  export function write(marks: Marks): string {
-    return expand(marks)
-      .map((x) => (x == 0 ? "❌" : x == 1 ? "⚠️" : "✅"))
-      .join("")
-  }
-}
-
-export function play(possible: WordList, correct: Word): Word {
+export function play(possible: WordList, correct: number): number {
   return possible
     .map((guess) => {
       const score = marks(correct, guess)
@@ -78,7 +60,7 @@ export function play(possible: WordList, correct: Word): Word {
 
 export function length(
   possible: WordList,
-  correct: Word,
+  correct: number,
   guess = play(possible, correct),
 ): number {
   if (possible.length == 1) {
@@ -103,37 +85,5 @@ export function findBest(possible: WordList) {
     })
     .reduce((a, b) => (a[1] < b[1] ? a : b))[0]
 }
-
-// export function tryEach(possible: WordList) {
-//   return new Map(possible.map((word) => [word, ]))
-// }
-
-// export function go(
-//   possible: WordList,
-//   correct: Word,
-//   attempts: number,
-// ): number[] {
-//   if (possible.length == 0) {
-//     throw new Error("Invalid state reached.")
-//   }
-//
-//   if (possible.length == 1) {
-//     return [0]
-//   }
-//
-//   const ret: number[] = []
-//
-//   for (const guess of possible) {
-//     const next = filter(correct, guess, possible)
-//     ret.push(...go(next, correct, attempts - 1))
-//   }
-//
-//   return ret
-// }
-//
-// export function filter(correctRaw: Word, guessedRaw: Word, list: WordList) {
-//   const marks = score(correctRaw, guessedRaw)
-//   return list.filter((x) => score(correctRaw, x) == marks)
-// }
 
 export { all, answers }
