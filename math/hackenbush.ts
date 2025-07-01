@@ -76,12 +76,8 @@ class Graph {
         1: ">0",
         "-1": "<0",
         3: "*",
-      }[this.side()],
+      }[this.#side()],
     )
-  }
-
-  logExact() {
-    console.log(this.getExact())
   }
 
   logEdges() {
@@ -99,7 +95,7 @@ class Graph {
     })
   }
 
-  side() {
+  #side() {
     const does1WinFirst = this.#wins(1, 2)
     const does2WinFirst = this.#wins(2, 1)
     if (does1WinFirst && does2WinFirst) {
@@ -113,7 +109,7 @@ class Graph {
     }
   }
 
-  clone() {
+  #clone() {
     const g = new Graph()
     for (const e of this.edges) {
       g.createEdge(e.src, e.dst, e.kind)
@@ -121,7 +117,7 @@ class Graph {
     return g
   }
 
-  offsetBy(score: number) {
+  #offsetBy(score: number) {
     while (score >= 1) {
       this.createEdge(GROUND, this.createVertex(), 2)
       score--
@@ -138,9 +134,9 @@ class Graph {
     let scale = 1
     let value = 0
     for (let i = 0; i < 16; i++) {
-      if (value == score) break
-
-      if (value < score) {
+      if (value == score) {
+        break
+      } else if (value < score) {
         this.createEdge(base, (base = this.createVertex()), 2)
         value += scale
       } else {
@@ -152,68 +148,85 @@ class Graph {
     }
   }
 
-  getExact() {
-    const side = this.side()
-    if (side == 0) {
-      return "0"
-    } else if (side == 3) {
-      return "~0"
-    }
+  #sideOfScore(score: number) {
+    const clone = this.#clone()
+    clone.#offsetBy(score)
+    return clone.#side()
+  }
 
-    let lo = 0
-    while (true) {
-      lo += side
-      const cloned = this.clone()
-      cloned.offsetBy(side)
-      const nextSide = cloned.side()
-      if (nextSide == 0) {
-        return "" + lo
-      } else if (nextSide == 3) {
-        return `~${lo}`
-      } else if (nextSide != side) {
-        break
+  sideOf(score: number | [number, number]) {
+    if (Array.isArray(score)) {
+      let [lo, hi] = score
+      if (lo > hi) {
+        ;[lo, hi] = [hi, lo]
+      }
+      const los = this.#sideOfScore(lo)
+      const his = this.#sideOfScore(hi)
+      if (los == 0) return lo
+      if (his == 0) return hi
+      if (los == 3) return `*${lo}`
+      if (his == 3) return `*${hi}`
+      if (los == 1) {
+        if (his == -1) return `${lo} .. ${hi}`
+        else return `>${lo}`
+      } else {
+        if (his == 1) return `*(${lo} .. ${hi})`
+        else return `<${lo}`
       }
     }
+    return {
+      "0": score,
+      "3": `*${score}`,
+      "-1": `<${score}`,
+      "1": `>${score}`,
+    }[this.#sideOfScore(score)]
+  }
 
-    let hi: number
-    if (side == -1) {
-      hi = lo + 1
-    } else {
-      hi = lo
-      lo = lo - 1
+  bisectOn(lo: number, hi: number, max = 32): number | [number, number] {
+    if (this.#sideOfScore(lo) != 1) {
+      return lo
     }
 
-    for (let i = 0; i < 16; i++) {
-      const adj = (lo + hi) / 2
-      const clone = this.clone()
-      clone.offsetBy(adj)
-      const side = clone.side()
+    if (this.#sideOfScore(hi) != -1) {
+      return hi
+    }
 
-      switch (side) {
+    for (let i = 0; i < max; i++) {
+      const mid = (lo + hi) / 2
+      switch (this.#sideOfScore(mid)) {
         case 0:
-          return "" + adj
         case 3:
-          return "~" + adj
+          return mid
         case 1:
-          lo = adj
+          lo = mid
           break
         case -1:
-          hi = adj
+          hi = mid
           break
-        default:
-          side satisfies never
       }
     }
 
-    return `${lo}..${hi}`
+    return [lo, hi]
+  }
+
+  logBisection(lo = -16, hi = lo + 32, max?: number) {
+    const score = this.bisectOn(lo, hi, max)
+    console.log(this.sideOf(score))
   }
 }
 
 const g = new Graph()
 
-g.createEdge(0, 1, 2)
+g.createEdge(0, 1, 3)
+g.createEdge(0, 2, 3)
 g.createEdge(1, 2, 1)
-g.createEdge(1, 3, 1)
-
+g.createEdge(0, 3, 3)
+// g.createEdge(1, 3, 1)
+// g.createEdge(0, 1, 1)
+// g.createEdge(1, 3, 3)
+// g.createEdge(0, 2, 2)
+// g.createEdge(2, 4, 3)
+// g.createEdge(3, 4, 3)
+// g.createEdge(0, 5, 1)
 g.logEdges()
-g.logExact()
+g.logBisection()
