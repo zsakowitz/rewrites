@@ -10,42 +10,30 @@ import { join } from "path"
 import { promisify } from "util"
 import ytdl from "ytdl-core"
 import ytpl from "ytpl"
-
-/** ANSI color codes. */
-const colors = {
-  black: "\u001b[30m",
-  blue: "\u001b[34m",
-  cyan: "\u001b[36m",
-  green: "\u001b[32m",
-  magenta: "\u001b[35m",
-  red: "\u001b[31m",
-  reset: "\u001b[0m",
-  white: "\u001b[37m",
-  yellow: "\u001b[33m",
-} as const
+import { ANSI } from "./ansi"
 
 function write(...data: readonly unknown[]) {
-  process.stdout.write(data.join("") + colors.reset)
+  process.stdout.write(data.join("") + ANSI.reset)
 }
 
 function rewrite(...data: readonly unknown[]) {
-  process.stdout.write("\r\x1b[K" + data.join("") + colors.reset)
+  process.stdout.write("\r\x1b[K" + data.join("") + ANSI.reset)
 }
 
 function log(...data: readonly unknown[]) {
-  console.log(data.join("") + colors.reset)
+  console.log(data.join("") + ANSI.reset)
 }
 
 function ewrite(...data: readonly unknown[]) {
-  process.stderr.write(data.join("") + colors.reset)
+  process.stderr.write(data.join("") + ANSI.reset)
 }
 
 function erewrite(...data: readonly unknown[]) {
-  process.stderr.write("\r\x1b[K" + data.join("") + colors.reset)
+  process.stderr.write("\r\x1b[K" + data.join("") + ANSI.reset)
 }
 
 function elog(...data: readonly unknown[]) {
-  console.error(data.join("") + colors.reset)
+  console.error(data.join("") + ANSI.reset)
 }
 
 interface VideoInfo {
@@ -125,13 +113,13 @@ async function main() {
 
   console.clear()
 
-  elog(colors.blue, "// Welcome to the YouTube Music playlist downloader!")
+  elog(ANSI.blue, "// Welcome to the YouTube Music playlist downloader!")
   elog(
-    colors.blue,
+    ANSI.blue,
     "// Make sure you're using a public playlist, not a private one.",
   )
   elog(
-    colors.blue,
+    ANSI.blue,
     "// If a bug occurs, open an issue in https://github.com/zsakowitz/rewrites.",
   )
 
@@ -139,19 +127,19 @@ async function main() {
   elog()
   try {
     var playlistURL = new URL(process.argv[3]!)
-    elog(colors.magenta, "Playlist URL:   ", colors.reset, playlistURL.href)
+    elog(ANSI.magenta, "Playlist URL:   ", ANSI.reset, playlistURL.href)
   } catch {
-    elog(colors.magenta, "Playlist URL:   ", colors.red, process.argv[3])
+    elog(ANSI.magenta, "Playlist URL:   ", ANSI.red, process.argv[3])
     throw new Error(
       "The playlist URL was invalid. Please pass a valid URL next time.",
     )
   }
-  elog(colors.magenta, "Media type:     ", colors.reset, "MP3")
+  elog(ANSI.magenta, "Media type:     ", ANSI.reset, "MP3")
   // #endregion
 
   // #region Create output directory
   log()
-  write(colors.cyan, "Creating output directory...            ")
+  write(ANSI.cyan, "Creating output directory...            ")
 
   await mkdir("./ytm", { recursive: true })
   await rm("./ytm", { force: true, recursive: true })
@@ -161,24 +149,24 @@ async function main() {
   await mkdir("./ytm/mp3", { recursive: true })
 
   rewrite(
-    colors.cyan,
+    ANSI.cyan,
     "Creating output directory...            ",
-    colors.green,
+    ANSI.green,
     "Done.",
   )
   // #endregion
 
   elog()
-  ewrite(colors.cyan, "Getting songs in playlist...            ")
+  ewrite(ANSI.cyan, "Getting songs in playlist...            ")
   const videos = await ytpl(playlistURL.href, { limit: Infinity })
-  elog(colors.green, "Done.")
+  elog(ANSI.green, "Done.")
 
   elog(
-    colors.cyan,
+    ANSI.cyan,
     "Gathering information about ",
-    colors.yellow,
+    ANSI.yellow,
     videos.items.length,
-    colors.cyan,
+    ANSI.cyan,
     " songs...",
     " ".repeat(
       40 - `Gathering information about ${videos.items.length} songs...`.length,
@@ -197,15 +185,15 @@ async function main() {
       if (!audioURL) {
         elog(
           "  ",
-          colors.yellow,
+          ANSI.yellow,
           "#",
           index,
-          colors.reset,
+          ANSI.reset,
           ": " + " ".repeat(6 - `#${index}: `.length),
-          colors.reset,
+          ANSI.reset,
           info.title.padEnd(40),
           "... ",
-          colors.red,
+          ANSI.red,
           "failed",
         )
 
@@ -214,12 +202,12 @@ async function main() {
 
       elog(
         "  ",
-        colors.yellow,
+        ANSI.yellow,
         "#",
         index,
-        colors.reset,
+        ANSI.reset,
         ": " + " ".repeat(6 - `#${index}: `.length),
-        colors.reset,
+        ANSI.reset,
         info.title.padEnd(40),
       )
 
@@ -243,27 +231,27 @@ async function main() {
   )
 
   elog(
-    colors.cyan,
+    ANSI.cyan,
     "Gathering information about ",
-    colors.yellow,
+    ANSI.yellow,
     videos.items.length,
-    colors.cyan,
+    ANSI.cyan,
     " songs...",
     " ".repeat(
       40 - `Gathering information about ${videos.items.length} songs...`.length,
     ),
-    colors.green,
+    ANSI.green,
     "Done.",
   )
 }
 
 main()
   .finally(log)
-  .then(() => log(colors.blue, "// Process completed successfully."))
+  .then(() => log(ANSI.blue, "// Process completed successfully."))
   .catch((err) => {
     if (err instanceof Error) {
-      elog(colors.red, "Error: ", colors.reset, err.message)
+      elog(ANSI.red, "Error: ", ANSI.reset, err.message)
     } else {
-      elog(colors.red, "Error: ", String(err))
+      elog(ANSI.red, "Error: ", String(err))
     }
   })
