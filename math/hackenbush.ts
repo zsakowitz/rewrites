@@ -72,9 +72,9 @@ class Graph {
   logValue() {
     console.log(
       {
-        0: "=" + this.#adjustment,
-        1: ">" + this.#adjustment,
-        [-1]: "<" + this.#adjustment,
+        0: "=0",
+        1: ">0",
+        "-1": "<0",
         3: "*",
       }[this.side()],
     )
@@ -121,48 +121,7 @@ class Graph {
     return g
   }
 
-  range(): [ScoreRange, Graph] {
-    const MAX = 16
-    const self = this.clone()
-    const base = self.side()
-    switch (base) {
-      case 0:
-      case 3:
-        return [{ lhs: 0, rhs: 0, inv: base == 3 }, self]
-      case 1:
-        for (let i = 1; i <= MAX; i++) {
-          const vNext = self.createVertex()
-          self.createEdge(GROUND, vNext, 2)
-          const base = self.side()
-          switch (base) {
-            case 0:
-            case 3:
-              return [{ lhs: i, rhs: i, inv: base == 3 }, self]
-            case -1:
-              return [{ lhs: i - 1, rhs: i, inv: false }, self]
-          }
-        }
-        return [{ lhs: MAX, rhs: Infinity, inv: false }, self]
-      case -1:
-        for (let i = 1; i <= MAX; i++) {
-          const vNext = self.createVertex()
-          self.createEdge(GROUND, vNext, 1)
-          const base = self.side()
-          switch (base) {
-            case 0:
-            case 3:
-              return [{ lhs: -i, rhs: -i, inv: base == 3 }, self]
-            case 1:
-              return [{ lhs: -i, rhs: -i + 1, inv: false }, self]
-          }
-        }
-        return [{ lhs: -Infinity, rhs: -MAX, inv: false }, self]
-    }
-  }
-
-  #adjustment = 0
   offsetBy(score: number) {
-    this.#adjustment += score
     while (score >= 1) {
       this.createEdge(GROUND, this.createVertex(), 2)
       score--
@@ -216,12 +175,34 @@ class Graph {
       }
     }
 
-    let hi
+    let hi: number
     if (side == -1) {
       hi = lo + 1
     } else {
       hi = lo
       lo = lo - 1
+    }
+
+    for (let i = 0; i < 16; i++) {
+      const adj = (lo + hi) / 2
+      const clone = this.clone()
+      clone.offsetBy(adj)
+      const side = clone.side()
+
+      switch (side) {
+        case 0:
+          return "" + adj
+        case 3:
+          return "~" + adj
+        case 1:
+          lo = adj
+          break
+        case -1:
+          hi = adj
+          break
+        default:
+          side satisfies never
+      }
     }
 
     return `${lo}..${hi}`
@@ -232,6 +213,7 @@ const g = new Graph()
 
 g.createEdge(0, 1, 2)
 g.createEdge(1, 2, 1)
+g.createEdge(1, 3, 1)
 
 g.logEdges()
 g.logExact()
