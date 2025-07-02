@@ -2,7 +2,7 @@
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "lib": ["ESNext", "ESNExt.Iterable", "DOM", "DOM.Iterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "moduleResolution": "Bundler",
     "jsx": "react",
     "jsxFactory": "h",
