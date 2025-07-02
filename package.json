@@ -41,6 +41,7 @@
     "fast-glob": "^3.2.12",
     "ffmpeg": "^0.0.4",
     "firebase": "^10.5.0",
+    "force-graph": "^1.49.6",
     "html5parser": "^2.0.2",
     "immer": "^9.0.16",
     "jszip": "^3.10.1",

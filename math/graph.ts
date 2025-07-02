@@ -1,3 +1,4 @@
+import ForceGraph from "force-graph"
 import { ANSI } from "../ansi"
 
 // {
@@ -104,12 +105,18 @@ export class Vertex<T, E> {
 }
 
 export class Edge<T, E> {
+  source: any
+  target: any
+
   constructor(
     readonly graph: Graph<T, E>,
     readonly sid: number,
     readonly did: number,
     public data: E,
-  ) {}
+  ) {
+    this.source = sid
+    this.target = did
+  }
 
   get src() {
     return this.graph.vl[this.sid]!
@@ -355,7 +362,8 @@ function isWinningPosition(g: Graph<0 | 1 | void>): boolean {
 function createGraph() {
   const g = new Graph<0 | 1 | void>()
   const v1 = g.createVertex()
-  v1.createCycle(3)
+  v1.createCycle(8)
+  v1.createBranch(1)
   v1.createBranch(1)
   return g
 }
@@ -365,4 +373,19 @@ const now = Date.now()
 const wins = isWinningPosition(g)
 const dt = Date.now() - now
 document.body.append(`Player ${wins ? 1 : 2} wins (computation took ${dt}ms).`)
-new Visual(g).display()
+
+const el = document.createElement("div")
+document.body.append(el)
+const graph = new ForceGraph<
+  Vertex<0 | 1 | void, void>,
+  Edge<0 | 1 | void, void>
+>(el)
+function setData() {
+  graph.graphData({
+    nodes: g.vl,
+    links: g.el,
+  })
+}
+setData()
+
+graph.nodeColor()
