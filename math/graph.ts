@@ -40,6 +40,12 @@ import { ANSI } from "../ansi"
 //   Math.random = () => r.pop()!
 // }
 
+const FORCE_GRAVITY = -0.1
+const FORCE_ATTRACT = -1
+const FORCE_REPULSE = 4
+const FORCE_INCADJS = (x: number) => 8 / (x / 20 + 1)
+const MAX_DISPL_PER_VERTEX = 4
+
 const COLORS = [
   ANSI.blue,
   ANSI.cyan,
@@ -59,6 +65,10 @@ export class Vertex<T, E> {
     readonly id: number,
     public data: T,
   ) {}
+
+  get edges() {
+    return this.graph.ev[this.id] ?? []
+  }
 
   createCycle(size: number, vertexData: T, edgeData: E) {
     if (size <= 0) {
@@ -96,14 +106,22 @@ export class Vertex<T, E> {
 export class Edge<T, E> {
   constructor(
     readonly graph: Graph<T, E>,
-    readonly src: number,
-    readonly dst: number,
+    readonly sid: number,
+    readonly did: number,
     public data: E,
   ) {}
 
+  get src() {
+    return this.graph.vl[this.sid]!
+  }
+
+  get dst() {
+    return this.graph.vl[this.did]!
+  }
+
   toString() {
     const data = this.data == null ? "" : `${ANSI.dim}(${this.data})`
-    return `${idColor(this.src)}${this.src}${ANSI.reset} ${ANSI.dim}->${ANSI.reset} ${idColor(this.dst)}${this.dst}${ANSI.reset} ${data}${ANSI.reset}`
+    return `${idColor(this.sid)}${this.sid}${ANSI.reset} ${ANSI.dim}->${ANSI.reset} ${idColor(this.did)}${this.did}${ANSI.reset} ${data}${ANSI.reset}`
   }
 }
 
@@ -183,12 +201,12 @@ export class Visual<T, E> {
   draw() {
     this.#ctx.beginPath()
     this.#ctx.rect(0, 0, this.cv.width, this.cv.height)
-    this.#ctx.fillStyle = "#fffc"
+    this.#ctx.fillStyle = "#fff4"
     this.#ctx.fill()
     this.#ctx.fillStyle = "#000"
     for (const edge of this.graph.el) {
-      const pos1 = this.#getPosition(this.graph.vl[edge.src]!)
-      const pos2 = this.#getPosition(this.graph.vl[edge.dst]!)
+      const pos1 = this.#getPosition(this.graph.vl[edge.sid]!)
+      const pos2 = this.#getPosition(this.graph.vl[edge.did]!)
       const [cx1, cy1] = this.#coords(pos1)
       const [cx2, cy2] = this.#coords(pos2)
       this.#ctx.beginPath()
@@ -208,10 +226,22 @@ export class Visual<T, E> {
     }
   }
 
+  #cap(s: number) {
+    if (s < -1e2) {
+      return -1e2
+    }
+    if (s > 1e2) {
+      return 1e2
+    }
+    if (s != s) {
+      return 0
+    }
+    return s
+  }
+
+  step = 0
   update(dt: number) {
-    const FORCE_GRAVITY = -0.1
-    const FORCE_ATTRACT = -1
-    const FORCE_REPULSE = 2
+    const forceIncrementalAdjustment = FORCE_INCADJS(++this.step)
 
     const vl = this.graph.vl
     const size = vl.length
@@ -221,7 +251,7 @@ export class Visual<T, E> {
       const [x, y] = pos[i]!
       const rawSize = Math.hypot(x, y)
       const direction = Math.atan2(y, x)
-      const size = rawSize * FORCE_GRAVITY
+      const size = this.#cap(rawSize * FORCE_GRAVITY)
       return [size * Math.cos(direction), size * Math.sin(direction)]
     })
 
@@ -231,28 +261,32 @@ export class Visual<T, E> {
 
         const pi = pos[i]!
         const pj = pos[j]!
-        const dist = Math.hypot(pi[1] - pj[1], pi[0] - pj[0])
+        const dist = this.#cap(1 / Math.hypot(pi[1] - pj[1], pi[0] - pj[0]))
         const atan = Math.atan2(pi[1] - pj[1], pi[0] - pj[0])
-        forces[i]![0] += FORCE_REPULSE * (Math.cos(atan) / dist)
-        forces[i]![1] += FORCE_REPULSE * (Math.sin(atan) / dist)
+        forces[i]![0] += FORCE_REPULSE * (Math.cos(atan) * dist)
+        forces[i]![1] += FORCE_REPULSE * (Math.sin(atan) * dist)
       }
     }
 
-    for (const { src: i, dst: j } of g.el) {
+    for (const { sid: i, did: j } of g.el) {
       const pi = pos[i]!
       const pj = pos[j]!
-      const dist = Math.hypot(pi[1] - pj[1], pi[0] - pj[0])
+      const dist = this.#cap(1 / Math.hypot(pi[1] - pj[1], pi[0] - pj[0]))
       const atan = Math.atan2(pi[1] - pj[1], pi[0] - pj[0])
-      forces[i]![0] += FORCE_ATTRACT * (Math.cos(atan) / dist)
-      forces[i]![1] += FORCE_ATTRACT * (Math.sin(atan) / dist)
-      forces[j]![0] -= FORCE_ATTRACT * (Math.cos(atan) / dist)
-      forces[j]![1] -= FORCE_ATTRACT * (Math.sin(atan) / dist)
+      forces[i]![0] += FORCE_ATTRACT * (Math.cos(atan) * dist)
+      forces[i]![1] += FORCE_ATTRACT * (Math.sin(atan) * dist)
+      forces[j]![0] -= FORCE_ATTRACT * (Math.cos(atan) * dist)
+      forces[j]![1] -= FORCE_ATTRACT * (Math.sin(atan) * dist)
     }
 
     let displacement = 0
     for (let i = 0; i < size; i++) {
-      const dx = forces[i]![0] * dt
-      const dy = forces[i]![1] * dt
+      let sz = (Math.random() - 0.5) * forceIncrementalAdjustment
+      let dir = Math.random() * (2 * Math.PI)
+      let rx = Math.cos(dir) * sz
+      let ry = Math.sin(dir) * sz
+      const dx = forces[i]![0] * dt + rx
+      const dy = forces[i]![1] * dt + ry
       displacement += Math.hypot(dx, dy)
       pos[i]![0] += dx
       pos[i]![1] += dy
@@ -270,25 +304,58 @@ export class Visual<T, E> {
   }
 
   display() {
-    this.#resetPositions()
-    this.draw()
     document.body.appendChild(this.cv)
     this.#ctx.fillText(Math.random().toString(36).slice(2), 0, 20)
 
-    // const self = this
-    // requestAnimationFrame(function frame(dt) {
-    //   if (self.update(dt / 1e3) > self.#w * 1e3 * self.graph.vl.length) {
-    //     self.#resetPositions()
-    //   }
-    //   self.draw()
-    //   requestAnimationFrame(frame)
-    // })
+    const self = this
+    self.#ctx.font = `${self.#sizeAbsolute(16)}px sans-serif`
+    requestAnimationFrame(function frame(dt) {
+      const stop =
+        self.update(dt / 1e3) > MAX_DISPL_PER_VERTEX * self.graph.vl.length
+      if (stop) {
+        self.#ctx.fillText("killed due to excessive thrashing", 0, 32)
+      } else {
+        self.draw()
+        requestAnimationFrame(frame)
+      }
+    })
   }
+}
+
+function isWinningPosition(g: Graph<0 | 1 | void>): boolean {
+  return g.vl.some((vertex) => {
+    if (vertex.data !== undefined) {
+      return false
+    }
+
+    const canPlay0 = !vertex.edges.some(
+      (edge) => edge.src.data === 0 || edge.dst.data === 0,
+    )
+
+    const canPlay1 = !vertex.edges.some(
+      (edge) => edge.src.data === 1 || edge.dst.data === 1,
+    )
+
+    if (canPlay0) {
+      vertex.data = 0
+      const weWinHere = !isWinningPosition(g)
+      vertex.data = undefined
+      if (weWinHere) return true
+    }
+
+    if (canPlay1) {
+      vertex.data = 1
+      const weWinHere = !isWinningPosition(g)
+      vertex.data = undefined
+      if (weWinHere) return true
+    }
+  })
 }
 
 const g = new Graph<0 | 1 | void>()
 const center = g.createVertex()
-center.createCycle(3)
-center.createBranch(2)
+center.createCycle(7)
+center.createBranch(1)
+document.body.append(isWinningPosition(g) ? "Player 1 wins." : "Player 2 wins.")
 
 new Visual(g).display()
