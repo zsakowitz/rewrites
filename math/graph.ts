@@ -43,7 +43,7 @@ import { ANSI } from "../ansi"
 const FORCE_GRAVITY = -0.1
 const FORCE_ATTRACT = -1
 const FORCE_REPULSE = 4
-const FORCE_INCADJS = (x: number) => 8 / (x / 20 + 1)
+const FORCE_INCADJS = (x: number) => 0 // 8 / (x / 20 + 1)
 const MAX_DISPL_PER_VERTEX = 4
 
 const COLORS = [
@@ -352,10 +352,17 @@ function isWinningPosition(g: Graph<0 | 1 | void>): boolean {
   })
 }
 
-const g = new Graph<0 | 1 | void>()
-const center = g.createVertex()
-center.createCycle(7)
-center.createBranch(1)
-document.body.append(isWinningPosition(g) ? "Player 1 wins." : "Player 2 wins.")
+function createGraph() {
+  const g = new Graph<0 | 1 | void>()
+  const v1 = g.createVertex()
+  v1.createCycle(3)
+  v1.createBranch(1)
+  return g
+}
 
+const g = createGraph()
+const now = Date.now()
+const wins = isWinningPosition(g)
+const dt = Date.now() - now
+document.body.append(`Player ${wins ? 1 : 2} wins (computation took ${dt}ms).`)
 new Visual(g).display()
