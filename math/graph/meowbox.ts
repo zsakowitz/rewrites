@@ -1,28 +1,36 @@
-import { inspect } from "util"
-
 class Meowbox {
-  readonly rows: number
-  readonly cols: number
-
-  constructor(readonly cells: (0 | 1)[][]) {
-    this.rows = cells.length
-    this.cols = cells[0]?.length ?? 0
+  static zerobox(rows: number, cols: number) {
+    return new Meowbox(new Uint8Array(rows * cols), rows, cols)
   }
+
+  static random(rows: number, cols: number) {
+    return new Meowbox(
+      Uint8Array.from({ length: rows * cols }, () =>
+        Math.random() < 0.5 ? 0 : 1,
+      ),
+      rows,
+      cols,
+    )
+  }
+
+  constructor(
+    readonly cells: Uint8Array,
+    readonly rows: number,
+    readonly cols: number,
+  ) {}
 
   swap(i: number, j: number) {
     if (i != j) {
-      const ri = this.cells[i]
-      const rj = this.cells[j]
-      if (!(ri && rj)) {
-        throw new Error("Cannot swap rows of a meowbox which do not exist.")
-      }
-      this.cells[j] = ri
-      this.cells[i] = rj
+      const cols = this.cols
+      const ri = this.cells.slice(i * cols, (i + 1) * cols)
+      this.cells.copyWithin(i * cols, j * cols, (j + 1) * cols)
+      this.cells.set(ri, j * cols)
     }
   }
 
   crash(i: number, j: number) {
-    if (i > this.rows || j > this.rows) {
+    const rows = this.rows
+    if (i > rows || j > rows) {
       throw new Error("Cannot crash from or into a row which does not exist.")
     }
 
@@ -30,50 +38,66 @@ class Meowbox {
       throw new Error("Cannot crash a row into itself.")
     }
 
-    for (let c = 0; c < this.cols; c++) {
+    const cols = this.cols
+    const ri = i * cols
+    const rj = j * cols
+    for (let c = 0; c < cols; c++) {
       // @ts-expect-error be quiet
-      this.cells[j]![c] ^= this.cells[i]![c]
+      this.cells[rj + c] ^= this.cells[ri + c]
     }
   }
 
+  lead(row: number) {
+    const cols = this.cols
+    const o = row * cols
+    for (let i = 0; i < cols; i++) {
+      if (this.cells[o + i] === 1) {
+        return i
+      }
+    }
+    return -1
+  }
+
   untangle() {
+    const { rows, cols } = this
     // iterate on rows
-    for (let r = 0; r < this.rows; r++) {
-      let lead = this.cols
+    for (let r = 0; r < rows; r++) {
+      let lead = cols
       let leadRow = r
 
       // iterate on rows
-      for (let r = leadRow; r < this.rows; r++) {
-        const myLead = this.cells[r]!.indexOf(1) // iterate on cols
+      for (let r = leadRow; r < rows; r++) {
+        const myLead = this.lead(r) // iterate on cols
         if (myLead === -1 || myLead >= lead) continue
 
         lead = myLead
         leadRow = r
       }
 
-      if (lead === this.cols) {
+      if (lead === cols) {
         break
       }
 
       this.swap(r, leadRow) // iterate on cols
 
       // iterate on rows
-      for (let r2 = 0; r2 < this.rows; r2++) {
-        if (r === r2 || this.cells[r2]![lead] === 0) continue
+      for (let r2 = 0; r2 < rows; r2++) {
+        if (r === r2 || this.cells[r2 * cols + lead] === 0) continue
         this.crash(r, r2) // iterate on cols
       }
     }
   }
 
-  [inspect.custom]() {
-    return this.cells.map((x) => x.join(" ")).join("\n")
-  }
+  // [inspect.custom]() {
+  //   let ret = ""
+  //   return this.cells.map((x) => x.join(" ")).join("\n")
+  // }
 
   /** Assumes the meowbox has been untangled. */
   countSolutions() {
     let leads = 0
     for (let i = 0; i < this.rows; i++) {
-      const lead = this.cells[i]!.indexOf(1)
+      const lead = this.lead(i)
       if (lead == this.cols - 1) {
         return 0
       }
@@ -84,13 +108,21 @@ class Meowbox {
   }
 }
 
-const m = new Meowbox([
-  [0, 0, 0, 1, 0, 1],
-  [1, 1, 1, 0, 0, 1],
-  [0, 0, 1, 0, 0, 0],
-])
+const r = Array.from({ length: 1e5 }, () => Meowbox.random(6, 6))
 
-m.untangle()
+console.time()
+for (const meowbox of r) {
+  meowbox.untangle()
+}
+console.timeEnd()
 
-console.log(m)
-console.log(m.countSolutions())
+// const m = new Meowbox([
+//   [0, 0, 0, 1, 0, 1],
+//   [1, 1, 1, 0, 0, 1],
+//   [0, 0, 1, 0, 0, 0],
+// ])
+//
+// m.untangle()
+//
+// console.log(m)
+// console.log(m.countSolutions())
