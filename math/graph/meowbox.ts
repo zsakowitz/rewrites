@@ -169,24 +169,58 @@ export class Meowbox {
       if (lead == this.cols - 1) {
         return null
       }
+      if (lead == -1) {
+        continue
+      }
 
       let total = this.get(i, this.cols - 1)
       for (let j = lead + 1; j < this.cols - 1; j++) {
-        total ^= soln[j]!
+        if (this.get(i, j)) {
+          total ^= soln[j]!
+        }
       }
-      soln[i] = total
+      soln[lead] = total
     }
 
     return soln
   }
 }
 
+export function howManyOfSizeRxCAreSatiable(rows: number, cols: number) {
+  const box = Meowbox.zero(rows, cols)
+  let satiable = 0
+  let size = rows * cols
+  if (!Number.isSafeInteger(size)) {
+    throw new Error(
+      `${rows}*${cols} is too large; there is a maximum of 53 cells.`,
+    )
+  }
+
+  for (let n = 0; n < 2 ** size; n++) {
+    for (let i = 0; i < box.cells.length; i++) {
+      box.cells[i] = (2 ** i) & n ? 1 : 0
+    }
+    box.untangle()
+    if (box.countSolutions()) {
+      satiable++
+    }
+  }
+
+  return `${satiable} of ${2 ** size} (${((satiable / 2 ** size) * 100).toPrecision(4)}%) ${rows}×${cols}s are satiable`
+}
+
+// for (let i = 1; i <= 4; i++) {
+// for (let j = 1; j <= i; j++) {
+// console.time()
+// console.log(howManyOfSizeRxCAreSatiable(3, 4))
+// console.timeEnd()
+// }
+// }
+
 {
   const g = new Graph<0 | 1>()
   g.vertex(1).rect(3, 3, 0)
-  // g.vl[1]!.data = 1
-  // g.vl[3]!.data = 1
-  // g.vl[2]!.data = 1
+  // g.vl[3]!.cycle(5, 0)
 
   const box = Meowbox.fromGraph(g)
   const original = box.clone()
@@ -195,7 +229,17 @@ export class Meowbox {
   // console.log(box.toString())
   const sols = box.countSolutions()
   const soln = box.readSolution() ?? new Uint8Array(box.cols - 1)
-  document.body.append(h("p", null, `Solutions: ${sols}`))
+  const output = `Solution count: ${sols}
+
+Matrix:
+${box.toString()}
+
+One solution:
+${soln.join(" ")}`
+  const pre = h("pre", null, output)
+  // @ts-ignore why did they type it like this
+  pre.style = "position:fixed;top:1rem;left:1rem;margin:0"
+  document.body.append(pre)
 
   const visual = g.display()
 
@@ -203,7 +247,7 @@ export class Meowbox {
     return Array.from(
       original.cells.slice(v.id * original.cols, (v.id + 1) * original.cols),
     )
-      .map((x, i, a) => (i == a.length - 1 ? x : x && `a${i}`))
+      .map((x, i, a) => (i == a.length - 1 ? x : x && `a${i + 1}`))
       .filter((x) => x)
       .join(" + ")
   })
@@ -222,7 +266,7 @@ export class Meowbox {
     ctx.textBaseline = "middle"
     ctx.textAlign = "center"
     ctx.fillStyle = obj.data ? "white" : "black"
-    ctx.fillText("" + obj.id, obj.x!, obj.y!)
+    ctx.fillText(obj.id + 1 + "", obj.x!, obj.y!)
   })
 
   visual.onNodeRightClick((node) => {
