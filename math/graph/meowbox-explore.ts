@@ -1,7 +1,9 @@
 import type ForceGraph from "force-graph"
 import { Graph, type Edge, type Vertex } from "."
 import { createForceGraph } from "./force"
-import { Meowbox } from "./meowbox"
+import { howManyOfSizeRxCAreSatiable, Meowbox } from "./meowbox"
+
+let queued = false
 
 const graph = new Graph<0 | 1>()
 const v1 = graph.vertex(1)
@@ -103,6 +105,8 @@ function feed(node: Vertex<0 | 1, void>) {
 }
 
 function compute() {
+  queued = false
+
   const box = Meowbox.fromGraph(graph)
   const solved = box.clone()
   solved.untangle()
@@ -127,6 +131,7 @@ ${solved.toString()}`
 
 function execCommand() {
   const command = input.value.trim()
+  input.value = ""
 
   if (!command) {
     return
@@ -136,8 +141,13 @@ function execCommand() {
     const match = cmd.regex.exec(command)
     if (!match) continue
 
-    const result = cmd.exec(match)
-    input.value = ""
+    let result
+    try {
+      result = cmd.exec(match)
+    } catch (e) {
+      result = e instanceof Error ? e.message : String(e)
+    }
+
     if (typeof result == "string") {
       output.value = result
     } else {
@@ -146,6 +156,7 @@ function execCommand() {
       }
       output.appendChild(result)
     }
+
     return
   }
 
@@ -247,6 +258,30 @@ function createMultiCommand(name: string, exec: (arg: number) => string) {
   })
 }
 
+function queueCompute() {
+  if (!queued) {
+    queued = true
+  }
+  queueMicrotask(() => {
+    if (queued) {
+      compute()
+      visualize()
+    }
+  })
+}
+
+function condo(id: number) {
+  if (id == graph.vl.length + 1 || id == 0) {
+    queueCompute()
+    return graph.vertex(0)
+  }
+
+  const condo = graph.vl[id - 1]
+  if (!condo) throw new Error(`Condo ${id} does not exist.`)
+
+  return condo
+}
+
 const COMMANDS: {
   regex: RegExp
   exec(match: RegExpExecArray): string | Node
@@ -260,7 +295,7 @@ createCommand("help // Shows this help menu.", () => {
   const el = document.createElement("p")
   el.textContent = `Each numbered circle above is a cat condo. Dark blue condos are currently meowing.
 Right-click a condo to feed its cat. Feeding all condos with a black ring should satiate the cats.
-A condo's number is its ID. These are used when typing commands.
+A condo's number is its ID. These are used when typing commands. Use 0 as an ID to create a new condo.
 You can drag an individual condo, or the entire configuration.
 Dragging one condo very far out, then releasing, often creates a less chaotic configuration.
 Scroll with a mouse or pinch on a trackpad to zoom.`
@@ -281,21 +316,9 @@ Scroll with a mouse or pinch on a trackpad to zoom.`
   return ret
 })
 
-createCommand("new // Creates a new cat condo.", () => {
-  const vx = graph.vertex(0)
-  compute()
-  visualize()
-  return `Created cat condo #${vx.id + 1} (not meowing).`
-})
-
 createCommand(
-  "new 1 // Creates a new cat condo which is already meowing.",
-  () => {
-    const vx = graph.vertex(1)
-    compute()
-    visualize()
-    return `Created cat condo #${vx.id + 1} (meowing).`
-  },
+  "new // Creates a new cat condo.",
+  () => `Created cat condo #${condo(0).id + 1} (not meowing).`,
 )
 
 createCommand("rm :id // Removes one condo.", (id) => {
@@ -316,65 +339,166 @@ createCommand("rm :id // Removes one condo.", (id) => {
   }
 })
 
-createCommand(
-  "link id1,_id2,_...:(\\d+(?:\\s+\\d+)*) //? Links multiple condos in a chain.",
-  (idsRaw) => {
-    const ids = idsRaw.split(" ").map((x) => +x)
-    for (const id of ids) {
-      if (!graph.vl[id - 1]) {
-        return `Condo #${id} does not exist.`
+createCommand("rm *:\\* // Removes all condos.", () => {
+  let count = graph.vl.length
+  while (graph.vl.length) {
+    graph.vl[graph.vl.length - 1]?.remove()
+  }
+
+  compute()
+  visualize()
+
+  return `Removed ${count} condo(s).`
+})
+
+function createLinkCommand(
+  name: `${string} // ${string}`,
+  exec: (
+    condos: Vertex<0 | 1, void>[],
+    link: (a: Vertex<0 | 1, void>, b: Vertex<0 | 1, void>) => void,
+    unlink: (a: Vertex<0 | 1, void>, b: Vertex<0 | 1, void>) => void,
+    count: () => number,
+  ) => void,
+) {
+  const [desc, label] = name.split(" // ")
+  createCommand(
+    `${desc ? desc + " " : ""}id1,_id2,_...:(\\d+(?:\\s+\\d+)*) //? ${label}`,
+    (idsRaw) => {
+      const condos = idsRaw.split(" ").map((x) => condo(+x))
+
+      let created = 0
+      let removed = 0
+      exec(
+        condos,
+        (a, b) => {
+          if (!graph.hasEdge(a, b)) {
+            created++
+            graph.edge(a, b)
+          }
+        },
+        (a, b) => {
+          const edge = graph.ev[a.id]?.find(
+            (x) => x.sid == b.id || x.did == b.id,
+          )
+          if (edge) {
+            removed++
+            edge.detach()
+          }
+        },
+        () => created - removed,
+      )
+      compute()
+      visualize()
+
+      if (created && removed) {
+        return `${created} new connection(s) created. ${removed} connection(s) removed.`
+      } else if (created) {
+        return `${created} new connection(s) created.`
+      } else if (removed) {
+        return `${removed} connection(s) removed.`
+      } else {
+        return `No connections adjusted.`
       }
-    }
+    },
+  )
+}
 
-    if (ids.length < 2) {
-      return `No new connections made.`
-    }
+createLinkCommand("link // Links multiple condos in a chain.", (ids, link) => {
+  for (let i = 0; i < ids.length - 1; i++) {
+    const src = ids[i]!
+    const dst = ids[i + 1]!
+    link(src, dst)
+  }
+})
 
-    let links = 0
+createLinkCommand(
+  "link cycle // Links multiple condos in a cycle.",
+  (ids, link) => {
     for (let i = 0; i < ids.length; i++) {
-      const src = graph.vl[ids[i]! - 1]!
-      const dst = graph.vl[ids[(i + 1) % ids.length]! - 1]!
-      if (!graph.hasEdge(src, dst)) {
-        links++
-        graph.edge(src, dst)
+      const src = ids[i]!
+      const dst = ids[(i + 1) % ids.length]!
+      link(src, dst)
+    }
+  },
+)
+
+createLinkCommand(
+  "link every // Links every possible pair of passed condos.",
+  (ids, link) => {
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const src = ids[i]!
+        const dst = ids[j]!
+        link(src, dst)
       }
     }
+  },
+)
 
-    if (links == 0) {
-      return `No new connections made.`
+createLinkCommand(
+  "link to all // Links each passed condo to every other existing condo.",
+  (ids, link) => {
+    for (let i = 0; i < ids.length; i++) {
+      for (const v of graph.vl) {
+        const src = ids[i]!
+        link(src, v)
+      }
     }
+  },
+)
 
+createCommand("0 // Shorthand for 'new'.", () => {
+  return `Created cat condo #${condo(0).id + 1} (not meowing).`
+})
+
+createLinkCommand(" // Shorthand for standard 'link'.", (ids, link) => {
+  for (let i = 0; i < ids.length - 1; i++) {
+    const src = ids[i]!
+    const dst = ids[i + 1]!
+    link(src, dst)
+  }
+})
+
+createMultiCommand(
+  "unlink :id // Removes all links to the passed condo.",
+  (id) => {
+    const v = condo(id)
+
+    let removed = 0
+    for (const e of graph.ev[v.id] ?? []) {
+      removed++
+      e.detach()
+    }
     compute()
     visualize()
-    if (links == 1) {
-      return `1 new connection created.`
+
+    if (removed == 0) {
+      return `${v.id + 1} is already isolated.`
+    } else {
+      return `Removed ${removed} connection(s).`
     }
-    return `${links} new connections created.`
   },
 )
 
 createCommand(
   "cycle :endpoint :size // Creates a cycle ending at some condo.",
   (a, b) => {
-    if (!graph.vl[a - 1]) {
-      return `Condo #${a} does not exist.`
-    }
+    const v = condo(a)
+
     if (!(2 <= b && b <= 1000 && Number.isSafeInteger(b))) {
       return `A cycle must be between 2 and 1000 units long.`
     }
-    graph.vl[a - 1]!.cycle(b, 0)
+    v.cycle(b, 0)
     compute()
     visualize()
-    return `Created a cycle on ${a - 1}.`
+    return `Created a cycle on ${v.id + 1}.`
   },
 )
 
 createCommand(
   "rect :corner :w :h // Creates a rectangle with a corner at some condo.",
   (a, w, h) => {
-    if (!graph.vl[a - 1]) {
-      return `Condo #${a} does not exist.`
-    }
+    const v = condo(a)
     if (!(2 <= w && w <= 1000 && Number.isSafeInteger(w))) {
       return `A rectangle must be between 2 and 1000 units wide.`
     }
@@ -384,7 +508,7 @@ createCommand(
     if (w * h > 1000) {
       return `A rectangle cannot have more than 1000 condos.`
     }
-    graph.vl[a - 1]!.rect(w, h, 0)
+    v.rect(w, h, 0)
     compute()
     visualize()
     return `Created a rectangle on ${a}.`
@@ -394,17 +518,13 @@ createCommand(
 createMultiCommand(
   "meow :id // Invokes elder gods to disrupt the calm of one or more cats.",
   (id) => {
-    const condo = graph.vl[id - 1]
+    const v = condo(id)
 
-    if (!condo) {
-      return `Condo ${id} does not exist.`
-    }
-
-    if (condo.data) {
+    if (v.data) {
       return `${id} is already meowing.`
     }
 
-    condo.data = 1
+    v.data = 1
     compute()
     visualize()
 
@@ -415,17 +535,13 @@ createMultiCommand(
 createMultiCommand(
   "hush :id // Sings a lullaby to pause the meowing of one or more cats.",
   (id) => {
-    const condo = graph.vl[id - 1]
+    const v = condo(id)
 
-    if (!condo) {
-      return `Condo ${id} does not exist.`
-    }
-
-    if (!condo.data) {
+    if (!v.data) {
       return `${id} is already quiet.`
     }
 
-    condo.data = 0
+    v.data = 0
     compute()
     visualize()
 
@@ -434,16 +550,35 @@ createMultiCommand(
 )
 
 createMultiCommand("feed :id // Feeds one or more cats.", (id) => {
-  const condo = graph.vl[id - 1]
-
-  if (!condo) {
-    return `Condo ${id} does not exist.`
-  }
-
-  feed(condo)
-
+  feed(condo(id))
   return `Fed cat ${id}.`
 })
+
+createCommand(
+  "check all // Checks all possible cat configurations with the given layout.",
+  () => {
+    const box = Meowbox.fromGraph(graph)
+    const sols: number[] = []
+    const size = box.rows
+    if (size > 16) {
+      return `There are more than 16 condos, which will likely crash your computer, so 'check all' is not possible right now.`
+    }
+    const max = 2 ** size
+    for (let n = 0; n < max; n++) {
+      const cloned = box.clone()
+      for (let r = 0; r < box.rows; r++) {
+        cloned.set(r, box.cols - 1, (2 ** r) & n ? 1 : 0)
+      }
+      cloned.untangle()
+      const count = cloned.countSolutions()
+      sols[count] ??= 0
+      sols[count]++
+    }
+    return Object.entries(sols)
+      .map(([k, v]) => `${v} config(s) with ${k} solution(s)`)
+      .join("\n")
+  },
+)
 
 createCommand("copy original // Copies the original yarnball.", () => {
   const node = document.createElement("p")
@@ -470,3 +605,5 @@ addEventListener("keydown", (e: KeyboardEvent) => {
     input.focus()
   }
 })
+
+Object.assign(globalThis, { howManyOfSizeRxCAreSatiable })
