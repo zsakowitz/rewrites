@@ -1,4 +1,4 @@
-class Meowbox {
+export class Meowbox {
   static zerobox(rows: number, cols: number) {
     return new Meowbox(new Uint8Array(rows * cols), rows, cols)
   }
@@ -92,6 +92,14 @@ class Meowbox {
     }
   }
 
+  get(row: number, col: number) {
+    return this.cells[row * this.cols + col]! as 0 | 1
+  }
+
+  set(row: number, col: number, value: 0 | 1) {
+    this.cells[row * this.cols + col] = value
+  }
+
   // [inspect.custom]() {
   //   let ret = ""
   //   return this.cells.map((x) => x.join(" ")).join("\n")
@@ -111,14 +119,6 @@ class Meowbox {
     return 2 ** (this.cols - 1 - leads)
   }
 }
-
-const r = Array.from({ length: 1e5 }, () => Meowbox.random(6, 6))
-
-console.time()
-for (const meowbox of r) {
-  meowbox.untangle()
-}
-console.timeEnd()
 
 // const m = new Meowbox([
 //   [0, 0, 0, 1, 0, 1],
