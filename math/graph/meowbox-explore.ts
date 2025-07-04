@@ -634,9 +634,10 @@ createCommand(
     const box = Meowbox.fromGraph(graph)
     const sols: number[] = []
     const size = box.rows
-    if (size > 16) {
-      return `There are more than 16 condos, which will likely crash your computer, so 'check all' is not possible right now.`
+    if (size > 20) {
+      return `There are more than 20 condos, which will likely crash your computer, so 'check all' is not possible right now.`
     }
+    const start = Date.now()
     const max = 2 ** size
     for (let n = 0; n < max; n++) {
       const cloned = box.clone()
@@ -648,9 +649,19 @@ createCommand(
       sols[count] ??= 0
       sols[count]++
     }
-    return Object.entries(sols)
-      .map(([k, v]) => `${v} config(s) with ${k} solution(s)`)
-      .join("\n")
+    const elapsed = Date.now() - start
+    return (
+      `Checked 2${size
+        .toString()
+        .split("")
+        .map((x) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+x])
+        .join(
+          "",
+        )} (${2 ** size}) configurations in ${Math.round(elapsed)}ms. Found:\n` +
+      Object.entries(sols)
+        .map(([k, v]) => `${v} config(s) with ${k} solution(s)`)
+        .join("\n")
+    )
   },
 )
 
