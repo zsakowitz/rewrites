@@ -29,6 +29,7 @@ input.className =
 
 let computeResult: {
   box: Meowbox
+  solved: Meowbox
   count: number
   soln: Uint8Array
   time: string
@@ -121,7 +122,7 @@ ${solved.toString()}`
 
   data.textContent = output
 
-  return (computeResult = { box, count, soln, time })
+  return (computeResult = { box, solved, count, soln, time })
 }
 
 function execCommand() {
@@ -383,6 +384,26 @@ createCommand("feed :id // Feeds a cat.", (id) => {
   feed(condo)
 
   return `Fed cat ${id}.`
+})
+
+createCommand("copy original // Copies the original yarnball.", () => {
+  const node = document.createElement("p")
+  navigator.clipboard.writeText(computeResult.box.toString()).then(
+    () => (node.textContent = "Successfully copied original yarnball!"),
+    (e) =>
+      (node.textContent = `Unable to copy: ${e instanceof Error ? e.message : String(e)}.`),
+  )
+  return node
+})
+
+createCommand("copy untangled // Copies the untangled yarnball.", () => {
+  const node = document.createElement("p")
+  navigator.clipboard.writeText(computeResult.solved.toString()).then(
+    () => (node.textContent = "Successfully copied untangled yarnball!"),
+    (e) =>
+      (node.textContent = `Unable to copy: ${e instanceof Error ? e.message : String(e)}.`),
+  )
+  return node
 })
 
 addEventListener("keydown", (e) => {
