@@ -521,7 +521,7 @@ createCommand(
     if (!(1 <= size && size <= 1000 && Number.isSafeInteger(size))) {
       return `A chain must be between 1 and 1000 units long.`
     }
-    v.branch(size, 0)
+    v.branch(size - 1, 0)
     compute()
     visualize()
     return `Created a chain on ${a}.`
