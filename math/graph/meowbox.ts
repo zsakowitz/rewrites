@@ -1,3 +1,6 @@
+import { Graph } from "."
+import { h } from "../../easy-jsx"
+
 export class Meowbox {
   static zero(rows: number, cols: number) {
     return new Meowbox(new Uint8Array(rows * cols), rows, cols)
@@ -21,11 +24,31 @@ export class Meowbox {
     )
   }
 
+  static fromGraph(g: Graph<0 | 1>) {
+    const box = Meowbox.zero(g.vl.length, g.vl.length + 1)
+
+    for (let i = 0; i < g.vl.length; i++) {
+      const isMeowing = g.vl[i]!.data
+      box.set(i, box.cols - 1, isMeowing)
+      box.set(i, i, 1)
+      for (const edge of g.ev[i] ?? []) {
+        const neighbor = edge.sid == i ? edge.did : edge.sid
+        box.set(i, neighbor, 1)
+      }
+    }
+
+    return box
+  }
+
   constructor(
     readonly cells: Uint8Array,
     readonly rows: number,
     readonly cols: number,
   ) {}
+
+  clone() {
+    return new Meowbox(this.cells.slice(), this.rows, this.cols)
+  }
 
   swap(i: number, j: number) {
     if (i == j) return
@@ -137,6 +160,83 @@ export class Meowbox {
     }
     return ret
   }
+
+  readSolution(): Uint8Array | null {
+    const soln = new Uint8Array(this.cols - 1)
+
+    for (let i = this.rows - 1; i >= 0; i--) {
+      const lead = this.lead(i)
+      if (lead == this.cols - 1) {
+        return null
+      }
+
+      let total = this.get(i, this.cols - 1)
+      for (let j = lead + 1; j < this.cols - 1; j++) {
+        total ^= soln[j]!
+      }
+      soln[i] = total
+    }
+
+    return soln
+  }
 }
 
-console.log(Meowbox.random(4, 4).toString())
+{
+  const g = new Graph<0 | 1>()
+  g.vertex(1).rect(3, 3, 0)
+  // g.vl[1]!.data = 1
+  // g.vl[3]!.data = 1
+  // g.vl[2]!.data = 1
+
+  const box = Meowbox.fromGraph(g)
+  const original = box.clone()
+  console.log(box.toString())
+  box.untangle()
+  // console.log(box.toString())
+  const sols = box.countSolutions()
+  const soln = box.readSolution() ?? new Uint8Array(box.cols - 1)
+  document.body.append(h("p", null, `Solutions: ${sols}`))
+
+  const visual = g.display()
+
+  visual.nodeLabel((v) => {
+    return Array.from(
+      original.cells.slice(v.id * original.cols, (v.id + 1) * original.cols),
+    )
+      .map((x, i, a) => (i == a.length - 1 ? x : x && `a${i}`))
+      .filter((x) => x)
+      .join(" + ")
+  })
+
+  visual.nodeRelSize(8)
+
+  visual.nodeCanvasObject((obj, ctx) => {
+    const size = visual.nodeRelSize()
+    ctx.beginPath()
+    ctx.fillStyle = obj.data ? "#44f" : "#ccf"
+    ctx.ellipse(obj.x!, obj.y!, size, size, 0, 0, 2 * Math.PI)
+    ctx.strokeStyle = soln[obj.id] ? "black" : "transparent"
+    ctx.lineWidth = 1
+    ctx.fill()
+    ctx.stroke()
+    ctx.textBaseline = "middle"
+    ctx.textAlign = "center"
+    ctx.fillStyle = obj.data ? "white" : "black"
+    ctx.fillText("" + obj.id, obj.x!, obj.y!)
+  })
+
+  visual.onNodeRightClick((node) => {
+    const affected = new Set([node.id])
+    for (const edge of g.ev[node.id] ?? []) {
+      const dst = edge.sid == node.id ? edge.did : edge.sid
+      affected.add(dst)
+    }
+
+    soln[node.id]! ^= 1
+    for (const target of affected) {
+      g.vl[target]!.data ^= 1
+    }
+
+    visual.resumeAnimation()
+  })
+}

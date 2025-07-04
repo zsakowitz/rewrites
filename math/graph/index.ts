@@ -1,4 +1,4 @@
-import ForceGraph from "force-graph"
+import ForceGraph, { type NodeObject } from "force-graph"
 import { ANSI } from "../../ansi"
 
 const COLORS = [
@@ -25,7 +25,7 @@ export class Vertex<T, E> {
     return this.graph.ev[this.id] ?? []
   }
 
-  createCycle(size: number, vertexData: T, edgeData: E) {
+  cycle(size: number, vertexData: T, edgeData: E) {
     if (size <= 0) {
       return
     }
@@ -33,22 +33,41 @@ export class Vertex<T, E> {
     let base: Vertex<T, E> = this
     const g = this.graph
     for (let i = 0; i < size - 1; i++) {
-      g.createEdge(base, (base = g.createHouse(vertexData)), edgeData)
+      g.edge(base, (base = g.vertex(vertexData)), edgeData)
     }
-    g.createEdge(base, this, edgeData)
+    g.edge(base, this, edgeData)
   }
 
-  createBranch1(vertexData: T, edgeData: E) {
-    const v = this.graph.createHouse(vertexData)
-    this.graph.createEdge(this, v, edgeData)
+  rect(rows: number, cols: number, vertexData: T, edgeData: E) {
+    let base: Vertex<T, E> = this
+    const heads: Vertex<T, E>[] = [this]
+
+    for (let i = 1; i < cols; i++) {
+      heads.push((base = base.branch1(vertexData, edgeData)))
+    }
+
+    for (let r = 1; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const above = heads[c]!
+        const lhs = heads[c - 1]
+        const self = above.branch1(vertexData, edgeData)
+        if (lhs) this.graph.edge(self, lhs, edgeData)
+        heads[c] = self
+      }
+    }
+  }
+
+  branch1(vertexData: T, edgeData: E) {
+    const v = this.graph.vertex(vertexData)
+    this.graph.edge(this, v, edgeData)
     return v
   }
 
-  createBranch(size: number, vertexData: T, edgeData: E) {
+  branch(size: number, vertexData: T, edgeData: E) {
     if (size <= 0) return this
     let on: Vertex<T, E> = this
     for (let i = 0; i < size; i++) {
-      on = on.createBranch1(vertexData, edgeData)
+      on = on.branch1(vertexData, edgeData)
     }
     return on
   }
@@ -57,6 +76,8 @@ export class Vertex<T, E> {
     return `${idColor(this.id)}#${this.id}${this.data == null ? "" : "=" + this.data}${ANSI.reset}`
   }
 }
+
+export interface Vertex<T, E> extends NodeObject {}
 
 export class Edge<T, E> {
   source: any
@@ -91,14 +112,14 @@ export class Graph<T = void, E = void> {
   readonly el: Edge<T, E>[] = []
   readonly ev: Edge<T, E>[][] = []
 
-  createHouse(data: T) {
+  vertex(data: T) {
     const id = this.vl.length
     const v = new Vertex(this, id, data)
     this.vl.push(v)
     return v
   }
 
-  createEdge(a: Vertex<T, E>, b: Vertex<T, E>, data: E) {
+  edge(a: Vertex<T, E>, b: Vertex<T, E>, data: E) {
     const edge = new Edge(this, a.id, b.id, data)
     this.el.push(edge)
     ;(this.ev[a.id] ??= []).push(edge)
@@ -124,6 +145,7 @@ export class Graph<T = void, E = void> {
     document.body.append(el)
     const graph = new ForceGraph<Vertex<T, E>, Edge<T, E>>(el)
     graph.graphData({ nodes: this.vl, links: this.el })
+    graph.nodeLabel((a) => (a.data == null ? `#${a.id}` : `#${a.id}=${a.data}`))
     return graph
   }
 }

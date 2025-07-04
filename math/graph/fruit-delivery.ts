@@ -44,24 +44,24 @@ function project(g: FruitDeliveryGraph) {
 
 const g = new FruitDeliveryGraph()
 
-const H1 = g.createHouse()
-const H2 = g.createHouse()
-const H3 = g.createHouse()
-const H4 = g.createHouse()
-const H5 = g.createHouse()
+const H1 = g.vertex()
+const H2 = g.vertex()
+const H3 = g.vertex()
+const H4 = g.vertex()
+const H5 = g.vertex()
 
-g.createEdge(H1, H2)
-g.createEdge(H1, H3)
-g.createEdge(H1, H4)
-g.createEdge(H1, H5)
+g.edge(H1, H2)
+g.edge(H1, H3)
+g.edge(H1, H4)
+g.edge(H1, H5)
 
-g.createEdge(H2, H3)
-g.createEdge(H2, H4)
-g.createEdge(H2, H5)
+g.edge(H2, H3)
+g.edge(H2, H4)
+g.edge(H2, H5)
 
-g.createEdge(H3, H4)
-g.createEdge(H3, H5)
+g.edge(H3, H4)
+g.edge(H3, H5)
 
-g.createEdge(H4, H5)
+g.edge(H4, H5)
 
 project(g)
