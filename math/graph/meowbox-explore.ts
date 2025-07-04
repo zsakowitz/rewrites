@@ -13,7 +13,7 @@ const output = document.createElement("output")
 const input = document.createElement("input")
 const commandBox = document.createElement("div")
 
-output.textContent = "Type 'help', then press Enter for help on commands."
+output.textContent = "Type 'help', then press Enter."
 input.placeholder = "Type commands here..."
 input.addEventListener("keydown", (e) => e.key == "Enter" && execCommand())
 
@@ -21,7 +21,7 @@ commandBox.append(output, input)
 document.body.append(data, commandBox)
 
 data.className =
-  "fixed top-4 left-4 select-none pointer-events-none text-sm whitespace-pre font-mono"
+  "fixed top-4 left-4 select-none pointer-events-none text-sm whitespace-pre font-mono text-slate-800/40"
 commandBox.className = "flex flex-col fixed z-10 bottom-0 w-full"
 output.className = "px-3 py-2 bg-[#fffc]"
 input.className =
