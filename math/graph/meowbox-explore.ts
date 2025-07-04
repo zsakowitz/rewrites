@@ -369,7 +369,8 @@ createCommand("help // Shows this help menu.", () => {
   const el = document.createElement("p")
   el.textContent = `Each numbered circle above is a cat condo. Dark blue condos are currently meowing.
 Right-click a condo to feed its cat. Feeding all condos with a black ring should satiate the cats.
-A condo's number is its ID. These are used when typing commands. Use 0 as an ID to create a new condo.
+A condo's number is its ID. These are used when typing commands.
+Use 0 as an ID to create a new condo. Use * as an ID to match all condos.
 You can drag an individual condo, or the entire configuration.
 Dragging one condo very far out, then releasing, often creates a less chaotic configuration.
 Scroll with a mouse or pinch on a trackpad to zoom.`
