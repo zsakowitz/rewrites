@@ -141,10 +141,7 @@ ${solved.toString()}`
   return (computeResult = { box, solved, count, soln, time })
 }
 
-function execCommand() {
-  const command = input.value.trim()
-  input.value = ""
-
+function execCommand1(command: string) {
   if (!command) {
     return
   }
@@ -173,6 +170,15 @@ function execCommand() {
   }
 
   output.value = `Unrecognized command '${command}'. Maybe try 'help'?`
+}
+
+function execCommand() {
+  const command = input.value.trim()
+  input.value = ""
+
+  for (const text of command.split(/[,;]/g).map((x) => x.trim())) {
+    execCommand1(text)
+  }
 }
 
 // @ts-ignore
