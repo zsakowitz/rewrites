@@ -80,8 +80,8 @@ export class Vertex<T, E> {
 export interface Vertex<T, E> extends NodeObject {}
 
 export class Edge<T, E> {
-  source: any
-  target: any
+  declare source: any
+  declare target: any
 
   constructor(
     readonly graph: Graph<T, E>,
@@ -125,6 +125,10 @@ export class Graph<T = void, E = void> {
     ;(this.ev[a.id] ??= []).push(edge)
     ;(this.ev[b.id] ??= []).push(edge)
     return edge
+  }
+
+  hasEdge(a: Vertex<T, E>, b: Vertex<T, E>) {
+    return this.ev[a.id]?.some((x) => x.did == b.id || x.sid == b.id)
   }
 
   logVertices() {

@@ -82,9 +82,8 @@ export class Meowbox {
   }
 
   lead(row: number) {
-    const cols = this.cols
-    const o = row * cols
-    for (let i = 0; i < cols; i++) {
+    const o = row * this.cols
+    for (let i = 0; i < this.cols; i++) {
       if (this.cells[o + i] === 1) {
         return i
       }
@@ -133,11 +132,6 @@ export class Meowbox {
   set(row: number, col: number, value: 0 | 1) {
     this.cells[row * this.cols + col] = value
   }
-
-  // [inspect.custom]() {
-  //   let ret = ""
-  //   return this.cells.map((x) => x.join(" ")).join("\n")
-  // }
 
   /** Assumes the meowbox has been untangled. */
   countSolutions() {
@@ -192,7 +186,7 @@ export class Meowbox {
 export function howManyOfSizeRxCAreSatiable(rows: number, cols: number) {
   const box = Meowbox.zero(rows, cols)
   let satiable = 0
-  let size = rows * cols
+  let size = box.cells.length
   if (!Number.isSafeInteger(size)) {
     throw new Error(
       `${rows}*${cols} is too large; there is a maximum of 53 cells.`,
