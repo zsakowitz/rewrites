@@ -158,24 +158,28 @@ function execCommand1(command: string) {
     }
 
     if (typeof result == "string") {
-      output.value = result
+      const el = document.createElement("p")
+      el.textContent = result
+      output.append(el)
     } else {
-      while (output.firstChild) {
-        output.firstChild.remove()
-      }
       output.appendChild(result)
     }
 
     return
   }
 
-  output.value = `Unrecognized command '${command}'. Maybe try 'help'?`
+  const el = document.createElement("p")
+  el.textContent = `Unrecognized command '${command}'. Maybe try 'help'?`
+  output.append(el)
 }
 
 function execCommand() {
   const command = input.value.trim()
   input.value = ""
 
+  while (output.firstChild) {
+    output.firstChild.remove()
+  }
   for (const text of command.split(/[,;]/g).map((x) => x.trim())) {
     execCommand1(text)
   }
