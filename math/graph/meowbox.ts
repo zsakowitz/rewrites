@@ -20,11 +20,15 @@ class Meowbox {
   ) {}
 
   swap(i: number, j: number) {
-    if (i != j) {
-      const cols = this.cols
-      const ri = this.cells.slice(i * cols, (i + 1) * cols)
-      this.cells.copyWithin(i * cols, j * cols, (j + 1) * cols)
-      this.cells.set(ri, j * cols)
+    if (i == j) return
+
+    const cols = this.cols
+    const ri = i * cols
+    const rj = j * cols
+    for (let c = 0; c < cols; c++) {
+      const temp = this.cells[ri + c]!
+      this.cells[ri + c] = this.cells[rj + c]!
+      this.cells[rj + c] = temp
     }
   }
 
