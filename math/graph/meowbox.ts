@@ -1,6 +1,14 @@
 export class Meowbox {
-  static zerobox(rows: number, cols: number) {
+  static zero(rows: number, cols: number) {
     return new Meowbox(new Uint8Array(rows * cols), rows, cols)
+  }
+
+  static scratch(size: number) {
+    const cells = new Uint8Array(size * size)
+    for (let i = 0; i < size; i++) {
+      cells[i + i * size] = 1
+    }
+    return new Meowbox(cells, size, size)
   }
 
   static random(rows: number, cols: number) {
@@ -118,15 +126,17 @@ export class Meowbox {
 
     return 2 ** (this.cols - 1 - leads)
   }
+
+  toString() {
+    let ret = ""
+    for (let i = 0; i < this.rows; i++) {
+      ret += i == 0 ? "" : "\n"
+      for (let j = 0; j < this.cols; j++) {
+        ret += (j == 0 ? "" : " ") + this.get(i, j)
+      }
+    }
+    return ret
+  }
 }
 
-// const m = new Meowbox([
-//   [0, 0, 0, 1, 0, 1],
-//   [1, 1, 1, 0, 0, 1],
-//   [0, 0, 1, 0, 0, 0],
-// ])
-//
-// m.untangle()
-//
-// console.log(m)
-// console.log(m.countSolutions())
+console.log(Meowbox.random(4, 4).toString())
