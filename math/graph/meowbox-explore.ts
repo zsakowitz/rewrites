@@ -23,7 +23,7 @@ document.body.append(data, commandBox)
 data.className =
   "fixed top-4 left-4 select-none pointer-events-none text-sm whitespace-pre font-mono text-slate-800/40"
 commandBox.className = "flex flex-col fixed z-10 bottom-0 w-full"
-output.className = "px-3 py-2 bg-[#fffc]"
+output.className = "px-3 py-2 bg-[#fffc] whitespace-pre-line"
 input.className =
   "px-3 py-2 border-t border-t-slate-400 bg-slate-200 focus:border-t-blue-500 focus:outline-none focus:bg-white focus:border-t-transparent focus:ring-2 focus:ring-blue-500 focus:ring-inset ring-offset-1"
 
@@ -206,6 +206,47 @@ function createCommand(
   })
 }
 
+function createMultiCommand(name: string, exec: (arg: number) => string) {
+  const [cmd, desc] = name.split(" // ")
+  const parts = cmd!
+    .split(" ")
+    .map((x) =>
+      x.startsWith(":")
+        ? `[${x.slice(1).replace(/_/g, " ")}]`
+        : x.includes(":")
+          ? x.slice(0, x.indexOf(":")).replace(/_/g, " ")
+          : x,
+    )
+    .join(" ")
+  const regex = new RegExp(
+    "^" +
+      cmd!
+        .split(" ")
+        .map((x) =>
+          x.startsWith(":")
+            ? "(\\d+(?:\\s+\\d+)*)"
+            : x.includes(":")
+              ? x.slice(x.indexOf(":") + 1)
+              : x,
+        )
+        .join("\\s+") +
+      "$",
+  )
+
+  const execFn = (match: RegExpExecArray) =>
+    match[1]!
+      .split(" ")
+      .map((x) => exec(+x))
+      .join("\n")
+
+  COMMANDS.push({
+    regex,
+    exec: execFn,
+    parts,
+    desc: desc!,
+  })
+}
+
 const COMMANDS: {
   regex: RegExp
   exec(match: RegExpExecArray): string | Node
@@ -240,7 +281,7 @@ Scroll with a mouse or pinch on a trackpad to zoom.`
   return ret
 })
 
-createCommand("condo // Creates a new cat condo.", () => {
+createCommand("new // Creates a new cat condo.", () => {
   const vx = graph.vertex(0)
   compute()
   visualize()
@@ -248,7 +289,7 @@ createCommand("condo // Creates a new cat condo.", () => {
 })
 
 createCommand(
-  "condo 1 // Creates a new cat condo which is already meowing.",
+  "new 1 // Creates a new cat condo which is already meowing.",
   () => {
     const vx = graph.vertex(1)
     compute()
@@ -256,6 +297,24 @@ createCommand(
     return `Created cat condo #${vx.id + 1} (meowing).`
   },
 )
+
+createCommand("rm :id // Removes one condo.", (id) => {
+  const condo = graph.vl[id - 1]
+
+  if (!condo) {
+    return `Condo ${id} does not exist.`
+  }
+
+  const replacement = condo.remove()
+  compute()
+  visualize()
+
+  if (replacement == null) {
+    return `Removed condo ${id}.`
+  } else {
+    return `Removed condo ${id}; condo ${replacement + 1} has taken its name.`
+  }
+})
 
 createCommand(
   "link id1,_id2,_...:(\\d+(?:\\s+\\d+)*) //? Links multiple condos in a chain.",
@@ -332,8 +391,8 @@ createCommand(
   },
 )
 
-createCommand(
-  "meow :id // Invokes elder gods to disrupt a single cat's calm.",
+createMultiCommand(
+  "meow :id // Invokes elder gods to disrupt the calm of one or more cats.",
   (id) => {
     const condo = graph.vl[id - 1]
 
@@ -353,8 +412,8 @@ createCommand(
   },
 )
 
-createCommand(
-  "hush :id // Sings a lullaby to pause a single cat's meowing.",
+createMultiCommand(
+  "hush :id // Sings a lullaby to pause the meowing of one or more cats.",
   (id) => {
     const condo = graph.vl[id - 1]
 
@@ -374,7 +433,7 @@ createCommand(
   },
 )
 
-createCommand("feed :id // Feeds a cat.", (id) => {
+createMultiCommand("feed :id // Feeds one or more cats.", (id) => {
   const condo = graph.vl[id - 1]
 
   if (!condo) {
@@ -406,7 +465,7 @@ createCommand("copy untangled // Copies the untangled yarnball.", () => {
   return node
 })
 
-addEventListener("keydown", (e) => {
+addEventListener("keydown", (e: KeyboardEvent) => {
   if (!(e.ctrlKey || e.altKey || e.metaKey)) {
     input.focus()
   }

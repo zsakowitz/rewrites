@@ -72,6 +72,33 @@ export class Vertex<T, E> {
     return on
   }
 
+  remove(): number | null {
+    const graph = this.graph
+    for (const edge of (graph.ev[this.id] ?? []).slice()) {
+      edge.detach()
+    }
+
+    const last = graph.vl.at(-1)!
+    graph.vl.pop()
+    if (last == this) {
+      return null
+    }
+
+    graph.vl[this.id] = last
+    const edges = (graph.ev[last.id] ?? []).slice()
+    for (const edge of edges) {
+      edge.detach()
+    }
+    const oldId = last.id
+    ;(last as any).id = this.id
+    for (const edge of edges) {
+      ;(edge as any).sid = edge.sid == oldId ? last.id : edge.sid
+      ;(edge as any).did = edge.did == oldId ? last.id : edge.did
+      edge.retach()
+    }
+    return oldId
+  }
+
   toString() {
     return `${idColor(this.id)}#${this.id}${this.data == null ? "" : "=" + this.data}${ANSI.reset}`
   }
@@ -91,6 +118,25 @@ export class Edge<T, E> {
   ) {
     this.source = sid
     this.target = did
+  }
+
+  detach() {
+    for (const l of [
+      this.graph.el,
+      this.graph.ev[this.sid],
+      this.graph.ev[this.did],
+    ]) {
+      if (l) {
+        const idx = l.indexOf(this)
+        if (idx != -1) l.splice(idx, 1)
+      }
+    }
+  }
+
+  retach() {
+    this.graph.el.push(this)
+    ;(this.graph.ev[this.sid] ??= []).push(this)
+    ;(this.graph.ev[this.did] ??= []).push(this)
   }
 
   get src() {
