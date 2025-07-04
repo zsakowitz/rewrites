@@ -645,7 +645,7 @@ createCommand(
     const sols: number[] = []
     const size = box.rows
     if (size > 20) {
-      return `There are more than 20 condos, which will likely crash your computer, so 'check all' is not possible right now.`
+      return `Checking ${size} condos will take roughly ${Math.round((0.000794835 * 2.23108 ** size) / 1000)} and may crash your computer, so it is not allowed yet.`
     }
     const start = Date.now()
     const max = 2 ** size
