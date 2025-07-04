@@ -1,4 +1,4 @@
-import ForceGraph, { type NodeObject } from "force-graph"
+import { type NodeObject } from "force-graph"
 import { ANSI } from "../../ansi"
 
 const COLORS = [
@@ -138,14 +138,5 @@ export class Graph<T = void, E = void> {
   logGraph() {
     this.logVertices()
     this.logEdges()
-  }
-
-  display() {
-    const el = document.createElement("div")
-    document.body.append(el)
-    const graph = new ForceGraph<Vertex<T, E>, Edge<T, E>>(el)
-    graph.graphData({ nodes: this.vl, links: this.el })
-    graph.nodeLabel((a) => (a.data == null ? `#${a.id}` : `#${a.id}=${a.data}`))
-    return graph
   }
 }

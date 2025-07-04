@@ -1,4 +1,5 @@
 import { Graph } from "."
+import { createForceGraph } from "./force"
 
 class FruitDeliveryGraph extends Graph<0 | 1 | void, void> {
   isWinningPosition() {
@@ -39,7 +40,7 @@ function project(g: FruitDeliveryGraph) {
   document.body.append(
     `Player ${wins ? 1 : 2} wins (computation took ${dt}ms).`,
   )
-  g.display()
+  createForceGraph(g)
 }
 
 const g = new FruitDeliveryGraph()

@@ -1,5 +1,4 @@
 import { Graph } from "."
-import { h } from "../../easy-jsx"
 
 export class Meowbox {
   static zero(rows: number, cols: number) {
@@ -127,6 +126,10 @@ export class Meowbox {
     return this.cells[row * this.cols + col]! as 0 | 1
   }
 
+  row(row: number) {
+    return this.cells.subarray(row * this.cols, (row + 1) * this.cols)
+  }
+
   set(row: number, col: number, value: 0 | 1) {
     this.cells[row * this.cols + col] = value
   }
@@ -216,71 +219,3 @@ export function howManyOfSizeRxCAreSatiable(rows: number, cols: number) {
 // console.timeEnd()
 // }
 // }
-
-{
-  const g = new Graph<0 | 1>()
-  g.vertex(1).rect(3, 3, 0)
-  // g.vl[3]!.cycle(5, 0)
-
-  const box = Meowbox.fromGraph(g)
-  const original = box.clone()
-  console.log(box.toString())
-  box.untangle()
-  // console.log(box.toString())
-  const sols = box.countSolutions()
-  const soln = box.readSolution() ?? new Uint8Array(box.cols - 1)
-  const output = `Solution count: ${sols}
-
-Matrix:
-${box.toString()}
-
-One solution:
-${soln.join(" ")}`
-  const pre = h("pre", null, output)
-  // @ts-ignore why did they type it like this
-  pre.style = "position:fixed;top:1rem;left:1rem;margin:0"
-  document.body.append(pre)
-
-  const visual = g.display()
-
-  visual.nodeLabel((v) => {
-    return Array.from(
-      original.cells.slice(v.id * original.cols, (v.id + 1) * original.cols),
-    )
-      .map((x, i, a) => (i == a.length - 1 ? x : x && `a${i + 1}`))
-      .filter((x) => x)
-      .join(" + ")
-  })
-
-  visual.nodeRelSize(8)
-
-  visual.nodeCanvasObject((obj, ctx) => {
-    const size = visual.nodeRelSize()
-    ctx.beginPath()
-    ctx.fillStyle = obj.data ? "#44f" : "#ccf"
-    ctx.ellipse(obj.x!, obj.y!, size, size, 0, 0, 2 * Math.PI)
-    ctx.strokeStyle = soln[obj.id] ? "black" : "transparent"
-    ctx.lineWidth = 1
-    ctx.fill()
-    ctx.stroke()
-    ctx.textBaseline = "middle"
-    ctx.textAlign = "center"
-    ctx.fillStyle = obj.data ? "white" : "black"
-    ctx.fillText(obj.id + 1 + "", obj.x!, obj.y!)
-  })
-
-  visual.onNodeRightClick((node) => {
-    const affected = new Set([node.id])
-    for (const edge of g.ev[node.id] ?? []) {
-      const dst = edge.sid == node.id ? edge.did : edge.sid
-      affected.add(dst)
-    }
-
-    soln[node.id]! ^= 1
-    for (const target of affected) {
-      g.vl[target]!.data ^= 1
-    }
-
-    visual.resumeAnimation()
-  })
-}
