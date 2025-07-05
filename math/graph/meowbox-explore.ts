@@ -2,10 +2,13 @@ import type ForceGraph from "force-graph"
 import { Graph, type Edge, type Vertex } from "."
 import { createForceGraph } from "./force"
 import { howManyOfSizeRxCAreSatiable, Meowbox } from "./meowbox"
+import { transls } from "./meowbox-transl"
+
+const { cmd } = transls
 
 let queued = false
 
-const graph = new Graph<0 | 1>()
+export const graph = new Graph<0 | 1>()
 const v1 = graph.vertex(1)
 v1.rect(3, 2, 0)
 graph.vl[0]!.x = 0
@@ -128,12 +131,12 @@ function compute() {
   const soln = solved.readSolution() ?? new Uint8Array()
   const time = (performance.now() - initialTime).toFixed(1) + "ms"
 
-  const output = `Solution count: ${count} (took ${time})
+  const output = `${transls.header.solCount(count, time)}
 
-Original yarnball:
+${transls.header.original}
 ${box.toString()}
 
-Untangled yarnball:
+${transls.header.untangled}
 ${solved.toString()}`
 
   data.textContent = output
@@ -306,7 +309,7 @@ function condo(id: number) {
   }
 
   const condo = graph.vl[id - 1]
-  if (!condo) throw new Error(`Condo ${id} does not exist.`)
+  if (!condo) throw new Error(transls.condoDoesNotExist(id))
 
   return condo
 }
@@ -377,13 +380,7 @@ createCommand("help // Shows this help menu.", () => {
   const ret = document.createElement("div")
   ret.className = "grid grid-cols-[auto_1fr] gap-x-4"
   const el = document.createElement("p")
-  el.textContent = `Each numbered circle above is a cat condo. Dark blue condos are currently meowing.
-Right-click a condo to feed its cat. Feeding all condos with a black ring should satiate the cats.
-A condo's number is its ID. These are used when typing commands.
-Use 0 as an ID to create a new condo. Use * as an ID to match all condos.
-You can drag an individual condo, or the entire configuration.
-Dragging one condo very far out, then releasing, often creates a less chaotic configuration.
-Scroll with a mouse or pinch on a trackpad to zoom.`
+  el.textContent = transls.helpMain
   el.className =
     "col-span-2 border-b mb-2 pb-2 border-b-slate-200 whitespace-pre-line"
   ret.append(el)
@@ -408,17 +405,12 @@ Scroll with a mouse or pinch on a trackpad to zoom.`
   return ret
 })
 
-createCommand(
-  "new // Creates a new cat condo.",
-  () => `Created cat condo #${condo(0).id + 1} (not meowing).`,
-)
+createCommand(`new // ${cmd.new}`, () => cmd.newRet(condo(0).id + 1))
 
 // shorthand 0
-createCommand("0 // Shorthand for 'new'.", () => {
-  return `Created cat condo #${condo(0).id + 1} (not meowing).`
-})
+createCommand("0 // Shorthand for 'new'.", () => cmd.newRet(condo(0).id + 1))
 
-createLinkCommand("link // Links multiple condos in a chain.", (ids, link) => {
+createLinkCommand(`link // ${cmd.link}`, (ids, link) => {
   for (let i = 0; i < ids.length - 1; i++) {
     const src = ids[i]!
     const dst = ids[i + 1]!
@@ -427,202 +419,168 @@ createLinkCommand("link // Links multiple condos in a chain.", (ids, link) => {
 })
 
 // shorthand link
-createLinkCommand(
-  " // Links condos in a chain; if all links are already present, removes those links.",
-  (ids, link, unlink, count) => {
+createLinkCommand(` // ${cmd.linkShorthand}`, (ids, link, unlink, count) => {
+  for (let i = 0; i < ids.length - 1; i++) {
+    const src = ids[i]!
+    const dst = ids[i + 1]!
+    link(src, dst)
+  }
+
+  if (count() == 0) {
     for (let i = 0; i < ids.length - 1; i++) {
       const src = ids[i]!
       const dst = ids[i + 1]!
-      link(src, dst)
+      unlink(src, dst)
     }
+  }
+})
 
-    if (count() == 0) {
-      for (let i = 0; i < ids.length - 1; i++) {
-        const src = ids[i]!
-        const dst = ids[i + 1]!
-        unlink(src, dst)
-      }
-    }
-  },
-)
-
-createMultiCommand("rm :id // Removes one or more condos.", (id) => {
+createMultiCommand(`rm :id // ${cmd.rm}`, (id) => {
   id.remove()
   compute()
   visualize()
-
-  return `Removed #${id.id + 1}.`
+  return cmd.rmRet(id.id + 1)
 })
 
 // unlink
-createMultiCommand(
-  "unlink :id // Removes all links to the passed condo.",
-  (v) => {
-    let removed = 0
-    for (const e of v.edges.slice()) {
-      removed++
-      e.detach()
-    }
-    compute()
-    visualize()
+createMultiCommand(`unlink :id // ${cmd.unlink}`, (v) => {
+  let removed = 0
+  for (const e of v.edges.slice()) {
+    removed++
+    e.detach()
+  }
+  compute()
+  visualize()
 
-    if (removed == 0) {
-      return `${v.id + 1} is already isolated.`
-    } else {
-      return `Removed ${removed} connection(s).`
-    }
-  },
-)
+  if (removed == 0) {
+    return cmd.unlinkRet0(v.id + 1)
+  } else {
+    return cmd.unlinkRet(removed)
+  }
+})
 
 COMMANDS.push({ regex: null })
 
 // cycle
-createCommand(
-  "cycle :id :size // Creates a cycle ending at some condo.",
-  (a, b) => {
-    const v = condo(a)
+createCommand(`cycle :id :size // ${cmd.cycle}`, (a, b) => {
+  const v = condo(a)
 
-    if (!(2 <= b && b <= 1000 && Number.isSafeInteger(b))) {
-      return `A cycle must be between 2 and 1000 units long.`
-    }
-    v.cycle(b, 0)
-    compute()
-    visualize()
-    return `Created a cycle on ${v.id + 1}.`
-  },
-)
+  if (!(2 <= b && b <= 1000 && Number.isSafeInteger(b))) {
+    return `A cycle must be between 2 and 1000 units long.`
+  }
+  v.cycle(b, 0)
+  compute()
+  visualize()
+  return `Created a cycle on ${v.id + 1}.`
+})
 
 // rect
-createCommand(
-  "rect :id :w :h // Creates a rectangle with a corner at some condo.",
-  (a, w, h) => {
-    const v = condo(a)
-    if (!(2 <= w && w <= 1000 && Number.isSafeInteger(w))) {
-      return `A rectangle must be between 2 and 1000 units wide.`
-    }
-    if (!(2 <= h && h <= 1000 && Number.isSafeInteger(h))) {
-      return `A rectangle must be between 2 and 1000 units tall.`
-    }
-    if (w * h > 1000) {
-      return `A rectangle cannot have more than 1000 condos.`
-    }
-    v.rect(w, h, 0)
-    compute()
-    visualize()
-    return `Created a rectangle on ${a}.`
-  },
-)
+createCommand(`rect :id :w :h // ${cmd.rect}`, (a, w, h) => {
+  const v = condo(a)
+  if (!(2 <= w && w <= 1000 && Number.isSafeInteger(w))) {
+    return `A rectangle must be between 2 and 1000 units wide.`
+  }
+  if (!(2 <= h && h <= 1000 && Number.isSafeInteger(h))) {
+    return `A rectangle must be between 2 and 1000 units tall.`
+  }
+  if (w * h > 1000) {
+    return `A rectangle cannot have more than 1000 items.`
+  }
+  v.rect(w, h, 0)
+  compute()
+  visualize()
+  return `Created a rectangle on ${a}.`
+})
 
 // chain
-createCommand(
-  "chain :id :size // Creates a chain starting at some condo.",
-  (a, size) => {
-    const v = condo(a)
-    if (!(1 <= size && size <= 1000 && Number.isSafeInteger(size))) {
-      return `A chain must be between 1 and 1000 units long.`
-    }
-    v.branch(size - 1, 0)
-    compute()
-    visualize()
-    return `Created a chain on ${a}.`
-  },
-)
+createCommand(`chain :id :size // ${cmd.chain}`, (a, size) => {
+  const v = condo(a)
+  if (!(1 <= size && size <= 1000 && Number.isSafeInteger(size))) {
+    return `A chain must be between 1 and 1000 units long.`
+  }
+  v.branch(size - 1, 0)
+  compute()
+  visualize()
+  return `Created a chain on ${a}.`
+})
 
 // link cycle
-createLinkCommand(
-  "link cycle // Links multiple condos into a cycle.",
-  (ids, link) => {
-    for (let i = 0; i < ids.length; i++) {
-      const src = ids[i]!
-      const dst = ids[(i + 1) % ids.length]!
-      link(src, dst)
-    }
-  },
-)
+createLinkCommand(`link cycle // ${cmd.linkCycle}`, (ids, link) => {
+  for (let i = 0; i < ids.length; i++) {
+    const src = ids[i]!
+    const dst = ids[(i + 1) % ids.length]!
+    link(src, dst)
+  }
+})
 
 // link every
-createLinkCommand(
-  "link every // Creates all possible links between the given condos.",
-  (ids, link) => {
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const src = ids[i]!
-        const dst = ids[j]!
-        link(src, dst)
-      }
+createLinkCommand(`link every // ${cmd.linkEvery}`, (ids, link) => {
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const src = ids[i]!
+      const dst = ids[j]!
+      link(src, dst)
     }
-  },
-)
+  }
+})
 
 // link to all
-createLinkCommand(
-  "link to all // Links each passed condo to EVERY other condo.",
-  (ids, link) => {
-    for (let i = 0; i < ids.length; i++) {
-      for (const v of graph.vl) {
-        const src = ids[i]!
-        link(src, v)
-      }
+createLinkCommand(`link to all // ${cmd.linkToAll}`, (ids, link) => {
+  for (let i = 0; i < ids.length; i++) {
+    for (const v of graph.vl) {
+      const src = ids[i]!
+      link(src, v)
     }
-  },
-)
+  }
+})
 
 COMMANDS.push({ regex: null })
 
 // meow
-createMultiCommand(
-  "meow :id // Invokes elder gods to disrupt the calm of one or more cats.",
-  (v) => {
-    if (v.data) {
-      return `${v.id + 1} is already meowing.`
-    }
+createMultiCommand(`${cmd.meowId} :id // ${cmd.meowDesc}`, (v) => {
+  if (v.data) {
+    return cmd.meowRetAlready(v.id + 1)
+  }
 
-    v.data = 1
-    compute()
-    visualize()
+  v.data = 1
+  compute()
+  visualize()
 
-    return `Forced cat ${v.id + 1} to meow.`
-  },
-)
+  return cmd.meowRetOn(v.id + 1)
+})
 
 // hush
-createMultiCommand(
-  "hush :id // Sings a lullaby to pause the meowing of one or more cats.",
-  (v) => {
-    if (!v.data) {
-      return `${v.id + 1} is already quiet.`
-    }
+createMultiCommand(`${cmd.hushId} :id // ${cmd.hushDesc}`, (v) => {
+  if (!v.data) {
+    return cmd.hushRetAlready(v.id + 1)
+  }
 
-    v.data = 0
-    compute()
-    visualize()
+  v.data = 0
+  compute()
+  visualize()
 
-    return `Forced cat ${v.id + 1} to be quiet.`
-  },
-)
+  return cmd.hushRetOn(v.id + 1)
+})
 
 // feed
-createMultiCommand("feed :id // Feeds one or more cats.", (v) => {
+createMultiCommand(`${cmd.feedId} :id // ${cmd.feedDesc}`, (v) => {
   feed(v)
-  return `Fed cat ${v.id + 1}.`
+  return cmd.feedRet(v.id + 1)
 })
 
 // meow random
-createCommand(
-  "meow random // Sets each cat to be meowing or quiet at random.",
-  () => {
-    let meowed = 0
-    for (const v of graph.vl) {
-      meowed += v.data = Math.random() < 0.5 ? 0 : 1
-    }
-    compute()
-    visualize()
-    return `${meowed} cat(s) are now meowing.`
-  },
-)
+createCommand(`${cmd.meowId} random // ${cmd.meowRandom}`, () => {
+  let meowed = 0
+  for (const v of graph.vl) {
+    meowed += v.data = Math.random() < 0.5 ? 0 : 1
+  }
+  compute()
+  visualize()
+  return cmd.meowRandomRet(meowed)
+})
 
 // feed random
-createCommand("feed random // Feeds each cat randomly.", () => {
+createCommand(`${cmd.feedId} random // ${cmd.feedRandom}`, () => {
   let fed = 0
   for (const v of graph.vl) {
     if (Math.random() < 0.5) {
@@ -632,54 +590,49 @@ createCommand("feed random // Feeds each cat randomly.", () => {
   }
   compute()
   visualize()
-  return `Fed ${fed} cat(s).`
+  return cmd.feedRandomRet(fed)
 })
 
 COMMANDS.push({ regex: null })
 
 // check all
-createCommand(
-  "check all // Checks all possible cat configurations with the given layout.",
-  () => {
-    const box = Meowbox.fromGraph(graph)
-    const sols: number[] = []
-    const size = box.rows
-    if (size > 20) {
-      return `Checking ${size} condos will take roughly ${Math.round((0.000794835 * 2.23108 ** size) / 1000)} and may crash your computer, so it is not allowed yet.`
+createCommand(`check all // ${cmd.checkAll}`, () => {
+  const box = Meowbox.fromGraph(graph)
+  const sols: number[] = []
+  const size = box.rows
+  if (size > 20) {
+    return cmd.checkAllTooLarge(size)
+  }
+  const start = Date.now()
+  const max = 2 ** size
+  for (let n = 0; n < max; n++) {
+    const cloned = box.clone()
+    for (let r = 0; r < box.rows; r++) {
+      cloned.set(r, box.cols - 1, (2 ** r) & n ? 1 : 0)
     }
-    const start = Date.now()
-    const max = 2 ** size
-    for (let n = 0; n < max; n++) {
-      const cloned = box.clone()
-      for (let r = 0; r < box.rows; r++) {
-        cloned.set(r, box.cols - 1, (2 ** r) & n ? 1 : 0)
-      }
-      cloned.untangle()
-      const count = cloned.countSolutions()
-      sols[count] ??= 0
-      sols[count]++
-    }
-    const elapsed = Date.now() - start
-    return (
-      `Checked 2${size
+    cloned.untangle()
+    const count = cloned.countSolutions()
+    sols[count] ??= 0
+    sols[count]++
+  }
+  const elapsed = Date.now() - start
+  return (
+    cmd.checkAllRetHeader(
+      `2${size
         .toString()
-        .split("")
-        .map((x) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+x])
-        .join(
-          "",
-        )} (${2 ** size}) configurations in ${Math.round(elapsed)}ms. Found:\n` +
-      Object.entries(sols)
-        .map(([k, v]) => `${v} config(s) with ${k} solution(s)`)
-        .join("\n")
-    )
-  },
-)
+        .split(``)
+        .map((x) => `⁰¹²³⁴⁵⁶⁷⁸⁹`[+x])
+        .join(``)} (${2 ** size})`,
+      Math.round(elapsed),
+    ) + Object.entries(sols).map(([k, v]) => "\n" + cmd.checkAllRetRow(v, k))
+  )
+})
 
 // copy original
-createCommand("copy original // Copies the original yarnball.", () => {
-  const node = document.createElement("p")
+createCommand(`copy ${cmd.copyOriginalId} // ${cmd.copyOriginal}`, () => {
+  const node = document.createElement(`p`)
   navigator.clipboard.writeText(computeResult.box.toString()).then(
-    () => (node.textContent = "Successfully copied original yarnball!"),
+    () => (node.textContent = cmd.copyOriginalRet),
     (e) =>
       (node.textContent = `Unable to copy: ${e instanceof Error ? e.message : String(e)}.`),
   )
@@ -687,17 +640,17 @@ createCommand("copy original // Copies the original yarnball.", () => {
 })
 
 // copy untangled
-createCommand("copy untangled // Copies the untangled yarnball.", () => {
-  const node = document.createElement("p")
+createCommand(`copy ${cmd.copyUntangledId} // ${cmd.copyUntangled}`, () => {
+  const node = document.createElement(`p`)
   navigator.clipboard.writeText(computeResult.solved.toString()).then(
-    () => (node.textContent = "Successfully copied untangled yarnball!"),
+    () => (node.textContent = cmd.copyUntangledRet),
     (e) =>
       (node.textContent = `Unable to copy: ${e instanceof Error ? e.message : String(e)}.`),
   )
   return node
 })
 
-addEventListener("keydown", (e: KeyboardEvent) => {
+addEventListener(`keydown`, (e: KeyboardEvent) => {
   if (!(e.ctrlKey || e.altKey || e.metaKey)) {
     input.focus()
   }

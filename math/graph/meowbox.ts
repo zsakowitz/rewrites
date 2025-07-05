@@ -49,7 +49,7 @@ export class Meowbox {
     return new Meowbox(this.cells.slice(), this.rows, this.cols)
   }
 
-  swap(i: number, j: number) {
+  swap(this: { cols: number; cells: Uint8Array }, i: number, j: number) {
     if (i == j) return
 
     const cols = this.cols
@@ -62,16 +62,7 @@ export class Meowbox {
     }
   }
 
-  crash(i: number, j: number) {
-    const rows = this.rows
-    if (i > rows || j > rows) {
-      throw new Error("Cannot crash from or into a row which does not exist.")
-    }
-
-    if (i === j) {
-      throw new Error("Cannot crash a row into itself.")
-    }
-
+  crash(this: { cols: number; cells: Uint8Array }, i: number, j: number) {
     const cols = this.cols
     const ri = i * cols
     const rj = j * cols
