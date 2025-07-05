@@ -59,6 +59,8 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
       `Checked ${count} configurations in ${time}ms. Found:`,
     checkAllRetRow: (configs, sols) =>
       `${configs} config(s) with ${sols} solution(s)`,
+    checkAllEarlyExit: (count, sols) =>
+      `All ${count} configurations are satiable. Each has ${sols} solution(s).`,
 
     copyOriginalId: `original`,
     copyOriginal: `Copies the original yarnball.`,
@@ -132,6 +134,8 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
       `Checked ${count} configurations in ${time}ms. Found:`,
     checkAllRetRow: (configs, sols) =>
       `${configs} config(s) with ${sols} solution(s)`,
+    checkAllEarlyExit: (count, sols) =>
+      `All ${count} configurations are satiable. Each has ${sols} solution(s).`,
 
     copyOriginalId: `original`,
     copyOriginal: `Copies the original Kevin stack.`,

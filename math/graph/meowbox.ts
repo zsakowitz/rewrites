@@ -116,7 +116,7 @@ export class Meowbox {
     return this.cells[row * this.cols + col]! as 0 | 1
   }
 
-  row(row: number) {
+  row(this: { cells: Uint8Array; cols: number }, row: number) {
     return this.cells.subarray(row * this.cols, (row + 1) * this.cols)
   }
 

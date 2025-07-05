@@ -2,6 +2,7 @@ import type ForceGraph from "force-graph"
 import { Graph, type Edge, type Vertex } from "."
 import { createForceGraph } from "./force"
 import { howManyOfSizeRxCAreSatiable, Meowbox } from "./meowbox"
+import { MeowboxDesignedForSolutionChecking } from "./meowbox-solutions"
 import { transls } from "./meowbox-transl"
 
 const { cmd } = transls
@@ -595,38 +596,92 @@ createCommand(`${cmd.feedId} random // ${cmd.feedRandom}`, () => {
 
 COMMANDS.push({ regex: null })
 
-// check all
-createCommand(`check all // ${cmd.checkAll}`, () => {
-  const box = Meowbox.fromGraph(graph)
-  const sols: number[] = []
-  const size = box.rows
-  if (size > 20) {
-    return cmd.checkAllTooLarge(size)
-  }
+function pow2(size: number) {
+  const exp = size
+    .toString()
+    .split("")
+    .map((x) => `⁰¹²³⁴⁵⁶⁷⁸⁹`[+x])
+    .join("")
+
+  return `2${exp} (${2 ** size})`
+}
+
+function checkAllRet(
+  size: number,
+  elapsed: number,
+  unsatiable: number,
+  satiable: number,
+  solutionCountPer: number,
+) {
+  return `${cmd.checkAllRetHeader(pow2(size), elapsed)}
+${cmd.checkAllRetRow(unsatiable, 0)}
+${cmd.checkAllRetRow(satiable, solutionCountPer)}`
+}
+
+function checkAll(returnEarly: boolean) {
   const start = Date.now()
-  const max = 2 ** size
-  for (let n = 0; n < max; n++) {
-    const cloned = box.clone()
-    for (let r = 0; r < box.rows; r++) {
-      cloned.set(r, box.cols - 1, (2 ** r) & n ? 1 : 0)
+
+  const box = MeowboxDesignedForSolutionChecking.fromGraph(graph)
+  box.untangle()
+
+  const rowsWhichNeedChecking: Uint8Array[] = []
+  for (let i = 0; i < box.rows; i++) {
+    if (box.row(i).every((x) => x == 0)) {
+      rowsWhichNeedChecking.push(
+        box.row.call({ cells: box.aside, cols: box.cols }, i),
+      )
     }
-    cloned.untangle()
-    const count = cloned.countSolutions()
-    sols[count] ??= 0
-    sols[count]++
   }
-  const elapsed = Date.now() - start
-  return (
-    cmd.checkAllRetHeader(
-      `2${size
-        .toString()
-        .split(``)
-        .map((x) => `⁰¹²³⁴⁵⁶⁷⁸⁹`[+x])
-        .join(``)} (${2 ** size})`,
-      Math.round(elapsed),
-    ) + Object.entries(sols).map(([k, v]) => "\n" + cmd.checkAllRetRow(v, k))
-  )
-})
+
+  const size = graph.vl.length
+  const sols = 2 ** rowsWhichNeedChecking.length
+
+  if (rowsWhichNeedChecking.length == 1) {
+    if (returnEarly) {
+      return cmd.checkAllEarlyExit(pow2(size), sols)
+    } else {
+      return checkAllRet(size, Date.now() - start, 0, 2 ** size, sols)
+    }
+  }
+
+  if (returnEarly) {
+    const rows = rowsWhichNeedChecking
+      .map(
+        (x) =>
+          Array.from(x)
+            .map((x, i) => (x ? `a${i + 1}` : ""))
+            .filter((x) => x)
+            .join(" + ") + " = 0",
+      )
+      .join("\n")
+
+    return `Each configuration with any solution will have ${sols} solutions. Count the number of configurations with any solution by counting the number of solutions to the system below for all a1...a${size}:
+${rows}`
+  }
+
+  const max = 2 ** size
+  let satiable = 0
+  let unsatiable = 0
+  outer: for (let n = 0; n < max; n++) {
+    for (const row of rowsWhichNeedChecking) {
+      let total = 0
+      for (let r = 0; r < size; r++) {
+        total ^= row[r]! * ((2 ** r) & n ? 1 : 0)
+      }
+      if (total == 1) {
+        unsatiable++
+        continue outer
+      }
+    }
+    satiable++
+  }
+
+  return checkAllRet(size, Date.now() - start, unsatiable, satiable, sols)
+}
+
+// check all
+createCommand(`check all // ${cmd.checkAll}`, () => checkAll(false))
+createCommand(`check all manual // ${cmd.checkAll}`, () => checkAll(true))
 
 // copy original
 createCommand(`copy ${cmd.copyOriginalId} // ${cmd.copyOriginal}`, () => {
