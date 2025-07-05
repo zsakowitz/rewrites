@@ -148,6 +148,12 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
   },
 }
 
-export const transls = TRANSL == 1 ? transls1 : transls2
+export let transls: typeof transls1
+
+try {
+  transls = TRANSL == 1 ? transls1 : transls2
+} catch (e) {
+  transls = transls1
+}
 
 declare var TRANSL: 1 | 2
