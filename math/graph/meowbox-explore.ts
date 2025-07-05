@@ -4,6 +4,7 @@ import { createForceGraph } from "./force"
 import { Meowbox } from "./meowbox"
 import { MeowboxDesignedForSolutionChecking } from "./meowbox-solutions"
 import { transls } from "./meowbox-transl"
+import { countByEvenOdd } from "./meowbox/count-solutions"
 
 const { cmd } = transls
 
@@ -659,6 +660,10 @@ function checkAll(returnEarly: boolean, evenOdd = false) {
 ${rows}`
   }
 
+  if (evenOdd) {
+    return countByEvenOdd(rowsWhichNeedChecking, size) + " are not satiable"
+  }
+
   const max = 2 ** size
   let satiable = 0
   let unsatiable = 0
@@ -682,10 +687,12 @@ ${rows}`
 // check all
 createCommand(`check all // ${cmd.checkAll}`, () => checkAll(false))
 createCommand(`check all manual // ${cmd.checkAllManual}`, () => checkAll(true))
-// createCommand(
-//   `check all evenodd // Like 'check all', but uses a faster but likely incorrect algorithm. Do not rely on its output.`,
-//   () => checkAll(false, true),
-// )
+if (location.href.includes("localhost")) {
+  createCommand(
+    `check all evenodd // Like 'check all', but uses a faster but likely incorrect algorithm. Do not rely on its output.`,
+    () => checkAll(false, true),
+  )
+}
 
 // copy original
 createCommand(`copy ${cmd.copyOriginalId} // ${cmd.copyOriginal}`, () => {

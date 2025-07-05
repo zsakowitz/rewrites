@@ -1,4 +1,6 @@
 export function countByEvenOdd(rows: Uint8Array[], size: number) {
+  // throw new Error(rows.map((x) => x.join(" ") + ": " + ways(x)).join("\n"))
+
   let total = 0
 
   if (rows.length >= 1) {
@@ -72,7 +74,7 @@ export function countByEvenOdd(rows: Uint8Array[], size: number) {
       total += choose(ones, i)
     }
 
-    return total
+    return total * 2 ** (size - ones)
   }
 
   function add(a: Uint8Array, b: Uint8Array) {
@@ -84,4 +86,17 @@ export function countByEvenOdd(rows: Uint8Array[], size: number) {
   }
 }
 
-countByEvenOdd([], 6)
+/*
+
+# of ways either of these rows could add to 1:
+-- -- a3 a4 a5 a6
+a1 a2 a3 a4 -- --
+
+# of ways first can add to 1:
+   either: a3, a4, a5, or a6; a1 and a2 are irrelevant
+all but 1: a3, a4, a5, or a6; a1 and a2 are irrelevant
+this is (4+4)*2^2 = 8*2^2 = 8*4 = 32
+
+# of ways 2nd is also 32
+
+*/
