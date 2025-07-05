@@ -2,6 +2,7 @@
   "proseWrap": "always",
   "semi": false,
   "trailingComma": "all",
+  "plugins": ["prettier-plugin-jsdoc"],
   "overrides": [
     {
       "files": "lambda-in-js.js",
