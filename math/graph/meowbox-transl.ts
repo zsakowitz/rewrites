@@ -106,12 +106,12 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
     linkToAll: `Links each passed participant to EVERY other participant.`,
 
     meowId: `mute`,
-    meowDesc: `Invoke the targeted evil of the zoom AI to mute one or more participants.`,
+    meowDesc: `Invoke the targeted evil of the Zoom AI to mute one or more participants.`,
     meowRetAlready: (x) => `${x} is already muted.`,
     meowRetOn: (x) => `Forcefully muted participant ${x}.`,
 
     hushId: `unmute`,
-    hushDesc: `Use the benevolence of the zoom AI to unmute one or more participants.`,
+    hushDesc: `Use the benevolence of the Zoom AI to unmute one or more participants.`,
     hushRetAlready: (x) => `${x} is already unmuted.`,
     hushRetOn: (x) => `Forcefully unmuted participant ${x}.`,
 
