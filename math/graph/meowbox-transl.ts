@@ -52,7 +52,7 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
     feedRandom: `Feeds cats at random.`,
     feedRandomRet: (x) => `${x} cat(s) have been fed.`,
 
-    checkAll: `Checks all possible cat configurations with the given layout.`,
+    checkAll: `Checks all possible cat configurations with the given layout. This will hang your laptop for more than ~25 condos.`,
     checkAllManual: `Like 'check all', but relies on you performing manual calculations`,
     checkAllTooLarge: (size) =>
       `Checking ${size} condos will likely crash your computer, so it is not allowed yet.`,
@@ -128,7 +128,7 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
     feedRandom: `Executes mute moves at random.`,
     feedRandomRet: (x) => `${x} mute moves have been executed.`,
 
-    checkAll: `Checks all possible meeting configurations with the given layout.`,
+    checkAll: `Checks all possible meeting configurations with the given layout. This will hang your laptop for more than ~25 participants.`,
     checkAllManual: `Like 'check all', but relies on you performing manual calculations`,
     checkAllTooLarge: (size) =>
       `Checking ${size} participants will likely crash your computer, so it is not allowed yet.`,
