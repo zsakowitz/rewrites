@@ -173,34 +173,3 @@ export class Meowbox {
     return soln
   }
 }
-
-export function howManyOfSizeRxCAreSatiable(rows: number, cols: number) {
-  const box = Meowbox.zero(rows, cols)
-  let satiable = 0
-  let size = box.cells.length
-  if (!Number.isSafeInteger(size)) {
-    throw new Error(
-      `${rows}*${cols} is too large; there is a maximum of 53 cells.`,
-    )
-  }
-
-  for (let n = 0; n < 2 ** size; n++) {
-    for (let i = 0; i < box.cells.length; i++) {
-      box.cells[i] = (2 ** i) & n ? 1 : 0
-    }
-    box.untangle()
-    if (box.countSolutions()) {
-      satiable++
-    }
-  }
-
-  return `${satiable} of ${2 ** size} (${((satiable / 2 ** size) * 100).toPrecision(4)}%) ${rows}×${cols}s are satiable`
-}
-
-// for (let i = 1; i <= 4; i++) {
-// for (let j = 1; j <= i; j++) {
-// console.time()
-// console.log(howManyOfSizeRxCAreSatiable(3, 4))
-// console.timeEnd()
-// }
-// }

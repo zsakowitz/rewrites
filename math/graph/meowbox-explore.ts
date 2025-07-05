@@ -1,7 +1,7 @@
 import type ForceGraph from "force-graph"
 import { Graph, type Edge, type Vertex } from "."
 import { createForceGraph } from "./force"
-import { howManyOfSizeRxCAreSatiable, Meowbox } from "./meowbox"
+import { Meowbox } from "./meowbox"
 import { MeowboxDesignedForSolutionChecking } from "./meowbox-solutions"
 import { transls } from "./meowbox-transl"
 
@@ -710,5 +710,3 @@ addEventListener(`keydown`, (e: KeyboardEvent) => {
     input.focus()
   }
 })
-
-Object.assign(globalThis, { howManyOfSizeRxCAreSatiable })
