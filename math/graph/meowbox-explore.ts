@@ -618,7 +618,7 @@ ${cmd.checkAllRetRow(unsatiable, 0)}
 ${cmd.checkAllRetRow(satiable, solutionCountPer)}`
 }
 
-function checkAll(returnEarly: boolean) {
+function checkAll(returnEarly: boolean, evenOdd = false) {
   const start = Date.now()
 
   const box = MeowboxDesignedForSolutionChecking.fromGraph(graph)
@@ -636,7 +636,7 @@ function checkAll(returnEarly: boolean) {
   const size = graph.vl.length
   const sols = 2 ** rowsWhichNeedChecking.length
 
-  if (rowsWhichNeedChecking.length == 1) {
+  if (rowsWhichNeedChecking.length == 0) {
     if (returnEarly) {
       return cmd.checkAllEarlyExit(pow2(size), sols)
     } else {
@@ -682,6 +682,10 @@ ${rows}`
 // check all
 createCommand(`check all // ${cmd.checkAll}`, () => checkAll(false))
 createCommand(`check all manual // ${cmd.checkAllManual}`, () => checkAll(true))
+// createCommand(
+//   `check all evenodd // Like 'check all', but uses a faster but likely incorrect algorithm. Do not rely on its output.`,
+//   () => checkAll(false, true),
+// )
 
 // copy original
 createCommand(`copy ${cmd.copyOriginalId} // ${cmd.copyOriginal}`, () => {
