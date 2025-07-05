@@ -6,6 +6,6 @@ Bun.build({
   plugins: [BunTailwind],
   minify: true,
   define: {
-    TRANSL: "1",
+    TRANSL: "2",
   },
 })

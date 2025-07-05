@@ -2,7 +2,7 @@ type Transl = {
   [x: string]: string | ((...args: (string | number)[]) => string) | Transl
 }
 
-export const transls = {
+const transls1 = {
   condoDoesNotExist: (id) => `Condo ${id} does not exist.`,
   helpMain: `Each numbered circle above is a cat condo. Dark blue condos are currently meowing.
 Right-click a condo to feed its cat. Feeding all condos with a black ring should satiate the cats.
@@ -74,3 +74,80 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
     untangled: `Untangled yarnball:`,
   },
 } satisfies Transl
+
+const transls2: typeof transls1 = {
+  condoDoesNotExist: (id) => `Participant ${id} does not exist.`,
+  helpMain: `Each numbered circle above is a participant. Dark blue participants are currently muted.
+Right-click a participant to execute a mute move on them. Doing that on all participants with a black ring should unmute everyone.
+A participant's number is their ID. These are used when typing commands.
+Use 0 as an ID to create a new participant. Use * as an ID to match all participants.
+You can drag an individual participant, or the entire meeting.
+Dragging one participant very far out, then releasing, often creates a less chaotic participant arrangement, visually.
+Scroll with a mouse or pinch on a trackpad to zoom.`,
+  cmd: {
+    new: "Creates a new participant.",
+    newRet: (x) => `Created participant ${x} (unmuted).`,
+    link: "Links multiple participants in a chain.",
+    linkShorthand:
+      "Links participants in a chain; if all links are already present, removes those links.",
+    rm: "Removes one or more participants.",
+    rmRet: (x) => `Removed #${x}.`,
+
+    unlink: `Removes all links to the passed participant.`,
+    unlinkRet0: (x) => `${x} is already isolated.`,
+    unlinkRet: (x) => `Removed ${x} connection(s).`,
+
+    cycle: `Creates a cycle ending at some participant.`,
+    rect: `Creates a rectangle with a corner at some participant.`,
+    chain: `Creates a chain starting at some participant.`,
+
+    linkCycle: `Links multiple participants into a cycle.`,
+    linkEvery: `Creates all possible links between the given participants.`,
+    linkToAll: `Links each passed participant to EVERY other participant.`,
+
+    meowId: `mute`,
+    meowDesc: `Invoke the targeted evil of the zoom AI to mute one or more participants.`,
+    meowRetAlready: (x) => `${x} is already muted.`,
+    meowRetOn: (x) => `Forcefully muted participant ${x}.`,
+
+    hushId: `unmute`,
+    hushDesc: `Use the benevolence of the zoom AI to unmute one or more participants.`,
+    hushRetAlready: (x) => `${x} is already unmuted.`,
+    hushRetOn: (x) => `Forcefully unmuted participant ${x}.`,
+
+    feedId: `mm`,
+    feedDesc: `Executes a mute move on one or more participants.`,
+    feedRet: (x) => `Executed a mute move on ${x}.`,
+
+    meowRandom: `Sets each participant to be muted or unmuted at random.`,
+    meowRandomRet: (x) => `${x} participant(s) are now muted.`,
+
+    feedRandom: `Executes mute moves at random.`,
+    feedRandomRet: (x) => `${x} mute moves have been executed.`,
+
+    checkAll: `Checks all possible meeting configurations with the given layout.`,
+    checkAllTooLarge: (size) =>
+      `Checking ${size} participants will likely crash your computer, so it is not allowed yet.`,
+    checkAllRetHeader: (count, time) =>
+      `Checked ${count} configurations in ${time}ms. Found:`,
+    checkAllRetRow: (configs, sols) =>
+      `${configs} config(s) with ${sols} solution(s)`,
+
+    copyOriginalId: `original`,
+    copyOriginal: `Copies the original Kevin stack.`,
+    copyOriginalRet: `Successfully copied the original Kevin stack.`,
+
+    copyUntangledId: `polarized`,
+    copyUntangled: `Copies the polarized Kevin stack.`,
+    copyUntangledRet: `Successfully copied the polarized Kevin stack.`,
+  },
+  header: {
+    solCount: (x, time) => `Solution count: ${x} (took ${time})`,
+    original: `Original Kevin stack:`,
+    untangled: `Polarized Kevin stack:`,
+  },
+}
+
+export const transls = TRANSL == 1 ? transls1 : transls2
+
+declare var TRANSL: 1 | 2
