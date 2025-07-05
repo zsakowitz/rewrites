@@ -681,7 +681,7 @@ ${rows}`
 
 // check all
 createCommand(`check all // ${cmd.checkAll}`, () => checkAll(false))
-createCommand(`check all manual // ${cmd.checkAll}`, () => checkAll(true))
+createCommand(`check all manual // ${cmd.checkAllManual}`, () => checkAll(true))
 
 // copy original
 createCommand(`copy ${cmd.copyOriginalId} // ${cmd.copyOriginal}`, () => {

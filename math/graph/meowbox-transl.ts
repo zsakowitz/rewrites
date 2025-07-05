@@ -53,6 +53,7 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
     feedRandomRet: (x) => `${x} cat(s) have been fed.`,
 
     checkAll: `Checks all possible cat configurations with the given layout.`,
+    checkAllManual: `Like 'check all', but relies on you performing manual calculations`,
     checkAllTooLarge: (size) =>
       `Checking ${size} condos will likely crash your computer, so it is not allowed yet.`,
     checkAllRetHeader: (count, time) =>
@@ -128,6 +129,7 @@ Scroll with a mouse or pinch on a trackpad to zoom.`,
     feedRandomRet: (x) => `${x} mute moves have been executed.`,
 
     checkAll: `Checks all possible meeting configurations with the given layout.`,
+    checkAllManual: `Like 'check all', but relies on you performing manual calculations`,
     checkAllTooLarge: (size) =>
       `Checking ${size} participants will likely crash your computer, so it is not allowed yet.`,
     checkAllRetHeader: (count, time) =>
