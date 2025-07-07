@@ -239,7 +239,3 @@ function C(size: number): number {
   }
   return sum
 }
-
-// console.log(C(2))
-// console.log(C(1))
-console.log(C(3))
