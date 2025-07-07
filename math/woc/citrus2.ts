@@ -7,11 +7,17 @@ const kcol: number[] = []
 const max = 3 ** ((N - 2) ** 2) // hardcoded 3 for states
 console.time()
 for (let n = 0; n < max; n++) {
+  crate.data.fill(0)
+
   for (let r = 0; r < N - 2; r++) {
     for (let c = 0; c < N - 2; c++) {
       crate.data[N * (r + 1) + (c + 1)] =
         Math.floor(n / 3 ** ((N - 2) * r + c)) % 3
     }
+  }
+
+  if (crate.hasConsecutiveRed()) {
+    continue
   }
 
   for (let a = 0; a < N; a++) {
@@ -50,4 +56,4 @@ console.log(kcol[1])
 // 2 =>   0.05ms
 // 3 =>   0.92ms
 // 4 =>   2.97ms
-// 5 => 223.50ms
+// 5 => 102.56ms
