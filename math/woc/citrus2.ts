@@ -1,6 +1,6 @@
 import { Crate } from "./citrus"
 
-const N = 4
+const N = 5
 const crate = new Crate(new Uint8Array(N ** 2), N)
 let k = 0
 const kcol: number[] = []
@@ -45,8 +45,8 @@ for (let n = 0; n < max; n++) {
   }
 }
 console.timeEnd()
-console.log(k)
-console.log(kcol)
+// console.log(k)
+console.log(kcol[1])
 // 2 =>   0.05ms
 // 3 =>   0.92ms
 // 4 =>   2.97ms
