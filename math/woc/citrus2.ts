@@ -51,10 +51,11 @@ for (let n = 0; n < max; n++) {
     }
   }
 }
+
 console.timeEnd()
 // console.log(k)
 console.log(kcol[1])
-// 2 =>   0.05ms
-// 3 =>   0.92ms
-// 4 =>   2.97ms
-// 5 =>  92   ms
+// 2 =>  0ms
+// 3 =>  0ms
+// 4 =>  3ms
+// 5 => 90ms
