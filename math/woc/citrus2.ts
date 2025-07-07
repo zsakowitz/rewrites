@@ -3,7 +3,7 @@ import { Crate } from "./citrus"
 const N = 5
 const crate = new Crate(new Uint8Array(N ** 2), N)
 let k = 0
-const kcol: number[] = []
+const kcol: number[] = Array(N).fill(0)
 const max = 3 ** ((N - 2) ** 2) // hardcoded 3 for states
 console.time()
 for (let n = 0; n < max; n++) {
@@ -11,8 +11,9 @@ for (let n = 0; n < max; n++) {
 
   for (let r = 0; r < N - 2; r++) {
     for (let c = 0; c < N - 2; c++) {
-      crate.data[N * (r + 1) + (c + 1)] =
-        Math.floor(n / 3 ** ((N - 2) * r + c)) % 3
+      const cidx = N * (r + 1) + (c + 1)
+      const cval = Math.floor(n / 3 ** ((N - 2) * r + c)) % 3
+      crate.data[cidx] = cval
     }
   }
 
@@ -56,4 +57,4 @@ console.log(kcol[1])
 // 2 =>   0.05ms
 // 3 =>   0.92ms
 // 4 =>   2.97ms
-// 5 => 102.56ms
+// 5 =>  92   ms
