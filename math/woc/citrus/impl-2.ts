@@ -1,4 +1,4 @@
-import { Crate } from "./citrus"
+import { Crate } from "./impl-1"
 
 const N = 5
 const crate = new Crate(new Uint8Array(N ** 2), N)

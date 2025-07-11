@@ -49,3 +49,6 @@ for (const a of [Z0, P1]) {
     console.log(`${a.lte(b)} ${a} <= ${b}`)
   }
 }
+
+// Other implementation parts have been moved to project nya; surreal numbers
+// will eventually be an addon there.

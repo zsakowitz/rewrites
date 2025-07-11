@@ -17,6 +17,8 @@
  *
  * 1. C(n) = the number of possible crates of size n
  * 2. P(n,k) = the number of possible crates of size n with a green pomelo at (0,k)
+ *
+ * This file contains errors and does not work properly. See impl-2.ts.
  */
 
 export class Crate {
