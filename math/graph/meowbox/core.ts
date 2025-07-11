@@ -1,4 +1,4 @@
-import { Graph } from "."
+import { Graph } from ".."
 
 export class Meowbox {
   static zero(rows: number, cols: number) {

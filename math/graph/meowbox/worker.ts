@@ -1,4 +1,4 @@
-import { Meowbox } from "./meowbox"
+import { Meowbox } from "./core"
 
 export interface SolveRequest {
   id: number
@@ -20,12 +20,3 @@ export function solve(message: SolveRequest) {
     time: Date.now() - now,
   }
 }
-
-// onmessage = (ev) => {
-// postMessage(solve(ev.data as SolveRequest))
-// }
-
-// declare module "." {
-//   const url: string
-//   export default url
-// }

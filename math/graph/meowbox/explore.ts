@@ -1,10 +1,10 @@
 import type ForceGraph from "force-graph"
-import { Graph, type Edge, type Vertex } from "."
-import { createForceGraph } from "./force"
-import { Meowbox } from "./meowbox"
-import { MeowboxDesignedForSolutionChecking } from "./meowbox-solutions"
-import { transls } from "./meowbox-transl"
-import { countByEvenOdd } from "./meowbox/count-solutions"
+import { Graph, type Edge, type Vertex } from ".."
+import { createForceGraph } from "../force"
+import { Meowbox } from "./core"
+import { MeowboxDesignedForSolutionChecking } from "./solutions"
+import { transls } from "./transl"
+import { countByEvenOdd } from "./count-solutions"
 
 const { cmd } = transls
 

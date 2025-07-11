@@ -1,5 +1,5 @@
-import type { Graph } from "."
-import { Meowbox } from "./meowbox"
+import type { Graph } from ".."
+import { Meowbox } from "./core"
 
 export class MeowboxDesignedForSolutionChecking extends Meowbox {
   static fromGraph(g: Graph<0 | 1>): MeowboxDesignedForSolutionChecking {
