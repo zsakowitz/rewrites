@@ -11,4 +11,8 @@ export const ANSI = {
 
   dim: "\x1b[2m",
   strikethrough: "\x1b[9m",
+
+  cycle(colors: string[]) {
+    return (n: number) => colors[n % colors.length] ?? ""
+  },
 } as const

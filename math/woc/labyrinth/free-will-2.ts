@@ -1,3 +1,13 @@
+import { ANSI } from "../../../ansi"
+
+const cycle = ANSI.cycle([
+  ANSI.blue,
+  ANSI.cyan,
+  ANSI.magenta,
+  ANSI.red,
+  ANSI.yellow,
+])
+
 export class NodeN {
   readonly paths = new Map<string, Set<NodeN>>()
   readonly pnull = new Set<NodeN>()
@@ -19,6 +29,33 @@ export class NodeN {
       this.paths.set(char, set)
     }
     set.add(to)
+  }
+
+  debug() {
+    function join(l: unknown[]) {
+      return l.join("")
+      // return l.length == 0 ? "" : l.length == 1 ? l[0]! : `[${l.join(comma)}]`
+    }
+
+    const semi = ANSI.reset + ANSI.dim + "; " + ANSI.reset
+    // const comma = ANSI.reset + ANSI.dim + "," + ANSI.reset
+    const arr = ANSI.reset + ANSI.dim + "->" + ANSI.reset
+    const initial =
+      cycle(this.label) + (this.rom ? "R" : " ") + this.label + ANSI.reset
+    const pnull = join(
+      Array.from(this.pnull).map((x) => cycle(x.label) + x.label + ANSI.reset),
+    )
+    const paths = Array.from(this.paths)
+      .filter((x) => x[1].size)
+      .map(
+        ([k, v]) =>
+          `${ANSI.green}${k}${arr}${join(Array.from(v).map((x) => cycle(x.label) + x.label + ANSI.reset))}`,
+      )
+      .join(semi)
+    const head = pnull
+      ? `${initial}${semi}${ANSI.green}_${arr}${pnull}`
+      : initial
+    return paths ? `${head}${semi}${paths}` : head
   }
 }
 
@@ -95,7 +132,7 @@ if (typeof Bun != "undefined") {
   const util = import.meta.require("node:util") as typeof import("node:util")
   Object.assign(NodeN.prototype, {
     [util.inspect.custom](this: NodeN) {
-      return "#" + this.label + (this.rom ? " (rom)" : "")
+      return this.debug()
     },
   })
 }
