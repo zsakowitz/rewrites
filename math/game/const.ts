@@ -32,5 +32,3 @@ export function fromConst(x: number, digits = 16) {
     }
   }
 }
-
-console.log(fromConst(2.3).sign())
