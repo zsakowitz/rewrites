@@ -15,7 +15,7 @@ class Abc {
     }
   }
 
-  #name = "Zachary"
+  #name = "sakawi"
 
   _ = ((Abc.#instance = this), void 0)
 
