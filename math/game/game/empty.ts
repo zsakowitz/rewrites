@@ -1,4 +1,4 @@
-import { GameEq } from "."
+import { GameEq } from ".."
 
 export class Empty extends GameEq<never> {
   moves(): readonly never[] {

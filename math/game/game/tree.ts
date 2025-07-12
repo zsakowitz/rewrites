@@ -1,4 +1,4 @@
-import { Game, Player } from "."
+import { Game, Player } from ".."
 
 interface Branch {
   e0: number
@@ -17,6 +17,7 @@ export class Tree extends Game<Branch> {
     ;(this.#edges[e0] ??= []).push(branch)
     ;(this.#edges[e1] ??= []).push(branch)
     this.edges.push(branch)
+    return this
   }
 
   #markGroundedFrom(vertex: number, marked: Set<number>) {

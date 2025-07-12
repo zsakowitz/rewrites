@@ -1,4 +1,4 @@
-import { Game, type Player } from "."
+import { Game, type Player } from ".."
 
 export class Any extends Game<{ on: Game<unknown>; move: unknown }> {
   games

@@ -1,4 +1,4 @@
-import { GameEq } from "."
+import { GameEq } from ".."
 
 export class Nim extends GameEq<unknown> {
   constructor(public size: number) {

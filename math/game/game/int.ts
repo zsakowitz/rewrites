@@ -1,4 +1,4 @@
-import { Game, Player } from "."
+import { Game, Player } from ".."
 
 export class Int extends Game<Player> {
   constructor(public count: number) {

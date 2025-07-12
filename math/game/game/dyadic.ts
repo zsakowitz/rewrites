@@ -1,4 +1,4 @@
-import { Game, Player } from "."
+import { Game, Player } from ".."
 
 export interface DyadicMove {
   fexp: number
