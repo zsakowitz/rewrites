@@ -136,7 +136,7 @@ multiply
 source = expand(source)
 console.log(source)
 
-let runner = new Runner(source, "My name is Zachary.").execute()
+let runner = new Runner(source, "My name is sakawi.").execute()
 console.log(runner.memory)
 console.log(runner.pointer)
 console.log(runner.stdout)

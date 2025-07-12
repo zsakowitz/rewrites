@@ -27,7 +27,7 @@ const body = (
                   id: "localhost",
                 },
                 user: {
-                  displayName: "Zachary Sakowitz",
+                  displayName: "sakawi",
                   id: Uint8Array.from("zsakowitz@gmail.com", (x) =>
                     x.charCodeAt(0),
                   ),

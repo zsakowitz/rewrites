@@ -49,10 +49,10 @@ function createPrivateField<Target extends object, Field>() {
 
 const name = createPrivateField<{}, string>()
 
-const Zachary = {}
+const sakawi = {}
 
-name.set(Zachary, "Zachary")
+name.set(sakawi, "sakawi")
 
-name.get(Zachary)
+name.get(sakawi)
 
 export {}

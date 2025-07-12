@@ -4,8 +4,8 @@
 export type Split<T extends string, R extends string[] = []> = T extends ""
   ? R
   : T extends `${infer A}${infer B}`
-  ? Split<B, [...R, A]>
-  : never
+    ? Split<B, [...R, A]>
+    : never
 
 declare const T: unique symbol
 type T = typeof T
@@ -49,4 +49,4 @@ export type CheckEach<T extends State, M extends StateChanger[]> = M extends [
     : CheckEach<T, Tail>
   : never
 
-type e = Split<"Zachary">
+type e = Split<"sakawi">

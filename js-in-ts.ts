@@ -129,15 +129,13 @@ export namespace Uint {
   assert<DivideArrays<[any, any, any, any, any, any, any], []>, 0>(true)
   assert<DivideArrays<[any, any, any], [any]>, [[any, any, any], []]>(true)
 
-  export type QuotientAndRemainder<
-    A extends number,
-    B extends number,
-  > = DivideArrays<ToArray<A>, ToArray<B>> extends [
-    infer U extends AsArray,
-    infer V extends AsArray,
-  ]
-    ? [ToNumber<U>, ToNumber<V>]
-    : never
+  export type QuotientAndRemainder<A extends number, B extends number> =
+    DivideArrays<ToArray<A>, ToArray<B>> extends [
+      infer U extends AsArray,
+      infer V extends AsArray,
+    ]
+      ? [ToNumber<U>, ToNumber<V>]
+      : never
 
   assert<QuotientAndRemainder<9, 4>, [2, 1]>(true)
   assert<QuotientAndRemainder<89, 7>, [12, 5]>(true)
@@ -178,10 +176,10 @@ export namespace Uint {
   export type Negate<T extends number> = T extends 0
     ? 0
     : IsNegative<T> extends true
-    ? Abs<T>
-    : `-${T}` extends `${infer U extends number}`
-    ? U
-    : never
+      ? Abs<T>
+      : `-${T}` extends `${infer U extends number}`
+        ? U
+        : never
 
   assert<Negate<4>, -4>(true)
   assert<Negate<0>, 0>(true)
@@ -193,12 +191,8 @@ export namespace Uint {
   assert<IsZero<0>, true>(true)
   assert<IsZero<-4>, false>(true)
 
-  export type IsLTE<A extends number, B extends number> = Subtract<
-    A,
-    B
-  > extends 0
-    ? true
-    : false
+  export type IsLTE<A extends number, B extends number> =
+    Subtract<A, B> extends 0 ? true : false
 
   assert<IsLTE<3, 4>, true>(true)
   assert<IsLTE<8, 7>, false>(true)
@@ -233,10 +227,10 @@ export namespace Int {
   type ToArray<T extends number> = T extends 0
     ? [false, 0]
     : `${T}` extends `-${infer U extends number}`
-    ? [true, U]
-    : `${T}` extends `${infer U extends number}`
-    ? [false, U]
-    : never
+      ? [true, U]
+      : `${T}` extends `${infer U extends number}`
+        ? [false, U]
+        : never
 
   assert<ToArray<-3>, [true, 3]>(true)
   assert<ToArray<0>, [false, 0]>(true)
@@ -246,10 +240,10 @@ export namespace Int {
   type ToNumber<T extends AsArray> = T[1] extends 0
     ? 0
     : T[0] extends true
-    ? `-${T[1]}` extends `${infer U extends number}`
-      ? U
-      : never
-    : T[1]
+      ? `-${T[1]}` extends `${infer U extends number}`
+        ? U
+        : never
+      : T[1]
 
   assert<ToNumber<[true, 3]>, -3>(true)
   assert<ToNumber<[true, 0]>, 0>(true)
@@ -268,9 +262,8 @@ export namespace Int {
   assert<IsZero<-0>, true>(true)
   assert<IsZero<2>, false>(true)
 
-  type SignOfArray<T extends AsArray> = IsArrayZero<T> extends true
-    ? [false, 0]
-    : [T[0], 1]
+  type SignOfArray<T extends AsArray> =
+    IsArrayZero<T> extends true ? [false, 0] : [T[0], 1]
 
   assert<SignOfArray<[true, 2]>, [true, 1]>(true)
   assert<SignOfArray<[false, 2]>, [false, 1]>(true)
@@ -310,13 +303,13 @@ export namespace Int {
     ? B[0] extends true
       ? [true, Uint.Add<A[1], B[1]>] // Adding `(-a) + (-b)` (ex: -2 + -3)
       : Uint.IsLT<A[1], B[1]> extends true
-      ? [false, Uint.Subtract<B[1], A[1]>] // Adding `(-a) + b` where `a < b` (ex: -2 + 3)
-      : [true, Uint.Subtract<A[1], B[1]>] // Adding `(-a) + b` where `a >= b` (ex: -3 + 2)
+        ? [false, Uint.Subtract<B[1], A[1]>] // Adding `(-a) + b` where `a < b` (ex: -2 + 3)
+        : [true, Uint.Subtract<A[1], B[1]>] // Adding `(-a) + b` where `a >= b` (ex: -3 + 2)
     : B[0] extends true
-    ? Uint.IsLT<A[1], B[1]> extends true
-      ? [true, Uint.Subtract<B[1], A[1]>] // Adding `a + (-b)` where `a < b` (ex: 2 + -3)
-      : [false, Uint.Subtract<A[1], B[1]>] // Adding `a + (-b)` where `a >= b` (ex: 3 + -2)
-    : [false, Uint.Add<A[1], B[1]>] // Adding a + b (ex: 2 + 3)
+      ? Uint.IsLT<A[1], B[1]> extends true
+        ? [true, Uint.Subtract<B[1], A[1]>] // Adding `a + (-b)` where `a < b` (ex: 2 + -3)
+        : [false, Uint.Subtract<A[1], B[1]>] // Adding `a + (-b)` where `a >= b` (ex: 3 + -2)
+      : [false, Uint.Add<A[1], B[1]>] // Adding a + b (ex: 2 + 3)
 
   assert<AddArrays<[true, 2], [true, 3]>, [true, 5]>(true) //   -2 + -3 = -5
   assert<AddArrays<[true, 3], [true, 2]>, [true, 5]>(true) //   -3 + -2 = -5
@@ -360,18 +353,16 @@ export namespace Int {
   assert<Multiply<[false, 0], [true, 5]>, [true, 0]>(true) //   0 * -5 = -0
   assert<Multiply<[true, 4], [true, 3]>, [false, 12]>(true)
 
-  type IsLTEArray<A extends AsArray, B extends AsArray> = Boolean.And<
-    IsArrayZero<A>,
-    IsArrayZero<B>
-  > extends true
-    ? true // 0 <= 0
-    : A[0] extends true
-    ? B[0] extends true
-      ? Uint.IsGTE<A[1], B[1]> // -a <= -b
-      : true // -a <= b
-    : B[0] extends true
-    ? false // a <= -b (this breaks if a and b are both 0, but we took care of that already)
-    : Uint.IsLTE<A[1], B[1]> // a <= b
+  type IsLTEArray<A extends AsArray, B extends AsArray> =
+    Boolean.And<IsArrayZero<A>, IsArrayZero<B>> extends true
+      ? true // 0 <= 0
+      : A[0] extends true
+        ? B[0] extends true
+          ? Uint.IsGTE<A[1], B[1]> // -a <= -b
+          : true // -a <= b
+        : B[0] extends true
+          ? false // a <= -b (this breaks if a and b are both 0, but we took care of that already)
+          : Uint.IsLTE<A[1], B[1]> // a <= b
 
   assert<IsLTEArray<[true, 2], [true, 3]>, false>(true) // -2 <= -3
   assert<IsLTEArray<[false, 0], [false, 0]>, true>(true) // 0 <=  0
@@ -446,11 +437,10 @@ export namespace Int {
 
 export namespace Boolean {
   // https://github.com/type-challenges/type-challenges/blob/main/utils/index.d.ts
-  export type IsEqual<A, B> = (<T>() => T extends A ? 1 : 2) extends <
-    T,
-  >() => T extends B ? 1 : 2
-    ? true
-    : false
+  export type IsEqual<A, B> =
+    (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+      ? true
+      : false
 
   assert<IsEqual<any, 7>, false>(true)
   assert<IsEqual<8, 9>, false>(true)
@@ -475,8 +465,8 @@ export namespace Boolean {
   export type Or<A extends boolean, B extends boolean> = A extends true
     ? true
     : B extends true
-    ? true
-    : false
+      ? true
+      : false
 
   assert<Or<true, true>, true>(true)
   assert<Or<true, false>, true>(true)
@@ -585,13 +575,8 @@ export namespace Array {
   assert<IsEmpty<[1, 2, 3]>, false>(true)
   assert<IsEmpty<[]>, true>(true)
 
-  export type Reduce<
-    T extends unknown[],
-    I,
-    F extends Function,
-  > = IsEmpty<T> extends true
-    ? I
-    : Reduce<Tail<T>, Function.Call<F, I, T[0]>, F>
+  export type Reduce<T extends unknown[], I, F extends Function> =
+    IsEmpty<T> extends true ? I : Reduce<Tail<T>, Function.Call<F, I, T[0]>, F>
 
   interface SumReducer extends Function<number, number> {
     value: Uint.Add<this[Function.A], this[Function.B]>
@@ -601,11 +586,8 @@ export namespace Array {
   assert<Reduce<[5, 7, 8], 0, SumReducer>, 20>(true)
   assert<Reduce<[], 0, SumReducer>, 0>(true)
 
-  export type AutoReduce<
-    T extends unknown[],
-    D,
-    F extends Function,
-  > = IsEmpty<T> extends true ? D : Reduce<Tail<T>, T[0], F>
+  export type AutoReduce<T extends unknown[], D, F extends Function> =
+    IsEmpty<T> extends true ? D : Reduce<Tail<T>, T[0], F>
 
   assert<AutoReduce<[8, 5, 6], 47, SumReducer>, 19>(true)
   assert<AutoReduce<[1, 2, 3], 47, SumReducer>, 6>(true)
@@ -642,18 +624,18 @@ export namespace String {
   export type IsEmpty<T extends string> = T extends "" ? true : false
 
   assert<IsEmpty<"">, true>(true)
-  assert<IsEmpty<"Zachary">, false>(true)
+  assert<IsEmpty<"sakawi">, false>(true)
   assert<IsEmpty<"zSnout">, false>(true)
 
   export type Head<T extends string> = T extends `${infer U}${string}` ? U : ""
 
-  assert<Head<"Zachary">, "Z">(true)
+  assert<Head<"sakawi">, "s">(true)
   assert<Head<"zSnout">, "z">(true)
   assert<Head<"">, "">(true)
 
   export type Tail<T extends string> = T extends `${string}${infer U}` ? U : ""
 
-  assert<Tail<"Zachary">, "achary">(true)
+  assert<Tail<"sakawi">, "akawi">(true)
   assert<Tail<"zSnout">, "Snout">(true)
   assert<Tail<"">, "">(true)
 
@@ -663,29 +645,25 @@ export namespace String {
 
   export type Length<T extends string> = _Length<T>
 
-  assert<Length<"Zachary">, 7>(true)
+  assert<Length<"sakawi">, 6>(true)
   assert<Length<"zSnout">, 6>(true)
   assert<Length<"">, 0>(true)
 
   export type SliceStart<T extends string, N extends number> = N extends 0
     ? T
     : T extends `${string}${infer U}`
-    ? SliceStart<U, number & Uint.Previous<N>>
-    : T
+      ? SliceStart<U, number & Uint.Previous<N>>
+      : T
 
-  assert<SliceStart<"Zachary", 2>, "chary">(true)
-  assert<SliceStart<"Zachary", 0>, "Zachary">(true)
+  assert<SliceStart<"sakawi", 2>, "kawi">(true)
+  assert<SliceStart<"sakawi", 0>, "sakawi">(true)
   assert<SliceStart<"zSnout", 4>, "ut">(true)
 
-  export type ToSliceIndex<
-    T extends string,
-    N extends number,
-  > = Uint.IsNegative<N> extends true
-    ? Uint.Subtract<Length<T>, Uint.Abs<N>>
-    : N
+  export type ToSliceIndex<T extends string, N extends number> =
+    Uint.IsNegative<N> extends true ? Uint.Subtract<Length<T>, Uint.Abs<N>> : N
 
-  assert<ToSliceIndex<"Zachary", 4>, 4>(true)
-  assert<ToSliceIndex<"Zachary", -4>, 3>(true)
+  assert<ToSliceIndex<"sakawi", 4>, 4>(true)
+  assert<ToSliceIndex<"sakawi", -4>, 2>(true)
   assert<ToSliceIndex<"zSnout", 0>, 0>(true)
 
   export type StartsWith<
@@ -693,7 +671,7 @@ export namespace String {
     U extends string,
   > = T extends `${U}${string}` ? true : false
 
-  assert<StartsWith<"Zachary", "Z">, true>(true)
+  assert<StartsWith<"sakawi", "s">, true>(true)
   assert<StartsWith<"zSnout", "Z">, false>(true)
   assert<StartsWith<"zSnout", "zS">, true>(true)
 }
@@ -705,24 +683,24 @@ export namespace Decimal {
     T extends `${number}${number}${number}${number}${number}${number}${number}${number}${number}${number}`
       ? 10
       : T extends `${number}${number}${number}${number}${number}${number}${number}${number}${number}`
-      ? 9
-      : T extends `${number}${number}${number}${number}${number}${number}${number}${number}`
-      ? 8
-      : T extends `${number}${number}${number}${number}${number}${number}${number}`
-      ? 7
-      : T extends `${number}${number}${number}${number}${number}${number}`
-      ? 6
-      : T extends `${number}${number}${number}${number}${number}`
-      ? 5
-      : T extends `${number}${number}${number}${number}`
-      ? 4
-      : T extends `${number}${number}${number}`
-      ? 3
-      : T extends `${number}${number}`
-      ? 2
-      : T extends `${number}`
-      ? 1
-      : 0
+        ? 9
+        : T extends `${number}${number}${number}${number}${number}${number}${number}${number}`
+          ? 8
+          : T extends `${number}${number}${number}${number}${number}${number}${number}`
+            ? 7
+            : T extends `${number}${number}${number}${number}${number}${number}`
+              ? 6
+              : T extends `${number}${number}${number}${number}${number}`
+                ? 5
+                : T extends `${number}${number}${number}${number}`
+                  ? 4
+                  : T extends `${number}${number}${number}`
+                    ? 3
+                    : T extends `${number}${number}`
+                      ? 2
+                      : T extends `${number}`
+                        ? 1
+                        : 0
 
   assert<Length<"23">, 2>(true)
   assert<Length<"">, 0>(true)
@@ -754,8 +732,8 @@ export namespace Decimal {
           Pow10<Length<Decimal>>,
         ]
       : `${T}` extends `${infer U extends number}`
-      ? [U, 1]
-      : never
+        ? [U, 1]
+        : never
 
   assert<ToArray<37.045>, [37045, 1000]>(true)
   assert<ToArray<37.5>, [375, 10]>(true)

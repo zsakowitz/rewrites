@@ -242,8 +242,8 @@ export function attribute<Value>(name: string, options?: { default?: Value }) {
             value == null
               ? options?.default
               : isNaN(+value)
-              ? options?.default
-              : +value
+                ? options?.default
+                : +value
         } else {
           throw new Error(
             "Cannot create an attribute of type " + typeof value + ".",
@@ -297,7 +297,7 @@ export function on(
 @customElement("hello-world")
 class HelloWorld extends ShadowElement {
   @attribute("name")
-  accessor name = "Zachary"
+  accessor name = "sakawi"
 
   @attribute("country", { default: "United States" })
   accessor country = ""
