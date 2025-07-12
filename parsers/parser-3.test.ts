@@ -217,10 +217,10 @@ const Character = char((char) =>
   char == "$" || char == '"'
     ? `\\${char}`
     : char == "\n"
-    ? "\\n"
-    : char == "\r"
-    ? "\\r"
-    : char,
+      ? "\\n"
+      : char == "\r"
+        ? "\\r"
+        : char,
 ).except(any(text("\\"), text('"')))
 
 const EscapedCharacter = any(text("\\\\", "\\\\"), text('\\"', '\\"'))
@@ -252,3 +252,7 @@ function evaluate(text: string) {
 function cst(text: string) {
   return evaluate(text.replace(/\d+/g, "#$&"))
 }
+
+console.log(compile("--!.+#23#45'worldA(#2#3#4#5)@$a"))
+
+console.log(compile('\\@($a)"\\{$b}"'))

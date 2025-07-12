@@ -1,7 +1,8 @@
-import { type Game } from "."
+import { Player, type Game } from "."
 import { Any } from "./game/any"
 import { Inv } from "./game/inv"
 import { Nim } from "./game/nim"
+import { Tree } from "./game/tree"
 
 export function add(a: Game<unknown>, b: Game<unknown>) {
   if (a === b) {
@@ -19,9 +20,10 @@ export function sub(a: Game<unknown>, b: Game<unknown>) {
   return new Any(a, new Inv(b))
 }
 
-// new Any(
-//   new Nim(3),
-//   new Tree().branch(0, 1, Player.Left).branch(1, 2, Player.Right),
-// )
-
-new Nim(1).value().log()
+new Any(
+  new Nim(3),
+  new Tree().branch(0, 1, Player.Left).branch(1, 2, Player.Right),
+)
+  .value()
+  .simplify()
+  .log()

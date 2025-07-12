@@ -3,8 +3,8 @@
 export type ToArray<N extends number, T, A extends T[] = []> = number extends N
   ? T[]
   : N extends A["length"]
-  ? A
-  : ToArray<N, T, [...A, T]>
+    ? A
+    : ToArray<N, T, [...A, T]>
 
 export type Transformer<T> = (match: string, ...groups: string[]) => T
 

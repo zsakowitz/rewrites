@@ -1,19 +1,23 @@
 import { GameEq } from ".."
 
-export class Nim extends GameEq<unknown> {
+export class Nim extends GameEq<number> {
   constructor(public size: number) {
     super()
   }
 
-  moves(): readonly unknown[] {
-    return this.size > 0 ? [0] : []
+  moves(): readonly number[] {
+    const ret = []
+    for (let i = 0; i < this.size; i++) {
+      ret.push(i + 1)
+    }
+    return ret
   }
 
-  move(): void {
-    this.size--
+  move(mv: number): void {
+    this.size -= mv
   }
 
-  undo(): void {
-    this.size++
+  undo(mv: number): void {
+    this.size += mv
   }
 }

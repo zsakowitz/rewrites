@@ -6,6 +6,10 @@ export class Value {
   static int(value: number) {
     let ret = Value.ZERO
 
+    if (!(Math.abs(value) < 16)) {
+      throw new Error(`${value} is too large a number.`)
+    }
+
     if (value < 0) {
       for (let i = 0; i > value; i--) {
         ret = new Value([], [ret])
@@ -24,7 +28,7 @@ export class Value {
     const sides: Value[] = [ret]
 
     for (let i = 0; i < index; i++) {
-      ret = new Value(sides.slice(), sides.slice(), "*" + (i + 1))
+      ret = new Value(sides.slice(), sides.slice())
       sides.push(ret)
     }
 
@@ -34,7 +38,7 @@ export class Value {
   constructor(
     readonly lhs: Value[],
     readonly rhs: Value[],
-    readonly label?: string,
+    public label?: string,
   ) {}
 
   lte(rhs: Value): boolean {
@@ -68,6 +72,60 @@ export class Value {
       if (rgen + 1 > gen) gen = rgen + 1
     }
     return gen
+  }
+
+  neg(): Value {
+    return new Value(
+      this.rhs.map((x) => x.neg()),
+      this.lhs.map((x) => x.neg()),
+    )
+  }
+
+  /**
+   * Applies labels to known values and sometimes simplifies expressions.
+   *
+   * It's not implemented efficiently because I do not care to do that yet.
+   */
+  simplify(): Value {
+    for (const l of this.lhs) {
+      l.simplify()
+    }
+
+    for (const r of this.rhs) {
+      r.simplify()
+    }
+
+    label: if (this.lhs.length == 0 && this.rhs.length == 0) {
+      this.label = "0"
+    } else {
+      for (let i = 1; i < 4; i++) {
+        if (this.eq(Value.star(i))) {
+          this.label = "*" + i
+          break label
+        }
+
+        if (this.eq(Value.int(i))) {
+          this.label = "" + i
+          break label
+        }
+
+        if (this.eq(Value.int(-i))) {
+          this.label = "-" + i
+          break label
+        }
+      }
+
+      if (
+        this.lhs.length == 1 &&
+        this.rhs.length == 1 &&
+        this.lhs[0]!.label == "0" &&
+        this.rhs[0]!.label == "1"
+      ) {
+        this.label = "1/2"
+      }
+    }
+
+    return this
   }
 
   toString(): string {
