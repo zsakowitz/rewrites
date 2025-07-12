@@ -1,6 +1,8 @@
+import { Value } from "./value"
+
 export const Player = Object.freeze({
-  Left: -1,
-  Right: 1,
+  Left: 1,
+  Right: -1,
 })
 
 export type Player = (typeof Player)[keyof typeof Player]
@@ -11,14 +13,14 @@ export function opponent(player: Player) {
 
 export const Sign = Object.freeze({
   Zero: 0,
-  Left: -1,
-  Right: 1,
+  Left: 1,
+  Right: -1,
   Star: 3,
 })
 
 export type Sign = (typeof Sign)[keyof typeof Sign]
 
-export abstract class Game<T> {
+export abstract class Game<T = unknown> {
   abstract moves(player: Player): readonly T[]
   abstract move(move: T): void
   abstract undo(move: T): void
@@ -61,13 +63,32 @@ export abstract class Game<T> {
         ? Sign.Zero
         : Player.Right
   }
+
+  /** Gets the value of this game as a surreal pseudo-number. */
+  value(): Value {
+    const lhs: Value[] = []
+    for (const move of this.moves(Player.Left)) {
+      this.move(move)
+      lhs.push(this.value())
+      this.undo(move)
+    }
+
+    const rhs: Value[] = []
+    for (const move of this.moves(Player.Right)) {
+      this.move(move)
+      rhs.push(this.value())
+      this.undo(move)
+    }
+
+    return new Value(lhs, rhs)
+  }
 }
 
 /**
  * A special kind of game where both players have the same set of moves
  * available.
  */
-export abstract class GameEq<T> extends Game<T> {
+export abstract class GameEq<T = unknown> extends Game<T> {
   abstract moves(): readonly T[]
 
   sign(): Sign {

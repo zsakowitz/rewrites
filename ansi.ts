@@ -15,4 +15,14 @@ export const ANSI = {
   cycle(colors: string[]) {
     return (n: number) => colors[n % colors.length] ?? ""
   },
+  get cycleAll() {
+    return this.cycle([
+      ANSI.blue,
+      ANSI.cyan,
+      ANSI.green,
+      ANSI.magenta,
+      ANSI.red,
+      ANSI.yellow,
+    ])
+  },
 } as const
