@@ -1,3 +1,4 @@
+import type { Game } from "."
 import { ANSI } from "../../ansi"
 
 export class Value {
@@ -12,11 +13,11 @@ export class Value {
 
     if (value < 0) {
       for (let i = 0; i > value; i--) {
-        ret = new Value([], [ret])
+        ret = new Value([], [ret], "" + (-1 - i))
       }
     } else {
       for (let i = 0; i < value; i++) {
-        ret = new Value([ret], [])
+        ret = new Value([ret], [], "" + (i + 1))
       }
     }
 
@@ -41,26 +42,42 @@ export class Value {
     public label?: string,
   ) {}
 
-  lte(rhs: Value): boolean {
+  value(): Value {
+    return this
+  }
+
+  lte(rhs: Value | Game): boolean {
+    rhs = rhs.value()
     return !(
       this.lhs.some((x) => rhs.lte(x)) || rhs.rhs.some((x) => x.lte(this))
     )
   }
 
-  gte(rhs: Value): boolean {
+  gte(rhs: Value | Game): boolean {
+    rhs = rhs.value()
     return rhs.lte(this)
   }
 
-  lt(rhs: Value): boolean {
+  lt(rhs: Value | Game): boolean {
+    rhs = rhs.value()
     return this.lte(rhs) && !rhs.lte(this)
   }
 
-  gt(rhs: Value): boolean {
+  gt(rhs: Value | Game): boolean {
+    rhs = rhs.value()
     return rhs.lte(this) && !this.lte(rhs)
   }
 
-  eq(rhs: Value): boolean {
+  eq(rhs: Value | Game): boolean {
+    rhs = rhs.value()
     return this.lte(rhs) && rhs.lte(this)
+  }
+
+  cmp(rhs: Value | Game) {
+    rhs = rhs.value()
+    const lte = this.lte(rhs)
+    const gte = this.gte(rhs)
+    return lte && gte ? "==" : lte ? "<" : gte ? ">" : "||"
   }
 
   get gen() {
@@ -137,7 +154,7 @@ export class Value {
     let ls = this.lhs.join(color + ",")
     if (ls) ls += color
     let rs = this.rhs.join(color + ",")
-    if (ls) rs += color
+    if (rs) rs += color
     return `${color}{${ls}|${rs}}${r}`
   }
 

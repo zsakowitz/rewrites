@@ -82,6 +82,52 @@ export abstract class Game<T = unknown> {
 
     return new Value(lhs, rhs)
   }
+
+  lte(rhs: Game | Value): boolean {
+    return this.value().lte(rhs)
+  }
+
+  gte(rhs: Game | Value): boolean {
+    return this.value().gte(rhs)
+  }
+
+  lt(rhs: Game | Value): boolean {
+    return this.value().lt(rhs)
+  }
+
+  gt(rhs: Game | Value): boolean {
+    return this.value().gt(rhs)
+  }
+
+  eq(rhs: Game | Value): boolean {
+    return this.value().eq(rhs)
+  }
+
+  cmp(rhs: Game | Value) {
+    return this.value().cmp(rhs)
+  }
+
+  [Symbol.for("nodejs.util.inspect.custom")](
+    depth: number,
+    options: import("node:util").InspectOptionsStylized,
+    inspect: typeof import("node:util").inspect,
+  ) {
+    if (depth < 0) {
+      return this.constructor.name
+    }
+
+    const inner = inspect(
+      { ...this },
+      {
+        ...options,
+        colors: true,
+        depth: options.depth == null ? null : options.depth - 1,
+        breakLength: 20,
+      },
+    )
+
+    return `${this.constructor.name} ${inner}`
+  }
 }
 
 /**
