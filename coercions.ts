@@ -175,6 +175,7 @@ function x(x: string, y: string) {
   c.addCoercion(new Fn(x, y, false, (x) => x))
 }
 
+x("r64", "c64")
 x("rabs32", "r32")
 x("angle", "q32")
 x("r32", "q32")
@@ -183,13 +184,7 @@ x("c32", "q32")
 x("r64", "r32")
 x("c64", "c32")
 x("rabs64", "r64")
-x("angle", "r32")
-
-x("game", "surreal")
-x("nim", "game")
-x("hackenbush", "game")
-
-// rabs64 -> rabs32
+x("angle", "rabs32")
 
 console.log(c)
 console.log(c.order())
