@@ -140,22 +140,43 @@ class Coercions {
         )
       }
     }
+
+    this.order()
   }
 
-  order() {
-    const tys = new Set([...this.byFrom.keys(), ...this.byInto.keys()])
+  /*! From https://en.wikipedia.org/wiki/Topological_sorting. */
+  private order() {
+    const { byFrom, byInto } = this
+    const unmarked = new Set([...byFrom.keys(), ...byInto.keys()])
+    const permanent = new Set<string>()
+    const temporary = new Set<string>()
+    const ret: string[] = []
 
-    const uses = new Map<string, number>()
-    for (const key of this.byFrom.keys()) {
-      uses.set(key, 0)
+    function visit(node: string) {
+      if (permanent.has(node)) return
+      if (temporary.has(node)) cycle(node, node)
+
+      unmarked.delete(node)
+      temporary.add(node)
+
+      for (const m of byFrom.get(node) ?? []) {
+        visit(m.into)
+      }
+
+      temporary.delete(node)
+      permanent.add(node)
+
+      ret.push(node)
     }
-    for (const key of this.byInto.keys()) {
-      uses.set(key, (uses.get(key) ?? 0) + 1)
+
+    for (const el of unmarked) {
+      visit(el)
     }
-    // return uses
-    return Array.from(uses.entries())
-      .sort((a, b) => a[1] - b[1])
-      .map((x) => x[0])
+
+    // We don't sort `byInto` since only `byFrom` is used for
+    for (const entry of this.byFrom.values()) {
+      entry.sort((a, b) => ret.indexOf(b.into) - ret.indexOf(a.into))
+    }
   }
 
   [Symbol.for("nodejs.util.inspect.custom")]() {
@@ -187,4 +208,3 @@ x("rabs64", "r64")
 x("angle", "rabs32")
 
 console.log(c)
-console.log(c.order())
