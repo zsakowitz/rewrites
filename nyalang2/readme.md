@@ -15,6 +15,22 @@ so what is an actual nyalang mvp?
 - make coercion sensible AND extendable (complex matrices should Just Work)
 - that's basically it??
 
+BE CAREFUL: how do we want to do functions?
+
+- low-level, function calls should be `lib.call(id("+"), [arg1, arg2])`
+  - as an api, `lib.call("+", arg1, arg2)` is also sensible
+- we need to deal with broadcasting: maybe ndarrays are the way to go
+  - nyalang 2 should definitely have ndarrays
+- rest parameters: do we want them?
+  - not really; functions which take a single list already cover that path
+- do we want named parameters? if yes, then probably the python route
+  - most languages get by without them, so let's say no
+  - what does rust do? rust usually has long function names instead
+  - so maybe they can exist in the api, but be ignored elsewhere
+  - or they can be syntax sugar for something
+  - or we remake the language again when we want them
+  - this last one sounds good
+
 ## scribblings
 
 failures of the first language:
@@ -42,6 +58,7 @@ good things of the first language:
 - operator overloading
 - broadcast operators
 - prettier
+- latex tags (maybe?)
 
 how do we do better?
 
