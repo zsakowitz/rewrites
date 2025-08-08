@@ -1,3 +1,15 @@
+## mvp ideas
+
+what are the bare essentials we need?
+
+- define types and functions in JS
+- make coercion sensible AND extensible (complex matrices should Just Work)
+- list broadcasting and spreading (`min` and `+` come to mind)
+- const and runtime values
+- output to multiple languages
+
+okay! let's go make those
+
 ## language goals
 
 what are the core parts of nyalang that NEED to exist?
@@ -14,8 +26,14 @@ so what is an actual nyalang mvp?
 - define types and functions in JS
 - make coercion sensible AND extendable (complex matrices should Just Work)
 - that's basically it??
+- no, we also have list broadcasting
 
-BE CAREFUL: how do we want to do functions?
+how do we do lists?
+
+- make a distinction between lists, vectors, and matrices
+- a list is desmos-style
+
+how do we do functions?
 
 - low-level, function calls should be `lib.call(id("+"), [arg1, arg2])`
   - as an api, `lib.call("+", arg1, arg2)` is also sensible
