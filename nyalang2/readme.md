@@ -8,20 +8,20 @@ what are the bare essentials we need?
 - const and runtime values
 - output to multiple languages
 
-okay! let's go make those
+okay! let's go make those. wait no actually let's think about environments
 
 ## environments
 
 let's think about where we want to use this language:
 
-| environment   | dep decl     | dep uses     | requirements                                 |
-| ------------- | ------------ | ------------ | -------------------------------------------- |
-| dcg clone     | f(x) = expr  | auto-updated |                                              |
-| notebook      | maybe a := b |              | output to multiple locations                 |
-| manim clone   |              |              | scenes, procedures, animations, and mutation |
-| from js       |              |              | call fns, create values, .d.ts generation    |
-| cgsuite clone |              |              | recursive functions                          |
-| game dev??    |              |              | import models                                |
+| environment   | dep decl     | dep uses     | requirements                                                 |
+| ------------- | ------------ | ------------ | ------------------------------------------------------------ |
+| dcg clone     | f(x) = expr  | auto-updated | only pure fns + know callable fn names (for deitalicization) |
+| notebook      | maybe a := b |              | output to multiple locations                                 |
+| manim clone   |              |              | scenes, procedures, animations, and mutation                 |
+| from js       |              |              | call fns, create values, .d.ts generation                    |
+| cgsuite clone |              |              | recursive functions                                          |
+| game dev??    |              |              | import models                                                |
 
 it looks like dep tracking should probably be localized in dcg then, although
 reactive scripts for animation and notebooks would be really helpful
