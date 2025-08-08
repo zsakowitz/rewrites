@@ -10,6 +10,41 @@ what are the bare essentials we need?
 
 okay! let's go make those
 
+## environments
+
+let's think about where we want to use this language:
+
+| environment   | dep decl     | dep uses     | requirements                                 |
+| ------------- | ------------ | ------------ | -------------------------------------------- |
+| dcg clone     | f(x) = expr  | auto-updated |                                              |
+| notebook      | maybe a := b |              | output to multiple locations                 |
+| manim clone   |              |              | scenes, procedures, animations, and mutation |
+| from js       |              |              | call fns, create values, .d.ts generation    |
+| cgsuite clone |              |              | recursive functions                          |
+| game dev??    |              |              | import models                                |
+
+it looks like dep tracking should probably be localized in dcg then, although
+reactive scripts for animation and notebooks would be really helpful
+
+plus: how do we do sliders? we should ponder this early on. best approach is the
+"pipeline" one, where every builtin functions knows how it interacts with
+sliders, and things like `translate` and `+` which are impld in the scripting
+language just take advantage of it by piping down variables. this could work
+really well with a custom emit to a symbolic ish lang (`num` is actually either
+a numeric constant, or `a+b*<declared variable>`). i like this approach, so
+let's make sure std is easily extensible
+
+btw: the current calculator impl generates text, and we decide whether to
+generate js or glsl afterwards, which is nice for flexibility. should we change
+that, seeing how dcg has quite unique syntax which doesn't really fit into an
+actual scripting language? or should we make the language flexible enough to
+accomodate all of dcg's weirdness?
+
+for js interp, we could try to use decorators. idk how, but they sound cool.
+actually that means they're probably the wrong choice (using a language feature
+for the sake of it), scrap it. plus it's not mvp worthy at all, and we can't do
+standalone functions
+
 ## language goals
 
 what are the core parts of nyalang that NEED to exist?
