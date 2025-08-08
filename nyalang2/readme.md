@@ -1,3 +1,22 @@
+## language goals
+
+what are the core parts of nyalang that NEED to exist?
+
+- function overloading
+- operators are just functions
+- type coercion
+- easily maps from dcg latex
+- can provide display output
+
+so what is an actual nyalang mvp?
+
+- **NO ACTUAL LANGUAGE**
+- define types and functions in JS
+- make coercion sensible AND extendable (complex matrices should Just Work)
+- that's basically it??
+
+## scribblings
+
 failures of the first language:
 
 - didn't consider all types early enough, so coercions were an afterthought and
@@ -116,3 +135,8 @@ if we do that, how do arrays of games work? bc `[lemon, nim]` would be an array
 of distinct types.
 
 or we could have games as an enum of sorts, but that seems painful to extend.
+
+conclusion: games are hard, but if we can do them, we win at programming. but i
+don't think we will do them as a builtin
+
+## on matrices
