@@ -398,6 +398,7 @@ export class Coercions {
           block,
           pos,
           val as Val<T.ArrayFixed | T.ArrayCapped | T.ArrayUnsized>,
+          retEl,
           (el) => this.map(block, el, retEl, pos),
         )
         switch (val.ty.k as T.ArrayAny) {

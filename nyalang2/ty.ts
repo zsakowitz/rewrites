@@ -4,9 +4,10 @@ import type { Fn } from "./fn"
 import type { IdGlobal } from "./id"
 
 // prettier-ignore
+// no uint b/c js doesn't support it and glsl only uses `int`
 export const enum T {
   Never, Bool, Int, Num, // very core primitive types
-  Sym,                   // symbols like ruby, as in :hello, :plot_2d, and :circle (ints at runtime)
+  Sym,                   // ruby symbols like :hello, with optional data attached
   Tuple,                 // on-the-fly collections
   ArrayFixed,            // ndarray with fixed shape
   ArrayCapped,           // ndarray with fixed shape, but variable length for last dimension

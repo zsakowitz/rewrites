@@ -1,5 +1,7 @@
-import type { EmitTarget } from "./target"
+import type { Target } from "./target"
 
 export class Block {
-  constructor(readonly target: EmitTarget) {}
+  source = ""
+
+  constructor(readonly target: Target) {}
 }

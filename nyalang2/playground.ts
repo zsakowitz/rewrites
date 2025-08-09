@@ -6,7 +6,7 @@ import { ScopeRoot } from "./scope"
 import { T, Ty } from "./ty"
 import { Val } from "./val"
 
-const { Int, Num, Bool, Void } = Ty
+const { Int, Num, Bool } = Ty
 
 const pos = Pos.native()
 const root = new ScopeRoot()
