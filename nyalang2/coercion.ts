@@ -13,12 +13,14 @@ function isCoercionTarget(ty: Ty) {
   )
 }
 
+export type CoercionFn = (block: Block, val: Val, pos: Pos) => Val
+
 class Coercion {
   constructor(
     readonly from: Ty,
     readonly into: Ty,
     readonly auto: boolean,
-    readonly exec: (block: Block, val: Val, pos: Pos) => Val,
+    readonly exec: CoercionFn,
   ) {}
 }
 
