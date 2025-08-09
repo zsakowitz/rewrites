@@ -1,6 +1,5 @@
-import type { Block } from "../block"
+import type { Ctx } from "../ctx"
 import { Id } from "../id"
-import type { Pos } from "../pos"
 import type { Target } from "../target"
 import { T, Ty } from "../ty"
 import { Val } from "../val"
@@ -9,19 +8,21 @@ type SymTag = Val<T.Int>
 
 const PRECACHED = /^[A-Za-z_]\w*$/
 
-function cacheAssumingStr(block: Block, val: Val): string {
+function cacheAssumingStr(ctx: Ctx, val: Val): string {
   const text = val.value as string
   if (PRECACHED.test(text)) {
     return text
   } else {
     const id = new Id().ident
-    block.source += `var ${id}=${text};`
+    ctx.block.source += `var ${id}=${text};`
     return id
   }
 }
 
-function toRuntimeText(block: Block, pos: Pos, val: Val): string {
+function toRuntimeText(ctx: Ctx, val: Val): string {
   if (!val.const) return (val.value as string) ?? "null"
+
+  console.log(val)
   throw new Error("unimpl")
 }
 
@@ -37,7 +38,7 @@ export const TARGET_JS: Target<SymTag> = {
   // representation of `:x(y)` is:
   // - `{ x: int, y: y.ty }` for non-unit `y.ty`
   // - `int`                 for     unit `y.ty`
-  symSplit(block, pos, val) {
+  symSplit(ctx, val) {
     const tag = val.ty.of.tag
     const el = val.ty.of.el
     if (tag) {
@@ -48,11 +49,11 @@ export const TARGET_JS: Target<SymTag> = {
     } else if (isUnit(el)) {
       return [val.transmute(Ty.Int), new Val(null, el, true)] // conjure const value
     } else {
-      const c = cacheAssumingStr(block, val)
+      const c = cacheAssumingStr(ctx, val)
       return [new Val(c + ".x", Ty.Int, false), new Val(c + ".y", el, false)]
     }
   },
-  symJoin(block, pos, tag, el) {
+  symJoin(ctx, tag, el) {
     const ty = new Ty(T.Sym, { tag: null, el: el.ty })
     if (tag.const && el.const) {
       return new Val([tag.value, el.value], ty, true)
@@ -62,7 +63,7 @@ export const TARGET_JS: Target<SymTag> = {
     }
 
     const tagVal = "" + tag.value // either string or number; either way is fine
-    const elVal = toRuntimeText(block, pos, el)
+    const elVal = toRuntimeText(ctx, el)
 
     return new Val(`({x:${tagVal},y:${elVal}})`, ty, false)
   },
@@ -72,7 +73,7 @@ export const TARGET_JS: Target<SymTag> = {
   // - `a` for `(a,)`
   // - `const [Val<a>, Val<b>, ...]` for `(a, b, ...)` when possible
   // - `"[a, b, ...]"` for `(a, b, ...)` otherwise (e.g. when returned from functions)
-  tupleJoin(block, pos, els) {
+  tupleJoin(ctx, els) {
     if (els.length == 0) {
       return UNIT
     }
@@ -91,7 +92,7 @@ export const TARGET_JS: Target<SymTag> = {
       els.some((x) => x.const),
     )
   },
-  tupleSplit(block, pos, val) {
+  tupleSplit(ctx, val) {
     if (val.ty == Ty.Void) {
       return []
     }
@@ -104,26 +105,26 @@ export const TARGET_JS: Target<SymTag> = {
       return val.value as Val[]
     }
 
-    const text = cacheAssumingStr(block, val)
+    const text = cacheAssumingStr(ctx, val)
     return val.ty.of.map((el, i) => new Val(`(${text})[${i}]`, el, false))
   },
 
   // array representation is:
   // - array of `Val`s when all are const (this includes .length==0)
   // - normal js array if non-const
-  arrayCons(block, pos, size, el, vals) {
+  arrayCons(ctx, size, el, vals) {
     const ty = new Ty(T.ArrayFixed, { el, size })
     if (vals.every((x) => x.const)) {
       return new Val(vals, ty, true)
     }
 
     return new Val(
-      `[${vals.map((x) => toRuntimeText(block, pos, x)).join(",")}]`,
+      `[${vals.map((x) => toRuntimeText(ctx, x)).join(",")}]`,
       ty,
       vals.some((x) => x.const),
     )
   },
-  arrayMap(block, pos, val, mapTy, map) {
+  arrayMap(ctx, val, mapTy, map) {
     const ty = new Ty(val.ty.k, { el: mapTy, size: val.ty.of.size })
     if (val.const) {
       return new Val(
@@ -133,20 +134,20 @@ export const TARGET_JS: Target<SymTag> = {
       )
     }
 
-    const src = cacheAssumingStr(block, val)
+    const src = cacheAssumingStr(ctx, val)
     const ret = new Id().ident
-    block.source += `var ${ret}=[];`
+    ctx.source += `var ${ret}=[];`
     const idx = new Id().ident
-    block.source += `for(var ${idx}=0;${idx}<${src}.length;${idx}++){`
+    ctx.source += `for(var ${idx}=0;${idx}<${src}.length;${idx}++){`
     const mapped = map(new Val(`${src}[${idx}]`, val.ty.of.el, false))
-    block.source += `${ret}.push(${mapped});`
-    block.source += `}`
+    ctx.source += `${ret}.push(${mapped});`
+    ctx.source += `}`
     return new Val(mapped, ty, false)
   },
-  arrayToCapped(block, pos, val) {
+  arrayToCapped(ctx, val) {
     return val.transmute(new Ty(T.ArrayCapped, val.ty.of))
   },
-  arrayToUnsized(block, pos, val) {
+  arrayToUnsized(ctx, val) {
     return val.transmute(
       new Ty(T.ArrayUnsized, { el: val.ty.of.el, size: null }),
     )
@@ -164,4 +165,6 @@ export const TARGET_JS: Target<SymTag> = {
   createVoid() {
     return UNIT
   },
+
+  x: toRuntimeText,
 }

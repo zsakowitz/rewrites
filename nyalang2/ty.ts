@@ -1,7 +1,9 @@
 import type { Adt } from "./adt"
+import { ANSI } from "./ansi"
 import type { Const } from "./const"
 import type { Fn } from "./fn"
 import type { IdGlobal } from "./id"
+import { INSPECT } from "./inspect"
 
 // prettier-ignore
 // no uint b/c js doesn't support it and glsl only uses `int`
@@ -87,5 +89,11 @@ export class Ty<K extends T = T> {
         return `fn(${o.args.join(", ")})${o.ret == Ty.Void ? "" : ` -> ${o.ret}`}`
       }
     }
+  }
+
+  [INSPECT]() {
+    const C = ANSI.cyan
+    const R = ANSI.reset
+    return C + this.toString().replace(/[,()]/g, (x) => R + x + C) + R
   }
 }

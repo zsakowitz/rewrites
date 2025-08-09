@@ -1,4 +1,4 @@
-import type { Block } from "./block"
+import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdGlobal } from "./id"
 import type { IdMap } from "./map"
@@ -10,7 +10,7 @@ export class AdtSym {
   constructor(
     readonly sym: IdGlobal,
     readonly arg: Ty,
-    readonly exec: (self: Ty<T.Adt>, block: Block, arg: Val, pos: Pos) => Val,
+    readonly exec: (self: Ty<T.Adt>, arg: Val, ctx: Ctx) => Val,
   ) {}
 }
 
@@ -20,9 +20,7 @@ interface AdtGenerics {
    * `Matrix<num>` -> `Matrix<Complex>`). If `null`, this ADT cannot be coerced
    * into other types.
    */
-  readonly coerce:
-    | ((block: Block, src: Val, into: Ty<T.Adt>, pos: Pos) => Val)
-    | null
+  readonly coerce: ((src: Val, into: Ty<T.Adt>, ctx: Ctx) => Val) | null
 
   readonly tyCount: number
 

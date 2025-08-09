@@ -1,39 +1,33 @@
-import { Adt, AdtSym } from "./adt"
+import { Env } from "./ext"
+import { Fn } from "./fn"
 import { ident } from "./id"
-import { IdMap } from "./map"
+import { TARGET_JS } from "./play/env-js"
 import { Pos } from "./pos"
 import { ScopeRoot } from "./scope"
-import { T, Ty } from "./ty"
+import { Ty } from "./ty"
 import { Val } from "./val"
 
 const { Int, Num, Bool } = Ty
 
 const pos = Pos.native()
-const root = new ScopeRoot()
+const env = new Env(TARGET_JS, new ScopeRoot())
 
-root.coerce.add(pos, Int, Num, (_, v) => new Val(`${v}`, Num, false))
-root.coerce.add(pos, Bool, Int, (_, v) => new Val(`+${v}`, Bool, false))
+env.root.coerce.add(pos, Int, Num, (v) => v.transmute(Num))
 
-const HelloWorld: Adt = new Adt(
-  ident("HelloWorld"),
-  new IdMap<AdtSym>()
-    .set(
-      ident("hello"),
-      new AdtSym(
-        ident("hello"),
-        Ty.Void,
-        () => new Val('"hello"', HelloWorldTy, false),
-      ),
-    )
-    .set(
-      ident("world"),
-      new AdtSym(
-        ident("world"),
-        Ty.Void,
-        () => new Val('"world"', HelloWorldTy, false),
-      ),
-    ),
-  null,
-  pos,
+env.root.pushFn(
+  ident("+"),
+  new Fn([Num, Num], Num, ([a, b], ctx) => {
+    if (a.const && b.const) {
+      return new Val((a.value as number) + (b.value as number), Num, true)
+    } else {
+      return ctx.o`${a}+${b}`.ty(Num)
+    }
+  }),
 )
-const HelloWorldTy = new Ty(T.Adt, { adt: HelloWorld, tys: [], consts: [] })
+
+const ctx = env.ctx()
+const a = env.target.createInt("23")
+const b = env.target.createNum("5.7")
+const ret = ctx.call("+", [a, b])
+const t = ctx.target.tupleJoin(ctx, [a, b])
+console.log(t)
