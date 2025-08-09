@@ -7,11 +7,16 @@ import type { IdGlobal } from "./id"
 export const enum T {
   Never, Bool, Int, Num, // very core primitive types
   Sym,                   // symbols like ruby, as in :hello, :plot_2d, and :circle (ints at runtime)
-  Array, ArrayCapped,    // ndarrays; arraycapped has a max length and stores its length separately
-  ArrayUnsized,          // unsized arrays; behave like js arrays and rust `Vec`
   Tuple,                 // on-the-fly collections
+  ArrayFixed,            // ndarray with fixed shape
+  ArrayCapped,           // ndarray with fixed shape, but variable length for last dimension
+  ArrayUnsized,          // unsized arrays; behave like js arrays and rust `Vec`
   Adt,                   // for extra user-defined types
   Fn,                    // closures and function references; a single type only includes one
+}
+
+export declare namespace T {
+  type ArrayAny = T.ArrayFixed | T.ArrayCapped | T.ArrayUnsized
 }
 
 export interface TyData {
@@ -20,10 +25,10 @@ export interface TyData {
   [T.Int]: null
   [T.Num]: null
   [T.Sym]: { tag: IdGlobal | null; el: Ty } // :hello == :hello(())
-  [T.Array]: { el: Ty; size: number[] }
+  [T.Tuple]: Ty[]
+  [T.ArrayFixed]: { el: Ty; size: number[] }
   [T.ArrayCapped]: { el: Ty; size: number[] }
   [T.ArrayUnsized]: { el: Ty; size: null }
-  [T.Tuple]: Ty[]
   [T.Adt]: { adt: Adt; tys: Ty[]; consts: Const[] }
   [T.Fn]: Fn
 }
@@ -58,9 +63,9 @@ export class Ty<K extends T = T> {
         const o = this.of as TyData[T.Sym]
         return (o.tag ? `:${o.tag.label}` : `sym`) + (o.el ? `(${o.el})` : "")
       }
-      case T.Array:
+      case T.ArrayFixed:
       case T.ArrayCapped: {
-        const o = this.of as TyData[T.Array | T.ArrayCapped]
+        const o = this.of as TyData[T.ArrayFixed | T.ArrayCapped]
         return `${this.k == T.ArrayCapped ? "~" : ""}[${o.el}; ${o.size.join(", ")}]`
       }
       case T.ArrayUnsized: {

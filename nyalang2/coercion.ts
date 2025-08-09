@@ -2,7 +2,7 @@ import type { Block } from "./block"
 import { issue } from "./error"
 import type { Pos } from "./pos"
 import { T, Ty, type TyData } from "./ty"
-import type { Val } from "./val"
+import { Val } from "./val"
 
 function isCoercionTarget(ty: Ty) {
   return (
@@ -140,9 +140,9 @@ class CoercionsRaw {
       const A = A2B.from
 
       this.add(
-        new Coercion(A, C, true, (a, block, pos) => {
-          const b = A2B.exec(a, block, pos)
-          const c = coercion.exec(b, block, pos)
+        new Coercion(A, C, true, (block, a, pos) => {
+          const b = A2B.exec(block, a, pos)
+          const c = coercion.exec(block, b, pos)
           return c
         }),
         pos,
@@ -153,9 +153,9 @@ class CoercionsRaw {
       const D = C2D.into
 
       this.add(
-        new Coercion(B, D, true, (b, block, pos) => {
-          const c = coercion.exec(b, block, pos)
-          const d = C2D.exec(c, block, pos)
+        new Coercion(B, D, true, (block, b, pos) => {
+          const c = coercion.exec(block, b, pos)
+          const d = C2D.exec(block, c, pos)
           return d
         }),
         pos,
@@ -169,10 +169,10 @@ class CoercionsRaw {
         const D = C2D.into
 
         this.add(
-          new Coercion(A, D, true, (a, block, pos) => {
-            const b = A2B.exec(a, block, pos)
-            const c = coercion.exec(b, block, pos)
-            const d = C2D.exec(c, block, pos)
+          new Coercion(A, D, true, (block, a, pos) => {
+            const b = A2B.exec(block, a, pos)
+            const c = coercion.exec(block, b, pos)
+            const d = C2D.exec(block, c, pos)
             return d
           }),
           pos,
@@ -312,13 +312,13 @@ export class Coercions {
         }
         return false
       }
-      case T.Array:
+      case T.ArrayFixed:
       case T.ArrayCapped: {
-        const src = from.of as TyData[T.Array | T.ArrayCapped]
-        if (into.is(T.Array) || into.is(T.ArrayCapped)) {
+        const src = from.of as TyData[T.ArrayFixed | T.ArrayCapped]
+        if (into.is(T.ArrayFixed) || into.is(T.ArrayCapped)) {
           const dst = into.of
           return (
-            (from.k == T.Array || into.k == T.ArrayCapped) &&
+            (from.k == T.ArrayFixed || into.k == T.ArrayCapped) &&
             this.can(src.el, dst.el) &&
             src.size.length == dst.size.length &&
             src.size.every((x, i) => dst.size[i] == x)
@@ -355,6 +355,8 @@ export class Coercions {
       return val
     }
 
+    const t = block.target
+
     switch (from.k) {
       case T.Never:
         return val
@@ -362,6 +364,69 @@ export class Coercions {
       case T.Int:
       case T.Num:
         return this.#raw.for(from, into)!.exec(block, val, pos)
+      case T.Sym: {
+        const src = from.of as TyData[T.Sym]
+        if (into.is(T.Sym)) {
+          const dst = into.of
+
+          // we must also have a const tag if dst has a const tag
+          if (dst.tag) {
+            return this.map(
+              block,
+              val.transmute(src.el),
+              dst.el,
+              pos,
+            ).transmute(into)
+          }
+
+          const [tag, el] = t.symSplit(block, pos, val as Val<T.Sym>)
+          const el2 = this.map(block, el, dst.el, pos)
+          return t.symJoin(block, pos, tag, el2)
+        } else {
+          const dst = into as Ty<T.Adt>
+          const cv = dst.of.adt.syms.get(src.tag!)
+          return cv!.exec(dst, block, val.transmute(src.el), pos)
+        }
+      }
+      case T.ArrayFixed:
+      case T.ArrayCapped:
+      case T.ArrayUnsized: {
+        const src = from.of as TyData[T.ArrayAny]
+        const dst = into.of as TyData[T.ArrayAny]
+        const retEl = dst.el
+        const ret = t.arrayMap(
+          block,
+          pos,
+          val as Val<T.ArrayFixed | T.ArrayCapped | T.ArrayUnsized>,
+          (el) => this.map(block, el, retEl, pos),
+        )
+        switch (val.ty.k as T.ArrayAny) {
+          case T.ArrayFixed:
+            switch (into.k as T.ArrayAny) {
+              case T.ArrayFixed:
+                return ret
+              case T.ArrayCapped:
+                return t.arrayToCapped(block, pos, ret as Val<T.ArrayFixed>)
+              case T.ArrayUnsized:
+                return t.arrayToUnsized(block, pos, ret as Val<T.ArrayFixed>)
+            }
+          case T.ArrayCapped:
+            switch (into.k as T.ArrayCapped | T.ArrayUnsized) {
+              case T.ArrayCapped:
+                return ret
+              case T.ArrayUnsized:
+                return t.arrayToUnsized(block, pos, ret as Val<T.ArrayCapped>)
+            }
+          case T.ArrayUnsized:
+            return ret
+        }
+      }
+      case T.Tuple: {
+        const dst = into.of as TyData[T.Tuple]
+        const els = t.tupleSplit(block, pos, val as Val<T.Tuple>)
+        const els2 = els.map((el, i) => this.map(block, el, dst[i]!, pos))
+        return t.tupleJoin(block, pos, els2)
+      }
       case T.Adt: {
         const src = from.of as TyData[T.Adt]
         if (!src.adt.generics) {
@@ -370,53 +435,8 @@ export class Coercions {
           return src.adt.generics.coerce!(block, val, into as Ty<T.Adt>, pos)
         }
       }
-      case T.Sym: {
-        const src = from.of as TyData[T.Sym]
-        if (into.is(T.Sym)) {
-          const dst = into.of
-          return (
-            (dst.tag ? src.tag == dst.tag : true) && this.can(src.el, dst.el)
-          )
-        } else {
-          const dst = into.of
-          const converter = dst.adt.syms.get(src.tag)
-          if (converter) {
-            return this.can(src.el, converter.arg)
-          }
-        }
-      }
-      case T.Array:
-      case T.ArrayCapped: {
-        const src = from.of as TyData[T.Array | T.ArrayCapped]
-        if (into.is(T.Array) || into.is(T.ArrayCapped)) {
-          const dst = into.of
-          return (
-            (from.k == T.Array || into.k == T.ArrayCapped) &&
-            this.can(src.el, dst.el) &&
-            src.size.length == dst.size.length &&
-            src.size.every((x, i) => dst.size[i] == x)
-          )
-        }
-        if (into.is(T.ArrayUnsized)) {
-          return this.can(src.el, into.of.el)
-        }
-        return false
-      }
-      case T.ArrayUnsized: {
-        const src = from.of as TyData[T.ArrayUnsized]
-        return into.is(T.ArrayUnsized) && this.can(src.el, into.of.el)
-      }
-      case T.Tuple: {
-        const src = from.of as TyData[T.Tuple]
-        return (
-          into.is(T.Tuple) &&
-          into.of.length == src.length &&
-          src.every((x, i) => this.can(x, into.of[i]!))
-        )
-      }
       case T.Fn: {
-        const src = from.of as TyData[T.Fn]
-        return into.is(T.Fn) && src == into.of
+        return val
       }
     }
   }
