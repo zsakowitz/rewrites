@@ -1,7 +1,8 @@
 import type { Ctx } from "../ctx"
+import { issue } from "../error"
 import { Id } from "../id"
 import type { Target } from "../target"
-import { T, Ty } from "../ty"
+import { T, Ty, type TyData } from "../ty"
 import { Val } from "../val"
 
 type SymTag = Val<T.Int>
@@ -19,11 +20,56 @@ function cacheAssumingStr(ctx: Ctx, val: Val): string {
   }
 }
 
-function toRuntimeText(ctx: Ctx, val: Val): string {
-  if (!val.const) return (val.value as string) ?? "null"
+function toRuntime(ctx: Ctx, val: Val): string | null {
+  if (!val.const && typeof val.value == "string") {
+    return val.value
+  }
 
-  console.log(val)
+  const v = val.value
+  switch (val.ty.k) {
+    case T.Never:
+      issue(`No values of type '!' can be constructed.`, ctx.pos)
+    case T.Bool:
+      return "" + v
+    case T.Int:
+      return "" + v
+    case T.Num:
+      return typeof v == "string"
+        ? v
+        : Object.is(v, -0)
+          ? "-0"
+          : v != v
+            ? "0/0"
+            : v == 1 / 0
+              ? "1/0"
+              : v == -1 / 0
+                ? "-1/0"
+                : "" + v
+    case T.Sym: {
+      const ty = val.ty.of as TyData[T.Sym]
+      if (ty.tag == null) {
+        return toRuntime(ctx, val.transmute(ty.el))
+      } else {
+        return `{x:}`
+      }
+    }
+    case T.Tuple:
+    case T.ArrayFixed:
+    case T.ArrayCapped:
+    case T.ArrayUnsized:
+    case T.Adt:
+    case T.Fn:
+  }
+
   throw new Error("unimpl")
+}
+
+function toRuntimeText(ctx: Ctx, val: Val): string {
+  const runtime = toRuntime(ctx, val)
+  if (runtime == null) {
+    ctx.issue(`Called 'toRuntimeText' on null value '${val}'.`)
+  }
+  return runtime
 }
 
 function isUnit(ty: Ty) {

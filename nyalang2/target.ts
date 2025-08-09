@@ -34,5 +34,6 @@ export interface Target<SymTag = unknown> {
   createNum(value: string): Val<T.Num>
   createVoid(): Val<T.Tuple>
 
+  /** Converts a value to its runtime representation. */
   x(ctx: Ctx, val: Val): string
 }

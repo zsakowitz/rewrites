@@ -37,6 +37,10 @@ export class Val<K extends T = T> {
     return new Val(this.value, ty, this.const)
   }
 
+  toString() {
+    return `${this.value} :: ${this.ty}`
+  }
+
   [INSPECT](_: unknown, p: BunInspectOptions, inspect: typeof Bun.inspect) {
     return `${inspect(this.value, p)} ${ANSI.dim}::${ANSI.reset} ${inspect(this.ty, p)}`
   }

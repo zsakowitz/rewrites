@@ -67,4 +67,8 @@ export class Ctx {
       this.pos,
     )
   }
+
+  issue(reason: string): never {
+    issue(reason, this.pos)
+  }
 }
