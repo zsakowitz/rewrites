@@ -5,7 +5,7 @@ import type { IdGlobal } from "./id"
 
 // prettier-ignore
 export const enum T {
-  Never, Int, Num, Bool, // very core primitive types
+  Never, Bool, Int, Num, // very core primitive types
   Sym,                   // symbols like ruby, as in :hello, :plot_2d, and :circle (ints at runtime)
   Array, ArrayCapped,    // ndarrays; arraycapped has a max length and stores its length separately
   ArrayUnsized,          // unsized arrays; behave like js arrays and rust `Vec`
@@ -16,9 +16,9 @@ export const enum T {
 
 export interface TyData {
   [T.Never]: null
+  [T.Bool]: null
   [T.Int]: null
   [T.Num]: null
-  [T.Bool]: null
   [T.Sym]: { tag: IdGlobal | null; el: Ty } // :hello == :hello(())
   [T.Array]: { el: Ty; size: number[] }
   [T.ArrayCapped]: { el: Ty; size: number[] }
@@ -30,15 +30,12 @@ export interface TyData {
 
 export class Ty<K extends T = T> {
   static Never = new Ty(T.Never, null)
+  static Bool = new Ty(T.Bool, null)
   static Int = new Ty(T.Int, null)
   static Num = new Ty(T.Num, null)
-  static Bool = new Ty(T.Bool, null)
   static Void = new Ty(T.Tuple, [])
 
-  // readonly kind: T
-  // readonly data:
-
-  private constructor(
+  constructor(
     readonly k: K,
     readonly of: TyData[K],
   ) {}
@@ -51,12 +48,12 @@ export class Ty<K extends T = T> {
     switch (this.k) {
       case T.Never:
         return "!"
+      case T.Bool:
+        return "bool"
       case T.Int:
         return "int"
       case T.Num:
         return "num"
-      case T.Bool:
-        return "bool"
       case T.Sym: {
         const o = this.of as TyData[T.Sym]
         return (o.tag ? `:${o.tag.label}` : `sym`) + (o.el ? `(${o.el})` : "")

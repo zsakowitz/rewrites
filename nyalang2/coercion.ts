@@ -6,9 +6,9 @@ import type { Val } from "./val"
 
 function isCoercionTarget(ty: Ty) {
   return (
+    ty.k == T.Bool ||
     ty.k == T.Int ||
     ty.k == T.Num ||
-    ty.k == T.Bool ||
     (ty.is(T.Adt) && ty.of.adt.plain)
   )
 }
@@ -227,7 +227,7 @@ class CoercionsRaw {
   }
 }
 
-// Let 'primitive' mean 'int', 'num', 'bool', or an AdtPlain type. Then, letting
+// Let 'primitive' mean 'bool', 'int', 'num', or an AdtPlain type. Then, letting
 // `A->B` mean "A coerces to B", these things can be coerced:
 //
 // - ! -> A, for all A
@@ -272,9 +272,9 @@ export class Coercions {
     switch (from.k) {
       case T.Never:
         return true
+      case T.Bool:
       case T.Int:
       case T.Num:
-      case T.Bool:
         return this.#raw.has(from, into)
       case T.Adt: {
         const src = from.of as TyData[T.Adt]
