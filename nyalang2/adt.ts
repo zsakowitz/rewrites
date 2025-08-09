@@ -34,6 +34,8 @@ export class Adt {
     /** For constructing this ADT from a `sym`. */
     readonly syms: IdMap<AdtSym>,
     readonly generics: AdtGenerics | null,
+    readonly has0: (ty: Ty<T.Adt>) => boolean,
+    readonly has1: (ty: Ty<T.Adt>) => boolean,
     pos: Pos,
   ) {
     if (generics?.consts.some((x) => x != Ty.Bool || x != Ty.Int)) {
