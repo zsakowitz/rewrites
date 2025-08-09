@@ -1,5 +1,4 @@
 import type { Block } from "./block"
-import type { CoercionFn } from "./coercion"
 import { issue } from "./error"
 import type { IdGlobal } from "./id"
 import type { IdMap } from "./map"
@@ -21,7 +20,9 @@ interface AdtGenerics {
    * `Matrix<num>` -> `Matrix<Complex>`). If `null`, this ADT cannot be coerced
    * into other types.
    */
-  readonly coerce: ((src: Val, into: Ty<T.Adt>, via: CoercionFn) => Val) | null
+  readonly coerce:
+    | ((block: Block, src: Val, into: Ty<T.Adt>, pos: Pos) => Val)
+    | null
 
   readonly tyCount: number
 

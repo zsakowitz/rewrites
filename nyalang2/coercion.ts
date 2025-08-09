@@ -347,4 +347,77 @@ export class Coercions {
       }
     }
   }
+
+  /** Assumes `.can()` returned true, so it doesn't repeat any checks from there. */
+  map(block: Block, val: Val, into: Ty, pos: Pos): Val {
+    const from = val.ty
+    if (from == into) {
+      return val
+    }
+
+    switch (from.k) {
+      case T.Never:
+        return val
+      case T.Bool:
+      case T.Int:
+      case T.Num:
+        return this.#raw.for(from, into)!.exec(block, val, pos)
+      case T.Adt: {
+        const src = from.of as TyData[T.Adt]
+        if (!src.adt.generics) {
+          return this.#raw.for(from, into)!.exec(block, val, pos)
+        } else {
+          return src.adt.generics.coerce!(block, val, into as Ty<T.Adt>, pos)
+        }
+      }
+      case T.Sym: {
+        const src = from.of as TyData[T.Sym]
+        if (into.is(T.Sym)) {
+          const dst = into.of
+          return (
+            (dst.tag ? src.tag == dst.tag : true) && this.can(src.el, dst.el)
+          )
+        } else {
+          const dst = into.of
+          const converter = dst.adt.syms.get(src.tag)
+          if (converter) {
+            return this.can(src.el, converter.arg)
+          }
+        }
+      }
+      case T.Array:
+      case T.ArrayCapped: {
+        const src = from.of as TyData[T.Array | T.ArrayCapped]
+        if (into.is(T.Array) || into.is(T.ArrayCapped)) {
+          const dst = into.of
+          return (
+            (from.k == T.Array || into.k == T.ArrayCapped) &&
+            this.can(src.el, dst.el) &&
+            src.size.length == dst.size.length &&
+            src.size.every((x, i) => dst.size[i] == x)
+          )
+        }
+        if (into.is(T.ArrayUnsized)) {
+          return this.can(src.el, into.of.el)
+        }
+        return false
+      }
+      case T.ArrayUnsized: {
+        const src = from.of as TyData[T.ArrayUnsized]
+        return into.is(T.ArrayUnsized) && this.can(src.el, into.of.el)
+      }
+      case T.Tuple: {
+        const src = from.of as TyData[T.Tuple]
+        return (
+          into.is(T.Tuple) &&
+          into.of.length == src.length &&
+          src.every((x, i) => this.can(x, into.of[i]!))
+        )
+      }
+      case T.Fn: {
+        const src = from.of as TyData[T.Fn]
+        return into.is(T.Fn) && src == into.of
+      }
+    }
+  }
 }
