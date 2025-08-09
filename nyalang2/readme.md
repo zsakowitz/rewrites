@@ -7,6 +7,7 @@ what are the bare essentials we need?
 - list broadcasting and spreading (`min` and `+` come to mind)
 - const and runtime values
 - output to multiple languages
+- (maybe) closures
 
 okay! let's go make those. wait no actually let's think about environments
 
