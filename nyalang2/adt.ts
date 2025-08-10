@@ -40,7 +40,7 @@ export class Adt {
     pos: Pos,
   ) {
     if (generics?.consts.some((x) => x != Ty.Bool || x != Ty.Int)) {
-      issue(`Const parameters must be of type 'bool' or 'int'.`, pos)
+      issue(`Bug: Const parameters must be of type 'bool' or 'int'.`, pos)
     }
   }
 

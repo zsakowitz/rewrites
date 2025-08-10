@@ -15,12 +15,16 @@ export class ValString {
   ty<K extends T>(ty: Ty<K>): Val<K> {
     return new Val(this.value, ty, false)
   }
+
+  [INSPECT](d: number, p: BunInspectOptions, i: typeof Bun.inspect) {
+    return `ValString ` + i(this.value, p)
+  }
 }
 
 export class Val<K extends T = T, V = unknown> {
   static unit<K extends T>(ty: Ty<K>, pos: Pos) {
     if (!ty.has1) {
-      issue(`'Val.unit' not allowed for non-unit type '${ty}'.`, pos)
+      issue(`Bug: 'Val.unit' not allowed for non-unit type '${ty}'.`, pos)
     }
     return new Val(null, ty, true)
   }

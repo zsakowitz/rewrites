@@ -31,7 +31,7 @@ export class Ctx<SymTag = unknown> {
     return this.block.scope.root
   }
 
-  o(text: TemplateStringsArray, ...args: Val[]): ValString {
+  join(text: TemplateStringsArray, ...args: Val[]): ValString {
     let ret = text[0]!
     for (let i = 1; i < text.length; i++) {
       ret += `(`
@@ -40,6 +40,11 @@ export class Ctx<SymTag = unknown> {
       ret += text[i]!
     }
     return new ValString(ret)
+  }
+
+  runtime(val: Val): Val {
+    const x = this.target.x(this, val)
+    return new Val(x, val.ty, false)
   }
 
   // doesn't yet handle broadcasting and lists
@@ -63,10 +68,13 @@ export class Ctx<SymTag = unknown> {
       }
     }
 
-    issue(
+    this.issue(
       `No overload 'fn ${name.label}(${args.map((x) => x.ty).join(", ")})' exists.`,
-      this.pos,
     )
+  }
+
+  bug(reason: string): never {
+    this.issue(`Bug: ` + reason)
   }
 
   issue(reason: string): never {
@@ -74,11 +82,11 @@ export class Ctx<SymTag = unknown> {
   }
 
   unreachable(): never {
-    this.issue(`This code should never be reached.`)
+    this.bug(`This code should never be reached.`)
   }
 
   todo(): never {
-    this.issue(`This code is not implemented yet.`)
+    this.bug(`This code is not implemented yet.`)
   }
 
   unit<K extends T>(ty: Ty<K>) {

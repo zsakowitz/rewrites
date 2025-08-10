@@ -1,5 +1,6 @@
 import { Const } from "./const"
 import type { Ctx } from "./ctx"
+import { DEV } from "./debug"
 import { Id, type IdGlobal } from "./id"
 import type { Target } from "./target"
 import { T, Ty, type TyData } from "./ty"
@@ -37,14 +38,19 @@ function toRuntime(ctx: Ctx, val: Val): string {
     return null!
   }
 
-  if (!val.const && typeof val.value == "string") {
-    return val.value
+  if (!val.const) {
+    if (DEV) {
+      if (typeof val.value != "string") {
+        ctx.bug(`Non-const values should have strings as their values.`)
+      }
+    }
+    return val.value as string
   }
 
   const v = val.value
   switch (val.ty.k) {
     case T.Never:
-      ctx.issue(`Values of type '!' cannot be constructed.`)
+      ctx.bug(`Values of type '!' cannot be constructed.`)
     case T.Bool:
       return "" + v
     case T.Int:
@@ -80,10 +86,10 @@ function toRuntime(ctx: Ctx, val: Val): string {
     }
     case T.Tuple: {
       const vals = val.value as Repr.Tuple
-      return `[${vals
+      const runtime = vals
         .filter((x) => !x.ty.has1)
         .map((x) => toRuntime(ctx, x))
-        .join(",")}]`
+      return runtime.length == 1 ? runtime[0]! : `[${runtime}]`
     }
     case T.ArrayFixed: {
       const vals = val.value as Repr.Array
@@ -108,14 +114,14 @@ function toRuntime(ctx: Ctx, val: Val): string {
     case T.Fn:
       ctx.unreachable()
     case T.Param:
-      ctx.issue("Cannot emit a value with a non-concrete type.")
+      ctx.bug("Cannot emit a value with a non-concrete type.")
   }
 }
 
 function toRuntimeText(ctx: Ctx, val: Val): string {
   const runtime = toRuntime(ctx, val)
   if (runtime == null) {
-    ctx.issue(`Called 'toRuntimeText' on null value '${val}'.`)
+    ctx.bug(`Called 'toRuntimeText' on null value '${val}'.`)
   }
   return runtime
 }
@@ -220,6 +226,23 @@ export const TARGET_JS = {
       return val.value as Repr.Tuple
     }
 
+    let nonHas1 = 0
+    for (const ty of val.ty.of) {
+      nonHas1 += +!ty.has1
+    }
+
+    if (nonHas1 == 1) {
+      const ret: Val[] = []
+      for (const el of val.ty.of) {
+        if (el.has1) {
+          ret.push(ctx.unit(el))
+        } else {
+          ret.push(val.transmute(el))
+        }
+      }
+      return ret
+    }
+
     const src = cacheMultiValued(ctx, val)
     const ret: Val[] = []
     let i = 0
@@ -243,7 +266,7 @@ export const TARGET_JS = {
     if (vals.every((x) => x.const)) {
       return new Val(vals satisfies Repr.Array, ty, true)
     } else {
-      return new Val(`[${vals.map((x) => toRuntimeText(ctx, x))}]`, ty, false)
+      return new Val(`[${vals.map((x) => toRuntime(ctx, x))}]`, ty, false)
     }
   },
   arrayMapPure(ctx, val, dstEl, map) {

@@ -6,5 +6,6 @@ const env = new Env(TARGET_JS, new ScopeRoot())
 const ctx = env.ctx()
 
 const val = TARGET_JS.tupleJoin(ctx, [ctx.num("4.78"), ctx.void()])
+const x = ctx.runtime(val)
 
-console.log(val)
+console.log(x)
