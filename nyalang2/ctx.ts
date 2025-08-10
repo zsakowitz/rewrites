@@ -1,7 +1,7 @@
 import type { Block } from "./block"
 import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
-import { FnParams, type Param } from "./param"
+import { type Param } from "./param"
 import type { Pos } from "./pos"
 import { Ty, type T } from "./ty"
 import { Val, ValString } from "./val"
@@ -62,9 +62,15 @@ export class Ctx<SymTag = unknown> {
         continue next
       }
 
-      const params = new FnParams(this, fn.params)
+      const params = fn.params.within(this)
       for (let i = 0; i < fn.args.length; i++) {
         if (!cx.can(args[i]!, fn.args[i]!, params)) {
+          continue next
+        }
+      }
+
+      for (let i = 0; i < fn.where.length; i++) {
+        if (!fn.where[i]!.matches(this, params)) {
           continue next
         }
       }
@@ -89,9 +95,15 @@ export class Ctx<SymTag = unknown> {
         continue next
       }
 
-      const params = new FnParams(this, fn.params)
+      const params = fn.params.within(this)
       for (let i = 0; i < fn.args.length; i++) {
         if (!cx.can(args[i]!.ty, fn.args[i]!, params)) {
+          continue next
+        }
+      }
+
+      for (let i = 0; i < fn.where.length; i++) {
+        if (!fn.where[i]!.matches(this, params)) {
           continue next
         }
       }
@@ -99,7 +111,7 @@ export class Ctx<SymTag = unknown> {
       return fn
         .exec(
           this,
-          args.map((x, i) => cx.map(this, x, fn.args[i]!.ty, params)),
+          args.map((x, i) => cx.map(this, x, fn.args[i]!, params)),
         )
         .transmute(fn.ret.with(params))
     }
