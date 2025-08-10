@@ -115,4 +115,12 @@ export class Ctx<SymTag = unknown> {
   void() {
     return this.unit(Ty.Void)
   }
+
+  tuple(vals: Val[]): Val<T.Tuple> {
+    return this.target.tupleJoin(this, vals)
+  }
+
+  unpack(val: Val<T.Tuple>): Val[] {
+    return this.target.tupleSplit(this, val)
+  }
 }
