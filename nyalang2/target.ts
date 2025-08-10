@@ -1,3 +1,4 @@
+import type { Const } from "./const"
 import type { Ctx } from "./ctx"
 import type { T, Ty } from "./ty"
 import type { Val } from "./val"
@@ -27,20 +28,24 @@ export interface Target<SymTag = unknown> {
     el: Ty,
     vals: Val[], // should assume that `vals.length == size.reduce((a,b)=>a*b,1)`
   ): Val<T.ArrayFixed>
-  arrayMap(
+  arrayMapPure(
     ctx: Ctx,
     val: Val<T.ArrayAny>,
-    mapTy: Ty,
+    dstEl: Ty,
     map: (el: Val) => Val,
   ): Val<T.ArrayAny>
-  arrayToCapped(ctx: Ctx, val: Val<T.ArrayFixed>): Val<T.ArrayCapped>
+  arrayToCapped(
+    ctx: Ctx,
+    val: Val<T.ArrayFixed>,
+    cap: Const<T.Int>,
+  ): Val<T.ArrayCapped>
   arrayToUnsized(
     ctx: Ctx,
     val: Val<T.ArrayFixed | T.ArrayCapped>,
   ): Val<T.ArrayUnsized>
 
-  createBool(value: boolean): Val<T.Bool>
-  createInt(value: string): Val<T.Int>
-  createNum(value: string): Val<T.Num>
-  createVoid(): Val<T.Tuple>
+  createBool(ctx: Ctx, value: boolean): Val<T.Bool>
+  createInt(ctx: Ctx, value: string): Val<T.Int>
+  createNum(ctx: Ctx, value: string): Val<T.Num>
+  createVoid(ctx: Ctx): Val<T.Tuple>
 }

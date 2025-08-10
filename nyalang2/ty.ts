@@ -40,7 +40,7 @@ export interface TyData {
   [T.Param]: IdLabeled // things we know about this parameter are stored in `Ctx`
 }
 
-export class Ty<K extends T = T> {
+export class Ty<out K extends T = T> {
   static Never = new Ty(T.Never, null)
   static Bool = new Ty(T.Bool, null)
   static Int = new Ty(T.Int, null)
@@ -64,7 +64,7 @@ export class Ty<K extends T = T> {
   }
 
   is<L extends K>(k: L): this is Ty<L> {
-    return this.k == k
+    return this.k == (k as any as K)
   }
 
   #has0(): boolean {

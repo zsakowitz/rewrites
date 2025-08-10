@@ -1,3 +1,4 @@
+import { Const } from "./const"
 import type { Ctx } from "./ctx"
 import { Id, type IdGlobal } from "./id"
 import type { Target } from "./target"
@@ -15,13 +16,9 @@ declare namespace Repr {
   type Tuple = Val[]
   type TupleRuntime = unknown[] // has1 elements are skipped
 
-  type ArrayFixed = Val[]
+  type Array = Val[]
   type ArrayFixedRuntime = unknown[]
-
-  type ArrayCapped = [size: number, els: ArrayFixed]
   type ArrayCappedRuntime = number | [number, ArrayFixedRuntime]
-
-  type ArrayUnsized = Val[]
   type ArrayUnsizedRuntime = number | unknown[]
 }
 
@@ -85,24 +82,30 @@ function toRuntime(ctx: Ctx, val: Val): string {
         .join(",")}]`
     }
     case T.ArrayFixed: {
-      const vals = val.value as Repr.ArrayFixed
+      const vals = val.value as Repr.Array
       return `[${vals.map((x) => toRuntime(ctx, x)).join(",")}]`
     }
     case T.ArrayCapped: {
-      const [cap, vals] = val.value as Repr.ArrayCapped
+      const vals = val.value as Repr.Array
       const info = val.ty.of as TyData[T.ArrayCapped]
       return info.el.has1 ?
-          "" + cap
-        : `[${cap},${vals.map((x) => toRuntime(ctx, x)).join(",")}]`
+          "" + vals.length
+        : `[${vals.map((x) => toRuntime(ctx, x)).join(",")}]`
     }
-    case T.ArrayUnsized:
+    case T.ArrayUnsized: {
+      const vals = val.value as Repr.Array
+      const info = val.ty.of as TyData[T.ArrayUnsized]
+      return info.el.has1 ?
+          "" + vals.length
+        : `[${vals.map((x) => toRuntime(ctx, x)).join(",")}]`
+    }
     case T.Adt:
+      return (val.ty.of as TyData[T.Adt]).adt.toRuntime(ctx, val as Val<T.Adt>)!
     case T.Fn:
+      ctx.unreachable()
     case T.Param:
       ctx.issue("Cannot emit a value with a non-concrete type.")
   }
-
-  ctx.todo()
 }
 
 function toRuntimeText(ctx: Ctx, val: Val): string {
@@ -173,5 +176,139 @@ export const TARGET_JS: Target<Repr.SymTag> = {
       ty,
       false,
     )
+  },
+
+  tupleJoin(ctx, els) {
+    if (els.length == 0) {
+      return ctx.unit(Ty.Void)
+    }
+
+    const ty = new Ty(
+      T.Tuple,
+      els.map((x) => x.ty),
+    )
+
+    if (ty.has1) {
+      return ctx.unit(ty)
+    }
+
+    if (els.every((x) => x.const)) {
+      return new Val(els, ty, true)
+    } else {
+      return new Val(
+        `[${els.filter((x) => !x.ty.has1).map((x) => toRuntimeText(ctx, x))}]`,
+        ty,
+        false,
+      )
+    }
+  },
+  tupleSplit(ctx, val) {
+    if (val.ty == Ty.Void) {
+      return []
+    }
+
+    if (val.ty.has1) {
+      // val.ty is only has1 if it's a product of other has1 types
+      return val.ty.of.map((x) => ctx.unit(x))
+    }
+
+    if (val.const) {
+      return val.value as Repr.Tuple
+    }
+
+    const src = cacheMultiValued(ctx, val)
+    const ret: Val[] = []
+    let i = 0
+    for (const el of val.ty.of) {
+      if (el.has1) {
+        ret.push(ctx.unit(el))
+      } else {
+        ret.push(new Val(`${src}[${i++}]`, el, false))
+      }
+    }
+    return ret
+  },
+
+  arrayCons(ctx, sizeRaw, el, vals) {
+    const size = sizeRaw.map((x) => new Const(x, Ty.Int))
+    const ty = new Ty(T.ArrayFixed, { el, size })
+    if (ty.has1) {
+      return ctx.unit(ty)
+    }
+
+    if (vals.every((x) => x.const)) {
+      return new Val(vals satisfies Repr.Array, ty, true)
+    } else {
+      return new Val(`[${vals.map((x) => toRuntimeText(ctx, x))}]`, ty, false)
+    }
+  },
+  arrayMapPure(ctx, val, dstEl, map) {
+    const src = val.ty
+    const srcEl = src.of.el
+    const ret = new Ty(src.k, { el: dstEl, size: src.of.size })
+
+    if (
+      srcEl.has0
+      || (src.is(T.ArrayFixed) && src.of.size.some((x) => x.is0()))
+      || (src.is(T.ArrayCapped) && src.of.size.is0())
+    ) {
+      return new Val([], ret, true)
+    }
+
+    if (val.const) {
+      return new Val(
+        (val.value as Repr.Array).map((x) => map(x)),
+        ret,
+        true,
+      )
+    }
+
+    const source = cacheMultiValued(ctx, val)
+
+    if (dstEl.has0) {
+      // drop: we could return this without caching `source` as an optimization,
+      // if `source` has no side effects
+      // also: this might not be a valid value if `val` is an ArrayFixed with
+      // nonzero length, but that would make `map` invalid, so this is fine
+      return new Val([], ret, true)
+    }
+
+    if (ret.has1) {
+      return ctx.unit(ret)
+    }
+
+    if (dstEl.has1) {
+      // should only happen when we have `[(); ..2]` or `[()]`, in which case
+      // this is just an `int` and it's fine to transmute
+      return val.transmute(ret)
+    }
+
+    const retId = new Id().ident
+    const idxId = new Id().ident
+    ctx.source += `var ${retId}=[];for(var ${idxId}=0;${idxId}<${source}.length;${idxId}++){`
+    const mapped = map(new Val(`${source}[${idxId}]`, val.ty.of.el, false))
+    ctx.source += `${retId}.push(${toRuntimeText(ctx, mapped)})}`
+    return new Val(retId, ret, false)
+  },
+  arrayToCapped(_ctx, val, cap) {
+    return val.transmute(new Ty(T.ArrayCapped, { el: val.ty.of.el, size: cap }))
+  },
+  arrayToUnsized(_ctx, val) {
+    return val.transmute(
+      new Ty(T.ArrayUnsized, { el: val.ty.of.el, size: null }),
+    )
+  },
+
+  createBool(_ctx, value) {
+    return new Val(value, Ty.Bool, true)
+  },
+  createInt(_ctx, value) {
+    return new Val(value, Ty.Int, true)
+  },
+  createNum(_ctx, value) {
+    return new Val(value, Ty.Num, true)
+  },
+  createVoid(ctx) {
+    return ctx.unit(Ty.Void)
   },
 }

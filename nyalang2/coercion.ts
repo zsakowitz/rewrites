@@ -411,7 +411,7 @@ export class Coercions {
       case T.ArrayUnsized: {
         const dst = into.of as TyData[T.ArrayAny]
         const retEl = dst.el
-        const ret = t.arrayMap(
+        const ret = t.arrayMapPure(
           ctx,
           val as Val<T.ArrayFixed | T.ArrayCapped | T.ArrayUnsized>,
           retEl,
@@ -423,7 +423,11 @@ export class Coercions {
               case T.ArrayFixed:
                 return ret
               case T.ArrayCapped:
-                return t.arrayToCapped(ctx, ret as Val<T.ArrayFixed>)
+                return t.arrayToCapped(
+                  ctx,
+                  ret as Val<T.ArrayFixed>,
+                  (into.of as TyData[T.ArrayCapped]).size,
+                )
               case T.ArrayUnsized:
                 return t.arrayToUnsized(ctx, ret as Val<T.ArrayFixed>)
             }

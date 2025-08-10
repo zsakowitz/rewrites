@@ -36,6 +36,7 @@ export class Adt {
     readonly generics: AdtGenerics | null,
     readonly has0: (ty: Ty<T.Adt>) => boolean,
     readonly has1: (ty: Ty<T.Adt>) => boolean,
+    readonly toRuntime: (ctx: Ctx, val: Val<T.Adt>) => string | null,
     pos: Pos,
   ) {
     if (generics?.consts.some((x) => x != Ty.Bool || x != Ty.Int)) {

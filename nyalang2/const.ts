@@ -1,9 +1,7 @@
 import type * as Bun from "bun"
 import type { BunInspectOptions } from "bun"
-import { issue } from "./error"
 import { INSPECT } from "./inspect"
 import type { Param } from "./param"
-import type { Pos } from "./pos"
 import { Ty, type T } from "./ty"
 
 export class Const<K extends T.Bool | T.Int = T.Bool | T.Int> {
@@ -13,12 +11,7 @@ export class Const<K extends T.Bool | T.Int = T.Bool | T.Int> {
       | (K extends T.Int ? number : never)
       | Param,
     readonly ty: Ty<K>,
-    pos: Pos,
-  ) {
-    if (ty != Ty.Bool && ty != Ty.Int) {
-      issue(`Const parameters must be of type 'bool' or 'int'.`, pos)
-    }
-  }
+  ) {}
 
   /**
    * If this returns `true`, the values are equal. The converse is not true,

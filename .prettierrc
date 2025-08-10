@@ -5,6 +5,7 @@
   "plugins": ["prettier-plugin-jsdoc"],
   "experimentalTernaries": true,
   "experimentalOperatorPosition": "start",
+  "jsdocCapitalizeDescription": false,
   "overrides": [
     {
       "files": "lambda-in-js.js",

@@ -73,7 +73,11 @@ export class Ctx<SymTag = unknown> {
     issue(reason, this.pos)
   }
 
-  todo() {
+  unreachable(): never {
+    this.issue(`This code should never be reached.`)
+  }
+
+  todo(): never {
     this.issue(`This code is not implemented yet.`)
   }
 
