@@ -61,11 +61,12 @@ export class Ctx<SymTag = unknown> {
       const params = new Params(this, this.block.params)
       if (
         fn.args.length == args.length
-        && args.every((x, i) => cx.can(x.ty, fn.args[i]!, params))
+        && args.every((x, i) => cx.can(x.ty, fn.args[i]!.ty, params))
       ) {
         return fn.exec(
-          args.map((x, i) => cx.map(this, x, fn.args[i]!, params)),
           this,
+          args.map((x, i) => cx.map(this, x, fn.args[i]!.ty, params)),
+          params,
         )
       }
     }

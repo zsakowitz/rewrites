@@ -16,7 +16,7 @@ export class Scope {
     return this.#fns.get(id) ?? (this.parent ? this.parent.fns(id) : [])
   }
 
-  pushFn(id: IdGlobal, fn: Fn<any>) {
+  pushFn(id: IdGlobal, fn: Fn) {
     let list = this.#fns.get(id)
     if (!list) {
       list = this.fns(id).slice()
