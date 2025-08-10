@@ -12,3 +12,11 @@ export class ScriptError extends Error {
 export function issue(reason: string, pos: Pos): never {
   throw new ScriptError(reason, pos)
 }
+
+if (typeof process == "object") {
+  process.on("uncaughtException", (error) => {
+    if (error instanceof ScriptError) {
+      console.error(error.message)
+    }
+  })
+}

@@ -3,9 +3,19 @@ import type { T, Ty } from "./ty"
 import type { Val } from "./val"
 
 export interface Target<SymTag = unknown> {
+  /** A short name for this target, for debugging purposes. */
   name: string
 
+  /** Converts a value to its runtime representation. */
+  x(ctx: Ctx, val: Val): string | null
+
+  /** The input type might have a const-known tag. */
+  symTag(ctx: Ctx, val: Val<T.Sym>): SymTag
+
+  /** The input type might have a const-known tag. */
   symSplit(ctx: Ctx, val: Val<T.Sym>): [tag: SymTag, el: Val]
+
+  /** The returned type should not have a const-known tag. */
   symJoin(ctx: Ctx, tag: SymTag, el: Val): Val
 
   tupleSplit(ctx: Ctx, val: Val<T.Tuple>): Val[]
@@ -33,7 +43,4 @@ export interface Target<SymTag = unknown> {
   createInt(value: string): Val<T.Int>
   createNum(value: string): Val<T.Num>
   createVoid(): Val<T.Tuple>
-
-  /** Converts a value to its runtime representation. */
-  x(ctx: Ctx, val: Val): string
 }

@@ -2,11 +2,12 @@ import type { Block } from "./block"
 import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
 import type { Pos } from "./pos"
-import { ValString, type Val } from "./val"
+import { Ty, type T } from "./ty"
+import { Val, ValString } from "./val"
 
-export class Ctx {
+export class Ctx<SymTag = unknown> {
   constructor(
-    readonly block: Block,
+    readonly block: Block<SymTag>,
     readonly pos: Pos,
   ) {}
 
@@ -52,8 +53,8 @@ export class Ctx {
     for (let i = 0; i < fns.length; i++) {
       const fn = fns[i]!
       if (
-        fn.args.length == args.length &&
-        args.every((x, i) => cx.can(x.ty, fn.args[i]!))
+        fn.args.length == args.length
+        && args.every((x, i) => cx.can(x.ty, fn.args[i]!))
       ) {
         return fn.exec(
           args.map((x, i) => cx.map(this, x, fn.args[i]!)),
@@ -70,5 +71,20 @@ export class Ctx {
 
   issue(reason: string): never {
     issue(reason, this.pos)
+  }
+
+  todo() {
+    this.issue(`This code is not implemented yet.`)
+  }
+
+  unit<K extends T>(ty: Ty<K>) {
+    return Val.unit(ty, this.pos)
+  }
+
+  tag(tag: IdGlobal | string): SymTag {
+    if (typeof tag == "string") {
+      tag = ident(tag)
+    }
+    return this.target.symTag(this, this.unit(Ty.Sym(tag)))
   }
 }

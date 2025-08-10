@@ -3,6 +3,8 @@
   "semi": false,
   "trailingComma": "all",
   "plugins": ["prettier-plugin-jsdoc"],
+  "experimentalTernaries": true,
+  "experimentalOperatorPosition": "start",
   "overrides": [
     {
       "files": "lambda-in-js.js",

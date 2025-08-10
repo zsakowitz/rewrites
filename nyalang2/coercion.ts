@@ -1,16 +1,17 @@
 import type { Ctx } from "./ctx"
 import { issue } from "./error"
+import type { IdLabeled } from "./id"
+import { INSPECT } from "./inspect"
 import type { Pos } from "./pos"
 import { T, Ty, type TyData } from "./ty"
-import { INSPECT } from "./inspect"
 import { Val } from "./val"
 
 function isCoercionTarget(ty: Ty) {
   return (
-    ty.k == T.Bool ||
-    ty.k == T.Int ||
-    ty.k == T.Num ||
-    (ty.is(T.Adt) && ty.of.adt.plain)
+    ty.k == T.Bool
+    || ty.k == T.Int
+    || ty.k == T.Num
+    || (ty.is(T.Adt) && ty.of.adt.plain)
   )
 }
 
@@ -223,11 +224,11 @@ class CoercionsRaw {
 
   [INSPECT]() {
     return (
-      `CoercionsRaw {` +
-      Array.from(this.byFrom)
+      `CoercionsRaw {`
+      + Array.from(this.byFrom)
         .map((x) => "\n  " + x[0] + " -> " + x[1].map((x) => x.into).join(", "))
-        .join("") +
-      `\n}`
+        .join("")
+      + `\n}`
     )
   }
 }
@@ -284,10 +285,10 @@ export class Coercions {
           const dst = into.of
 
           return (
-            src.adt == dst.adt &&
-            src.adt.generics.coerce != null &&
-            src.consts.every((x, i) => x.eq(dst.consts[i]!)) &&
-            src.tys.every((x, i) => this.can(x, dst.tys[i]!))
+            src.adt == dst.adt
+            && src.adt.generics.coerce != null
+            && src.consts.every((x, i) => x.eq(dst.consts[i]!))
+            && src.tys.every((x, i) => this.can(x, dst.tys[i]!))
           )
         } else {
           return false
@@ -310,17 +311,30 @@ export class Coercions {
         }
         return false
       }
-      case T.ArrayFixed:
-      case T.ArrayCapped: {
-        const src = from.of as TyData[T.ArrayFixed | T.ArrayCapped]
-        if (into.is(T.ArrayFixed) || into.is(T.ArrayCapped)) {
+      case T.ArrayFixed: {
+        const src = from.of as TyData[T.ArrayFixed]
+        if (into.is(T.ArrayFixed)) {
           const dst = into.of
           return (
-            (from.k == T.ArrayFixed || into.k == T.ArrayCapped) &&
-            this.can(src.el, dst.el) &&
-            src.size.length == dst.size.length &&
-            src.size.every((x, i) => dst.size[i] == x)
+            this.can(src.el, dst.el)
+            && src.size.length == dst.size.length
+            && src.size.every((x, i) => dst.size[i] == x)
           )
+        }
+        if (into.is(T.ArrayCapped) && src.size.length == 1) {
+          const dst = into.of
+          return this.can(src.el, dst.el) && src.size[0]!.le(dst.size)
+        }
+        if (into.is(T.ArrayUnsized)) {
+          return src.size.length == 1 && this.can(src.el, into.of.el)
+        }
+        return false
+      }
+      case T.ArrayCapped: {
+        const src = from.of as TyData[T.ArrayCapped]
+        if (into.is(T.ArrayCapped)) {
+          const dst = into.of
+          return this.can(src.el, dst.el) && src.size.le(dst.size)
         }
         if (into.is(T.ArrayUnsized)) {
           return this.can(src.el, into.of.el)
@@ -334,15 +348,22 @@ export class Coercions {
       case T.Tuple: {
         const src = from.of as TyData[T.Tuple]
         return (
-          into.is(T.Tuple) &&
-          into.of.length == src.length &&
-          src.every((x, i) => this.can(x, into.of[i]!))
+          into.is(T.Tuple)
+          && into.of.length == src.length
+          && src.every((x, i) => this.can(x, into.of[i]!))
         )
       }
       case T.Fn: {
         const src = from.of as TyData[T.Fn]
         return into.is(T.Fn) && src == into.of
       }
+      // coercion is really only for desmos, so allowing constraints like
+      // `T -> num` seems more problematic than anything
+      case T.Param:
+        return (
+          into.is(T.Param)
+          && (into.of satisfies IdLabeled) == (from.of as TyData[T.Param])
+        )
     }
   }
 
@@ -357,6 +378,10 @@ export class Coercions {
 
     switch (from.k) {
       case T.Never:
+        // `val` shouldn't actually exist
+        return val as never
+      case T.Fn:
+      case T.Param:
         return val
       case T.Bool:
       case T.Int:
@@ -384,7 +409,6 @@ export class Coercions {
       case T.ArrayFixed:
       case T.ArrayCapped:
       case T.ArrayUnsized: {
-        const src = from.of as TyData[T.ArrayAny]
         const dst = into.of as TyData[T.ArrayAny]
         const retEl = dst.el
         const ret = t.arrayMap(
@@ -427,9 +451,6 @@ export class Coercions {
         } else {
           return src.adt.generics.coerce!(val, into as Ty<T.Adt>, ctx)
         }
-      }
-      case T.Fn: {
-        return val
       }
     }
   }

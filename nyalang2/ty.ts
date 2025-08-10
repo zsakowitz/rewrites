@@ -1,8 +1,8 @@
 import type { Adt } from "./adt"
-import { ANSI } from "./ansi"
+import * as ANSI from "./ansi"
 import type { Const } from "./const"
 import type { Fn } from "./fn"
-import type { IdGlobal } from "./id"
+import type { IdGlobal, IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
 
 // prettier-ignore
@@ -12,11 +12,14 @@ export const enum T {
   Sym,                   // ruby symbols like :hello, with optional data attached
   Tuple,                 // on-the-fly collections
   ArrayFixed,            // ndarray with fixed shape
-  ArrayCapped,           // ndarray with fixed shape, but variable length for last dimension
+  ArrayCapped,           // single-dimension array with variable, but capped, length
   ArrayUnsized,          // unsized arrays; behave like js arrays and rust `Vec`
   Adt,                   // for extra user-defined types
-  Fn,                    // closures and function references; a single type only includes one
+  Fn,                    // concrete closure or function reference
+  Param,                 // generic parameter
 }
+
+// note: an array `arr` of type `[num; 2, 3]` must be indexed as `arr[1, 0]`
 
 export declare namespace T {
   type ArrayAny = T.ArrayFixed | T.ArrayCapped | T.ArrayUnsized
@@ -29,11 +32,12 @@ export interface TyData {
   [T.Num]: null
   [T.Sym]: { tag: IdGlobal | null; el: Ty } // :hello == :hello(())
   [T.Tuple]: Ty[]
-  [T.ArrayFixed]: { el: Ty; size: number[] }
-  [T.ArrayCapped]: { el: Ty; size: number[] }
+  [T.ArrayFixed]: { el: Ty; size: Const<T.Int>[] }
+  [T.ArrayCapped]: { el: Ty; size: Const<T.Int> }
   [T.ArrayUnsized]: { el: Ty; size: null }
   [T.Adt]: { adt: Adt; tys: Ty[]; consts: Const[] }
   [T.Fn]: Fn
+  [T.Param]: IdLabeled // things we know about this parameter are stored in `Ctx`
 }
 
 export class Ty<K extends T = T> {
@@ -43,10 +47,21 @@ export class Ty<K extends T = T> {
   static Num = new Ty(T.Num, null)
   static Void = new Ty(T.Tuple, [])
 
+  static Sym(tag: IdGlobal): Ty<T.Sym> {
+    return new Ty(T.Sym, { tag, el: Ty.Void })
+  }
+
   constructor(
     readonly k: K,
     readonly of: TyData[K],
-  ) {}
+  ) {
+    if (typeof k != "number") {
+      throw new Error("nope")
+    }
+
+    this.has0 = this.#has0()
+    this.has1 = this.#has1()
+  }
 
   is<L extends K>(k: L): this is Ty<L> {
     return this.k == k
@@ -67,18 +82,20 @@ export class Ty<K extends T = T> {
         return (this.of as TyData[T.Tuple]).some((x) => x.has0)
       case T.ArrayFixed: {
         const self = this.of as TyData[T.ArrayFixed]
-        return self.el.has0 && self.size.every((x) => x != 0)
+        return self.el.has0 && self.size.every((x) => !x.is0())
         // only nonempty arrays with uninhabited elements are uninhabited;
         // an empty array can have any kind of element it wants
       }
       case T.ArrayCapped:
       case T.ArrayUnsized:
-        // if length 0, it has 1 possible values
+        // if length 0, it has 1 possible value
         // and an unsized array could always possibly have length 0
         return false
       case T.Adt:
         // have to defer to T.Adt on this one
         return (this.of as TyData[T.Adt]).adt.has0(this as Ty<T.Adt>)
+      case T.Param:
+        return false // technically this should be 'maybe', but that seems bad
     }
   }
 
@@ -99,19 +116,21 @@ export class Ty<K extends T = T> {
         return (this.of as TyData[T.Tuple]).every((x) => x.has1)
       case T.ArrayFixed: {
         const self = this.of as TyData[T.ArrayFixed]
-        return self.el.has1 || self.size.some((x) => x == 0)
+        return self.el.has1 || self.size.some((x) => x.is0())
       }
       case T.ArrayCapped: {
         const self = this.of as TyData[T.ArrayCapped]
         return (
-          self.el.has0 || // in this case, only length 0 is a valid value
-          self.size.some((x) => x == 0) // no length, so only one value
+          self.el.has0 // in this case, only length 0 is a valid value
+          || self.size.is0() // must have length 0, so only one value
         )
       }
       case T.ArrayUnsized:
         return (this.of as TyData[T.ArrayUnsized]).el.has0 // only [] is valid
       case T.Adt:
         return (this.of as TyData[T.Adt]).adt.has1(this as Ty<T.Adt>)
+      case T.Param:
+        return false // technically this should be 'maybe', but that seems bad
     }
   }
 
@@ -122,7 +141,7 @@ export class Ty<K extends T = T> {
    * Examples include `!`, empty enums, and anything including at least 1 of
    * those.
    */
-  readonly has0 = this.#has0()
+  readonly has0
 
   /**
    * `true` iff there only exists one possible value of this type.
@@ -135,7 +154,7 @@ export class Ty<K extends T = T> {
    * cannot be constructed, and is a helpful optimization for other target
    * languages.
    */
-  readonly has1 = this.#has1()
+  readonly has1
 
   toString(): string {
     switch (this.k) {
@@ -149,12 +168,16 @@ export class Ty<K extends T = T> {
         return "num"
       case T.Sym: {
         const o = this.of as TyData[T.Sym]
-        return (o.tag ? `:${o.tag.label}` : `sym`) + (o.el ? `(${o.el})` : "")
+        const tag = o.tag ? ":" + o.tag.label : `sym`
+        return tag + (o.el != Ty.Void ? `(${o.el})` : "")
       }
-      case T.ArrayFixed:
+      case T.ArrayFixed: {
+        const o = this.of as TyData[T.ArrayFixed]
+        return `[${o.el}; ${o.size.join(", ")}]`
+      }
       case T.ArrayCapped: {
-        const o = this.of as TyData[T.ArrayFixed | T.ArrayCapped]
-        return `${this.k == T.ArrayCapped ? "~" : ""}[${o.el}; ${o.size.join(", ")}]`
+        const o = this.of as TyData[T.ArrayCapped]
+        return `[${o.el}; ..=${o.size}]`
       }
       case T.ArrayUnsized: {
         const o = this.of as TyData[T.ArrayUnsized]
@@ -173,6 +196,8 @@ export class Ty<K extends T = T> {
         const o = this.of as TyData[T.Fn]
         return `fn(${o.args.join(", ")})${o.ret == Ty.Void ? "" : ` -> ${o.ret}`}`
       }
+      case T.Param:
+        return `param ${(this.of as TyData[T.Param]).label}`
     }
   }
 

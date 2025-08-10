@@ -1,6 +1,8 @@
 import type { BunInspectOptions } from "bun"
-import { ANSI } from "./ansi"
+import * as ANSI from "./ansi"
+import { issue } from "./error"
 import { INSPECT } from "./inspect"
+import type { Pos } from "./pos"
 import type { T, Ty } from "./ty"
 
 export class ValString {
@@ -15,11 +17,18 @@ export class ValString {
   }
 }
 
-export class Val<K extends T = T> {
+export class Val<K extends T = T, V = unknown> {
+  static unit<K extends T>(ty: Ty<K>, pos: Pos) {
+    if (!ty.has1) {
+      issue(`'Val.unit' not allowed for non-unit type '${ty}'.`, pos)
+    }
+    return new Val(null, ty, true)
+  }
+
   readonly const: boolean
 
   constructor(
-    readonly value: unknown,
+    readonly value: V,
     readonly ty: Ty<K>,
     isConst: boolean,
   ) {
