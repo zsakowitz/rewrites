@@ -31,22 +31,33 @@ export class FnParamsTempl {
     this.map.set(param, { var: variance, ty: ty ?? null })
     return this
   }
+
+  within(ctx: Ctx) {
+    return FnParams.from(ctx, this)
+  }
 }
 
 export class FnParams {
+  static from(ctx: Ctx, templ: FnParamsTempl) {
+    const self = new FnParams(ctx)
+    for (const [k, v] of templ.map) {
+      self.#map.set(k, { param: v, val: null })
+    }
+    return self
+  }
+
   #map = new Map<Param, { param: FnParam; val: Ty | Const | null }>()
 
-  constructor(
-    readonly ctx: Ctx,
-    templ: FnParamsTempl,
-  ) {
-    for (const [k, v] of templ.map) {
-      this.#map.set(k, { param: v, val: null })
-    }
-  }
+  private constructor(readonly ctx: Ctx) {}
 
   has(param: Param): boolean {
     return this.#map.has(param)
+  }
+
+  tryGet(param: Param<ParamKind.Ty>): Ty | null
+  tryGet(param: Param<ParamKind.Const>): Const | null
+  tryGet(param: Param): Ty | Const | null {
+    return this.#map.get(param)!.val
   }
 
   get(param: Param<ParamKind.Ty>): Ty
@@ -86,5 +97,18 @@ export class FnParams {
       entry.val = val
       return true
     }
+  }
+
+  clone() {
+    const self = new FnParams(this.ctx)
+    for (const [k, v] of this.#map) {
+      self.#map.set(k, { param: v.param, val: v.val })
+    }
+    return self
+  }
+
+  /** `other` should be considered unusable after being copied from. */
+  copyFrom(other: FnParams) {
+    this.#map = other.#map
   }
 }

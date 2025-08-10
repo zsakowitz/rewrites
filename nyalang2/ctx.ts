@@ -1,7 +1,7 @@
 import type { Block } from "./block"
 import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
-import { FnParams } from "./param"
+import { FnParams, type Param } from "./param"
 import type { Pos } from "./pos"
 import { Ty, type T } from "./ty"
 import { Val, ValString } from "./val"
@@ -49,7 +49,7 @@ export class Ctx<SymTag = unknown> {
   }
 
   // doesn't yet handle broadcasting and lists
-  call(name: string | IdGlobal, args: Val[]): Val {
+  callTy(name: IdGlobal | Param, args: Ty[]): Ty | null {
     if (typeof name == "string") {
       name = ident(name)
     }
@@ -64,7 +64,34 @@ export class Ctx<SymTag = unknown> {
 
       const params = new FnParams(this, fn.params)
       for (let i = 0; i < fn.args.length; i++) {
-        if (!cx.can(args[i]!.ty, fn.args[i]!.ty, params)) {
+        if (!cx.can(args[i]!, fn.args[i]!, params)) {
+          continue next
+        }
+      }
+
+      return fn.ret.with(params)
+    }
+
+    return null
+  }
+
+  // doesn't yet handle broadcasting and lists
+  callVal(name: string | IdGlobal, args: Val[]): Val {
+    if (typeof name == "string") {
+      name = ident(name)
+    }
+
+    const fns = this.block.scope.fns(name)
+    const cx = this.root.coerce
+    next: for (let i = 0; i < fns.length; i++) {
+      const fn = fns[i]!
+      if (fn.args.length != args.length) {
+        continue next
+      }
+
+      const params = new FnParams(this, fn.params)
+      for (let i = 0; i < fn.args.length; i++) {
+        if (!cx.can(args[i]!.ty, fn.args[i]!, params)) {
           continue next
         }
       }

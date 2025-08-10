@@ -2,7 +2,7 @@ import { Var } from "./coercion"
 import { Const } from "./const"
 import { Fn } from "./fn"
 import { ident } from "./id"
-import { FnParams, FnParamsTempl, Param, ParamKind } from "./param"
+import { FnParamsTempl, Param, ParamKind } from "./param"
 import { createEnv } from "./std"
 import { Bool, Int, Num, T, Ty } from "./ty"
 import { Val } from "./val"
@@ -31,10 +31,7 @@ function test(fn: (props: Props) => boolean | void) {
 }
 
 test(({ ctx, N }) => {
-  const params = new FnParams(
-    ctx,
-    new FnParamsTempl().set(N.value, Var.Invar, Int),
-  )
+  const params = new FnParamsTempl().set(N.value, Var.Invar, Int).within(ctx)
 
   const val = new Val(
     [ctx.int("2"), ctx.int("7"), ctx.int("5")],
@@ -60,10 +57,8 @@ test(({ env, ctx }) => {
       new Fn(
         ident("+"),
         templ,
-        [
-          { name: ident("x"), ty: Num },
-          { name: ident("y"), ty: array },
-        ],
+        [ident("x"), ident("y")],
+        [Num, array],
         array,
         [],
         (_ctx, args) => args[1]!,
@@ -77,5 +72,5 @@ test(({ env, ctx }) => {
     ctx.num("43"),
     ctx.num("2"),
   ])
-  ctx.call("+", [a, b])
+  ctx.callVal("+", [a, b])
 })

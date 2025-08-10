@@ -1,12 +1,11 @@
 import type { Associate } from "./ac"
 import { Coercions } from "./coercion"
-import { Fn } from "./fn"
+import { Fn, type FnName } from "./fn"
 import { ident, type IdGlobal } from "./id"
-import { Param } from "./param"
 import { Ty } from "./ty"
 
 export class Scope {
-  readonly #fns = new Map<IdGlobal | Param, Fn[]>()
+  readonly #fns = new Map<FnName, Fn[]>()
   readonly #acs = new Map<IdGlobal, Associate[]>()
 
   constructor(
@@ -14,7 +13,7 @@ export class Scope {
     readonly parent: Scope | null,
   ) {}
 
-  fns(id: IdGlobal | Param): Fn[] {
+  fns(id: FnName): Fn[] {
     return this.#fns.get(id) ?? (this.parent ? this.parent.fns(id) : [])
   }
 

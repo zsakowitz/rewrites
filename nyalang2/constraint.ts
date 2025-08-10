@@ -1,5 +1,7 @@
-import type { AssociateSignature } from "./ac"
+import type { Associate } from "./ac"
+import type { Ctx } from "./ctx"
 import type { FnSignature } from "./fn"
+import type { FnParams } from "./param"
 
 export const enum C {
   Assoc,
@@ -7,7 +9,7 @@ export const enum C {
 }
 
 export interface ConstraintData {
-  [C.Assoc]: AssociateSignature
+  [C.Assoc]: Associate
   [C.Fn]: FnSignature
 }
 
@@ -19,5 +21,31 @@ export class Constraint<K extends C = C> {
 
   is<L extends K>(k: L): this is Constraint<L> {
     return this.k == (k as any as K)
+  }
+
+  matches(ctx: Ctx, params: FnParams): boolean {
+    switch (this.k) {
+      case C.Fn: {
+        const src = this.of as ConstraintData[C.Fn]
+        const ret = ctx.callTy(
+          src.id,
+          src.args.map((x) => x.with(params)),
+        )
+        return ret != null && ctx.root.coerce.can(ret, src.ret, params)
+      }
+      case C.Assoc: {
+        const src = this.of as ConstraintData[C.Assoc]
+        for (const ac of ctx.scope.acs(src.id)) {
+          const clone = params.clone()
+          if (ac.on.eq(src.on, clone)) {
+            if (ac.ret.eq(src.ret, clone)) {
+              params.copyFrom(clone)
+              return true
+            }
+          }
+        }
+        return false
+      }
+    }
   }
 }

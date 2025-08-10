@@ -5,7 +5,7 @@ import type { FnParamsTempl, Param } from "./param"
 import type { Ty } from "./ty"
 import type { Val } from "./val"
 
-type FnName = IdGlobal | Param
+export type FnName = IdGlobal | Param
 
 interface FnArg {
   name: IdGlobal
@@ -15,7 +15,7 @@ interface FnArg {
 export class FnSignature {
   constructor(
     readonly id: FnName,
-    readonly args: readonly FnArg[],
+    readonly args: readonly Ty[],
     readonly ret: Ty,
     readonly where: Constraint[],
   ) {}
@@ -25,7 +25,8 @@ export class Fn extends FnSignature {
   constructor(
     id: IdGlobal | Param,
     readonly params: FnParamsTempl,
-    args: readonly FnArg[],
+    readonly argn: readonly IdGlobal[],
+    args: readonly Ty[],
     ret: Ty,
     where: Constraint[],
     readonly exec: (ctx: Ctx, args: Val[]) => Val,
