@@ -47,5 +47,4 @@ export interface Target<SymTag = unknown> {
   createBool(ctx: Ctx, value: boolean): Val<T.Bool>
   createInt(ctx: Ctx, value: string): Val<T.Int>
   createNum(ctx: Ctx, value: string): Val<T.Num>
-  createVoid(ctx: Ctx): Val<T.Tuple>
 }

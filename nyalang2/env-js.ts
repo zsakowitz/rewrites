@@ -7,6 +7,10 @@ import { Val } from "./val"
 
 const { Int } = Ty
 
+declare class SymTag {
+  private __brand
+}
+
 declare namespace Repr {
   type SymTag = Val<T.Int, IdGlobal | string>
 
@@ -126,7 +130,7 @@ function cacheMultiValued(ctx: Ctx, val: Val): string {
   return id
 }
 
-export const TARGET_JS: Target<Repr.SymTag> = {
+export const TARGET_JS = {
   name: "js",
 
   x: toRuntime,
@@ -303,12 +307,9 @@ export const TARGET_JS: Target<Repr.SymTag> = {
     return new Val(value, Ty.Bool, true)
   },
   createInt(_ctx, value) {
-    return new Val(value, Ty.Int, true)
+    return new Val(+value | 0, Ty.Int, true)
   },
   createNum(_ctx, value) {
-    return new Val(value, Ty.Num, true)
+    return new Val(+value, Ty.Num, true)
   },
-  createVoid(ctx) {
-    return ctx.unit(Ty.Void)
-  },
-}
+} satisfies Target<Repr.SymTag> as Target<any> as Target<SymTag>

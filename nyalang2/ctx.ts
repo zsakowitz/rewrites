@@ -91,4 +91,20 @@ export class Ctx<SymTag = unknown> {
     }
     return this.target.symTag(this, this.unit(Ty.Sym(tag)))
   }
+
+  bool(value: boolean): Val<T.Bool> {
+    return this.target.createBool(this, value)
+  }
+
+  int(value: string): Val<T.Int> {
+    return this.target.createInt(this, value)
+  }
+
+  num(value: string): Val<T.Num> {
+    return this.target.createNum(this, value)
+  }
+
+  void() {
+    return this.unit(Ty.Void)
+  }
 }
