@@ -31,6 +31,10 @@ export class Scope {
     return this.#acs.get(id) ?? (this.parent ? this.parent.acs(id) : [])
   }
 
+  ac(id: IdGlobal, on: Ty): Ty | null {
+    return this.acs(id).find((x) => x.on.eq(on, null))?.ret ?? null
+  }
+
   pushAc(ac: Associate) {
     let list = this.#acs.get(ac.id)
     if (!list) {

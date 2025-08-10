@@ -1,6 +1,8 @@
+import type { BunInspectOptions } from "bun"
 import type { Associate } from "./ac"
 import type { Ctx } from "./ctx"
 import type { FnSignature } from "./fn"
+import { INSPECT } from "./inspect"
 import type { FnParams } from "./param"
 
 export const enum C {
@@ -47,5 +49,9 @@ export class Constraint<K extends C = C> {
         return false
       }
     }
+  }
+
+  [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
+    return inspect(this.of, p)
   }
 }
