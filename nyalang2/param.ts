@@ -1,7 +1,9 @@
-import type { Var } from "./coercion"
+import type { BunInspectOptions } from "bun"
+import { Var } from "./coercion"
 import type { Const } from "./const"
 import type { Ctx } from "./ctx"
 import { IdLabeled } from "./id"
+import { INSPECT } from "./inspect"
 import type { Ty } from "./ty"
 
 export const enum ParamKind {
@@ -20,15 +22,30 @@ export class Param<K extends ParamKind = ParamKind> extends IdLabeled {
   }
 }
 
-type FnParam = { var: Var; ty: Ty | null }
+export class FnParam {
+  constructor(
+    readonly key: Param,
+    readonly vrx: Var,
+    readonly ty: Ty | null,
+  ) {}
+
+  [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
+    return (
+      (this.vrx == Var.Invar ? "=" : "~")
+      + (this.key.kind == ParamKind.Const ? "const " : "")
+      + this.key.label
+      + (this.ty ? ": " + inspect(this.ty, p) : "")
+    )
+  }
+}
 
 export class FnParamsTempl {
   readonly map = new Map<Param, FnParam>()
 
-  set(param: Param<ParamKind.Ty>, variance: Var): this
-  set(param: Param<ParamKind.Const>, variance: Var, ty: Ty): this
-  set(param: Param, variance: Var, ty?: Ty) {
-    this.map.set(param, { var: variance, ty: ty ?? null })
+  set(param: Param<ParamKind.Ty>, vrx: Var): this
+  set(param: Param<ParamKind.Const>, vrx: Var, ty: Ty): this
+  set(param: Param, vrx: Var, ty?: Ty) {
+    this.map.set(param, new FnParam(param, vrx, ty ?? null))
     return this
   }
 
@@ -110,5 +127,11 @@ export class FnParams {
   /** `other` should be considered unusable after being copied from. */
   copyFrom(other: FnParams) {
     this.#map = other.#map
+  }
+
+  [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
+    return `FnParams { ${Array.from(this.#map)
+      .map(([, v]) => inspect(v.param, p) + " => " + inspect(v.val, p))
+      .join(", ")} }`
   }
 }

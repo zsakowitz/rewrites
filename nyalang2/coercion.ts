@@ -276,7 +276,7 @@ export class Coercions {
       return true
     }
 
-    if (params && into.is(T.Param) && params?.has(into.of)) {
+    if (params && into.is(T.Param) && params.has(into.of)) {
       return params.setTy(into.of, from, Var.Coercible)
     }
 

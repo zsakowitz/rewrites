@@ -367,7 +367,7 @@ export class Ty<out K extends T = T> {
         return `fn(${o.args.join(", ")})${o.ret == Ty.Void ? "" : ` -> ${o.ret}`}`
       }
       case T.Param:
-        return `param ${(this.of as TyData[T.Param]).label}`
+        return (this.of as TyData[T.Param]).label
     }
   }
 

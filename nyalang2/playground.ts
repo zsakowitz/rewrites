@@ -1,6 +1,7 @@
 import { Associate } from "./ac"
 import { Var } from "./coercion"
 import { C, Constraint } from "./constraint"
+import { _try } from "./error"
 import { Fn, FnSignature } from "./fn"
 import { ident } from "./id"
 import { FnParamsTempl, Param, ParamKind } from "./param"
@@ -30,21 +31,20 @@ ctx.root.pushFn(
 )
 
 const U = new Ty(T.Param, new Param("U", ParamKind.Ty))
-const U_Next = new Ty(T.Param, new Param("U::Next", ParamKind.Ty))
-const fnGetNext = new Fn(
-  ident("get_next"),
-  new FnParamsTempl().set(U.of, Var.Invar).set(U_Next.of, Var.Invar),
-  [ident("target")],
-  [U],
-  U_Next,
-  [
-    new Constraint(C.Assoc, new Associate(ident("next"), U, U_Next)),
-    new Constraint(C.Fn, new FnSignature(ident("next"), [U], U_Next, [])),
-  ],
-  (ctx, [val]) => ctx.callVal(ident("next"), [val!]),
+const V = new Ty(T.Param, new Param("V", ParamKind.Ty))
+ctx.root.pushFn(
+  new Fn(
+    ident("get_next"),
+    new FnParamsTempl().set(U.of, Var.Invar).set(V.of, Var.Invar),
+    [ident("target")],
+    [U],
+    V,
+    [new Constraint(C.Fn, new FnSignature(ident("next"), [U], V, []))],
+    (ctx, [val]) => ctx.callVal(ident("next"), [val!]),
+  ),
 )
-console.log(fnGetNext)
-ctx.root.pushFn(fnGetNext)
 
-// const v = ctx.callVal("get_next", [ctx.int("43")])
-// console.log(v)
+_try(() => {
+  const v = ctx.callVal("get_next", [ctx.int("43")])
+  console.log(v)
+})

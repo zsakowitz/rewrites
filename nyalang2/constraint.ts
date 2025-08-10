@@ -29,10 +29,8 @@ export class Constraint<K extends C = C> {
     switch (this.k) {
       case C.Fn: {
         const src = this.of as ConstraintData[C.Fn]
-        const ret = ctx.callTy(
-          src.id,
-          src.args.map((x) => x.with(params)),
-        )
+        const resolvedArgs = src.args.map((x) => x.with(params))
+        const ret = ctx.callTy(src.id, resolvedArgs)
         return ret != null && ctx.root.coerce.can(ret, src.ret, params)
       }
       case C.Assoc: {

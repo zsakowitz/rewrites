@@ -1,10 +1,9 @@
 import type { BunInspectOptions } from "bun"
-import { Var } from "./coercion"
 import type { Constraint } from "./constraint"
 import type { Ctx } from "./ctx"
 import type { IdGlobal } from "./id"
 import { INSPECT } from "./inspect"
-import { ParamKind, type FnParamsTempl, type Param } from "./param"
+import { type FnParamsTempl, type Param } from "./param"
 import type { Ty } from "./ty"
 import type { Val } from "./val"
 
@@ -47,22 +46,23 @@ export class Fn extends FnSignature {
   }
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
+    const head = `fn ${this.id.label}${
+      this.params.map.size ?
+        `<${Array.from(this.params.map).map(([, v]) => inspect(v, p))}>`
+      : ""
+    }(${this.argn.map((x, i) => `${x.label}: ${inspect(this.args[i]!, p)}`)}) -> ${inspect(this.ret, p)}`
+    if (!this.where.length) {
+      return head
+    }
+    const where = this.where.map((x) => inspect(x, p))
     return (
-      `fn ${this.id.label}${
-        this.params.map.size ?
-          `<${this.params.map
-            .entries()
-            .map(
-              ([k, v]) =>
-                `${v.var == Var.Coercible ? "~" : "="}${k.kind == ParamKind.Const ? "const " : ""}${k.label}${v.ty ? ": " + inspect(v.ty, p) : ""}`,
-            )
-            .toArray()
-            .join(", ")}>`
-        : ""
-      }(${this.argn.map((x, i) => `${x.label}: ${inspect(this.args[i]!, p)}`)}) -> ${inspect(this.ret, p)}`
-      + (this.where.length ?
-        ` where ` + this.where.map((x) => inspect(x, p)).join(", ")
-      : "")
+      head
+      + "\n  where "
+      + where[0]!
+      + where
+        .slice(1)
+        .map((x) => `\n        ${x}`)
+        .join("")
     )
   }
 }
