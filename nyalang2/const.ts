@@ -18,6 +18,14 @@ export class Const<
     readonly ty: Ty<K>,
   ) {}
 
+  with(params: FnParams): Const<K> {
+    if (params && this.value instanceof Param && params.has(this.value)) {
+      return params.get(this.value) satisfies Const as any
+    }
+
+    return this
+  }
+
   /**
    * If this returns `true`, `this` can be assigned to `other` under `params`.
    * The converse might not be true: `0.eqTo(T)`, but `!T.eqTo(0)` for generic

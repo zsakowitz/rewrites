@@ -137,6 +137,62 @@ export class Ty<out K extends T = T> {
     }
   }
 
+  with(this: Ty, params: FnParams): Ty {
+    if (params && this.is(T.Param) && params.has(this.of)) {
+      return params.get(this.of)
+    }
+
+    switch (this.k as T) {
+      case T.Never:
+      case T.Bool:
+      case T.Int:
+      case T.Num:
+      case T.Fn:
+      case T.Param:
+        return this
+      case T.Sym: {
+        const src = this.of as TyData[T.Sym]
+        return new Ty(T.Sym, { tag: src.tag, el: src.el.with(params) })
+      }
+      case T.Tuple: {
+        const src = this.of as TyData[T.Tuple]
+        if (this == Void) {
+          return Void
+        }
+        return new Ty(
+          T.Tuple,
+          src.map((x) => x.with(params)),
+        )
+      }
+      case T.ArrayFixed: {
+        const src = this.of as TyData[T.ArrayFixed]
+        return new Ty(T.ArrayFixed, {
+          el: src.el.with(params),
+          size: src.size.map((x) => x.with(params)),
+        })
+      }
+      case T.ArrayCapped: {
+        const src = this.of as TyData[T.ArrayCapped]
+        return new Ty(T.ArrayCapped, {
+          el: src.el.with(params),
+          size: src.size.with(params),
+        })
+      }
+      case T.ArrayUnsized: {
+        const src = this.of as TyData[T.ArrayUnsized]
+        return new Ty(T.ArrayUnsized, { el: src.el.with(params), size: null })
+      }
+      case T.Adt: {
+        const src = this.of as TyData[T.Adt]
+        return new Ty(T.Adt, {
+          adt: src.adt,
+          tys: src.tys.map((x) => x.with(params)),
+          consts: src.consts.map((x) => x.with(params)),
+        })
+      }
+    }
+  }
+
   #has0(): boolean {
     switch (this.k) {
       case T.Never:

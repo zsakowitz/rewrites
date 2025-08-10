@@ -69,10 +69,12 @@ export class Ctx<SymTag = unknown> {
         }
       }
 
-      return fn.exec(
-        this,
-        args.map((x, i) => cx.map(this, x, fn.args[i]!.ty, params)),
-      )
+      return fn
+        .exec(
+          this,
+          args.map((x, i) => cx.map(this, x, fn.args[i]!.ty, params)),
+        )
+        .transmute(fn.ret.with(params))
     }
 
     this.issue(
