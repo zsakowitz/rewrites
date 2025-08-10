@@ -1,5 +1,6 @@
 import { Fn } from "./fn"
 import { ident } from "./id"
+import { FnParamsTempl } from "./param"
 import { createEnv } from "./std"
 import { Num } from "./ty"
 import { Val } from "./val"
@@ -9,7 +10,7 @@ const env = createEnv()
 env.root.pushFn(
   new Fn(
     ident("+"),
-    [],
+    new FnParamsTempl(),
     [
       { name: ident("x"), ty: Num },
       { name: ident("y"), ty: Num },

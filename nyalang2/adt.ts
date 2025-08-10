@@ -1,4 +1,4 @@
-import type { VarConst, VarTy } from "./coercion"
+import type { Var } from "./coercion"
 import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdGlobal } from "./id"
@@ -21,8 +21,8 @@ interface AdtGenerics {
    */
   coerce(src: Val, into: Ty<T.Adt>, ctx: Ctx): Val
 
-  readonly tys: readonly VarTy[]
-  readonly consts: readonly { ty: Ty; var: VarConst }[]
+  readonly tys: readonly Var[]
+  readonly consts: readonly { ty: Ty; var: Var }[]
 }
 
 export class Adt {

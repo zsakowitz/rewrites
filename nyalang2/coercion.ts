@@ -2,7 +2,7 @@ import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
-import type { Params } from "./param"
+import type { FnParams } from "./param"
 import type { Pos } from "./pos"
 import { T, Ty, type TyData } from "./ty"
 import { Val } from "./val"
@@ -244,14 +244,9 @@ class CoercionsRaw {
 // - (~?)[A; M, N, ...] -> [B], if A->B
 // - AdtExt<A> -> AdtExt<B>, if A->B
 
-export const enum VarTy {
-  Coercible,
-  Invar,
-}
-
-export const enum VarConst {
-  Le,
-  Eq,
+export const enum Var {
+  Coercible, // coercible for ty, <= for const
+  Invar, // invariant for ty, == for const
 }
 
 export class Coercions {
@@ -275,15 +270,14 @@ export class Coercions {
     this.#raw.addCoercion(new Coercion(from, into, false, exec), pos)
   }
 
-  can(from: Ty, into: Ty, params: Params): boolean {
+  can(from: Ty, into: Ty, params: FnParams): boolean {
     // quick catch
     if (from == into) {
       return true
     }
 
-    if (into.is(T.Param)) {
-      const src = into.of as TyData[T.Param]
-      return params.setTyCoercible(src, from, this)
+    if (params && into.is(T.Param) && params?.has(into.of)) {
+      return params.setTy(into.of, from, Var.Coercible)
     }
 
     switch (from.k) {
@@ -368,12 +362,12 @@ export class Coercions {
           return (
             src.adt == dst.adt
             && src.adt.generics.consts.every((x, i) =>
-              x.var == VarConst.Le ?
+              x.var == Var.Coercible ?
                 src.consts[i]!.leTo(dst.consts[i]!, params)
               : src.consts[i]!.eqTo(dst.consts[i]!, params),
             )
             && src.adt.generics.tys.every((x, i) =>
-              x == VarTy.Coercible ?
+              x == Var.Coercible ?
                 this.can(src.tys[i]!, dst.tys[i]!, params)
               : src.tys[i]!.eq(dst.tys[i]!, params),
             )
@@ -397,7 +391,7 @@ export class Coercions {
   }
 
   /** Assumes `.can()` returned true, so it doesn't repeat any checks from there. */
-  map(ctx: Ctx, val: Val, into: Ty, params: Params): Val {
+  map(ctx: Ctx, val: Val, into: Ty, params: FnParams): Val {
     const from = val.ty
     if (from == into) {
       return val
@@ -405,7 +399,7 @@ export class Coercions {
 
     const t = ctx.target
 
-    if (into.is(T.Param)) {
+    if (into.is(T.Param) && params.has(into.of)) {
       return this.map(ctx, val, params.get(into.of), params)
     }
 

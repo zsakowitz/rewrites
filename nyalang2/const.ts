@@ -1,7 +1,7 @@
 import type * as Bun from "bun"
 import type { BunInspectOptions } from "bun"
 import { INSPECT } from "./inspect"
-import { Param, type ParamKind, type Params } from "./param"
+import { Param, type FnParams, type ParamKind } from "./param"
 import { Ty, type T } from "./ty"
 
 type ConstVal<K extends T.Bool | T.Int> =
@@ -23,7 +23,7 @@ export class Const<
    * The converse might not be true: `0.eqTo(T)`, but `!T.eqTo(0)` for generic
    * `T`.
    */
-  eqTo(other: Const, params: Params) {
+  eqTo(other: Const, params: FnParams | null): boolean {
     if (this.ty !== other.ty) {
       return false
     }
@@ -31,7 +31,9 @@ export class Const<
     return (
       this.value === other.value
       || (other.value instanceof Param
-        && params.setConst(other.value, this, params))
+        && params != null
+        && params.has(other.value)
+        && params.setConst(other.value, this))
     )
   }
 
@@ -39,12 +41,12 @@ export class Const<
    * If this returns `true`, `this <= other`. The converse is not true, since `T
    * <= U` cannot be proven in general for generics `T` and `U`.
    */
-  leTo(this: Const, other: Const, params: Params) {
+  leTo(other: Const, params: FnParams | null): boolean {
     return (
-      this.eqTo(other, params)
-      || (typeof this.value == "number"
+      (typeof this.value == "number"
         && typeof other.value == "number"
         && this.value <= other.value)
+      || this.eqTo(other, params)
     )
   }
 

@@ -1,7 +1,7 @@
 import type { Constraint } from "./constraint"
 import type { Ctx } from "./ctx"
 import type { IdGlobal } from "./id"
-import type { Param, ParamsReadonly } from "./param"
+import type { FnParamsTempl, Param } from "./param"
 import type { Ty } from "./ty"
 import type { Val } from "./val"
 
@@ -24,11 +24,11 @@ export class FnSignature {
 export class Fn extends FnSignature {
   constructor(
     id: IdGlobal | Param,
-    readonly params: Param[],
+    readonly params: FnParamsTempl,
     args: readonly FnArg[],
     ret: Ty,
     where: Constraint[],
-    readonly exec: (ctx: Ctx, args: Val[], params: ParamsReadonly) => Val,
+    readonly exec: (ctx: Ctx, args: Val[]) => Val,
   ) {
     super(id, args, ret, where)
   }

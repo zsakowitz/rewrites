@@ -1,10 +1,11 @@
 import type { Adt } from "./adt"
 import * as ANSI from "./ansi"
+import { Var } from "./coercion"
 import type { Const } from "./const"
 import type { Fn } from "./fn"
 import type { IdGlobal } from "./id"
 import { INSPECT } from "./inspect"
-import type { Param, ParamKind, Params } from "./param"
+import type { FnParams, Param, ParamKind } from "./param"
 
 // prettier-ignore
 // no uint b/c js doesn't support it and glsl only uses `int`
@@ -68,13 +69,13 @@ export class Ty<out K extends T = T> {
     return this.k == (k as any as K)
   }
 
-  eq(other: Ty, params: Params): boolean {
+  eq(other: Ty, params: FnParams | null): boolean {
     if (this.k != other.k) {
       return false
     }
 
-    if (other.is(T.Param)) {
-      return params.setTyInvar(other.of, this)
+    if (params && other.is(T.Param) && params?.has(other.of)) {
+      return params.setTy(other.of, this, Var.Invar)
     }
 
     switch (this.k as T) {

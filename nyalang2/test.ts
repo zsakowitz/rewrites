@@ -1,5 +1,6 @@
+import { Var } from "./coercion"
 import { Const } from "./const"
-import { Param, ParamKind, Params } from "./param"
+import { FnParams, FnParamsTempl, Param, ParamKind } from "./param"
 import { createEnv } from "./std"
 import { T, Ty } from "./ty"
 import { Val } from "./val"
@@ -13,7 +14,6 @@ function createProps() {
   return {
     env,
     ctx,
-    params: new Params(ctx, null),
     M: new Const(new Param("M", ParamKind.Const), Int),
     N: new Const(new Param("N", ParamKind.Const), Int),
     P: new Const(new Param("P", ParamKind.Const), Bool),
@@ -30,7 +30,12 @@ function test(fn: (props: Props) => boolean | undefined) {
   }
 }
 
-test(({ ctx, params, N }) => {
+test(({ ctx, N }) => {
+  const params = new FnParams(
+    ctx,
+    new FnParamsTempl().set(N.value, Var.Invar, Int),
+  )
+
   const val = new Val(
     [ctx.int("2"), ctx.int("7"), ctx.int("5")],
     new Ty(T.ArrayFixed, { el: Int, size: [new Const(3, Int)] }),

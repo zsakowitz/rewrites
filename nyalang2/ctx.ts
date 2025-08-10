@@ -1,7 +1,7 @@
 import type { Block } from "./block"
 import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
-import { Params } from "./param"
+import { FnParams } from "./param"
 import type { Pos } from "./pos"
 import { Ty, type T } from "./ty"
 import { Val, ValString } from "./val"
@@ -62,7 +62,7 @@ export class Ctx<SymTag = unknown> {
         continue next
       }
 
-      const params = new Params(this, this.block.params)
+      const params = new FnParams(this, fn.params)
       for (let i = 0; i < fn.args.length; i++) {
         if (!cx.can(args[i]!.ty, fn.args[i]!.ty, params)) {
           continue next
@@ -72,7 +72,6 @@ export class Ctx<SymTag = unknown> {
       return fn.exec(
         this,
         args.map((x, i) => cx.map(this, x, fn.args[i]!.ty, params)),
-        params,
       )
     }
 
