@@ -18,6 +18,10 @@ export class Const<
     readonly ty: Ty<K>,
   ) {}
 
+  get const() {
+    return typeof this.value != "object"
+  }
+
   with(params: FnParams): Const<K> {
     if (params && this.value instanceof Param && params.has(this.value)) {
       return params.get(this.value) satisfies Const as any

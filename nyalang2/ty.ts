@@ -63,6 +63,7 @@ export class Ty<out K extends T = T> {
 
     this.has0 = this.#has0()
     this.has1 = this.#has1()
+    this.const = this.#const()
   }
 
   is<L extends K>(k: L): this is Ty<L> {
@@ -138,6 +139,10 @@ export class Ty<out K extends T = T> {
   }
 
   with(this: Ty, params: FnParams): Ty {
+    if (this.const) {
+      return this
+    }
+
     if (params && this.is(T.Param) && params.has(this.of)) {
       return params.get(this.of)
     }
@@ -189,6 +194,43 @@ export class Ty<out K extends T = T> {
           tys: src.tys.map((x) => x.with(params)),
           consts: src.consts.map((x) => x.with(params)),
         })
+      }
+    }
+  }
+
+  #const(this: Ty): boolean {
+    switch (this.k as T) {
+      case T.Never:
+      case T.Bool:
+      case T.Int:
+      case T.Num:
+      case T.Fn:
+        return false
+      case T.Param:
+        return true
+      case T.Sym: {
+        const src = this.of as TyData[T.Sym]
+        return src.el.const
+      }
+      case T.Tuple: {
+        const src = this.of as TyData[T.Tuple]
+        return src.every((x) => x.const)
+      }
+      case T.ArrayFixed: {
+        const src = this.of as TyData[T.ArrayFixed]
+        return src.size.every((x) => x.const) && src.el.const
+      }
+      case T.ArrayCapped: {
+        const src = this.of as TyData[T.ArrayCapped]
+        return src.size.const && src.el.const
+      }
+      case T.ArrayUnsized: {
+        const src = this.of as TyData[T.ArrayUnsized]
+        return src.el.const
+      }
+      case T.Adt: {
+        const src = this.of as TyData[T.Adt]
+        return src.tys.every((x) => x.const) && src.consts.every((x) => x.const)
       }
     }
   }
@@ -281,6 +323,8 @@ export class Ty<out K extends T = T> {
    * languages.
    */
   readonly has1
+
+  readonly const
 
   toString(): string {
     switch (this.k) {
