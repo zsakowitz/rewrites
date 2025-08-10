@@ -24,6 +24,7 @@ export const enum T {
 // note: an array `arr` of type `[num; 2, 3]` must be indexed as `arr[1, 0]`
 
 export declare namespace T {
+  type Const = T.Bool | T.Int
   type ArrayAny = T.ArrayFixed | T.ArrayCapped | T.ArrayUnsized
 }
 

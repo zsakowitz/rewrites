@@ -1,7 +1,9 @@
 import type { BunInspectOptions } from "bun"
 import * as ANSI from "./ansi"
+import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import { INSPECT } from "./inspect"
+import type { FnParams } from "./param"
 import type { Pos } from "./pos"
 import type { T, Ty } from "./ty"
 
@@ -49,6 +51,14 @@ export class Val<K extends T = T, V = unknown> {
    */
   transmute<K extends T>(ty: Ty<K>) {
     return new Val(this.value, ty, this.const)
+  }
+
+  coerce(ctx: Ctx, into: Ty, params: FnParams) {
+    return ctx.root.coerce.map(ctx, this, into, params)
+  }
+
+  runtime(ctx: Ctx) {
+    return ctx.target.x(ctx, this)
   }
 
   toString() {

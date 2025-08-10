@@ -1,11 +1,11 @@
-import { Var } from "./coercion"
-import { Constraint } from "./constraint"
-import { _try } from "./error"
-import { Fn, FnSignature } from "./fn"
-import { ident } from "./id"
-import { FnParamsTempl } from "./param"
-import { createEnv } from "./std"
-import { Bool, Int, Ty } from "./ty"
+import { Var } from "../coercion"
+import { Constraint } from "../constraint"
+import { _try } from "../error"
+import { Fn, FnSignature } from "../fn"
+import { ident } from "../id"
+import { FnParamsTempl } from "../param"
+import { createEnv } from "../std"
+import { Bool, Int, Ty } from "../ty"
 
 const env = createEnv()
 const ctx = env.ctx()

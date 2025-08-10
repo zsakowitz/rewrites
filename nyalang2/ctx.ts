@@ -43,9 +43,8 @@ export class Ctx<SymTag = unknown> {
     return new ValString(ret)
   }
 
-  runtime(val: Val): Val {
-    const x = this.target.x(this, val)
-    return new Val(x, val.ty, false)
+  runtime(val: Val): string | null {
+    return this.target.x(this, val)
   }
 
   // doesn't yet handle broadcasting and lists

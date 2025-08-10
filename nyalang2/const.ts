@@ -1,18 +1,22 @@
 import type * as Bun from "bun"
 import type { BunInspectOptions } from "bun"
 import { INSPECT } from "./inspect"
-import { Param, type FnParams, type ParamKind } from "./param"
-import { Ty, type T } from "./ty"
+import { Param, ParamKind, type FnParams } from "./param"
+import { T, Ty } from "./ty"
 
-type ConstVal<K extends T.Bool | T.Int> =
+type ConstVal<K extends T.Const> =
   | (K extends T.Bool ? boolean : never)
   | (K extends T.Int ? number : never)
   | Param<ParamKind.Const>
 
 export class Const<
-  K extends T.Bool | T.Int = T.Bool | T.Int,
+  K extends T.Const = T.Const,
   V extends ConstVal<K> = ConstVal<K>,
 > {
+  static Param<K extends T.Const>(label: string, k: Ty<K>) {
+    return new Const(new Param(label, ParamKind.Const), k)
+  }
+
   constructor(
     readonly value: V,
     readonly ty: Ty<K>,
@@ -62,7 +66,7 @@ export class Const<
     )
   }
 
-  is0(this: Const<T.Int>) {
+  is0() {
     return this.value === 0
   }
 
