@@ -234,12 +234,6 @@ class CoercionsRaw {
   }
 }
 
-export const enum Variance {
-  Normal,
-  Reverse,
-  Invariant,
-}
-
 // Let 'primitive' mean 'bool', 'int', 'num', or an AdtPlain type. Then, letting
 // `A->B` mean "A coerces to B", these things can be coerced:
 //
@@ -249,6 +243,16 @@ export const enum Variance {
 // - (~?)[A; M, N, ...] -> (~?)[B; M, N, ...], if A->B and (~ on the input) => (~ on the output)
 // - (~?)[A; M, N, ...] -> [B], if A->B
 // - AdtExt<A> -> AdtExt<B>, if A->B
+
+export const enum VarTy {
+  Coercible,
+  Invar,
+}
+
+export const enum VarConst {
+  Le,
+  Eq,
+}
 
 export class Coercions {
   readonly #raw = new CoercionsRaw()
@@ -271,7 +275,6 @@ export class Coercions {
     this.#raw.addCoercion(new Coercion(from, into, false, exec), pos)
   }
 
-  /** Given some input type and some output type, returns */
   can(from: Ty, into: Ty, params: Params): boolean {
     // quick catch
     if (from == into) {
@@ -280,7 +283,7 @@ export class Coercions {
 
     if (into.is(T.Param)) {
       const src = into.of as TyData[T.Param]
-      return params.set(src, from)
+      return params.setTyCoercible(src, from, this)
     }
 
     switch (from.k) {
@@ -290,23 +293,6 @@ export class Coercions {
       case T.Int:
       case T.Num:
         return this.#raw.has(from, into)
-      case T.Adt: {
-        const src = from.of as TyData[T.Adt]
-        if (!src.adt.generics) {
-          return this.#raw.has(from, into)
-        } else if (into.is(T.Adt)) {
-          const dst = into.of
-
-          return (
-            src.adt == dst.adt
-            && src.adt.generics.coerce != null
-            && src.consts.every((x, i) => x.eq(dst.consts[i]!))
-            && src.tys.every((x, i) => this.can(x, dst.tys[i]!, params))
-          )
-        } else {
-          return false
-        }
-      }
       case T.Sym: {
         const src = from.of as TyData[T.Sym]
         if (into.is(T.Sym)) {
@@ -325,6 +311,14 @@ export class Coercions {
         }
         return false
       }
+      case T.Tuple: {
+        const src = from.of as TyData[T.Tuple]
+        return (
+          into.is(T.Tuple)
+          && into.of.length == src.length
+          && src.every((x, i) => this.can(x, into.of[i]!, params))
+        )
+      }
       case T.ArrayFixed: {
         const src = from.of as TyData[T.ArrayFixed]
         if (into.is(T.ArrayFixed)) {
@@ -332,12 +326,15 @@ export class Coercions {
           return (
             this.can(src.el, dst.el, params)
             && src.size.length == dst.size.length
-            && src.size.every((x, i) => dst.size[i] == x)
+            && src.size.every((x, i) => x.eqTo(dst.size[i]!, params))
           )
         }
         if (into.is(T.ArrayCapped) && src.size.length == 1) {
           const dst = into.of
-          return this.can(src.el, dst.el, params) && src.size[0]!.le(dst.size)
+          return (
+            this.can(src.el, dst.el, params)
+            && src.size[0]!.leTo(dst.size, params)
+          )
         }
         if (into.is(T.ArrayUnsized)) {
           return src.size.length == 1 && this.can(src.el, into.of.el, params)
@@ -348,7 +345,9 @@ export class Coercions {
         const src = from.of as TyData[T.ArrayCapped]
         if (into.is(T.ArrayCapped)) {
           const dst = into.of
-          return this.can(src.el, dst.el, params) && src.size.le(dst.size)
+          return (
+            this.can(src.el, dst.el, params) && src.size.leTo(dst.size, params)
+          )
         }
         if (into.is(T.ArrayUnsized)) {
           return this.can(src.el, into.of.el, params)
@@ -359,13 +358,29 @@ export class Coercions {
         const src = from.of as TyData[T.ArrayUnsized]
         return into.is(T.ArrayUnsized) && this.can(src.el, into.of.el, params)
       }
-      case T.Tuple: {
-        const src = from.of as TyData[T.Tuple]
-        return (
-          into.is(T.Tuple)
-          && into.of.length == src.length
-          && src.every((x, i) => this.can(x, into.of[i]!, params))
-        )
+      case T.Adt: {
+        const src = from.of as TyData[T.Adt]
+        if (!src.adt.generics) {
+          return this.#raw.has(from, into)
+        } else if (into.is(T.Adt)) {
+          const dst = into.of
+
+          return (
+            src.adt == dst.adt
+            && src.adt.generics.consts.every((x, i) =>
+              x.var == VarConst.Le ?
+                src.consts[i]!.leTo(dst.consts[i]!, params)
+              : src.consts[i]!.eqTo(dst.consts[i]!, params),
+            )
+            && src.adt.generics.tys.every((x, i) =>
+              x == VarTy.Coercible ?
+                this.can(src.tys[i]!, dst.tys[i]!, params)
+              : src.tys[i]!.eq(dst.tys[i]!, params),
+            )
+          )
+        } else {
+          return false
+        }
       }
       case T.Fn: {
         const src = from.of as TyData[T.Fn]

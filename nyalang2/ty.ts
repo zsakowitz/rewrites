@@ -4,7 +4,7 @@ import type { Const } from "./const"
 import type { Fn } from "./fn"
 import type { IdGlobal } from "./id"
 import { INSPECT } from "./inspect"
-import type { Param, ParamKind } from "./param"
+import type { Param, ParamKind, Params } from "./param"
 
 // prettier-ignore
 // no uint b/c js doesn't support it and glsl only uses `int`
@@ -68,9 +68,13 @@ export class Ty<out K extends T = T> {
     return this.k == (k as any as K)
   }
 
-  eq(other: Ty): boolean {
+  eq(other: Ty, params: Params): boolean {
     if (this.k != other.k) {
       return false
+    }
+
+    if (other.is(T.Param)) {
+      return params.setTyInvar(other.of, this)
     }
 
     switch (this.k as T) {
@@ -82,39 +86,41 @@ export class Ty<out K extends T = T> {
       case T.Sym: {
         const src = this.of as TyData[T.Sym]
         const dst = other.of as TyData[T.Sym]
-        return src.tag == dst.tag && src.el.eq(dst.el)
+        return src.tag == dst.tag && src.el.eq(dst.el, params)
       }
       case T.Tuple: {
         const src = this.of as TyData[T.Tuple]
         const dst = other.of as TyData[T.Tuple]
-        return src.length == dst.length && src.every((x, i) => x.eq(dst[i]!))
+        return (
+          src.length == dst.length && src.every((x, i) => x.eq(dst[i]!, params))
+        )
       }
       case T.ArrayFixed: {
         const src = this.of as TyData[T.ArrayFixed]
         const dst = other.of as TyData[T.ArrayFixed]
         return (
-          src.el.eq(dst.el)
+          src.el.eq(dst.el, params)
           && src.size.length == dst.size.length
-          && src.size.every((x, i) => x.eq(dst.size[i]!))
+          && src.size.every((x, i) => x.eqTo(dst.size[i]!, params))
         )
       }
       case T.ArrayCapped: {
         const src = this.of as TyData[T.ArrayCapped]
         const dst = other.of as TyData[T.ArrayCapped]
-        return src.el.eq(dst.el) && src.size.eq(dst.size)
+        return src.el.eq(dst.el, params) && src.size.eqTo(dst.size, params)
       }
       case T.ArrayUnsized: {
         const src = this.of as TyData[T.ArrayUnsized]
         const dst = other.of as TyData[T.ArrayUnsized]
-        return src.el.eq(dst.el)
+        return src.el.eq(dst.el, params)
       }
       case T.Adt: {
         const src = this.of as TyData[T.Adt]
         const dst = other.of as TyData[T.Adt]
         return (
           src.adt == dst.adt
-          && src.tys.every((x, i) => x.eq(dst.tys[i]!))
-          && src.consts.every((x, i) => x.eq(dst.consts[i]!))
+          && src.tys.every((x, i) => x.eq(dst.tys[i]!, params))
+          && src.consts.every((x, i) => x.eqTo(dst.consts[i]!, params))
         )
       }
       case T.Fn: {

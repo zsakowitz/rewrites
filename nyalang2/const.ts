@@ -1,7 +1,7 @@
 import type * as Bun from "bun"
 import type { BunInspectOptions } from "bun"
 import { INSPECT } from "./inspect"
-import type { Param } from "./param"
+import { Param, type ParamKind, type Params } from "./param"
 import { Ty, type T } from "./ty"
 
 export class Const<K extends T.Bool | T.Int = T.Bool | T.Int> {
@@ -9,32 +9,42 @@ export class Const<K extends T.Bool | T.Int = T.Bool | T.Int> {
     readonly value:
       | (K extends T.Bool ? boolean : never)
       | (K extends T.Int ? number : never)
-      | Param,
+      | Param<ParamKind.Const>,
     readonly ty: Ty<K>,
   ) {}
 
   /**
-   * If this returns `true`, the values are equal. The converse is not true,
-   * since `T == 0` cannot be proven in general for generic `T`.
+   * If this returns `true`, `this` can be assigned to `other` under `params`.
+   * The converse might not be true: `0.eqTo(T)`, but `!T.eqTo(0)` for generic
+   * `T`.
    */
-  eq(other: Const) {
-    return this.ty === other.ty && this.value === other.value
+  eqTo(other: Const, params: Params) {
+    if (this.ty !== other.ty) {
+      return false
+    }
+
+    return (
+      this.value === other.value
+      || (other.value instanceof Param
+        && params.setConst(other.value, this, params))
+    )
   }
 
   /**
    * If this returns `true`, `this <= other`. The converse is not true, since `T
    * <= U` cannot be proven in general for generics `T` and `U`.
    */
-  le(this: Const<T.Int>, other: Const<T.Int>) {
-    const vl = this.value
-    const vr = other.value
+  leTo(this: Const, other: Const, params: Params) {
     return (
-      vl == vr || (typeof vl == "number" && typeof vr == "number" && vl <= vr)
+      this.eqTo(other, params)
+      || (typeof this.value == "number"
+        && typeof other.value == "number"
+        && this.value <= other.value)
     )
   }
 
   is0(this: Const<T.Int>) {
-    return this.value == 0
+    return this.value === 0
   }
 
   toString() {

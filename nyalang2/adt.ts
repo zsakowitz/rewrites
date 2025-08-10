@@ -1,3 +1,4 @@
+import type { VarConst, VarTy } from "./coercion"
 import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdGlobal } from "./id"
@@ -16,16 +17,13 @@ export class AdtSym {
 
 interface AdtGenerics {
   /**
-   * Used for coercing the generics of this ADT into a wider set (e.g.
-   * `Matrix<num>` -> `Matrix<Complex>`). If `null`, this ADT cannot be coerced
-   * into other types.
+   * Coerces the generics of this ADT into another set (e.g. `Matrix<num>` ->
+   * `Matrix<Complex>`).
    */
-  readonly coerce: ((src: Val, into: Ty<T.Adt>, ctx: Ctx) => Val) | null
+  coerce(src: Val, into: Ty<T.Adt>, ctx: Ctx): Val
 
-  readonly tyCount: number
-
-  /** Types for each constant of the ADT. */
-  readonly consts: readonly Ty[]
+  readonly tys: readonly VarTy[]
+  readonly consts: readonly { ty: Ty; var: VarConst }[]
 }
 
 export class Adt {
@@ -39,7 +37,7 @@ export class Adt {
     readonly toRuntime: (ctx: Ctx, val: Val<T.Adt>) => string | null,
     pos: Pos,
   ) {
-    if (generics?.consts.some((x) => x != Ty.Bool || x != Ty.Int)) {
+    if (generics?.consts.some((x) => x.ty != Ty.Bool && x.ty != Ty.Int)) {
       issue(`Bug: Const parameters must be of type 'bool' or 'int'.`, pos)
     }
   }

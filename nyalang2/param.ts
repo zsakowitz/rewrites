@@ -1,4 +1,5 @@
 import type { BunInspectOptions } from "bun"
+import type { Coercions } from "./coercion"
 import type { Const } from "./const"
 import type { Ctx } from "./ctx"
 import { IdLabeled } from "./id"
@@ -22,9 +23,22 @@ export class Param<K extends ParamKind = ParamKind> extends IdLabeled {
 }
 
 export class Params {
-  #map = new Map<Param, Ty | Const>()
+  #map: Map<Param, Ty | Const>
+  #invar: Set<Param>
 
-  constructor(readonly ctx: Ctx) {}
+  constructor(
+    readonly ctx: Ctx,
+    parent_: ParamsReadonly | null,
+  ) {
+    if (parent_) {
+      const parent = parent_ as Params
+      this.#map = new Map(parent.#map)
+      this.#invar = new Set(parent.#map.keys())
+    } else {
+      this.#map = new Map()
+      this.#invar = new Set()
+    }
+  }
 
   get(key: Param<ParamKind.Ty>): Ty
   get(key: Param<ParamKind.Const>): Const
@@ -37,25 +51,42 @@ export class Params {
     return val
   }
 
-  /**
-   * Returns `true` if the given parameter can be set to the given value.
-   *
-   * This returns `false`, for instance, when called as `.set(T, Bool)` and
-   * `.set(T, Int)` (assuming neither coerces into the other).
-   */
-  set(key: Param<ParamKind.Ty>, value: Ty): boolean
-  set(key: Param<ParamKind.Const>, value: Const): boolean
-  set(key: Param, value: Ty | Const): boolean {
-    const existing = this.#map.get(key)
+  setConst(key: Param<ParamKind.Const>, value: Const, params: Params): boolean {
+    const existing = this.#map.get(key) as Const | undefined
     if (!existing) {
       this.#map.set(key, value)
       return true
     }
 
-    // TODO: this should actually coerce different Tys into each other, provided
-    // they are not part of a non-coercing ADT (so `Matrix<T> + Matrix<T>` works
-    // for `Matrix<num>` and `Matrix<Complex>`)
-    return value.eq(existing as never)
+    return value.eqTo(existing, params)
+  }
+
+  setTyCoercible(key: Param<ParamKind.Ty>, value: Ty, coercions: Coercions) {
+    const existing = this.#map.get(key) as Ty | undefined
+    if (!existing) {
+      this.#map.set(key, value)
+      return true
+    }
+
+    const isInvar = this.#invar.has(key)
+    if (isInvar) {
+      return value.eq(existing, this)
+    }
+
+    // TODO: coerce `value` into `existing` or vice versa
+    return value.eq(existing, this)
+  }
+
+  setTyInvar(key: Param<ParamKind.Ty>, value: Ty) {
+    const existing = this.#map.get(key) as Ty | undefined
+    if (!existing) {
+      this.#map.set(key, value)
+      return true
+    }
+
+    this.#invar.add(key)
+
+    return value.eq(existing, this)
   }
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
@@ -76,3 +107,5 @@ export class Params {
     )
   }
 }
+
+export interface ParamsReadonly extends Pick<Params, "get"> {}

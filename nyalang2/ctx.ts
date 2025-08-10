@@ -1,6 +1,7 @@
 import type { Block } from "./block"
 import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
+import { Params } from "./param"
 import type { Pos } from "./pos"
 import { Ty, type T } from "./ty"
 import { Val, ValString } from "./val"
@@ -57,12 +58,13 @@ export class Ctx<SymTag = unknown> {
     const cx = this.root.coerce
     for (let i = 0; i < fns.length; i++) {
       const fn = fns[i]!
+      const params = new Params(this, this.block.params)
       if (
         fn.args.length == args.length
-        && args.every((x, i) => cx.can(x.ty, fn.args[i]!))
+        && args.every((x, i) => cx.can(x.ty, fn.args[i]!, params))
       ) {
         return fn.exec(
-          args.map((x, i) => cx.map(this, x, fn.args[i]!)),
+          args.map((x, i) => cx.map(this, x, fn.args[i]!, params)),
           this,
         )
       }
