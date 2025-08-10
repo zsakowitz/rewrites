@@ -33,14 +33,15 @@ ctx.root.pushFn(
 const U = Ty.Param("U")
 const V = Ty.Param("V")
 
+const templ = new FnParamsTempl().set(U.of, Var.Invar).set(V.of, Var.Invar)
 ctx.root.pushFn(
   new Fn(
     ident("get_next"),
-    new FnParamsTempl().set(U.of, Var.Invar).set(V.of, Var.Invar),
+    templ,
     [ident("target")],
     [U],
     V,
-    [new Constraint(C.Fn, new FnSignature(ident("next"), [U], V, []))],
+    [new Constraint(C.Fn, new FnSignature(ident("next"), [U], V))],
     (ctx, [val]) => ctx.callVal(ident("next"), [val!]),
   ),
 )

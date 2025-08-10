@@ -19,16 +19,10 @@ export class FnSignature {
     readonly id: FnName,
     readonly args: readonly Ty[],
     readonly ret: Ty,
-    readonly where: Constraint[],
   ) {}
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
-    return (
-      `fn ${this.id.label}(${this.args.map((x) => inspect(x, p))}) -> ${inspect(this.ret, p)}`
-      + (this.where.length ?
-        ` where ` + this.where.map((x) => inspect(x, p)).join(", ")
-      : "")
-    )
+    return `fn ${this.id.label}(${this.args.map((x) => inspect(x, p))}) -> ${inspect(this.ret, p)}`
   }
 }
 
@@ -39,10 +33,10 @@ export class Fn extends FnSignature {
     readonly argn: readonly IdGlobal[],
     args: readonly Ty[],
     ret: Ty,
-    where: Constraint[],
+    readonly where: Constraint[],
     readonly exec: (ctx: Ctx, args: Val[]) => Val,
   ) {
-    super(id, args, ret, where)
+    super(id, args, ret)
   }
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
