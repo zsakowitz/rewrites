@@ -4,9 +4,9 @@ import { C, Constraint } from "./constraint"
 import { _try } from "./error"
 import { Fn, FnSignature } from "./fn"
 import { ident } from "./id"
-import { FnParamsTempl, Param, ParamKind } from "./param"
+import { FnParamsTempl } from "./param"
 import { createEnv } from "./std"
-import { Bool, Int, T, Ty } from "./ty"
+import { Bool, Int, Ty } from "./ty"
 
 const env = createEnv()
 const ctx = env.ctx()
@@ -30,8 +30,9 @@ ctx.root.pushFn(
   ),
 )
 
-const U = new Ty(T.Param, new Param("U", ParamKind.Ty))
-const V = new Ty(T.Param, new Param("V", ParamKind.Ty))
+const U = Ty.Param("U")
+const V = Ty.Param("V")
+
 ctx.root.pushFn(
   new Fn(
     ident("get_next"),

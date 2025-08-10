@@ -3,7 +3,7 @@ import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdGlobal } from "./id"
 import type { Pos } from "./pos"
-import { Ty, type T } from "./ty"
+import { Bool, Int, Ty, type T } from "./ty"
 import type { Val } from "./val"
 
 export class AdtSym {
@@ -36,7 +36,7 @@ export class Adt {
     readonly toRuntime: (ctx: Ctx, val: Val<T.Adt>) => string | null,
     pos: Pos,
   ) {
-    if (generics?.consts.some((x) => x.ty != Ty.Bool && x.ty != Ty.Int)) {
+    if (generics?.consts.some((x) => x.ty != Bool && x.ty != Int)) {
       issue(`Bug: Const parameters must be of type 'bool' or 'int'.`, pos)
     }
   }

@@ -30,6 +30,7 @@ export class Constraint<K extends C = C> {
       case C.Fn: {
         const src = this.of as ConstraintData[C.Fn]
         const resolvedArgs = src.args.map((x) => x.with(params))
+        console.log({ src: src.args, dst: resolvedArgs })
         const ret = ctx.callTy(src.id, resolvedArgs)
         return ret != null && ctx.root.coerce.can(ret, src.ret, params)
       }

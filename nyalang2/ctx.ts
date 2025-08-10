@@ -3,7 +3,7 @@ import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
 import { type Param } from "./param"
 import type { Pos } from "./pos"
-import { Ty, type T } from "./ty"
+import { Ty, Void, type T } from "./ty"
 import { Val, ValString } from "./val"
 
 export class Ctx<SymTag = unknown> {
@@ -161,7 +161,7 @@ export class Ctx<SymTag = unknown> {
   }
 
   void() {
-    return this.unit(Ty.Void)
+    return this.unit(Void)
   }
 
   tuple(vals: Val[]): Val<T.Tuple> {

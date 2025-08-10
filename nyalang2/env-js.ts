@@ -3,10 +3,8 @@ import type { Ctx } from "./ctx"
 import { DEV } from "./debug"
 import { Id, type IdGlobal } from "./id"
 import type { Target } from "./target"
-import { T, Ty, type TyData } from "./ty"
+import { Bool, Int, Num, T, Ty, Void, type TyData } from "./ty"
 import { Val } from "./val"
-
-const { Int } = Ty
 
 declare class SymTag {
   private __brand
@@ -190,7 +188,7 @@ export const TARGET_JS = {
 
   tupleJoin(ctx, els) {
     if (els.length == 0) {
-      return ctx.unit(Ty.Void)
+      return ctx.unit(Void)
     }
 
     const ty = new Ty(
@@ -213,7 +211,7 @@ export const TARGET_JS = {
     }
   },
   tupleSplit(ctx, val) {
-    if (val.ty == Ty.Void) {
+    if (val.ty == Void) {
       return []
     }
 
@@ -257,7 +255,7 @@ export const TARGET_JS = {
   },
 
   arrayCons(ctx, sizeRaw, el, vals) {
-    const size = sizeRaw.map((x) => new Const(x, Ty.Int))
+    const size = sizeRaw.map((x) => new Const(x, Int))
     const ty = new Ty(T.ArrayFixed, { el, size })
     if (ty.has1) {
       return ctx.unit(ty)
@@ -327,12 +325,12 @@ export const TARGET_JS = {
   },
 
   createBool(_ctx, value) {
-    return new Val(value, Ty.Bool, true)
+    return new Val(value, Bool, true)
   },
   createInt(_ctx, value) {
-    return new Val(+value | 0, Ty.Int, true)
+    return new Val(+value | 0, Int, true)
   },
   createNum(_ctx, value) {
-    return new Val(+value, Ty.Num, true)
+    return new Val(+value, Num, true)
   },
 } satisfies Target<Repr.SymTag> as Target<any> as Target<SymTag>

@@ -2,7 +2,7 @@ import type { Associate } from "./ac"
 import { Coercions } from "./coercion"
 import { Fn, type FnName } from "./fn"
 import { ident, type IdGlobal } from "./id"
-import { Ty } from "./ty"
+import { Bool, Int, Num, Ty } from "./ty"
 
 export class Scope {
   readonly #fns = new Map<FnName, Fn[]>()
@@ -53,8 +53,8 @@ export class ScopeRoot extends Scope {
   constructor() {
     super(null!, null)
     ;(this as any).root = this
-    this.types.set(ident("bool"), Ty.Bool)
-    this.types.set(ident("int"), Ty.Int)
-    this.types.set(ident("num"), Ty.Num)
+    this.types.set(ident("bool"), Bool)
+    this.types.set(ident("int"), Int)
+    this.types.set(ident("num"), Num)
   }
 }

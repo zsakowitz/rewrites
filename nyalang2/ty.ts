@@ -5,7 +5,7 @@ import type { Const } from "./const"
 import type { Fn } from "./fn"
 import type { IdGlobal } from "./id"
 import { INSPECT } from "./inspect"
-import type { FnParams, Param, ParamKind } from "./param"
+import { Param, ParamKind, type FnParams } from "./param"
 
 // prettier-ignore
 // no uint b/c js doesn't support it and glsl only uses `int`
@@ -43,14 +43,12 @@ export interface TyData {
 }
 
 export class Ty<out K extends T = T> {
-  static Never = new Ty(T.Never, null)
-  static Bool = new Ty(T.Bool, null)
-  static Int = new Ty(T.Int, null)
-  static Num = new Ty(T.Num, null)
-  static Void = new Ty(T.Tuple, [])
-
   static Sym(tag: IdGlobal): Ty<T.Sym> {
-    return new Ty(T.Sym, { tag, el: Ty.Void })
+    return new Ty(T.Sym, { tag, el: Void })
+  }
+
+  static Param(label: string): Ty<T.Param> {
+    return new Ty(T.Param, new Param(label, ParamKind.Ty))
   }
 
   constructor(
@@ -339,7 +337,7 @@ export class Ty<out K extends T = T> {
       case T.Sym: {
         const o = this.of as TyData[T.Sym]
         const tag = o.tag ? ":" + o.tag.label : `sym`
-        return tag + (o.el != Ty.Void ? `(${o.el})` : "")
+        return tag + (o.el != Void ? `(${o.el})` : "")
       }
       case T.ArrayFixed: {
         const o = this.of as TyData[T.ArrayFixed]
@@ -364,7 +362,7 @@ export class Ty<out K extends T = T> {
       }
       case T.Fn: {
         const o = this.of as TyData[T.Fn]
-        return `fn(${o.args.join(", ")})${o.ret == Ty.Void ? "" : ` -> ${o.ret}`}`
+        return `fn(${o.args.join(", ")})${o.ret == Void ? "" : ` -> ${o.ret}`}`
       }
       case T.Param:
         return (this.of as TyData[T.Param]).label
@@ -378,7 +376,8 @@ export class Ty<out K extends T = T> {
   }
 }
 
-export const Int = Ty.Int
-export const Bool = Ty.Bool
-export const Num = Ty.Num
-export const Void = Ty.Void
+export const Never = new Ty(T.Never, null)
+export const Bool = new Ty(T.Bool, null)
+export const Int = new Ty(T.Int, null)
+export const Num = new Ty(T.Num, null)
+export const Void = new Ty(T.Tuple, [])
