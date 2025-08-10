@@ -2,6 +2,7 @@ import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
+import type { Params } from "./param"
 import type { Pos } from "./pos"
 import { T, Ty, type TyData } from "./ty"
 import { Val } from "./val"
@@ -233,6 +234,12 @@ class CoercionsRaw {
   }
 }
 
+export const enum Variance {
+  Normal,
+  Reverse,
+  Invariant,
+}
+
 // Let 'primitive' mean 'bool', 'int', 'num', or an AdtPlain type. Then, letting
 // `A->B` mean "A coerces to B", these things can be coerced:
 //
@@ -264,10 +271,16 @@ export class Coercions {
     this.#raw.addCoercion(new Coercion(from, into, false, exec), pos)
   }
 
-  can(from: Ty, into: Ty): boolean {
+  /** Given some input type and some output type, returns */
+  can(from: Ty, into: Ty, params: Params): boolean {
     // quick catch
     if (from == into) {
       return true
+    }
+
+    if (into.is(T.Param)) {
+      const src = into.of as TyData[T.Param]
+      return params.set(src, from)
     }
 
     switch (from.k) {
@@ -288,7 +301,7 @@ export class Coercions {
             src.adt == dst.adt
             && src.adt.generics.coerce != null
             && src.consts.every((x, i) => x.eq(dst.consts[i]!))
-            && src.tys.every((x, i) => this.can(x, dst.tys[i]!))
+            && src.tys.every((x, i) => this.can(x, dst.tys[i]!, params))
           )
         } else {
           return false
@@ -299,14 +312,15 @@ export class Coercions {
         if (into.is(T.Sym)) {
           const dst = into.of
           return (
-            (dst.tag ? src.tag == dst.tag : true) && this.can(src.el, dst.el)
+            (dst.tag ? src.tag == dst.tag : true)
+            && this.can(src.el, dst.el, params)
           )
         }
         if (src.tag && into.is(T.Adt)) {
           const dst = into.of
           const converter = dst.adt.syms.get(src.tag)
           if (converter) {
-            return this.can(src.el, converter.arg)
+            return this.can(src.el, converter.arg, params)
           }
         }
         return false
@@ -316,17 +330,17 @@ export class Coercions {
         if (into.is(T.ArrayFixed)) {
           const dst = into.of
           return (
-            this.can(src.el, dst.el)
+            this.can(src.el, dst.el, params)
             && src.size.length == dst.size.length
             && src.size.every((x, i) => dst.size[i] == x)
           )
         }
         if (into.is(T.ArrayCapped) && src.size.length == 1) {
           const dst = into.of
-          return this.can(src.el, dst.el) && src.size[0]!.le(dst.size)
+          return this.can(src.el, dst.el, params) && src.size[0]!.le(dst.size)
         }
         if (into.is(T.ArrayUnsized)) {
-          return src.size.length == 1 && this.can(src.el, into.of.el)
+          return src.size.length == 1 && this.can(src.el, into.of.el, params)
         }
         return false
       }
@@ -334,23 +348,23 @@ export class Coercions {
         const src = from.of as TyData[T.ArrayCapped]
         if (into.is(T.ArrayCapped)) {
           const dst = into.of
-          return this.can(src.el, dst.el) && src.size.le(dst.size)
+          return this.can(src.el, dst.el, params) && src.size.le(dst.size)
         }
         if (into.is(T.ArrayUnsized)) {
-          return this.can(src.el, into.of.el)
+          return this.can(src.el, into.of.el, params)
         }
         return false
       }
       case T.ArrayUnsized: {
         const src = from.of as TyData[T.ArrayUnsized]
-        return into.is(T.ArrayUnsized) && this.can(src.el, into.of.el)
+        return into.is(T.ArrayUnsized) && this.can(src.el, into.of.el, params)
       }
       case T.Tuple: {
         const src = from.of as TyData[T.Tuple]
         return (
           into.is(T.Tuple)
           && into.of.length == src.length
-          && src.every((x, i) => this.can(x, into.of[i]!))
+          && src.every((x, i) => this.can(x, into.of[i]!, params))
         )
       }
       case T.Fn: {
@@ -368,13 +382,17 @@ export class Coercions {
   }
 
   /** Assumes `.can()` returned true, so it doesn't repeat any checks from there. */
-  map(ctx: Ctx, val: Val, into: Ty): Val {
+  map(ctx: Ctx, val: Val, into: Ty, params: Params): Val {
     const from = val.ty
     if (from == into) {
       return val
     }
 
     const t = ctx.target
+
+    if (into.is(T.Param)) {
+      return this.map(ctx, val, params.get(into.of), params)
+    }
 
     switch (from.k) {
       case T.Never:
@@ -394,11 +412,16 @@ export class Coercions {
 
           // we must also have a const tag if dst has a const tag
           if (dst.tag) {
-            return this.map(ctx, val.transmute(src.el), dst.el).transmute(into)
+            return this.map(
+              ctx,
+              val.transmute(src.el),
+              dst.el,
+              params,
+            ).transmute(into)
           }
 
           const [tag, el] = t.symSplit(ctx, val as Val<T.Sym>)
-          const el2 = this.map(ctx, el, dst.el)
+          const el2 = this.map(ctx, el, dst.el, params)
           return t.symJoin(ctx, tag, el2)
         } else {
           const dst = into as Ty<T.Adt>
@@ -415,7 +438,7 @@ export class Coercions {
           ctx,
           val as Val<T.ArrayFixed | T.ArrayCapped | T.ArrayUnsized>,
           retEl,
-          (el) => this.map(ctx, el, retEl),
+          (el) => this.map(ctx, el, retEl, params),
         )
         switch (val.ty.k as T.ArrayAny) {
           case T.ArrayFixed:
@@ -445,7 +468,7 @@ export class Coercions {
       case T.Tuple: {
         const dst = into.of as TyData[T.Tuple]
         const els = t.tupleSplit(ctx, val as Val<T.Tuple>)
-        const els2 = els.map((el, i) => this.map(ctx, el, dst[i]!))
+        const els2 = els.map((el, i) => this.map(ctx, el, dst[i]!, params))
         return t.tupleJoin(ctx, els2)
       }
       case T.Adt: {
