@@ -1,3 +1,4 @@
+import type { Associate } from "./ac"
 import { Coercions } from "./coercion"
 import { Fn } from "./fn"
 import { ident, type IdGlobal } from "./id"
@@ -6,6 +7,7 @@ import { Ty } from "./ty"
 
 export class Scope {
   readonly #fns = new Map<IdGlobal | Param, Fn[]>()
+  readonly #acs = new Map<IdGlobal, Associate[]>()
 
   constructor(
     readonly root: ScopeRoot,
@@ -24,6 +26,20 @@ export class Scope {
     }
 
     list.push(fn)
+  }
+
+  acs(id: IdGlobal): Associate[] {
+    return this.#acs.get(id) ?? (this.parent ? this.parent.acs(id) : [])
+  }
+
+  pushAc(ac: Associate) {
+    let list = this.#acs.get(ac.id)
+    if (!list) {
+      list = this.acs(ac.id).slice()
+      this.#acs.set(ac.id, list)
+    }
+
+    list.push(ac)
   }
 }
 

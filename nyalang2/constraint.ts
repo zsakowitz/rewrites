@@ -1,14 +1,13 @@
+import type { AssociateSignature } from "./ac"
 import type { FnSignature } from "./fn"
-import type { IdGlobal } from "./id"
-import type { Param } from "./param"
 
 export const enum C {
-  AssociatedType,
+  Assoc,
   Fn,
 }
 
 export interface ConstraintData {
-  [C.AssociatedType]: { name: IdGlobal; param: Param }
+  [C.Assoc]: AssociateSignature
   [C.Fn]: FnSignature
 }
 
