@@ -203,9 +203,9 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
       case T.Fn:
-        return false
-      case T.Param:
         return true
+      case T.Param:
+        return false
       case T.Sym: {
         const src = this.of as TyData[T.Sym]
         return src.el.const
