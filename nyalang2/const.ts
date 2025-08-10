@@ -4,12 +4,17 @@ import { INSPECT } from "./inspect"
 import { Param, type ParamKind, type Params } from "./param"
 import { Ty, type T } from "./ty"
 
-export class Const<K extends T.Bool | T.Int = T.Bool | T.Int> {
+type ConstVal<K extends T.Bool | T.Int> =
+  | (K extends T.Bool ? boolean : never)
+  | (K extends T.Int ? number : never)
+  | Param<ParamKind.Const>
+
+export class Const<
+  K extends T.Bool | T.Int = T.Bool | T.Int,
+  V extends ConstVal<K> = ConstVal<K>,
+> {
   constructor(
-    readonly value:
-      | (K extends T.Bool ? boolean : never)
-      | (K extends T.Int ? number : never)
-      | Param<ParamKind.Const>,
+    readonly value: V,
     readonly ty: Ty<K>,
   ) {}
 
