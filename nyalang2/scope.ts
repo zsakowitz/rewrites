@@ -1,26 +1,26 @@
 import { Coercions } from "./coercion"
 import { Fn } from "./fn"
 import { ident, type IdGlobal } from "./id"
-import { IdMap } from "./map"
+import { Param } from "./param"
 import { Ty } from "./ty"
 
 export class Scope {
-  readonly #fns = new IdMap<Fn[]>()
+  readonly #fns = new Map<IdGlobal | Param, Fn[]>()
 
   constructor(
     readonly root: ScopeRoot,
     readonly parent: Scope | null,
   ) {}
 
-  fns(id: IdGlobal): Fn[] {
+  fns(id: IdGlobal | Param): Fn[] {
     return this.#fns.get(id) ?? (this.parent ? this.parent.fns(id) : [])
   }
 
-  pushFn(id: IdGlobal, fn: Fn) {
-    let list = this.#fns.get(id)
+  pushFn(fn: Fn) {
+    let list = this.#fns.get(fn.id)
     if (!list) {
-      list = this.fns(id).slice()
-      this.#fns.set(id, list)
+      list = this.fns(fn.id).slice()
+      this.#fns.set(fn.id, list)
     }
 
     list.push(fn)
@@ -28,7 +28,7 @@ export class Scope {
 }
 
 export class ScopeRoot extends Scope {
-  readonly types = new IdMap<Ty>()
+  readonly types = new Map<IdGlobal, Ty>()
   readonly coerce = new Coercions()
 
   constructor() {

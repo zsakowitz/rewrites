@@ -276,3 +276,8 @@ export class Ty<out K extends T = T> {
     return C + this.toString().replace(/[,()]/g, (x) => R + x + C) + R
   }
 }
+
+export const Int = Ty.Int
+export const Bool = Ty.Bool
+export const Num = Ty.Num
+export const Void = Ty.Void

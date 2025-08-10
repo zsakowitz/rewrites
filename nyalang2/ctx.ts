@@ -56,19 +56,24 @@ export class Ctx<SymTag = unknown> {
 
     const fns = this.block.scope.fns(name)
     const cx = this.root.coerce
-    for (let i = 0; i < fns.length; i++) {
+    next: for (let i = 0; i < fns.length; i++) {
       const fn = fns[i]!
-      const params = new Params(this, this.block.params)
-      if (
-        fn.args.length == args.length
-        && args.every((x, i) => cx.can(x.ty, fn.args[i]!.ty, params))
-      ) {
-        return fn.exec(
-          this,
-          args.map((x, i) => cx.map(this, x, fn.args[i]!.ty, params)),
-          params,
-        )
+      if (fn.args.length != args.length) {
+        continue next
       }
+
+      const params = new Params(this, this.block.params)
+      for (let i = 0; i < fn.args.length; i++) {
+        if (!cx.can(args[i]!.ty, fn.args[i]!.ty, params)) {
+          continue next
+        }
+      }
+
+      return fn.exec(
+        this,
+        args.map((x, i) => cx.map(this, x, fn.args[i]!.ty, params)),
+        params,
+      )
     }
 
     this.issue(

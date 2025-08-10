@@ -2,7 +2,6 @@ import type { VarConst, VarTy } from "./coercion"
 import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdGlobal } from "./id"
-import type { IdMap } from "./map"
 import type { Pos } from "./pos"
 import { Ty, type T } from "./ty"
 import type { Val } from "./val"
@@ -30,7 +29,7 @@ export class Adt {
   constructor(
     readonly id: IdGlobal,
     /** For constructing this ADT from a `sym`. */
-    readonly syms: IdMap<AdtSym>,
+    readonly syms: Map<IdGlobal, AdtSym>,
     readonly generics: AdtGenerics | null,
     readonly has0: (ty: Ty<T.Adt>) => boolean,
     readonly has1: (ty: Ty<T.Adt>) => boolean,
