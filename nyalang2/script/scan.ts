@@ -1,4 +1,4 @@
-import type { BunInspectOptions } from "bun"
+import { type BunInspectOptions } from "bun"
 import { issue } from "../impl/error"
 import { INSPECT } from "../impl/inspect"
 import { Loc, Pos } from "../impl/pos"
@@ -49,6 +49,7 @@ const WS0 = " ".charCodeAt(0)
 const WS1 = "\r".charCodeAt(0)
 const WS2 = "\t".charCodeAt(0)
 
+const CODE_BACKSLASH = "\\".charCodeAt(0)
 const CODE_NL = "\n".charCodeAt(0)
 const CODE__ = "_".charCodeAt(0)
 const CODE_A = "A".charCodeAt(0)
@@ -391,6 +392,24 @@ export function scan(text: string): Scan {
           i++
           col++
           break
+        case CODE_BACKSLASH:
+          if (hashes == 0) {
+            i++
+            col++
+            if (text.charCodeAt(i) == CODE_NL) {
+              i++
+              row++
+              col += 1
+            } else {
+              i++
+              col++
+            }
+            break
+          } else {
+            i++
+            col++
+            break
+          }
         default:
           i++
           col++

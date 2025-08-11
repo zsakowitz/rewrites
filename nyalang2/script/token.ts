@@ -3,7 +3,7 @@ export enum K {
   Int,
   Num,
 
-  // String parts but backslashes perform escaping
+  // String parts
   StrFull, // "world"
   StrStart, // "world${
   StrMid, // }world${
