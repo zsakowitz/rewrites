@@ -48,6 +48,8 @@ export class Val<K extends T = T, V = unknown> {
    * - `:sym(el) -> el` if `:sym` is a single known symbol
    * - `el -> :sym(el)` if `:sym` is a single known symbol
    * - `A -> B` if `A` and `B` are variable-size arrays with elements of 'has1'
+   * - `?A -> ?B` if `A` and `B` are both has0 or both has1
+   * - `A -> B` if `A` and `B` are both has0 or both has1
    */
   transmute<K extends T>(ty: Ty<K>) {
     return new Val(this.value, ty, this.const)

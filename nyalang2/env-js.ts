@@ -23,6 +23,12 @@ declare namespace Repr {
   type ArrayFixedRuntime = unknown[]
   type ArrayCappedRuntime = number | [number, ArrayFixedRuntime]
   type ArrayUnsizedRuntime = number | unknown[]
+
+  type Opt = { ok: false; value: null } | { ok: true; value: Val }
+  type OptRuntime =
+    | boolean // if it's ?T for T.has1
+    | null // null, if ?T for !T.has1
+    | { x: unknown } // T, if ?T for !T.has1
 }
 
 // the overload signature is the real signature; internal signature lets us
@@ -112,7 +118,14 @@ function toRuntime(ctx: Ctx, val: Val): string {
     case T.Adt:
       return (val.ty.of as TyData[T.Adt]).adt.toRuntime(ctx, val as Val<T.Adt>)!
     case T.Fn:
+    case T.Null:
       ctx.unreachable()
+    case T.Option: {
+      const el = val.ty.of as TyData[T.Option]
+      const v = val.value as Repr.Opt
+      if (el.has1) return "" + v.ok
+      return v.ok ? `{x:${toRuntime(ctx, v.value)}}` : `null`
+    }
     case T.Param:
       ctx.bug("Cannot emit a value with a non-concrete type.")
   }
@@ -358,4 +371,76 @@ export const TARGET_JS = {
   createNum(_ctx, value) {
     return new Val(+value, Num, true)
   },
+
+  optFromNull(_ctx, ty) {
+    return new Val({ ok: false, value: null } satisfies Repr.Opt, ty, true)
+  },
+  optFromVal(ctx, val) {
+    const ty = new Ty(T.Option, val.ty)
+    if (val.const) {
+      return new Val({ ok: true, value: val } satisfies Repr.Opt, ty, true)
+    } else if (val.ty.has1) {
+      return new Val(
+        { ok: true, value: ctx.unit(val.ty) } satisfies Repr.Opt,
+        ty,
+        true,
+      )
+    } else {
+      return new Val(ctx.join`{x:${val}}`, ty, false)
+    }
+  },
+  optMapPure(ctx, val, retTy, map) {
+    const ty = new Ty(T.Option, retTy)
+
+    // it must be either `null` or `loop {}`; this preserves both
+    if (val.ty.has1) {
+      return val
+    }
+
+    if (val.const) {
+      const v = val.value as Repr.Opt
+
+      return new Val(
+        (v.ok ?
+          { ok: true, value: map(v.value) }
+        : { ok: false, value: null }) satisfies Repr.Opt,
+        ty,
+        true,
+      )
+    }
+
+    // runtime repr is a plain boolean
+    if (val.ty.has1) {
+      // `retTy.has0` cannot be true, since it would imply we can map from x to `has0`
+
+      if (retTy.has1) {
+        // both are plain booleans, so a transmute is legal
+        return val.transmute(ty)
+      }
+
+      const text = cacheMultiValued(ctx, val)
+      return new Val(
+        `${text}?{x:${map(new Val(`${text}.x`, retTy, false)).runtime(ctx)}}:null`,
+        ty,
+        false,
+      )
+    }
+
+    // runtime repr of `val` is `null | { x: unknown }` from now on
+
+    // runtime repr of `ret` is `boolean`
+    // so casting to a boolean should be fine
+    if (retTy.has1) {
+      return ctx.join`!!${val}`.ty(ty)
+    }
+
+    const text = cacheMultiValued(ctx, val)
+    return new Val(
+      `${text}?{x:${map(new Val(`${text}.x`, retTy, false)).runtime(ctx)}}:null`,
+      ty,
+      false,
+    )
+  },
 } satisfies Target<Repr.SymTag> as Target<any> as Target<SymTag>
+
+// TODO: verify all impls ensure `loop {}` doesn't get skipped

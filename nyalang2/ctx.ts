@@ -3,7 +3,7 @@ import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
 import { type Param } from "./param"
 import type { Pos } from "./pos"
-import { ArrayEmpty, Ty, Void, type T } from "./ty"
+import { ArrayEmpty, Null, Ty, Void, type T } from "./ty"
 import { Val, ValString } from "./val"
 
 export class Ctx<SymTag = unknown> {
@@ -186,5 +186,13 @@ export class Ctx<SymTag = unknown> {
     }
 
     return this.target.arrayCons(this, [vals.length], ty, vals)
+  }
+
+  null() {
+    return this.unit(Null)
+  }
+
+  some(val: Val): Val<T.Option> {
+    return this.target.optFromVal(this, val)
   }
 }

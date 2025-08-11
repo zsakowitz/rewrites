@@ -11,6 +11,7 @@ import { Param, ParamKind, type FnParams } from "./param"
 // no uint b/c js doesn't support it and glsl only uses `int`
 export const enum T {
   Never, Bool, Int, Num, // very core primitive types
+  Null,                  // the `null` of an optional
   ArrayEmpty,            // empty array; exists for desmos compat and other reasons
   Sym,                   // ruby symbols like :hello, with optional data attached
   Tuple,                 // on-the-fly collections
@@ -20,6 +21,7 @@ export const enum T {
   Adt,                   // for extra user-defined types
   Fn,                    // concrete closure or function reference
   Param,                 // generic parameter
+  Option,                // optional (`x` and `null` both coerce to `Option<typeof x>`)
 }
 
 // note: an array `arr` of type `[num; 2, 3]` must be indexed as `arr[1, 0]`
@@ -43,6 +45,8 @@ export interface TyData {
   [T.Adt]: { adt: Adt; tys: Ty[]; consts: Const[] }
   [T.Fn]: Fn
   [T.Param]: Param<ParamKind.Ty>
+  [T.Option]: Ty
+  [T.Null]: null
 }
 
 export class Ty<out K extends T = T> {
@@ -97,6 +101,7 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
       case T.ArrayEmpty:
+      case T.Null:
         return true
       case T.Sym: {
         const src = this.of as TyData[T.Sym]
@@ -148,6 +153,11 @@ export class Ty<out K extends T = T> {
         const dst = other.of as TyData[T.Param]
         return src == dst
       }
+      case T.Option: {
+        const src = this.of as TyData[T.Option]
+        const dst = other.of as TyData[T.Option]
+        return src.eq(dst, params)
+      }
     }
   }
 
@@ -168,6 +178,7 @@ export class Ty<out K extends T = T> {
       case T.Fn:
       case T.ArrayEmpty:
       case T.Param:
+      case T.Null:
         return this
       case T.Sym: {
         const src = this.of as TyData[T.Sym]
@@ -209,6 +220,10 @@ export class Ty<out K extends T = T> {
           consts: src.consts.map((x) => x.with(params)),
         })
       }
+      case T.Option: {
+        const src = this.of as TyData[T.Option]
+        return new Ty(T.Option, src.with(params))
+      }
     }
   }
 
@@ -220,6 +235,7 @@ export class Ty<out K extends T = T> {
       case T.Num:
       case T.Fn:
       case T.ArrayEmpty:
+      case T.Null:
         return true
       case T.Param:
         return false
@@ -247,6 +263,10 @@ export class Ty<out K extends T = T> {
         const src = this.of as TyData[T.Adt]
         return src.tys.every((x) => x.const) && src.consts.every((x) => x.const)
       }
+      case T.Option: {
+        const src = this.of as TyData[T.Option]
+        return src.const
+      }
     }
   }
 
@@ -259,6 +279,8 @@ export class Ty<out K extends T = T> {
       case T.Num:
       case T.Fn:
       case T.ArrayEmpty:
+      case T.Null:
+      case T.Option: // `null` is always available
         return false
       case T.Sym:
         return (this.of as TyData[T.Sym]).el.has0
@@ -292,6 +314,7 @@ export class Ty<out K extends T = T> {
         return false
       case T.ArrayEmpty:
       case T.Fn:
+      case T.Null:
         return true
       case T.Sym: {
         const self = this.of as TyData[T.Sym]
@@ -314,6 +337,8 @@ export class Ty<out K extends T = T> {
         return (this.of as TyData[T.ArrayUnsized]).el.has0 // only [] is valid
       case T.Adt:
         return (this.of as TyData[T.Adt]).adt.has1(this as Ty<T.Adt>)
+      case T.Option:
+        return (this.of as TyData[T.Option]).has0 // so only `null` is valid
       case T.Param:
         return false // technically this should be 'maybe', but that seems bad
     }
@@ -355,6 +380,8 @@ export class Ty<out K extends T = T> {
         return "num"
       case T.ArrayEmpty:
         return "[~empty~]"
+      case T.Null:
+        return "null"
       case T.Sym: {
         const o = this.of as TyData[T.Sym]
         const tag = o.tag ? ":" + o.tag.label : `sym`
@@ -387,6 +414,8 @@ export class Ty<out K extends T = T> {
       }
       case T.Param:
         return (this.of as TyData[T.Param]).label
+      case T.Option:
+        return `?${this.of as TyData[T.Option]}`
     }
   }
 
@@ -396,7 +425,7 @@ export class Ty<out K extends T = T> {
     return (
       C
       + this.toString().replace(
-        /[():,;[\]]/g,
+        /[():,;[\]?]/g,
         (x) => R + ("():".includes(x) ? ANSI.dim : "") + x + C,
       )
       + R
@@ -408,5 +437,6 @@ export const Never = new Ty(T.Never, null)
 export const Bool = new Ty(T.Bool, null)
 export const Int = new Ty(T.Int, null)
 export const Num = new Ty(T.Num, null)
+export const Null = new Ty(T.Null, null)
 export const ArrayEmpty = new Ty(T.ArrayEmpty, null)
 export const Void = new Ty(T.Tuple, [])

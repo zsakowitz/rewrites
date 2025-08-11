@@ -4,7 +4,7 @@ import type { IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
 import type { FnParams } from "./param"
 import type { Pos } from "./pos"
-import { T, Ty, type TyData } from "./ty"
+import { Null, T, Ty, type TyData } from "./ty"
 import { Val } from "./val"
 
 function isCoercionTarget(ty: Ty) {
@@ -280,7 +280,24 @@ export class Coercions {
       return params.setTy(into.of, from, Var.Coercible)
     }
 
+    if (into.is(T.Option)) {
+      switch (from.k) {
+        case T.Null:
+          return true
+        case T.Option: {
+          // double option is silly; we only allow casting `?A -> ?B` if
+          // `A -> B`; `?A -> ??A` isn't allowed (unless cloaked in generics,
+          // since we don't see it as `?A -> ??A` in that case)
+          const src = (from as Ty<T.Option>).of
+          return this.can(src, into, params)
+        }
+      }
+      return this.can(from, into.of, params)
+    }
+
     switch (from.k) {
+      case T.Null:
+        return into.is(T.Null)
       case T.Never:
         return true
       case T.Bool:
@@ -399,6 +416,8 @@ export class Coercions {
           into.is(T.Param)
           && (into.of satisfies IdLabeled) == (from.of as TyData[T.Param])
         )
+      case T.Option:
+        return false // already checked only way for T.Option to coerce
     }
   }
 
@@ -409,10 +428,27 @@ export class Coercions {
       return val
     }
 
-    const t = ctx.target
-
     if (into.is(T.Param) && params.has(into.of)) {
       return this.map(ctx, val, params.get(into.of), params)
+    }
+
+    const t = ctx.target
+
+    if (into.is(T.Option)) {
+      switch (from.k) {
+        case T.Null:
+          return ctx.target.optFromNull(ctx, into)
+        case T.Option: {
+          return ctx.target.optMapPure(
+            ctx,
+            val as Val<T.Option>,
+            (into as Ty<T.Option>).of,
+            (el) => this.map(ctx, el, (into as Ty<T.Option>).of, params),
+          )
+        }
+      }
+
+      return ctx.target.optFromVal(ctx, this.map(ctx, val, into.of, params))
     }
 
     switch (from.k) {
@@ -511,6 +547,10 @@ export class Coercions {
           )
         }
       }
+      case T.Null:
+        return ctx.unit(Null)
+      case T.Option:
+        ctx.unreachable()
     }
   }
 }

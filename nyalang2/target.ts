@@ -49,4 +49,13 @@ export interface Target<SymTag = unknown> {
   createBool(ctx: Ctx, value: boolean): Val<T.Bool>
   createInt(ctx: Ctx, value: string): Val<T.Int>
   createNum(ctx: Ctx, value: string): Val<T.Num>
+
+  optFromNull(ctx: Ctx, ty: Ty<T.Option>): Val<T.Option>
+  optFromVal(ctx: Ctx, val: Val): Val<T.Option>
+  optMapPure(
+    ctx: Ctx,
+    val: Val<T.Option>,
+    retTy: Ty,
+    map: (val: Val) => Val,
+  ): Val<T.Option>
 }
