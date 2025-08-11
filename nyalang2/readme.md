@@ -2,12 +2,12 @@
 
 what are the bare essentials we need?
 
-- define types and functions in JS
-- make coercion sensible AND extensible (complex matrices should Just Work)
+- ✅ define types and functions in JS
+- ✅ make coercion sensible AND extensible (complex matrices should Just Work)
 - list broadcasting and spreading (`min` and `+` come to mind)
-- const and runtime values
-- output to multiple languages
-- (maybe) closures
+- ✅ const and runtime values
+- ✅ output to multiple languages
+- ✅ (maybe) closures
 
 okay! let's go make those. wait no actually let's think about environments
 
