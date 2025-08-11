@@ -561,6 +561,16 @@ export class Coercions {
     params: FnParams | null,
     message: (a: Ty, b: Ty) => string,
   ): Ty {
+    // a common case where we can't rely on A->B or B->A is `T` and `null`
+    // in this case, we probably want `?T`, unless `T` itself is `Option`
+
+    if (a.is(T.Null) && !b.is(T.Option)) {
+      return new Ty(T.Option, b)
+    }
+    if (b.is(T.Null) && !a.is(T.Option)) {
+      return new Ty(T.Option, a)
+    }
+
     if (params == null) {
       if (this.can(a, b, null)) {
         return b
