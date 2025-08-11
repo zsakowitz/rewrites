@@ -10,6 +10,10 @@ export class Loc {
   }
 }
 
+export function join(a: Pos, b: Pos) {
+  return new Pos(a.file, a.start, b.end)
+}
+
 export class Pos {
   static native(tag = "native code") {
     return new Pos(`[${tag}]`, null, null)

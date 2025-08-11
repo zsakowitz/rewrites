@@ -4,19 +4,49 @@ import { INSPECT } from "../impl/inspect"
 import { Loc, Pos } from "../impl/pos"
 import { K, KWS, OPS_KEYED } from "./token"
 
-class Scanned {
+export class Token<V extends K = K> {
   constructor(
-    readonly k: K,
+    readonly k: V,
     readonly pos: Pos,
   ) {}
+
+  get content() {
+    return this.pos.content
+  }
+
+  issue(reason: string): never {
+    return issue(reason, this.pos)
+  }
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
     return `${K[this.k].padEnd(10, " ")} ${inspect(this.pos.content, p)}`
   }
 }
 
-class Scan {
-  constructor(readonly p: Scanned[]) {}
+export class Scan {
+  i = 0
+
+  constructor(
+    readonly filename: string,
+    readonly end: Pos,
+    readonly p: Token[],
+  ) {}
+
+  peek() {
+    return this.p[this.i]
+  }
+
+  eof(): never {
+    this.issue("Unexpected end of input.")
+  }
+
+  next() {
+    return this.p[this.i++] ?? this.eof()
+  }
+
+  issue(reason: string): never {
+    issue(reason, this.peek()?.pos ?? this.end)
+  }
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
     let indent = 0
@@ -85,7 +115,7 @@ function isAlpha(code: number) {
   )
 }
 
-export function scan(text: string): Scan {
+export function scan(filename: string, text: string): Scan {
   const depth: { kind: K.OLBrace | K.OLIterp; hashes: number }[] = []
   let row = 1
   let col = 1
@@ -128,10 +158,10 @@ export function scan(text: string): Scan {
           issue("Unmatched closing brace.", pos)
         }
         if (last.kind == K.OLBrace) {
-          ret.push(new Scanned(K.ORBrace, pos))
+          ret.push(new Token(K.ORBrace, pos))
           continue
         }
-        ret.push(new Scanned(K.ORIterp, pos))
+        ret.push(new Token(K.ORIterp, pos))
         stringContents(last.hashes, false)
         continue
       }
@@ -157,7 +187,7 @@ export function scan(text: string): Scan {
         i++
         col++
         const end = new Loc(row, col, i)
-        ret.push(new Scanned(K.Dot, new Pos(text, start, end)))
+        ret.push(new Token(K.Dot, new Pos(text, start, end)))
         break
       }
       case 0x41:
@@ -221,7 +251,7 @@ export function scan(text: string): Scan {
 
         const word = text.slice(start.idx, i)
         const pos = new Pos(text, start, new Loc(row, col, i))
-        ret.push(new Scanned(KWS.get(word) ?? K.Ident, pos))
+        ret.push(new Token(KWS.get(word) ?? K.Ident, pos))
         continue
       }
       default: {
@@ -242,10 +272,10 @@ export function scan(text: string): Scan {
               }
             }
             const end = new Loc(row, col, i)
-            ret.push(new Scanned(op, new Pos(text, start, end)))
+            ret.push(new Token(op, new Pos(text, start, end)))
           } else if (entry.has(0)) {
             const end = new Loc(row, col, i)
-            ret.push(new Scanned(entry.get(0)!, new Pos(text, start, end)))
+            ret.push(new Token(entry.get(0)!, new Pos(text, start, end)))
           } else {
             issue(
               `Unknown operator '${text[i - 1]!}'`,
@@ -269,7 +299,9 @@ export function scan(text: string): Scan {
     }
   }
 
-  return new Scan(ret)
+  const end = new Pos(text, new Loc(row, col, i), new Loc(row, col, i))
+
+  return new Scan(filename, end, ret)
 
   function parseNum() {
     const start = new Loc(row, col, i)
@@ -321,7 +353,7 @@ export function scan(text: string): Scan {
 
     const pos = new Pos(text, start, new Loc(row, col, i))
     ret.push(
-      new Scanned(
+      new Token(
         tupleIndex ? K.NumOrTupleIndex
         : num ? K.Num
         : K.Int,
@@ -379,7 +411,7 @@ export function scan(text: string): Scan {
             }
             const end = new Loc(row, col, i)
             ret.push(
-              new Scanned(
+              new Token(
                 isStart ? K.StrStart : K.StrMid,
                 new Pos(text, start, end),
               ),
@@ -388,7 +420,7 @@ export function scan(text: string): Scan {
             i += dollars + 1
             col += dollars + 1
             const end2 = new Loc(row, col, i)
-            ret.push(new Scanned(K.OLIterp, new Pos(text, end, end2)))
+            ret.push(new Token(K.OLIterp, new Pos(text, end, end2)))
             return
           }
           i++
@@ -403,7 +435,7 @@ export function scan(text: string): Scan {
             }
             const end = new Loc(row, col, i)
             ret.push(
-              new Scanned(
+              new Token(
                 isStart ? K.StrFull : K.StrFinal,
                 new Pos(text, start, end),
               ),

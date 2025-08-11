@@ -1,3 +1,6 @@
+import { parseExpr } from "../script/expr"
 import { scan } from "../script/scan"
 
-console.log(scan(".23e3"))
+const ret = scan("repl.nya", "(?45.6,null)")
+const expr = parseExpr(ret)
+console.log(expr)
