@@ -2,6 +2,7 @@ export enum K {
   // Core values; see Keywords for `true`, `false`, and `null`
   Int,
   Num,
+  NumOrTupleIndex,
 
   // String parts
   StrFull, // "world"

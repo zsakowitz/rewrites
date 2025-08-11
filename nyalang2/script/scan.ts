@@ -28,7 +28,7 @@ class Scan {
         case K.OLBrace:
         case K.OLAngle:
         case K.OLIterp:
-          ret += "\n" + " ".repeat(indent) + inspect(el, p)
+          ret += (ret ? "\n" : "") + " ".repeat(indent) + inspect(el, p)
           indent += 2
           continue
         case K.ORParen:
@@ -39,7 +39,7 @@ class Scan {
           indent -= 2
           break
       }
-      ret += "\n" + " ".repeat(indent) + inspect(el, p)
+      ret += (ret ? "\n" : "") + " ".repeat(indent) + inspect(el, p)
     }
     return ret
   }
@@ -147,6 +147,19 @@ export function scan(text: string): Scan {
       case 0x39:
         parseNum()
         break
+      case CODE_DOT: {
+        const next = text.charCodeAt(i + 1)
+        if (CODE_0 <= next && next <= CODE_9) {
+          parseNum()
+          break
+        }
+        const start = new Loc(row, col, i)
+        i++
+        col++
+        const end = new Loc(row, col, i)
+        ret.push(new Scanned(K.Dot, new Pos(text, start, end)))
+        break
+      }
       case 0x41:
       case 0x42:
       case 0x43:
@@ -262,12 +275,14 @@ export function scan(text: string): Scan {
     const start = new Loc(row, col, i)
 
     while (
-      (code = text.charCodeAt(++i))
+      (code = text.charCodeAt(i))
       && i < text.length
       && CODE_0 <= code
       && code <= CODE_9
-    ) {}
+    )
+      i++
 
+    let tupleIndex = i == start.idx
     let num = false
     if (code == CODE_DOT && !isAlpha(text.charCodeAt(i + 1))) {
       num = true
@@ -287,6 +302,7 @@ export function scan(text: string): Scan {
           && next2 <= CODE_9)
         || (CODE_0 <= next && next <= CODE_9)
       ) {
+        tupleIndex = false
         num = true
         if (next == CODE_P || next == CODE_M) {
           i++
@@ -304,7 +320,14 @@ export function scan(text: string): Scan {
     }
 
     const pos = new Pos(text, start, new Loc(row, col, i))
-    ret.push(new Scanned(num ? K.Num : K.Int, pos))
+    ret.push(
+      new Scanned(
+        tupleIndex ? K.NumOrTupleIndex
+        : num ? K.Num
+        : K.Int,
+        pos,
+      ),
+    )
   }
 
   function parseHashOrQuote() {
