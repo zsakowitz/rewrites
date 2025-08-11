@@ -91,173 +91,238 @@ export function scan(text: string): Scan {
   const ret = []
 
   let i = 0
-  for (; i < text.length; ) {
-    // Consume whitespace
-    let code
-    while (true) {
-      code = text.charCodeAt(i)
-      if (code == CODE_NL) {
+  let code
+  while (i < text.length) {
+    code = text.charCodeAt(i)
+
+    switch (code) {
+      case CODE_NL:
         row++
         col = 1
         i++
-      } else if (code == WS0 || code == WS1 || code == WS2) {
+        break
+      case WS0:
+      case WS1:
+      case WS2:
         col++
         i++
-      } else break
-    }
-
-    // Exit if at end of source
-    if (i >= text.length) {
-      const last = depth.at(-1)
-      if (last) {
-        const pos = new Pos(text, new Loc(row, col, i), new Loc(row, col, i))
-        if (last.kind == K.OLBrace) {
-          issue(`Unclosed block.`, pos)
-        } else {
-          issue(`Unterminated string.`, pos)
+        break
+      case CODE_HASH:
+      case CODE_QUOT:
+        parseHashOrQuote()
+        break
+      case CODE_LBRC:
+        depth.push({ kind: K.OLBrace, hashes: 0 })
+        i++
+        col++
+        continue
+      case CODE_RBRC: {
+        const start = new Loc(row, col, i)
+        i++
+        col++
+        const pos = new Pos(text, start, new Loc(row, col, i))
+        const last = depth.pop()
+        if (!last) {
+          issue("Unmatched closing brace.", pos)
         }
-      }
-
-      break
-    }
-
-    const start = new Loc(row, col, i)
-    if (code == CODE_HASH || code == CODE_QUOT) {
-      let hashes = 0
-      while (((code = text.charCodeAt(i)), code == CODE_HASH))
-        (hashes++, i++, col++)
-
-      if (code != CODE_QUOT)
-        issue(
-          `Unknown string delimeter '${text[i] ?? "<EOF>"}'.`,
-          new Pos(text, new Loc(row, col, i), new Loc(row, col, i)),
-        )
-
-      i++
-      col++
-
-      stringContents(hashes, true)
-      continue
-    }
-
-    if (code == CODE_LBRC) {
-      depth.push({ kind: K.OLBrace, hashes: 0 })
-      i++
-      col++
-      continue
-    }
-
-    if (code == CODE_RBRC) {
-      i++
-      col++
-      const pos = new Pos(text, start, new Loc(row, col, i))
-      const last = depth.pop()
-      if (!last) {
-        issue("Unmatched closing brace.", pos)
-      }
-      if (last.kind == K.OLBrace) {
-        ret.push(new Scanned(K.ORBrace, pos))
+        if (last.kind == K.OLBrace) {
+          ret.push(new Scanned(K.ORBrace, pos))
+          continue
+        }
+        ret.push(new Scanned(K.ORIterp, pos))
+        stringContents(last.hashes, false)
         continue
       }
-      ret.push(new Scanned(K.ORIterp, pos))
-      stringContents(last.hashes, false)
-      continue
-    }
+      case 0x30:
+      case 0x31:
+      case 0x32:
+      case 0x33:
+      case 0x34:
+      case 0x35:
+      case 0x36:
+      case 0x37:
+      case 0x38:
+      case 0x39:
+        parseNum()
+        break
+      case 0x41:
+      case 0x42:
+      case 0x43:
+      case 0x44:
+      case 0x45:
+      case 0x46:
+      case 0x47:
+      case 0x48:
+      case 0x49:
+      case 0x4a:
+      case 0x4b:
+      case 0x4c:
+      case 0x4d:
+      case 0x4e:
+      case 0x4f:
+      case 0x50:
+      case 0x51:
+      case 0x52:
+      case 0x53:
+      case 0x54:
+      case 0x55:
+      case 0x56:
+      case 0x57:
+      case 0x58:
+      case 0x59:
+      case 0x5a:
+      case 0x61:
+      case 0x62:
+      case 0x63:
+      case 0x64:
+      case 0x65:
+      case 0x66:
+      case 0x67:
+      case 0x68:
+      case 0x69:
+      case 0x6a:
+      case 0x6b:
+      case 0x6c:
+      case 0x6d:
+      case 0x6e:
+      case 0x6f:
+      case 0x70:
+      case 0x71:
+      case 0x72:
+      case 0x73:
+      case 0x74:
+      case 0x75:
+      case 0x76:
+      case 0x77:
+      case 0x78:
+      case 0x79:
+      case 0x7a:
+      case 0x5f: {
+        const start = new Loc(row, col, i)
+        while (
+          (code = text.charCodeAt(++i))
+          && (isAlpha(code) || (CODE_0 <= code && code <= CODE_9))
+        );
 
-    const entry = OPS_KEYED.get(code)
-    if (entry) {
-      i++
-      col++
-      const code2 = text.charCodeAt(i)
-      if (entry.has(code2)) {
-        i++
-        col++
-        const op = entry.get(code2)!
-        if (op == K.Comment) {
-          while (i < text.length && text.charCodeAt(i) != CODE_NL) {
-            i++
-            col++
-          }
-        }
-        const end = new Loc(row, col, i)
-        ret.push(new Scanned(op, new Pos(text, start, end)))
-      } else if (entry.has(0)) {
-        const end = new Loc(row, col, i)
-        ret.push(new Scanned(entry.get(0)!, new Pos(text, start, end)))
-      } else {
-        issue(`Unknown operator '${text[i - 1]!}'`, new Pos(text, start, start))
+        const word = text.slice(start.idx, i)
+        const pos = new Pos(text, start, new Loc(row, col, i))
+        ret.push(new Scanned(KWS.get(word) ?? K.Ident, pos))
+        continue
       }
-
-      continue
-    }
-
-    if (CODE_0 <= code && code <= CODE_9) {
-      while (
-        (code = text.charCodeAt(++i))
-        && i < text.length
-        && CODE_0 <= code
-        && code <= CODE_9
-      ) {}
-
-      let num = false
-      if (code == CODE_DOT && !isAlpha(text.charCodeAt(i + 1))) {
-        num = true
-        i++
-        col++
-        while (((code = text.charCodeAt(i)), CODE_0 <= code && code <= CODE_9))
-          i++
-        col++
-      }
-
-      if (code == CODE_E || code == CODE_e) {
-        const next = text.charCodeAt(i + 1)
-        const next2 = text.charCodeAt(i + 2)
-        if (
-          ((next == CODE_P || next == CODE_M)
-            && CODE_0 <= next2
-            && next2 <= CODE_9)
-          || (CODE_0 <= next && next <= CODE_9)
-        ) {
-          num = true
-          if (next == CODE_P || next == CODE_M) {
-            i++
-            col++
-          }
+      default: {
+        const start = new Loc(row, col, i)
+        const entry = OPS_KEYED.get(code)
+        if (entry) {
           i++
           col++
-          while (
-            i < text.length
-            && (code = text.charCodeAt(++i))
-            && CODE_0 <= next
-            && next <= CODE_9
-          );
+          const code2 = text.charCodeAt(i)
+          if (entry.has(code2)) {
+            i++
+            col++
+            const op = entry.get(code2)!
+            if (op == K.Comment) {
+              while (i < text.length && text.charCodeAt(i) != CODE_NL) {
+                i++
+                col++
+              }
+            }
+            const end = new Loc(row, col, i)
+            ret.push(new Scanned(op, new Pos(text, start, end)))
+          } else if (entry.has(0)) {
+            const end = new Loc(row, col, i)
+            ret.push(new Scanned(entry.get(0)!, new Pos(text, start, end)))
+          } else {
+            issue(
+              `Unknown operator '${text[i - 1]!}'`,
+              new Pos(text, start, start),
+            )
+          }
+
+          continue
         }
       }
-
-      const pos = new Pos(text, start, new Loc(row, col, i))
-      ret.push(new Scanned(num ? K.Num : K.Int, pos))
-      continue
     }
+  }
 
-    if (isAlpha(code)) {
-      while (
-        (code = text.charCodeAt(++i))
-        && (isAlpha(code) || (CODE_0 <= code && code <= CODE_9))
-      );
-
-      const word = text.slice(start.idx, i)
-      const pos = new Pos(text, start, new Loc(row, col, i))
-      ret.push(new Scanned(KWS.get(word) ?? K.Ident, pos))
-      continue
+  const last = depth.at(-1)
+  if (last) {
+    const pos = new Pos(text, new Loc(row, col, i), new Loc(row, col, i))
+    if (last.kind == K.OLBrace) {
+      issue(`Unclosed block.`, pos)
+    } else {
+      issue(`Unterminated string.`, pos)
     }
-
-    if (i < text.length) {
-      const pos = new Pos(text, new Loc(row, col, i), new Loc(row, col, i))
-      issue(`Unknown character '${text[i]}'.`, pos)
-    } else break
   }
 
   return new Scan(ret)
+
+  function parseNum() {
+    const start = new Loc(row, col, i)
+
+    while (
+      (code = text.charCodeAt(++i))
+      && i < text.length
+      && CODE_0 <= code
+      && code <= CODE_9
+    ) {}
+
+    let num = false
+    if (code == CODE_DOT && !isAlpha(text.charCodeAt(i + 1))) {
+      num = true
+      i++
+      col++
+      while (((code = text.charCodeAt(i)), CODE_0 <= code && code <= CODE_9))
+        i++
+      col++
+    }
+
+    if (code == CODE_E || code == CODE_e) {
+      const next = text.charCodeAt(i + 1)
+      const next2 = text.charCodeAt(i + 2)
+      if (
+        ((next == CODE_P || next == CODE_M)
+          && CODE_0 <= next2
+          && next2 <= CODE_9)
+        || (CODE_0 <= next && next <= CODE_9)
+      ) {
+        num = true
+        if (next == CODE_P || next == CODE_M) {
+          i++
+          col++
+        }
+        i++
+        col++
+        while (
+          i < text.length
+          && (code = text.charCodeAt(++i))
+          && CODE_0 <= next
+          && next <= CODE_9
+        );
+      }
+    }
+
+    const pos = new Pos(text, start, new Loc(row, col, i))
+    ret.push(new Scanned(num ? K.Num : K.Int, pos))
+  }
+
+  function parseHashOrQuote() {
+    let code
+
+    let hashes = 0
+    while (((code = text.charCodeAt(i)), code == CODE_HASH))
+      (hashes++, i++, col++)
+
+    if (code != CODE_QUOT)
+      issue(
+        `Unknown string delimeter '${text[i] ?? "<EOF>"}'.`,
+        new Pos(text, new Loc(row, col, i), new Loc(row, col, i)),
+      )
+
+    i++
+    col++
+
+    stringContents(hashes, true)
+  }
 
   function stringContents(hashes: number, isStart: boolean) {
     const dollars = Math.max(hashes, 1)
