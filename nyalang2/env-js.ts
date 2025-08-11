@@ -91,7 +91,7 @@ function toRuntime(ctx: Ctx, val: Val): string {
     }
     case T.ArrayFixed: {
       const vals = val.value as Repr.Array
-      return `[${vals.map((x) => toRuntime(ctx, x)).join(",")}]`
+      return `[${vals.map((x) => toRuntime(ctx, x)).join(",")}]/*$*/`
     }
     case T.ArrayCapped: {
       const vals = val.value as Repr.Array
@@ -267,7 +267,14 @@ export const TARGET_JS = {
         )
       } else {
         return new Val(
-          `[${vals.map((x) => "..." + toRuntime(ctx, x))}]`,
+          `[${vals.map((x) => {
+            const text = toRuntime(ctx, x)!
+            if (text[0] == "[" && text.endsWith("]/*$*/")) {
+              return text.slice(1, -5)
+            } else {
+              return "..." + text
+            }
+          })}]/*$*/`,
           ty,
           false,
         )
@@ -277,7 +284,7 @@ export const TARGET_JS = {
     if (vals.every((x) => x.const)) {
       return new Val(vals satisfies Repr.Array, ty, true)
     } else {
-      return new Val(`[${vals.map((x) => toRuntime(ctx, x))}]`, ty, false)
+      return new Val(`[${vals.map((x) => toRuntime(ctx, x))}]/*$*/`, ty, false)
     }
   },
   arrayMapPure(ctx, val, dstEl, map) {

@@ -12,15 +12,3 @@ export class ScriptError extends Error {
 export function issue(reason: string, pos: Pos): never {
   throw new ScriptError(reason, pos)
 }
-
-export function _try<T>(f: () => T): T {
-  try {
-    return f()
-  } catch (e) {
-    if (e instanceof ScriptError) {
-      throw e.message
-    } else {
-      throw e
-    }
-  }
-}

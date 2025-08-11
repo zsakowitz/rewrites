@@ -1,5 +1,6 @@
 import { Var } from "./coercion"
 import { Const } from "./const"
+import { ScriptError } from "./error"
 import { Fn } from "./fn"
 import { ident } from "./id"
 import { FnParamsTempl, Param, ParamKind } from "./param"
@@ -74,3 +75,15 @@ test(({ env, ctx }) => {
   ])
   ctx.callVal("+", [a, b])
 })
+
+export function _try<T>(f: (props: Props) => T): T {
+  try {
+    return f(createProps())
+  } catch (e) {
+    if (e instanceof ScriptError) {
+      throw e.message
+    } else {
+      throw e
+    }
+  }
+}

@@ -1,12 +1,8 @@
-import { _try } from "../error"
-import { createEnv } from "../std"
+import { _try } from "../test"
 import { matrixFn } from "./matrix"
 
-const env = createEnv()
-const ctx = env.ctx()
-env.root.pushFn(matrixFn)
-
-_try(() => {
+_try(({ env, ctx }) => {
+  env.root.pushFn(matrixFn)
   const arr = ctx.array([
     ctx.array([ctx.int("0"), ctx.int("43"), ctx.int("23")]),
     ctx.array([ctx.int("6"), ctx.int("4"), ctx.int("57")]),
@@ -16,4 +12,5 @@ _try(() => {
     ctx.callVal("matrix", [arr])
   }
   console.timeEnd()
+  console.log(arr.runtime(ctx))
 })
