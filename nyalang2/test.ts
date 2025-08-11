@@ -4,6 +4,7 @@ import { ScriptError } from "./error"
 import { Fn } from "./fn"
 import { ident } from "./id"
 import { FnParamsTempl, Param, ParamKind } from "./param"
+import { matrixFn } from "./play/matrix"
 import { createEnv } from "./std"
 import { Bool, Int, Num, T, Ty } from "./ty"
 import { Val } from "./val"
@@ -74,6 +75,17 @@ test(({ env, ctx }) => {
     ctx.num("2"),
   ])
   ctx.callVal("+", [a, b])
+})
+
+test(({ env, ctx }) => {
+  env.root.pushFn(matrixFn)
+  const arr = ctx.array([
+    ctx.array([ctx.int("0"), ctx.int("43"), ctx.int("23")]),
+    ctx.array([ctx.int("6"), ctx.int("4"), ctx.int("57")]),
+  ])
+  return (
+    ctx.callVal(ident("matrix"), [arr]).runtime(ctx) == "[0,43,23,6,4,57]/*$*/"
+  )
 })
 
 export function _try<T>(f: (props: Props) => T): T {

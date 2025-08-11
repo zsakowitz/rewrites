@@ -1,16 +1,19 @@
 import { _try } from "../test"
-import { matrixFn } from "./matrix"
+import { Void } from "../ty"
 
 _try(({ env, ctx }) => {
-  env.root.pushFn(matrixFn)
   const arr = ctx.array([
-    ctx.array([ctx.int("0"), ctx.int("43"), ctx.int("23")]),
-    ctx.array([ctx.int("6"), ctx.int("4"), ctx.int("57")]),
+    ctx.unit(Void),
+    ctx.unit(Void),
+    ctx.unit(Void),
+    ctx.unit(Void),
+    ctx.unit(Void),
+    ctx.unit(Void),
+    ctx.unit(Void),
+    ctx.unit(Void),
   ])
-  console.time()
-  for (let i = 0; i < 1e6; i++) {
-    ctx.callVal("matrix", [arr])
-  }
-  console.timeEnd()
+  console.log(arr)
+  const unsized = ctx.target.arrayToUnsized(ctx, arr)
   console.log(arr.runtime(ctx))
+  console.log(unsized.runtime(ctx))
 })

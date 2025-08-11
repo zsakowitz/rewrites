@@ -171,6 +171,10 @@ export class Ctx<SymTag = unknown> {
     return this.target.tupleSplit(this, val)
   }
 
+  array<const T extends readonly Val[]>(
+    vals: T,
+  ): Val<T["length"] extends 0 ? T.ArrayEmpty : T.ArrayFixed>
+  array(vals: Val[]): Val<T.ArrayEmpty | T.ArrayFixed>
   array(vals: Val[]): Val<T.ArrayFixed | T.ArrayEmpty> {
     if (vals.length == 0) {
       return this.unit(ArrayEmpty)
