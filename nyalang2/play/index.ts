@@ -1,6 +1,5 @@
 import { scan } from "../script/scan"
-import { OPS } from "../script/token"
-import { shuffle } from "../../shuffle"
+import { K } from "../script/token"
 
 const text = `
 struct Complex {
@@ -207,27 +206,8 @@ expose package {
 // TODO: debugpoint, screendistance, point
 `
 
-for (let i = 0; i < 1e3; i++) {
-  scan("", text)
-}
+const ret = scan("", text)
+  .map((x) => `${K[x.k]} ${text.slice(x.pos.start!.idx, x.pos.end!.idx)}`)
+  .join("\n")
 
-const r = new Map<string, number[]>()
-const chars = "ABCabc" + OPS.keys().toArray().join("") + "_" + "012"
-for (let i = 0; i < 10; i++) {
-  for (const c of shuffle(chars.split(""))) {
-    if (c != "$") {
-      const s = performance.now()
-      for (let i = 0; i < 1e5; i++) {
-        scan("", c)
-      }
-      r.set(c, (r.get(c) ?? []).concat(performance.now() - s))
-    }
-  }
-}
-const x = r
-  .entries()
-  .toArray()
-  .map(([k, v]) => [k, v.reduce((a, b) => a + b, 0) / v.length] as const)
-  .sort((a, b) => a[1] - b[1])
-  .map(([k, v]) => [k, Math.floor(v * 100) / 100] as const)
-console.log(new Map(x))
+console.log(ret)
