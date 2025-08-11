@@ -9,16 +9,10 @@ class Scanned {
   ) {}
 }
 
-const WS = [
-  " ".charCodeAt(0),
-  "\0".charCodeAt(0),
-  "\b".charCodeAt(0),
-  "\f".charCodeAt(0),
-  "\n".charCodeAt(0),
-  "\r".charCodeAt(0),
-  "\t".charCodeAt(0),
-  "\v".charCodeAt(0),
-]
+const WS0 = " ".charCodeAt(0)
+const WS4 = "\n".charCodeAt(0)
+const WS5 = "\r".charCodeAt(0)
+const WS6 = "\t".charCodeAt(0)
 
 const CODE_NL = "\n".charCodeAt(0)
 
@@ -39,7 +33,10 @@ export function scan(file: string, text: string): Scanned[] {
   let i = 0
   next: for (; i < text.length; ) {
     let code
-    while (WS.includes((code = text.charCodeAt(i)))) {
+    while (
+      ((code = text.charCodeAt(i)),
+      code == WS0 || code == WS4 || code == WS5 || code == WS6)
+    ) {
       if (code == CODE_NL) {
         row++
         col = 1

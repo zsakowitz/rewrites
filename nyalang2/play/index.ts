@@ -211,6 +211,6 @@ _try(({ ctx }) => {
   for (let i = 0; i < 1e4; i++) {
     scan("", text)
   }
-  // 333us/read
+  // 322us/read
   console.timeEnd()
 })
