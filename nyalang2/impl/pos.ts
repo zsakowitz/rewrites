@@ -21,6 +21,12 @@ export class Pos {
     readonly end: Loc | null,
   ) {}
 
+  get content() {
+    return this.start && this.end ?
+        this.file.slice(this.start.idx, this.end.idx)
+      : ""
+  }
+
   toString() {
     return `${this.file}${this.start ? ":" + this.start : ""}`
   }

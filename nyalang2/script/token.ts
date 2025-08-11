@@ -1,8 +1,13 @@
-export const enum K {
+export enum K {
   // Core values; see Keywords for `true`, `false`, and `null`
   Int,
   Num,
-  Str,
+
+  // String parts but backslashes perform escaping
+  StrFull, // "world"
+  StrStart, // "world${
+  StrMid, // }world${
+  StrFinal, // }world"
 
   // Arithmetic operators
   Plus,
@@ -51,6 +56,7 @@ export const enum K {
   ORBrack,
   ORBrace,
   ORAngle,
+  ORIterp, // looks the same as `ORBrace`, but it's differentiated in the lexing stage
 
   // Miscellaneous
   Comment, // only prettier cares about these; we allow only //-style line comments
