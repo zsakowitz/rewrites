@@ -1,9 +1,10 @@
 import type { Block } from "./block"
+import { Const } from "./const"
 import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
 import { type Param } from "./param"
 import type { Pos } from "./pos"
-import { ArrayEmpty, Null, Ty, Void, type T } from "./ty"
+import { ArrayEmpty, Int, Null, Ty, Void, type T } from "./ty"
 import { Val, ValString } from "./val"
 
 export class Ctx<SymTag = unknown> {
@@ -48,7 +49,7 @@ export class Ctx<SymTag = unknown> {
   }
 
   // doesn't yet handle broadcasting and lists
-  callTy(name: IdGlobal | Param, args: Ty[]): Ty | null {
+  tryCallTy(name: IdGlobal | Param, args: Ty[]): Ty | null {
     if (typeof name == "string") {
       name = ident(name)
     }
@@ -120,6 +121,13 @@ export class Ctx<SymTag = unknown> {
     )
   }
 
+  callTy(name: IdGlobal | Param, args: Ty[]): Ty {
+    return (
+      this.tryCallTy(name, args)
+      ?? this.issue(`'${name.label}' is not defined.`)
+    )
+  }
+
   bug(reason: string): never {
     this.issue(`Bug: ` + reason)
   }
@@ -169,6 +177,22 @@ export class Ctx<SymTag = unknown> {
 
   unpack(val: Val<T.Tuple>): Val[] {
     return this.target.tupleSplit(this, val)
+  }
+
+  arrayTy(vals: Ty[]): Ty<T.ArrayFixed | T.ArrayEmpty> {
+    if (vals.length == 0) {
+      return ArrayEmpty
+    }
+
+    const ty = this.root.coerce.unifyAll(
+      this,
+      vals[0]!,
+      vals.slice(1),
+      null,
+      (a, b) => `Mismatched types '${a}' and '${b}' when constructing array.`,
+    )
+
+    return Ty.Array(ty, new Const(vals.length, Int))
   }
 
   array<const T extends readonly Val[]>(

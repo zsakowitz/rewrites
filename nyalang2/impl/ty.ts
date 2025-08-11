@@ -58,6 +58,14 @@ export class Ty<out K extends T = T> {
     return new Ty(T.Param, new Param(label, ParamKind.Ty))
   }
 
+  static Array(el: Ty, size: Const<T.Int>): Ty<T.ArrayFixed> {
+    if (el.is(T.ArrayFixed)) {
+      return new Ty(T.ArrayFixed, { el: el.of.el, size: [size, ...el.of.size] })
+    } else {
+      return new Ty(T.ArrayFixed, { el, size: [size] })
+    }
+  }
+
   constructor(
     readonly k: K,
     readonly of: TyData[K],

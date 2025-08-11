@@ -1,8 +1,12 @@
 import type * as Bun from "bun"
 import type { BunInspectOptions } from "bun"
-import { type IdGlobal } from "../impl/id"
+import type { Block } from "../impl/block"
+import { Ctx } from "../impl/ctx"
+import { ident, type IdGlobal } from "../impl/id"
 import { INSPECT } from "../impl/inspect"
 import { join, Pos } from "../impl/pos"
+import { Bool, Int, Null, Num, T, Ty } from "../impl/ty"
+import { Val } from "../impl/val"
 import { tokenIdent } from "./ident"
 import type { Scan } from "./scan"
 import { K } from "./token"
@@ -24,7 +28,7 @@ export enum E {
   Unary,
 }
 
-export interface ExprData {
+export interface Data {
   [E.Ident]: IdGlobal
   [E.Int]: string
   [E.Num]: string
@@ -36,14 +40,18 @@ export interface ExprData {
   [E.Tuple]: Expr[]
   [E.Array]: Expr[]
 
-  [E.Unary]: { kind: K.Bang | K.Plus | K.Minus | K.Star | K.Carat; on: Expr }
+  [E.Unary]: {
+    kind: K.Bang | K.Plus | K.Minus | K.Star | K.Carat
+    id: IdGlobal
+    on: Expr
+  }
 }
 
 export class Expr<K extends E = E> {
   constructor(
     readonly p: Pos,
     readonly k: K,
-    readonly d: ExprData[K],
+    readonly d: Data[K],
   ) {}
 
   [INSPECT](_: unknown, p: BunInspectOptions, inspect: typeof Bun.inspect) {
@@ -52,6 +60,67 @@ export class Expr<K extends E = E> {
       return `${E[this.k]} ${inner}`
     } else {
       return `${E[this.k]}(${inner})`
+    }
+  }
+
+  evalTy(block: Block): Ty {
+    const ctx = new Ctx(block, this.p)
+    switch (this.k) {
+      case E.Ident:
+        return ctx.callTy(this.d as Data[E.Ident], [])
+      case E.Int:
+        return Int
+      case E.Num:
+        return Num
+      case E.Bool:
+        return Bool
+      case E.Null:
+        return Null
+      case E.SymTag:
+        return Ty.Sym(this.d as Data[E.SymTag])
+      case E.Some:
+        return new Ty(T.Option, (this.d as Data[E.Some]).evalTy(block))
+      case E.Tuple:
+        return new Ty(
+          T.Tuple,
+          (this.d as Data[E.Tuple]).map((x) => x.evalTy(block)),
+        )
+      case E.Array:
+        return ctx.arrayTy(
+          (this.d as Data[E.Array]).map((x) => x.evalTy(block)),
+        )
+      case E.Unary:
+        return ctx.callTy((this.d as Data[E.Unary]).id, [
+          (this.d as Data[E.Unary]).on.evalTy(block),
+        ])
+    }
+  }
+
+  evalVal(block: Block): Val {
+    const ctx = new Ctx(block, this.p)
+    switch (this.k) {
+      case E.Ident:
+        return ctx.callVal(this.d as Data[E.Ident], [])
+      case E.Int:
+        return ctx.int(this.d as Data[E.Int])
+      case E.Num:
+        return ctx.num(this.d as Data[E.Num])
+      case E.Bool:
+        return ctx.bool(this.d as Data[E.Bool])
+      case E.Null:
+        return ctx.null()
+      case E.SymTag:
+        return ctx.unit(Ty.Sym(this.d as Data[E.SymTag]))
+      case E.Some:
+        return ctx.some((this.d as Data[E.Some]).evalVal(block))
+      case E.Tuple:
+        return ctx.tuple((this.d as Data[E.Tuple]).map((x) => x.evalVal(block)))
+      case E.Array:
+        return ctx.array((this.d as Data[E.Tuple]).map((x) => x.evalVal(block)))
+      case E.Unary:
+        return ctx.callVal((this.d as Data[E.Unary]).id, [
+          (this.d as Data[E.Unary]).on.evalVal(block),
+        ])
     }
   }
 }
@@ -91,7 +160,19 @@ function parseAtom(scan: Scan): Expr {
     case K.Star:
     case K.Carat: {
       const el = parseAtom(scan)
-      return new Expr(join(token.pos, el.p), E.Unary, { kind: token.k, on: el })
+      return new Expr(join(token.pos, el.p), E.Unary, {
+        kind: token.k,
+        id: ident(
+          {
+            [K.Bang]: "!",
+            [K.Plus]: "+",
+            [K.Minus]: "-",
+            [K.Star]: "*",
+            [K.Carat]: "^",
+          }[token.k],
+        ),
+        on: el,
+      })
     }
     case K.OLParen: {
       const els: Expr[] = []

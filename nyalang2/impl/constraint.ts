@@ -11,7 +11,7 @@ export class Constraint {
     const src = this.fn
     const resolvedArgs = src.args.map((x) => x.with(params))
     console.log({ src: src.args, dst: resolvedArgs })
-    const ret = ctx.callTy(src.id, resolvedArgs)
+    const ret = ctx.tryCallTy(src.id, resolvedArgs)
     return ret != null && ctx.root.coerce.can(ret, src.ret, params)
   }
 

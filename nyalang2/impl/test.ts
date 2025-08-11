@@ -16,6 +16,7 @@ function createProps() {
   return {
     env,
     ctx,
+    block: ctx.block,
     M: new Const(new Param("M", ParamKind.Const), Int),
     N: new Const(new Param("N", ParamKind.Const), Int),
     P: new Const(new Param("P", ParamKind.Const), Bool),
