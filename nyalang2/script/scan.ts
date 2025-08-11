@@ -92,7 +92,8 @@ export function scan(text: string): Scan {
 
   let i = 0
   let code
-  while (i < text.length) {
+  const len = text.length
+  while (i < len) {
     code = text.charCodeAt(i)
 
     switch (code) {

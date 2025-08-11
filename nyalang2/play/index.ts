@@ -328,8 +328,8 @@ expose package {
 `
 
 console.time()
-for (let i = 0; i < 1e4; i++) {
+for (let i = 0; i < 1e5; i++) {
   scan(text)
 }
 console.timeEnd()
-// 80us/run (10% slower than nyalang1)
+// 77.3us/run (fast enough)
