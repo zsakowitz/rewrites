@@ -2,7 +2,7 @@ import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
-import type { FnParams } from "./param"
+import { FnParams } from "./param"
 import type { Pos } from "./pos"
 import { Null, T, Ty, type TyData } from "./ty"
 import { Val } from "./val"
@@ -552,5 +552,19 @@ export class Coercions {
       case T.Option:
         ctx.unreachable()
     }
+  }
+
+  unify(ctx: Ctx, a: Val, b: Val, params: FnParams): [Val, Val] {
+    const p = params.clone()
+    if (this.can(a.ty, b.ty, p)) {
+      params.copyFrom(p)
+      return [this.map(ctx, a, b.ty, params), b]
+    }
+    const q = params.clone()
+    if (this.can(b.ty, a.ty, q)) {
+      params.copyFrom(q)
+      return [a, this.map(ctx, b, a.ty, params)]
+    }
+    ctx.issue(`Mismatched types '${a.ty}' and '${b.ty}'.`)
   }
 }
