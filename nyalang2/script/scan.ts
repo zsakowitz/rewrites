@@ -86,7 +86,7 @@ export function scan(file: string, text: string): Scanned[] {
         const end = new Loc(row, col, i)
         ret.push(new Scanned(entry.get(0)!, new Pos(file, start, end)))
       } else {
-        issue(`Unknown operator '${text[i]!}'`, new Pos(file, start, start))
+        issue(`Unknown operator '${text[i - 1]!}'`, new Pos(file, start, start))
       }
 
       continue
