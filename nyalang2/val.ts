@@ -55,7 +55,7 @@ export class Val<K extends T = T, V = unknown> {
     return new Val(this.value, ty, this.const)
   }
 
-  coerce(ctx: Ctx, into: Ty, params: FnParams) {
+  coerce(ctx: Ctx, into: Ty, params: FnParams | null) {
     return ctx.root.coerce.map(ctx, this, into, params)
   }
 

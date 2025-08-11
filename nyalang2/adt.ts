@@ -14,7 +14,12 @@ export class AdtSym {
 }
 
 interface AdtGenerics {
-  coerce(src: Val<T.Adt>, dst: Ty<T.Adt>, ctx: Ctx, params: FnParams): Val
+  coerce(
+    src: Val<T.Adt>,
+    dst: Ty<T.Adt>,
+    ctx: Ctx,
+    params: FnParams | null,
+  ): Val
   readonly tys: readonly Var[]
   readonly consts: readonly { ty: Ty<T.Const>; var: Var }[]
 }

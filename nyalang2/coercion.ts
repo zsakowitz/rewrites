@@ -270,7 +270,7 @@ export class Coercions {
     this.#raw.addCoercion(new Coercion(from, into, false, exec), pos)
   }
 
-  can(from: Ty, into: Ty, params: FnParams): boolean {
+  can(from: Ty, into: Ty, params: FnParams | null): boolean {
     // quick catch
     if (from == into) {
       return true
@@ -422,13 +422,13 @@ export class Coercions {
   }
 
   /** Assumes `.can()` returned true, so it doesn't repeat any checks from there. */
-  map(ctx: Ctx, val: Val, into: Ty, params: FnParams): Val {
+  map(ctx: Ctx, val: Val, into: Ty, params: FnParams | null): Val {
     const from = val.ty
     if (from == into) {
       return val
     }
 
-    if (into.is(T.Param) && params.has(into.of)) {
+    if (into.is(T.Param) && params?.has(into.of)) {
       return this.map(ctx, val, params.get(into.of), params)
     }
 
@@ -554,17 +554,27 @@ export class Coercions {
     }
   }
 
-  unify(ctx: Ctx, a: Val, b: Val, params: FnParams): [Val, Val] {
-    const p = params.clone()
-    if (this.can(a.ty, b.ty, p)) {
-      params.copyFrom(p)
-      return [this.map(ctx, a, b.ty, params), b]
+  unify(ctx: Ctx, a: Val, b: Val, params: FnParams | null): [Val, Val] {
+    if (params == null) {
+      if (this.can(a.ty, b.ty, null)) {
+        return [this.map(ctx, a, b.ty, params), b]
+      }
+      if (this.can(b.ty, a.ty, null)) {
+        return [a, this.map(ctx, b, a.ty, params)]
+      }
+    } else {
+      const p = params.clone()
+      if (this.can(a.ty, b.ty, p)) {
+        params.copyFrom(p)
+        return [this.map(ctx, a, b.ty, params), b]
+      }
+      const q = params.clone()
+      if (this.can(b.ty, a.ty, q)) {
+        params.copyFrom(q)
+        return [a, this.map(ctx, b, a.ty, params)]
+      }
     }
-    const q = params.clone()
-    if (this.can(b.ty, a.ty, q)) {
-      params.copyFrom(q)
-      return [a, this.map(ctx, b, a.ty, params)]
-    }
+
     ctx.issue(`Mismatched types '${a.ty}' and '${b.ty}'.`)
   }
 }
