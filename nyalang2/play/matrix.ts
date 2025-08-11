@@ -49,6 +49,5 @@ export const matrixFn = new Fn(
   [new Ty(T.ArrayFixed, { el: U, size: [R, C] })],
   new Ty(T.Adt, { adt: Matrix, tys: [U], consts: [R, C] }),
   [],
-  (_, [arg]) =>
-    arg!.transmute(new Ty(T.Adt, { adt: Matrix, tys: [U], consts: [R, C] })),
+  (_, [arg]) => arg!,
 )

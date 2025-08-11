@@ -72,14 +72,14 @@ export class Const<
 
   toString() {
     if (typeof this.value == "object") {
-      return `param ${this.value.label} :: ${this.ty}`
+      return `${this.value.label} :: ${this.ty}`
     }
     return `${this.value} :: ${this.ty}`
   }
 
   [INSPECT](_: unknown, p: BunInspectOptions, inspect: typeof Bun.inspect) {
     if (typeof this.value == "object") {
-      return `param ${this.value.label} :: ${this.ty}`
+      return `${this.value.label} :: ${this.ty}`
     }
     return `${inspect(this.value, p)} :: ${inspect(this.ty, p)}`
   }

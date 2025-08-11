@@ -5,7 +5,7 @@ import type { IdGlobal } from "./id"
 import { INSPECT } from "./inspect"
 import { type FnParamsTempl, type Param } from "./param"
 import type { Ty } from "./ty"
-import type { Val } from "./val"
+import type { UntypedVal, Val } from "./val"
 
 export type FnName = IdGlobal | Param
 
@@ -34,7 +34,8 @@ export class Fn extends FnSignature {
     args: readonly Ty[],
     ret: Ty,
     readonly where: Constraint[],
-    readonly exec: (ctx: Ctx, args: Val[]) => Val,
+    /** The return type of `exec` is replaced with `ret`. */
+    readonly exec: (ctx: Ctx, args: Val[]) => UntypedVal,
   ) {
     super(id, args, ret)
   }

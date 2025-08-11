@@ -69,3 +69,5 @@ export class Val<K extends T = T, V = unknown> {
     return `${inspect(this.value, p)} ${ANSI.dim}::${ANSI.reset} ${inspect(this.ty, p)}`
   }
 }
+
+export type UntypedVal = Omit<Val, "ty">

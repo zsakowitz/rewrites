@@ -63,7 +63,6 @@ export class Ty<out K extends T = T> {
           el: el.of.el,
           size: [...size, ...el.of.size],
         }
-        console.log({ data })
         return new Ty(T.ArrayFixed, data) as any
       }
     }
@@ -383,9 +382,16 @@ export class Ty<out K extends T = T> {
   }
 
   [INSPECT]() {
-    const C = ANSI.cyan
+    const C = ANSI.reset + ANSI.cyan
     const R = ANSI.reset
-    return C + this.toString().replace(/[,()]/g, (x) => R + x + C) + R
+    return (
+      C
+      + this.toString().replace(
+        /[():,;[\]]/g,
+        (x) => R + ("():".includes(x) ? ANSI.dim : "") + x + C,
+      )
+      + R
+    )
   }
 }
 

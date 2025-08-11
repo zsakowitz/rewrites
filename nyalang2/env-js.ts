@@ -257,8 +257,21 @@ export const TARGET_JS = {
   arrayCons(ctx, sizeRaw, el, vals) {
     const size = sizeRaw.map((x) => new Const(x, Int))
     const ty = new Ty(T.ArrayFixed, { el, size })
-    if (ty.has1) {
-      return ctx.unit(ty)
+
+    if (el.is(T.ArrayFixed)) {
+      if (vals.every((x) => x.const)) {
+        return new Val(
+          vals.flatMap((x) => x.value),
+          ty,
+          true,
+        )
+      } else {
+        return new Val(
+          `[${vals.map((x) => "..." + toRuntime(ctx, x))}]`,
+          ty,
+          false,
+        )
+      }
     }
 
     if (vals.every((x) => x.const)) {
