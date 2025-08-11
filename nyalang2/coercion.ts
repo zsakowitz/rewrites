@@ -485,7 +485,12 @@ export class Coercions {
         if (!src.adt.generics) {
           return this.#raw.for(from, into)!.exec(val, ctx)
         } else {
-          return src.adt.generics.coerce!(val, into as Ty<T.Adt>, ctx)
+          return src.adt.generics.coerce!(
+            val as Val<T.Adt>,
+            into as Ty<T.Adt>,
+            ctx,
+            params,
+          )
         }
       }
     }

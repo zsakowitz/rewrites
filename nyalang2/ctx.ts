@@ -170,4 +170,18 @@ export class Ctx<SymTag = unknown> {
   unpack(val: Val<T.Tuple>): Val[] {
     return this.target.tupleSplit(this, val)
   }
+
+  array(vals: Val[]): Val<T.ArrayFixed> {
+    if (vals.length == 0) {
+      this.issue(`Cannot construct an array of length 0 with 'Ctx.array'.`)
+      // shoot i forgot empty arrays as a type
+    }
+
+    const ty = vals[0]!.ty
+    if (!vals.every((x) => x.ty.eq(ty, null))) {
+      this.issue(`All elements passed to 'Ctx.array' must be of the same type.`)
+    }
+
+    return this.target.arrayCons(this, [vals.length], ty, vals)
+  }
 }

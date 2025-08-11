@@ -2,7 +2,7 @@ import type { Var } from "./coercion"
 import type { Ctx } from "./ctx"
 import type { IdGlobal } from "./id"
 import type { FnParams } from "./param"
-import { Ty, type T } from "./ty"
+import { T, Ty } from "./ty"
 import type { Val } from "./val"
 
 export class AdtSym {

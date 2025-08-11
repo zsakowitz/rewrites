@@ -56,6 +56,18 @@ export class Ty<out K extends T = T> {
     readonly k: K,
     readonly of: TyData[K],
   ) {
+    if (k == T.ArrayFixed) {
+      const { el, size } = of as TyData[T.ArrayFixed]
+      if (el.is(T.ArrayFixed)) {
+        const data = {
+          el: el.of.el,
+          size: [...size, ...el.of.size],
+        }
+        console.log({ data })
+        return new Ty(T.ArrayFixed, data) as any
+      }
+    }
+
     if (typeof k != "number") {
       throw new Error("nope")
     }
@@ -308,7 +320,7 @@ export class Ty<out K extends T = T> {
    * Examples include `!`, empty enums, and anything including at least 1 of
    * those.
    */
-  readonly has0
+  readonly has0!: boolean
 
   /**
    * `true` iff there only exists one possible value of this type.
@@ -321,9 +333,9 @@ export class Ty<out K extends T = T> {
    * cannot be constructed, and is a helpful optimization for other target
    * languages.
    */
-  readonly has1
+  readonly has1!: boolean
 
-  readonly const
+  readonly const!: boolean
 
   toString(): string {
     switch (this.k) {
