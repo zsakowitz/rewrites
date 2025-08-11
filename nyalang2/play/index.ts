@@ -332,4 +332,4 @@ for (let i = 0; i < 1e5; i++) {
   scan(text)
 }
 console.timeEnd()
-// 77.3us/run (fast enough)
+// 75us/run (fast enough)
