@@ -113,6 +113,7 @@ export const OPS = new Map<string, K>([
 export const ANY_OP_REGEX = new RegExp(
   "^(?:"
     + Array.from(OPS.keys())
+      .sort((a, b) => b.length - a.length)
       .map((x) => x.replace(/[+*^|\\{}()[\]$?]/g, (x) => "\\" + x))
       .join("|")
     + ")",
