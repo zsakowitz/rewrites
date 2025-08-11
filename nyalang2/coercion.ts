@@ -554,27 +554,46 @@ export class Coercions {
     }
   }
 
-  unify(ctx: Ctx, a: Val, b: Val, params: FnParams | null): [Val, Val] {
+  unify(
+    ctx: Ctx,
+    a: Ty,
+    b: Ty,
+    params: FnParams | null,
+    message: (a: Ty, b: Ty) => string,
+  ): Ty {
     if (params == null) {
-      if (this.can(a.ty, b.ty, null)) {
-        return [this.map(ctx, a, b.ty, params), b]
+      if (this.can(a, b, null)) {
+        return b
       }
-      if (this.can(b.ty, a.ty, null)) {
-        return [a, this.map(ctx, b, a.ty, params)]
+      if (this.can(b, a, null)) {
+        return a
       }
     } else {
       const p = params.clone()
-      if (this.can(a.ty, b.ty, p)) {
+      if (this.can(a, b, p)) {
         params.copyFrom(p)
-        return [this.map(ctx, a, b.ty, params), b]
+        return b
       }
       const q = params.clone()
-      if (this.can(b.ty, a.ty, q)) {
+      if (this.can(b, a, q)) {
         params.copyFrom(q)
-        return [a, this.map(ctx, b, a.ty, params)]
+        return a
       }
     }
 
-    ctx.issue(`Mismatched types '${a.ty}' and '${b.ty}'.`)
+    ctx.issue(message(a, b))
+  }
+
+  unifyAll(
+    ctx: Ctx,
+    ty1: Ty,
+    tysRest: Ty[],
+    params: FnParams | null,
+    message: (a: Ty, b: Ty) => string,
+  ): Ty {
+    for (const ty of tysRest) {
+      ty1 = this.unify(ctx, ty1, ty, params, message)
+    }
+    return ty1
   }
 }

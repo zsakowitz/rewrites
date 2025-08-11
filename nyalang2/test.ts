@@ -88,6 +88,11 @@ test(({ env, ctx }) => {
   )
 })
 
+test(({ ctx }) => {
+  ctx.array([ctx.int("45"), ctx.num("45")])
+  ctx.array([ctx.num("45"), ctx.int("45")])
+})
+
 export function _try<T>(f: (props: Props) => T): T {
   try {
     return f(createProps())

@@ -180,12 +180,20 @@ export class Ctx<SymTag = unknown> {
       return this.unit(ArrayEmpty)
     }
 
-    const ty = vals[0]!.ty
-    if (!vals.every((x) => x.ty.eq(ty, null))) {
-      this.issue(`All elements passed to 'Ctx.array' must be of the same type.`)
-    }
+    const ty = this.root.coerce.unifyAll(
+      this,
+      vals[0]!.ty,
+      vals.slice(1).map((x) => x.ty),
+      null,
+      (a, b) => `Mismatched types '${a}' and '${b}' when constructing array.`,
+    )
 
-    return this.target.arrayCons(this, [vals.length], ty, vals)
+    return this.target.arrayCons(
+      this,
+      [vals.length],
+      ty,
+      vals.map((x) => x.coerce(this, ty, null)),
+    )
   }
 
   null() {
