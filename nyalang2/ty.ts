@@ -11,6 +11,7 @@ import { Param, ParamKind, type FnParams } from "./param"
 // no uint b/c js doesn't support it and glsl only uses `int`
 export const enum T {
   Never, Bool, Int, Num, // very core primitive types
+  ArrayEmpty,            // empty array; exists for desmos compat and other reasons
   Sym,                   // ruby symbols like :hello, with optional data attached
   Tuple,                 // on-the-fly collections
   ArrayFixed,            // ndarray with fixed shape
@@ -35,6 +36,7 @@ export interface TyData {
   [T.Num]: null
   [T.Sym]: { tag: IdGlobal | null; el: Ty } // :hello == :hello(())
   [T.Tuple]: Ty[]
+  [T.ArrayEmpty]: null
   [T.ArrayFixed]: { el: Ty; size: Const<T.Int>[] }
   [T.ArrayCapped]: { el: Ty; size: Const<T.Int> }
   [T.ArrayUnsized]: { el: Ty; size: null }
@@ -94,6 +96,7 @@ export class Ty<out K extends T = T> {
       case T.Bool:
       case T.Int:
       case T.Num:
+      case T.ArrayEmpty:
         return true
       case T.Sym: {
         const src = this.of as TyData[T.Sym]
@@ -163,6 +166,7 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
       case T.Fn:
+      case T.ArrayEmpty:
       case T.Param:
         return this
       case T.Sym: {
@@ -215,6 +219,7 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
       case T.Fn:
+      case T.ArrayEmpty:
         return true
       case T.Param:
         return false
@@ -253,6 +258,7 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
       case T.Fn:
+      case T.ArrayEmpty:
         return false
       case T.Sym:
         return (this.of as TyData[T.Sym]).el.has0
@@ -284,6 +290,7 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
         return false
+      case T.ArrayEmpty:
       case T.Fn:
         return true
       case T.Sym: {
@@ -346,6 +353,8 @@ export class Ty<out K extends T = T> {
         return "int"
       case T.Num:
         return "num"
+      case T.ArrayEmpty:
+        return "[~empty~]"
       case T.Sym: {
         const o = this.of as TyData[T.Sym]
         const tag = o.tag ? ":" + o.tag.label : `sym`
@@ -399,4 +408,5 @@ export const Never = new Ty(T.Never, null)
 export const Bool = new Ty(T.Bool, null)
 export const Int = new Ty(T.Int, null)
 export const Num = new Ty(T.Num, null)
+export const ArrayEmpty = new Ty(T.ArrayEmpty, null)
 export const Void = new Ty(T.Tuple, [])

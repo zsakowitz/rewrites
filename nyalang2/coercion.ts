@@ -313,6 +313,18 @@ export class Coercions {
           && src.every((x, i) => this.can(x, into.of[i]!, params))
         )
       }
+      case T.ArrayEmpty: {
+        switch (into.k) {
+          case T.ArrayEmpty:
+          case T.ArrayCapped:
+          case T.ArrayUnsized:
+            return true
+          case T.ArrayFixed:
+            return !!(into.of as TyData[T.ArrayFixed]).size[0]?.is0()
+          default:
+            return false
+        }
+      }
       case T.ArrayFixed: {
         const src = from.of as TyData[T.ArrayFixed]
         if (into.is(T.ArrayFixed)) {
@@ -437,6 +449,12 @@ export class Coercions {
           const cv = dst.of.adt.syms.get(src.tag!)
           return cv!.exec(dst, val.transmute(src.el), ctx)
         }
+      }
+      case T.ArrayEmpty: {
+        if (into.is(T.ArrayEmpty)) {
+          return ctx.unit(into)
+        }
+        return t.arrayEmpty(ctx, into as Ty<T.ArrayAny>)
       }
       case T.ArrayFixed:
       case T.ArrayCapped:

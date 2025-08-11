@@ -3,7 +3,7 @@ import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
 import { type Param } from "./param"
 import type { Pos } from "./pos"
-import { Ty, Void, type T } from "./ty"
+import { ArrayEmpty, Ty, Void, type T } from "./ty"
 import { Val, ValString } from "./val"
 
 export class Ctx<SymTag = unknown> {
@@ -171,10 +171,9 @@ export class Ctx<SymTag = unknown> {
     return this.target.tupleSplit(this, val)
   }
 
-  array(vals: Val[]): Val<T.ArrayFixed> {
+  array(vals: Val[]): Val<T.ArrayFixed | T.ArrayEmpty> {
     if (vals.length == 0) {
-      this.issue(`Cannot construct an array of length 0 with 'Ctx.array'.`)
-      // shoot i forgot empty arrays as a type
+      return this.unit(ArrayEmpty)
     }
 
     const ty = vals[0]!.ty

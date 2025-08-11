@@ -22,6 +22,8 @@ export interface Target<SymTag = unknown> {
   tupleSplit(ctx: Ctx, val: Val<T.Tuple>): Val[]
   tupleJoin(ctx: Ctx, els: Val[]): Val<T.Tuple>
 
+  /** The passed `ty` is valid for empty arrays. */
+  arrayEmpty(ctx: Ctx, ty: Ty<T.ArrayAny>): Val<T.ArrayAny>
   arrayCons(
     ctx: Ctx,
     size: number[],

@@ -89,6 +89,8 @@ function toRuntime(ctx: Ctx, val: Val): string {
         .map((x) => toRuntime(ctx, x))
       return runtime.length == 1 ? runtime[0]! : `[${runtime}]`
     }
+    case T.ArrayEmpty:
+      ctx.unreachable()
     case T.ArrayFixed: {
       const vals = val.value as Repr.Array
       return `[${vals.map((x) => toRuntime(ctx, x)).join(",")}]/*$*/`
@@ -254,6 +256,9 @@ export const TARGET_JS = {
     return ret
   },
 
+  arrayEmpty(_ctx, ty) {
+    return new Val([], ty, true)
+  },
   arrayCons(ctx, sizeRaw, el, vals) {
     const size = sizeRaw.map((x) => new Const(x, Int))
     const ty = new Ty(T.ArrayFixed, { el, size })
