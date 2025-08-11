@@ -1,4 +1,4 @@
-import { TARGET_JS } from "./env-js"
+import { TARGET_JS } from "../emit/js"
 import { Env } from "./ext"
 import { ScopeRoot } from "./scope"
 import { Int, Num } from "./ty"

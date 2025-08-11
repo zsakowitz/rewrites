@@ -1,4 +1,4 @@
-import { _try } from "../test"
+import { _try } from "../impl/test"
 
 _try(({ ctx }) => {
   console.time()

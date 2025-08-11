@@ -1,5 +1,5 @@
+import * as ANSI from "../ansi"
 import type { Adt } from "./adt"
-import * as ANSI from "./ansi"
 import { Var } from "./coercion"
 import type { Const } from "./const"
 import type { Fn } from "./fn"

@@ -1,5 +1,5 @@
 import type { BunInspectOptions } from "bun"
-import * as ANSI from "./ansi"
+import * as ANSI from "../ansi"
 import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import { INSPECT } from "./inspect"

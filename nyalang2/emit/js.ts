@@ -1,10 +1,10 @@
-import { Const } from "./const"
-import type { Ctx } from "./ctx"
-import { DEV } from "./debug"
-import { Id, type IdGlobal } from "./id"
-import type { Target } from "./target"
-import { Bool, Int, Num, T, Ty, Void, type TyData } from "./ty"
-import { Val } from "./val"
+import { DEV } from "../debug"
+import { Const } from "../impl/const"
+import type { Ctx } from "../impl/ctx"
+import { Id, type IdGlobal } from "../impl/id"
+import type { Target } from "../impl/target"
+import { Bool, Int, Num, T, Ty, Void, type TyData } from "../impl/ty"
+import { Val } from "../impl/val"
 
 declare class SymTag {
   private __brand

@@ -1,4 +1,4 @@
-import * as ANSI from "./ansi"
+import * as ANSI from "../ansi"
 import { INSPECT } from "./inspect"
 
 let nextId = 32 // first few are reserved for builtin types
