@@ -4,7 +4,7 @@ import { issue } from "./error"
 import { ident, type IdGlobal } from "./id"
 import { type Param } from "./param"
 import type { Pos } from "./pos"
-import { ArrayEmpty, Int, Null, Ty, Void, type T } from "./ty"
+import { ArrayEmpty2, Int, Null, Ty, Void, type T } from "./ty"
 import { Val, ValString } from "./val"
 
 export class Ctx<SymTag = unknown> {
@@ -179,9 +179,9 @@ export class Ctx<SymTag = unknown> {
     return this.target.tupleSplit(this, val)
   }
 
-  arrayTy(vals: Ty[]): Ty<T.ArrayFixed | T.ArrayEmpty> {
+  arrayTy(vals: Ty[]): Ty<T.ArrayFixed> {
     if (vals.length == 0) {
-      return ArrayEmpty
+      return ArrayEmpty2
     }
 
     const ty = this.root.coerce.unifyAll(
@@ -195,13 +195,9 @@ export class Ctx<SymTag = unknown> {
     return Ty.Array(ty, new Const(vals.length, Int))
   }
 
-  array<const T extends readonly Val[]>(
-    vals: T,
-  ): Val<T["length"] extends 0 ? T.ArrayEmpty : T.ArrayFixed>
-  array(vals: Val[]): Val<T.ArrayEmpty | T.ArrayFixed>
-  array(vals: Val[]): Val<T.ArrayFixed | T.ArrayEmpty> {
+  array(vals: Val[]): Val<T.ArrayFixed> {
     if (vals.length == 0) {
-      return this.unit(ArrayEmpty)
+      return this.unit(ArrayEmpty2)
     }
 
     const ty = this.root.coerce.unifyAll(

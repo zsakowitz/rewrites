@@ -77,6 +77,13 @@ export class Const<
     return `${this.value} :: ${this.ty}`
   }
 
+  valToString() {
+    if (typeof this.value == "object") {
+      return this.value.label
+    }
+    return "" + this.value
+  }
+
   [INSPECT](_: unknown, p: BunInspectOptions, inspect: typeof Bun.inspect) {
     if (typeof this.value == "object") {
       return `${this.value.label} :: ${this.ty}`

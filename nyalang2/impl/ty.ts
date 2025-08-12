@@ -1,7 +1,7 @@
 import * as ANSI from "../ansi"
 import type { Adt } from "./adt"
 import { Var } from "./coercion"
-import type { Const } from "./const"
+import { Const } from "./const"
 import type { Fn } from "./fn"
 import type { IdGlobal } from "./id"
 import { INSPECT } from "./inspect"
@@ -12,7 +12,6 @@ import { Param, ParamKind, type FnParams } from "./param"
 export const enum T {
   Never, Bool, Int, Num, // very core primitive types
   Null,                  // the `null` of an optional
-  ArrayEmpty,            // empty array; exists for desmos compat and other reasons
   Sym,                   // ruby symbols like :hello, with optional data attached
   Tuple,                 // on-the-fly collections
   ArrayFixed,            // ndarray with fixed shape
@@ -38,7 +37,6 @@ export interface TyData {
   [T.Num]: null
   [T.Sym]: { tag: IdGlobal | null; el: Ty } // :hello == :hello(())
   [T.Tuple]: Ty[]
-  [T.ArrayEmpty]: null
   [T.ArrayFixed]: { el: Ty; size: Const<T.Int>[] }
   [T.ArrayCapped]: { el: Ty; size: Const<T.Int> }
   [T.ArrayUnsized]: { el: Ty; size: null }
@@ -108,7 +106,6 @@ export class Ty<out K extends T = T> {
       case T.Bool:
       case T.Int:
       case T.Num:
-      case T.ArrayEmpty:
       case T.Null:
         return true
       case T.Sym: {
@@ -184,7 +181,6 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
       case T.Fn:
-      case T.ArrayEmpty:
       case T.Param:
       case T.Null:
         return this
@@ -242,7 +238,6 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
       case T.Fn:
-      case T.ArrayEmpty:
       case T.Null:
         return true
       case T.Param:
@@ -286,7 +281,6 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
       case T.Fn:
-      case T.ArrayEmpty:
       case T.Null:
       case T.Option: // `null` is always available
         return false
@@ -320,7 +314,6 @@ export class Ty<out K extends T = T> {
       case T.Int:
       case T.Num:
         return false
-      case T.ArrayEmpty:
       case T.Fn:
       case T.Null:
         return true
@@ -386,8 +379,6 @@ export class Ty<out K extends T = T> {
         return "int"
       case T.Num:
         return "num"
-      case T.ArrayEmpty:
-        return "[~empty~]"
       case T.Null:
         return "null"
       case T.Sym: {
@@ -397,11 +388,11 @@ export class Ty<out K extends T = T> {
       }
       case T.ArrayFixed: {
         const o = this.of as TyData[T.ArrayFixed]
-        return `[${o.el}; ${o.size.join(", ")}]`
+        return `[${o.el}; ${o.size.map((x) => x.valToString()).join(", ")}]`
       }
       case T.ArrayCapped: {
         const o = this.of as TyData[T.ArrayCapped]
-        return `[${o.el}; ..=${o.size}]`
+        return `[${o.el}; ..=${o.size.valToString()}]`
       }
       case T.ArrayUnsized: {
         const o = this.of as TyData[T.ArrayUnsized]
@@ -446,5 +437,8 @@ export const Bool = new Ty(T.Bool, null)
 export const Int = new Ty(T.Int, null)
 export const Num = new Ty(T.Num, null)
 export const Null = new Ty(T.Null, null)
-export const ArrayEmpty = new Ty(T.ArrayEmpty, null)
 export const Void = new Ty(T.Tuple, [])
+export const ArrayEmpty2 = new Ty(T.ArrayFixed, {
+  el: Never,
+  size: [new Const(0, Int)],
+})
