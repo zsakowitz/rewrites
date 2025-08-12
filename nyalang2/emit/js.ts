@@ -266,6 +266,51 @@ export const TARGET_JS = {
     }
     return ret
   },
+  tupleIndex(ctx, val, idx) {
+    if (val.ty == Void) {
+      return ctx.unreachable()
+    }
+
+    if (val.ty.has1) {
+      // val.ty is only has1 if it's a product of other has1 types
+      return ctx.unit(val.ty.of[idx]!)
+    }
+
+    if (val.const) {
+      return (val.value as Repr.Tuple)[idx]!
+    }
+
+    let nonHas1 = 0
+    for (const ty of val.ty.of) {
+      nonHas1 += +!ty.has1
+    }
+
+    if (nonHas1 == 1) {
+      const el = val.ty.of[idx]!
+      if (el.has1) {
+        return ctx.unit(el)
+      } else {
+        return val.transmute(el)
+      }
+    }
+
+    let i = 0
+    for (let j = 0; j < val.ty.of.length; j++) {
+      const el = val.ty.of[j]!
+      if (el.has1) {
+        if (j == idx) {
+          return ctx.unit(el)
+        }
+      } else {
+        if (j == idx) {
+          const src = toRuntime(ctx, val)
+          return new Val(`${src}[${i}]`, el, false)
+        }
+        i++
+      }
+    }
+    return ctx.unreachable()
+  },
 
   arrayEmpty(_ctx, ty) {
     return new Val([], ty, true)

@@ -20,6 +20,7 @@ export interface Target<SymTag = unknown> {
   symJoin(ctx: Ctx, tag: SymTag, el: Val): Val
 
   tupleSplit(ctx: Ctx, val: Val<T.Tuple>): Val[]
+  tupleIndex(ctx: Ctx, val: Val<T.Tuple>, index: number): Val
   tupleJoin(ctx: Ctx, els: Val[]): Val<T.Tuple>
 
   /** The passed `ty` is valid for empty arrays. */

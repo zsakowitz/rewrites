@@ -2,7 +2,7 @@ import { ident, type IdGlobal } from "../impl/id"
 import { join, Pos, type Loc } from "../impl/pos"
 import { E, Expr } from "./ast"
 import { tokenIdent } from "./ident"
-import type { Scan } from "./scan"
+import type { Scan, Token } from "./scan"
 import { K } from "./token"
 
 function parseGroupList<T>(
@@ -21,7 +21,7 @@ function parseGroupList<T>(
     }
     if (peeked.k == until) {
       scan.next()
-      return { els: [], finalComma: false, end: peeked.pos.end }
+      return { els: [], finalComma: false, end: peeked.p.end }
     }
   }
 
@@ -39,7 +39,7 @@ function parseGroupList<T>(
       scan.eof()
     } else if (peeked.k == until) {
       scan.next()
-      return { els, finalComma: comma, end: peeked.pos.end }
+      return { els, finalComma: comma, end: peeked.p.end }
     } else if (!comma) {
       scan.issue(`Expected comma or closing ${untilName}.`)
     }
@@ -53,40 +53,26 @@ function parseExprAtom(scan: Scan): Expr {
 
   switch (token.k) {
     case K.Int:
-      return new Expr(token.pos, E.Int, token.content)
+      return new Expr(token.p, E.Int, token.content)
     case K.Num:
-      return new Expr(token.pos, E.Num, token.content)
+      return new Expr(token.p, E.Num, token.content)
     case K.NumOrTupleIndex:
-      return new Expr(token.pos, E.Num, token.content)
-    case K.Ques: {
-      const el = parseExprAtom(scan)
-      return new Expr(join(token.pos, el.p), E.Some, el)
-    }
+      return new Expr(token.p, E.Num, token.content)
     case K.Ident:
-      return new Expr(token.pos, E.Ident, tokenIdent(token))
+      return new Expr(token.p, E.Ident, tokenIdent(token))
     case K.Colon: {
       const next = scan.next()
       if (next.k != K.Ident) {
         scan.issue(`Expected identifier following symbol.`)
       }
-      return new Expr(join(token.pos, next.pos), E.SymTag, tokenIdent(next))
+      return new Expr(join(token.p, next.p), E.SymTag, tokenIdent(next))
     }
     case K.KTrue:
-      return new Expr(token.pos, E.Bool, true)
+      return new Expr(token.p, E.Bool, true)
     case K.KFalse:
-      return new Expr(token.pos, E.Bool, false)
+      return new Expr(token.p, E.Bool, false)
     case K.KNull:
-      return new Expr(token.pos, E.Null, null)
-    case K.Bang:
-    case K.Plus:
-    case K.Minus: {
-      const el = parseExprAtom(scan)
-      return new Expr(join(token.pos, el.p), E.Unary, {
-        kind: token.k,
-        id: ident({ [K.Bang]: "!", [K.Plus]: "+", [K.Minus]: "-" }[token.k]),
-        on: el,
-      })
-    }
+      return new Expr(token.p, E.Null, null)
     case K.LParen: {
       const { els, finalComma, end } = parseGroupList(
         scan,
@@ -94,7 +80,7 @@ function parseExprAtom(scan: Scan): Expr {
         "parenthesis",
         parseExpr,
       )
-      const pos = new Pos(token.pos.file, token.pos.start, end)
+      const pos = new Pos(token.p.file, token.p.start, end)
       if (els.length == 1 && !finalComma) {
         return new Expr(pos, E.Paren, els[0]!)
       } else {
@@ -103,7 +89,7 @@ function parseExprAtom(scan: Scan): Expr {
     }
     case K.LBrack: {
       const { els, end } = parseGroupList(scan, K.RBrack, "bracket", parseExpr)
-      const pos = new Pos(token.pos.file, token.pos.start, end)
+      const pos = new Pos(token.p.file, token.p.start, end)
       return new Expr(pos, E.Array, els)
     }
     default:
@@ -111,7 +97,56 @@ function parseExprAtom(scan: Scan): Expr {
   }
 }
 
-const BINARY_IDS: Record<K.Binary, IdGlobal> = {
+function parseExprSuffixed(scan: Scan): Expr {
+  let ret = parseExprAtom(scan)
+
+  while (true) {
+    const next = scan.peek()
+
+    switch (next?.k) {
+      case K.NumOrTupleIndex: {
+        scan.next()
+        const idx = +next.content.slice(1) // cut off the .
+        if (!Number.isSafeInteger(idx)) {
+          next.issue(`Bug: Tuple index '${next.content}' was not numeric.`)
+        }
+        ret = new Expr(join(ret.p, next.p), E.TupleIndex, { on: ret, idx })
+        break
+      }
+      default:
+        return ret
+    }
+  }
+}
+
+const EXPR_TIGHT_PREFIXES = [K.Ques, K.Bang, K.Plus, K.Minus] as const
+type ExprTightPrefix = (typeof EXPR_TIGHT_PREFIXES)[number]
+function parseExprPrefixed(scan: Scan): Expr {
+  const prefixes: Token<ExprTightPrefix>[] = []
+
+  while (true) {
+    const prefix = scan.peek()
+    if (prefix && has(EXPR_TIGHT_PREFIXES, prefix.k)) {
+      scan.next()
+      prefixes.push(prefix satisfies Token<K> as any)
+    } else break
+  }
+
+  const expr = parseExprSuffixed(scan)
+
+  return prefixes.reduceRight(
+    (a, b) =>
+      new Expr(
+        join(b.p, a.p),
+        b.k == K.Ques ? E.Some : E.Unary,
+        b.k == K.Ques ? a : { kind: b.k, id: OP_IDS[b.k], on: a },
+      ),
+    expr,
+  )
+}
+
+const OP_IDS: Record<K.Binary | K.UnaryPre, IdGlobal> = {
+  [K.Bang]: ident("!"),
   [K.Shl]: ident("<<"),
   [K.Shr]: ident(">>"),
   [K.Amp]: ident("&"),
@@ -134,26 +169,36 @@ const BINARY_IDS: Record<K.Binary, IdGlobal> = {
   [K.BarBar]: ident("||"),
 }
 
+/**
+ * TypeScript needs an `a is maybe b` predicate, but we don't use the "else"
+ * case ever, so it's fine.
+ */
+function has<const T>(items: readonly T[], checked: unknown): checked is T {
+  return items.includes(checked as T)
+}
+
 function binParenReq(self: K.Binary[], side: ExprScanner): ExprScanner {
   return (scan) => {
     let ret = side(scan)
-    const next = scan.peek()
-    if (next != null && self.includes(next.k as any)) {
+
+    const next = scan.peekK()
+    if (has(self, next)) {
       scan.next()
       const rhs = side(scan)
       ret = new Expr(join(ret.p, rhs.p), E.Binary, {
-        kind: next.k as K.Binary,
-        id: BINARY_IDS[next.k as K.Binary],
+        kind: next,
+        id: OP_IDS[next],
         lhs: ret,
         rhs,
       })
     }
+
     {
-      const next = scan.peek()
-      if (next != null && self.includes(next.k as any)) {
-        next.issue("Use parentheses to disambiguate operator precedence.")
+      if (has(self, scan.peekK())) {
+        scan.issue("Use parentheses to disambiguate operator precedence.")
       }
     }
+
     return ret
   }
 }
@@ -162,13 +207,13 @@ function binLhsAssoc(self: K.Binary[], side: ExprScanner): ExprScanner {
   return (scan) => {
     let ret = side(scan)
     while (true) {
-      const next = scan.peek()
-      if (next != null && self.includes(next.k as any)) {
+      const next = scan.peekK()
+      if (has(self, next)) {
         scan.next()
         const rhs = side(scan)
         ret = new Expr(join(ret.p, rhs.p), E.Binary, {
-          kind: next.k as K.Binary,
-          id: BINARY_IDS[next.k as K.Binary],
+          kind: next,
+          id: OP_IDS[next],
           lhs: ret,
           rhs,
         })
@@ -193,7 +238,7 @@ function binRhsAssoc(self: K.Binary, side: ExprScanner): ExprScanner {
           (a, b) =>
             new Expr(join(a.p, b.p), E.Binary, {
               kind: self,
-              id: BINARY_IDS[self],
+              id: OP_IDS[self],
               lhs: a,
               rhs: b,
             }),
@@ -227,7 +272,7 @@ const parseExprBinary = binLhsAssoc(
             K.Caret,
             binParenReq(
               [K.Amp, K.Bar, K.Tilde],
-              binParenReq([K.Shl, K.Shr], parseExprAtom),
+              binParenReq([K.Shl, K.Shr], parseExprPrefixed),
             ),
           ),
         ),
@@ -240,7 +285,7 @@ function parseExprBig(scan: Scan): Expr {
   if (scan.peek()?.k == K.KRuntime) {
     const t = scan.next()!
     const el = parseExprBinary(scan)
-    return new Expr(join(t.pos, el.p), E.Runtime, el)
+    return new Expr(join(t.p, el.p), E.Runtime, el)
   }
   return parseExprBinary(scan)
 }

@@ -7,19 +7,19 @@ import { K, KWS, OPS_KEYED } from "./token"
 export class Token<V extends K = K> {
   constructor(
     readonly k: V,
-    readonly pos: Pos,
+    readonly p: Pos,
   ) {}
 
   get content() {
-    return this.pos.content
+    return this.p.content
   }
 
   issue(reason: string): never {
-    return issue(reason, this.pos)
+    return issue(reason, this.p)
   }
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
-    return `${K[this.k].padEnd(10, " ")} ${inspect(this.pos.content, p)}`
+    return `${K[this.k].padEnd(10, " ")} ${inspect(this.p.content, p)}`
   }
 }
 
@@ -30,6 +30,10 @@ export class Scan {
     readonly end: Pos,
     readonly p: Token[],
   ) {}
+
+  peekK() {
+    return this.p[this.i]?.k ?? -1
+  }
 
   peek() {
     return this.p[this.i]
@@ -44,7 +48,7 @@ export class Scan {
   }
 
   issue(reason: string): never {
-    issue(reason, this.peek()?.pos ?? this.end)
+    issue(reason, this.peek()?.p ?? this.end)
   }
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
