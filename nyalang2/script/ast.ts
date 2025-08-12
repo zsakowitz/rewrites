@@ -22,6 +22,7 @@ export enum E {
 
   Unary,
   Binary,
+  Runtime,
 }
 
 export interface EData {
@@ -36,6 +37,7 @@ export interface EData {
   [E.Some]: Expr
   [E.Tuple]: Expr[]
   [E.Array]: Expr[]
+  [E.Runtime]: Expr
 
   [E.Unary]: { kind: K.UnaryPre; id: IdGlobal; on: Expr }
   [E.Binary]: { kind: K.Binary; id: IdGlobal; lhs: Expr; rhs: Expr }

@@ -72,6 +72,7 @@ export enum K {
   KFalse,
   KNull,
   KFn,
+  KRuntime,
 }
 
 export declare namespace K {
@@ -180,4 +181,5 @@ export const KWS = new Map<string, K>([
   ["false", K.KFalse],
   ["null", K.KNull],
   ["fn", K.KFn],
+  ["runtime", K.KRuntime],
 ])

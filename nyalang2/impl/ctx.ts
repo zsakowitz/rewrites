@@ -33,12 +33,17 @@ export class Ctx<SymTag = unknown> {
     return this.block.scope.root
   }
 
-  join(text: TemplateStringsArray, ...args: Val[]): ValString {
+  join(text: TemplateStringsArray, ...args: (Val | string)[]): ValString {
     let ret = text[0]!
     for (let i = 1; i < text.length; i++) {
-      ret += `(`
-      ret += this.target.x(this, args[i - 1]!)
-      ret += `)`
+      const val = args[i - 1]!
+      if (typeof val == "string") {
+        ret += val
+      } else {
+        ret += `(`
+        ret += this.target.x(this, val)
+        ret += `)`
+      }
       ret += text[i]!
     }
     return new ValString(ret)

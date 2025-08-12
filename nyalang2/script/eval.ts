@@ -42,6 +42,8 @@ export function evalTy(expr: Expr, block: Block): Ty {
         evalTy((expr.d as EData[E.Binary]).lhs, block),
         evalTy((expr.d as EData[E.Binary]).rhs, block),
       ])
+    case E.Runtime:
+      return evalTy(expr.d as EData[E.Runtime], block)
   }
 }
 
@@ -77,5 +79,9 @@ export function evalVal(expr: Expr, block: Block): Val {
         evalVal((expr.d as EData[E.Binary]).lhs, block),
         evalVal((expr.d as EData[E.Binary]).rhs, block),
       ])
+    case E.Runtime: {
+      const v = evalVal(expr.d as EData[E.Runtime], block)
+      return new Val(v.runtime(ctx), v.ty, false)
+    }
   }
 }

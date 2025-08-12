@@ -236,6 +236,15 @@ const parseExprBinary = binLhsAssoc(
   ),
 )
 
-export function parseExpr(scan: Scan): Expr {
+function parseExprBig(scan: Scan): Expr {
+  if (scan.peek()?.k == K.KRuntime) {
+    const t = scan.next()!
+    const el = parseExprBinary(scan)
+    return new Expr(join(t.pos, el.p), E.Runtime, el)
+  }
   return parseExprBinary(scan)
+}
+
+export function parseExpr(scan: Scan): Expr {
+  return parseExprBig(scan)
 }
