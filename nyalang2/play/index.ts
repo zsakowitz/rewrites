@@ -5,7 +5,7 @@ import { parseExpr } from "../script/parse"
 import { scan } from "../script/scan"
 
 _try(({ ctx, block }) => {
-  const source = new File("repl.nya", "[2,7]")
+  const source = new File("repl", "[2+3,7]")
   const ret = scan(source)
   const expr = parseExpr(ret)
   console.log(expr)

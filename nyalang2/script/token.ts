@@ -22,10 +22,9 @@ export enum K {
   // Bitwise and set operators
   Shl,
   Shr,
-  Tilde,
+  Tilde, // inverse as prefix, xor as infix
   Amp,
   Bar,
-  Backslash, // xor, probably set difference
   At,
 
   // Logical operators
@@ -75,34 +74,33 @@ export enum K {
   KFn,
 }
 
-;(2 ^ 4) | (3 ^ 4)
-;(2 + 3) & 4
-2 + (3 & 4)
-;(2 + 3) & 4
-
 export declare namespace K {
   type UnaryPre = K.Bang | K.Plus | K.Minus | K.Tilde
 
   // Sorted by precedence
+  // `+`  being left-associative  means `a + b + c` == `(a + b) + c`
+  // `^`  being right-associative means `a ^ b ^ c` == `a ^ (b ^ c)`
+  // `<<` being "parens required" means `a << b << c` is a syntax error
   type Binary =
-    // Bitwise shifts
+    // Bitwise shifts (parens required)
     | K.Shl
     | K.Shr
-    // Bitwise combinations
+    // Bitwise combinations (parens required)
     | K.Amp
     | K.Bar
-    | K.Backslash
-    // Exponentiation
+    | K.Tilde
+    // Exponentiation (right-associative)
     | K.Caret
-    // Products
+    // Products (left-associative)
     | K.Star
     | K.Slash
     | K.Percent
     | K.At
-    // Sums
+    // Sums (left-associative)
     | K.Plus
     | K.Minus
-    // Equalities
+    // Equalities (chain like desmos; ineq-ineq or eq-eq, but not in any other ways)
+    // e.g. 2 == 3 == 4, 2 < 3 <= 4, and 2 < 3 > 4 are valid, but not 2 < 3 == 4
     | K.Eq
     | K.Ne
     | K.Lt
@@ -113,8 +111,6 @@ export declare namespace K {
     | K.AmpAmp
     // Logical OR
     | K.BarBar
-    // Assignment
-    | K.Assign
 }
 
 export const OPS = new Map<string, K>([
@@ -130,7 +126,6 @@ export const OPS = new Map<string, K>([
   ["~", K.Tilde],
   ["<<", K.Shl],
   [">>", K.Shr],
-  ["\\", K.Backslash],
   ["@", K.At],
 
   ["!", K.Bang],

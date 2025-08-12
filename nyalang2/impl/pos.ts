@@ -39,6 +39,6 @@ export class Pos {
   }
 
   toString() {
-    return `${this.file}${this.start ? ":" + this.start : ""}`
+    return `${this.file.name}${this.start ? ":" + this.start : ""}`
   }
 }

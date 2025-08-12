@@ -37,6 +37,11 @@ export function evalTy(expr: Expr, block: Block): Ty {
       return ctx.callTy((expr.d as EData[E.Unary]).id, [
         evalTy((expr.d as EData[E.Unary]).on, block),
       ])
+    case E.Binary:
+      return ctx.callTy((expr.d as EData[E.Binary]).id, [
+        evalTy((expr.d as EData[E.Binary]).lhs, block),
+        evalTy((expr.d as EData[E.Binary]).rhs, block),
+      ])
   }
 }
 
@@ -66,6 +71,11 @@ export function evalVal(expr: Expr, block: Block): Val {
     case E.Unary:
       return ctx.callVal((expr.d as EData[E.Unary]).id, [
         evalVal((expr.d as EData[E.Unary]).on, block),
+      ])
+    case E.Binary:
+      return ctx.callVal((expr.d as EData[E.Binary]).id, [
+        evalVal((expr.d as EData[E.Binary]).lhs, block),
+        evalVal((expr.d as EData[E.Binary]).rhs, block),
       ])
   }
 }

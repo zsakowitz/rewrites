@@ -21,6 +21,7 @@ export enum E {
   Array,
 
   Unary,
+  Binary,
 }
 
 export interface EData {
@@ -37,6 +38,7 @@ export interface EData {
   [E.Array]: Expr[]
 
   [E.Unary]: { kind: K.UnaryPre; id: IdGlobal; on: Expr }
+  [E.Binary]: { kind: K.Binary; id: IdGlobal; lhs: Expr; rhs: Expr }
 }
 
 export class Expr<K extends E = E> {
