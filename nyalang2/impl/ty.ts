@@ -434,7 +434,7 @@ export class Ty<out K extends T = T> {
       C
       + this.toString().replace(
         /[():,;[\]?]/g,
-        (x) => R + ("():".includes(x) ? ANSI.dim : "") + x + C,
+        (x) => R + (":".includes(x) ? ANSI.dim : "") + x + C,
       )
       + R
     )

@@ -1,7 +1,7 @@
 import { type BunInspectOptions } from "bun"
 import { issue } from "../impl/error"
 import { INSPECT } from "../impl/inspect"
-import { Loc, Pos } from "../impl/pos"
+import { Loc, Pos, type File } from "../impl/pos"
 import { K, KWS, OPS_KEYED } from "./token"
 
 export class Token<V extends K = K> {
@@ -27,7 +27,6 @@ export class Scan {
   i = 0
 
   constructor(
-    readonly filename: string,
     readonly end: Pos,
     readonly p: Token[],
   ) {}
@@ -115,7 +114,8 @@ function isAlpha(code: number) {
   )
 }
 
-export function scan(filename: string, text: string): Scan {
+export function scan(file: File): Scan {
+  const body = file.body
   const depth: { kind: K.OLBrace | K.OLIterp; hashes: number }[] = []
   let row = 1
   let col = 1
@@ -123,9 +123,9 @@ export function scan(filename: string, text: string): Scan {
 
   let i = 0
   let code
-  const len = text.length
+  const len = body.length
   while (i < len) {
-    code = text.charCodeAt(i)
+    code = body.charCodeAt(i)
 
     switch (code) {
       case CODE_NL:
@@ -152,7 +152,7 @@ export function scan(filename: string, text: string): Scan {
         const start = new Loc(row, col, i)
         i++
         col++
-        const pos = new Pos(text, start, new Loc(row, col, i))
+        const pos = new Pos(file, start, new Loc(row, col, i))
         const last = depth.pop()
         if (!last) {
           issue("Unmatched closing brace.", pos)
@@ -178,7 +178,7 @@ export function scan(filename: string, text: string): Scan {
         parseNum()
         break
       case CODE_DOT: {
-        const next = text.charCodeAt(i + 1)
+        const next = body.charCodeAt(i + 1)
         if (CODE_0 <= next && next <= CODE_9) {
           parseNum()
           break
@@ -187,7 +187,7 @@ export function scan(filename: string, text: string): Scan {
         i++
         col++
         const end = new Loc(row, col, i)
-        ret.push(new Token(K.Dot, new Pos(text, start, end)))
+        ret.push(new Token(K.Dot, new Pos(file, start, end)))
         break
       }
       case 0x41:
@@ -245,12 +245,12 @@ export function scan(filename: string, text: string): Scan {
       case 0x5f: {
         const start = new Loc(row, col, i)
         while (
-          (code = text.charCodeAt(++i))
+          (code = body.charCodeAt(++i))
           && (isAlpha(code) || (CODE_0 <= code && code <= CODE_9))
         );
 
-        const word = text.slice(start.idx, i)
-        const pos = new Pos(text, start, new Loc(row, col, i))
+        const word = body.slice(start.idx, i)
+        const pos = new Pos(file, start, new Loc(row, col, i))
         ret.push(new Token(KWS.get(word) ?? K.Ident, pos))
         continue
       }
@@ -260,26 +260,26 @@ export function scan(filename: string, text: string): Scan {
         if (entry) {
           i++
           col++
-          const code2 = text.charCodeAt(i)
+          const code2 = body.charCodeAt(i)
           if (entry.has(code2)) {
             i++
             col++
             const op = entry.get(code2)!
             if (op == K.Comment) {
-              while (i < text.length && text.charCodeAt(i) != CODE_NL) {
+              while (i < body.length && body.charCodeAt(i) != CODE_NL) {
                 i++
                 col++
               }
             }
             const end = new Loc(row, col, i)
-            ret.push(new Token(op, new Pos(text, start, end)))
+            ret.push(new Token(op, new Pos(file, start, end)))
           } else if (entry.has(0)) {
             const end = new Loc(row, col, i)
-            ret.push(new Token(entry.get(0)!, new Pos(text, start, end)))
+            ret.push(new Token(entry.get(0)!, new Pos(file, start, end)))
           } else {
             issue(
-              `Unknown operator '${text[i - 1]!}'`,
-              new Pos(text, start, start),
+              `Unknown operator '${body[i - 1]!}'`,
+              new Pos(file, start, start),
             )
           }
 
@@ -291,7 +291,7 @@ export function scan(filename: string, text: string): Scan {
 
   const last = depth.at(-1)
   if (last) {
-    const pos = new Pos(text, new Loc(row, col, i), new Loc(row, col, i))
+    const pos = new Pos(file, new Loc(row, col, i), new Loc(row, col, i))
     if (last.kind == K.OLBrace) {
       issue(`Unclosed block.`, pos)
     } else {
@@ -299,16 +299,16 @@ export function scan(filename: string, text: string): Scan {
     }
   }
 
-  const end = new Pos(text, new Loc(row, col, i), new Loc(row, col, i))
+  const end = new Pos(file, new Loc(row, col, i), new Loc(row, col, i))
 
-  return new Scan(filename, end, ret)
+  return new Scan(end, ret)
 
   function parseNum() {
     const start = new Loc(row, col, i)
 
     while (
-      (code = text.charCodeAt(i))
-      && i < text.length
+      (code = body.charCodeAt(i))
+      && i < body.length
       && CODE_0 <= code
       && code <= CODE_9
     )
@@ -316,18 +316,18 @@ export function scan(filename: string, text: string): Scan {
 
     let tupleIndex = i == start.idx
     let num = false
-    if (code == CODE_DOT && !isAlpha(text.charCodeAt(i + 1))) {
+    if (code == CODE_DOT && !isAlpha(body.charCodeAt(i + 1))) {
       num = true
       i++
       col++
-      while (((code = text.charCodeAt(i)), CODE_0 <= code && code <= CODE_9))
+      while (((code = body.charCodeAt(i)), CODE_0 <= code && code <= CODE_9))
         i++
       col++
     }
 
     if (code == CODE_E || code == CODE_e) {
-      const next = text.charCodeAt(i + 1)
-      const next2 = text.charCodeAt(i + 2)
+      const next = body.charCodeAt(i + 1)
+      const next2 = body.charCodeAt(i + 2)
       if (
         ((next == CODE_P || next == CODE_M)
           && CODE_0 <= next2
@@ -343,15 +343,15 @@ export function scan(filename: string, text: string): Scan {
         i++
         col++
         while (
-          i < text.length
-          && (code = text.charCodeAt(++i))
+          i < body.length
+          && (code = body.charCodeAt(++i))
           && CODE_0 <= next
           && next <= CODE_9
         );
       }
     }
 
-    const pos = new Pos(text, start, new Loc(row, col, i))
+    const pos = new Pos(file, start, new Loc(row, col, i))
     ret.push(
       new Token(
         tupleIndex ? K.NumOrTupleIndex
@@ -366,13 +366,13 @@ export function scan(filename: string, text: string): Scan {
     let code
 
     let hashes = 0
-    while (((code = text.charCodeAt(i)), code == CODE_HASH))
+    while (((code = body.charCodeAt(i)), code == CODE_HASH))
       (hashes++, i++, col++)
 
     if (code != CODE_QUOT)
       issue(
-        `Unknown string delimeter '${text[i] ?? "<EOF>"}'.`,
-        new Pos(text, new Loc(row, col, i), new Loc(row, col, i)),
+        `Unknown string delimeter '${body[i] ?? "<EOF>"}'.`,
+        new Pos(file, new Loc(row, col, i), new Loc(row, col, i)),
       )
 
     i++
@@ -386,13 +386,13 @@ export function scan(filename: string, text: string): Scan {
     let code
     const start = new Loc(row, col, i)
     while (true) {
-      if (i >= text.length) {
+      if (i >= body.length) {
         issue(
           "Unterminated string literal.",
-          new Pos(text, new Loc(row, col, i), new Loc(row, col, i)),
+          new Pos(file, new Loc(row, col, i), new Loc(row, col, i)),
         )
       }
-      code = text.charCodeAt(i)
+      code = body.charCodeAt(i)
       switch (code) {
         case CODE_NL:
           i++
@@ -402,25 +402,25 @@ export function scan(filename: string, text: string): Scan {
         case CODE_DOLR:
           interp: {
             for (let j = 1; j < dollars; j++) {
-              if (text.charCodeAt(i + j) != CODE_DOLR) {
+              if (body.charCodeAt(i + j) != CODE_DOLR) {
                 break interp
               }
             }
-            if (text.charCodeAt(i + dollars) != CODE_LBRC) {
+            if (body.charCodeAt(i + dollars) != CODE_LBRC) {
               break interp
             }
             const end = new Loc(row, col, i)
             ret.push(
               new Token(
                 isStart ? K.StrStart : K.StrMid,
-                new Pos(text, start, end),
+                new Pos(file, start, end),
               ),
             )
             depth.push({ kind: K.OLIterp, hashes })
             i += dollars + 1
             col += dollars + 1
             const end2 = new Loc(row, col, i)
-            ret.push(new Token(K.OLIterp, new Pos(text, end, end2)))
+            ret.push(new Token(K.OLIterp, new Pos(file, end, end2)))
             return
           }
           i++
@@ -429,7 +429,7 @@ export function scan(filename: string, text: string): Scan {
         case CODE_QUOT:
           final: {
             for (let j = 0; j < hashes; j++) {
-              if (text.charCodeAt(i + 1 + j) != CODE_HASH) {
+              if (body.charCodeAt(i + 1 + j) != CODE_HASH) {
                 break final
               }
             }
@@ -437,7 +437,7 @@ export function scan(filename: string, text: string): Scan {
             ret.push(
               new Token(
                 isStart ? K.StrFull : K.StrFinal,
-                new Pos(text, start, end),
+                new Pos(file, start, end),
               ),
             )
             i += hashes + 1
@@ -451,7 +451,7 @@ export function scan(filename: string, text: string): Scan {
           if (hashes == 0) {
             i++
             col++
-            if (text.charCodeAt(i) == CODE_NL) {
+            if (body.charCodeAt(i) == CODE_NL) {
               i++
               row++
               col += 1

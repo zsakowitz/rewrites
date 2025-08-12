@@ -1,10 +1,14 @@
+import { File } from "../impl/pos"
 import { _try } from "../impl/test"
-import { parseExpr } from "../script/expr"
+import { evalVal } from "../script/eval"
+import { parseExpr } from "../script/parse"
 import { scan } from "../script/scan"
 
 _try(({ block }) => {
-  const ret = scan("repl.nya", "(?45.6,null)")
+  const source = new File("repl.nya", "[45.6,null]")
+  const ret = scan(source)
   const expr = parseExpr(ret)
-  const val = expr.evalVal(block)
+  console.log(expr)
+  const val = evalVal(expr, block)
   console.log(val)
 })

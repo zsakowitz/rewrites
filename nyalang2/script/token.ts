@@ -16,7 +16,7 @@ export enum K {
   Star,
   // if ** is encountered, an error is thrown recommending it be switched to ^
   Slash,
-  Carat,
+  Caret,
   Percent, // actual modulus (-2%3 == 1), not `rem` like C or JS
   Amp,
   Bar,
@@ -70,13 +70,17 @@ export enum K {
   KFn,
 }
 
+export declare namespace K {
+  type UnaryPre = K.Bang | K.Plus | K.Minus
+}
+
 export const OPS = new Map<string, K>([
   ["+", K.Plus],
   ["-", K.Minus],
   ["*", K.Star],
   ["/", K.Slash],
   ["//", K.Comment],
-  ["^", K.Carat],
+  ["^", K.Caret],
   ["%", K.Percent],
   ["&", K.Amp],
   ["|", K.Bar],

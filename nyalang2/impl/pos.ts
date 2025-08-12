@@ -14,20 +14,27 @@ export function join(a: Pos, b: Pos) {
   return new Pos(a.file, a.start, b.end)
 }
 
+export class File {
+  constructor(
+    readonly name: string,
+    readonly body: string,
+  ) {}
+}
+
 export class Pos {
-  static native(tag = "native code") {
-    return new Pos(`[${tag}]`, null, null)
+  static native(tag = "native_code") {
+    return new Pos(new File(tag, ""), null, null)
   }
 
   constructor(
-    readonly file: string,
+    readonly file: File,
     readonly start: Loc | null,
     readonly end: Loc | null,
   ) {}
 
   get content() {
     return this.start && this.end ?
-        this.file.slice(this.start.idx, this.end.idx)
+        this.file.body.slice(this.start.idx, this.end.idx)
       : ""
   }
 
