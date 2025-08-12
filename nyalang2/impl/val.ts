@@ -64,11 +64,11 @@ export class Val<K extends T = T, V = unknown> {
   }
 
   toString() {
-    return `${this.value}::${this.ty}`
+    return `${this.value}: ${this.ty}`
   }
 
   [INSPECT](_: unknown, p: BunInspectOptions, inspect: typeof Bun.inspect) {
-    return `${inspect(this.value, p)} ${ANSI.dim}::${ANSI.reset} ${inspect(this.ty, p)}`
+    return `${inspect(this.value, p)}${ANSI.dim}:${ANSI.reset} ${inspect(this.ty, p)}`
   }
 }
 

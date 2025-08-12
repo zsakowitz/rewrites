@@ -16,11 +16,16 @@ export enum K {
   Star,
   // if ** is encountered, an error is thrown recommending it be switched to ^
   Slash,
-  Caret,
   Percent, // actual modulus (-2%3 == 1), not `rem` like C or JS
+  Caret, // exponentiation, not xor
+
+  // Bitwise and set operators
+  Shl,
+  Shr,
+  Tilde,
   Amp,
   Bar,
-  Backslash, // set difference and xor
+  Backslash, // xor, probably set difference
   At,
 
   // Logical operators
@@ -48,14 +53,14 @@ export enum K {
   Underscore,
 
   // Brackets
-  OLParen,
-  OLBrack,
-  OLBrace,
+  LParen,
+  LBrack,
+  LBrace,
   OLAngle,
-  OLIterp, // short for "interpolation", our `${` delimeter in strings
-  ORParen,
-  ORBrack,
-  ORBrace,
+  LIterp, // short for "interpolation", our `${` delimeter in strings
+  RParen,
+  RBrack,
+  RBrace,
   ORAngle,
   ORIterp, // looks the same as `ORBrace`, but it's differentiated in the lexing stage
 
@@ -70,8 +75,46 @@ export enum K {
   KFn,
 }
 
+;(2 ^ 4) | (3 ^ 4)
+;(2 + 3) & 4
+2 + (3 & 4)
+;(2 + 3) & 4
+
 export declare namespace K {
-  type UnaryPre = K.Bang | K.Plus | K.Minus
+  type UnaryPre = K.Bang | K.Plus | K.Minus | K.Tilde
+
+  // Sorted by precedence
+  type Binary =
+    // Bitwise shifts
+    | K.Shl
+    | K.Shr
+    // Bitwise combinations
+    | K.Amp
+    | K.Bar
+    | K.Backslash
+    // Exponentiation
+    | K.Caret
+    // Products
+    | K.Star
+    | K.Slash
+    | K.Percent
+    | K.At
+    // Sums
+    | K.Plus
+    | K.Minus
+    // Equalities
+    | K.Eq
+    | K.Ne
+    | K.Lt
+    | K.Le
+    | K.Gt
+    | K.Ge
+    // Logical AND
+    | K.AmpAmp
+    // Logical OR
+    | K.BarBar
+    // Assignment
+    | K.Assign
 }
 
 export const OPS = new Map<string, K>([
@@ -84,6 +127,9 @@ export const OPS = new Map<string, K>([
   ["%", K.Percent],
   ["&", K.Amp],
   ["|", K.Bar],
+  ["~", K.Tilde],
+  ["<<", K.Shl],
+  [">>", K.Shr],
   ["\\", K.Backslash],
   ["@", K.At],
 
@@ -107,15 +153,13 @@ export const OPS = new Map<string, K>([
   [";", K.Semi],
   ["?", K.Ques],
 
-  ["(", K.OLParen],
-  ["[", K.OLBrack],
-  ["{", K.OLBrace],
-  ["<", K.OLAngle],
-  ["${", K.OLIterp],
-  [")", K.ORParen],
-  ["]", K.ORBrack],
-  ["}", K.ORBrace],
-  [">", K.ORAngle],
+  ["(", K.LParen],
+  ["[", K.LBrack],
+  ["{", K.LBrace],
+  ["${", K.LIterp],
+  [")", K.RParen],
+  ["]", K.RBrack],
+  ["}", K.RBrace],
 ])
 
 /** first char -> (second char | 0) -> K */

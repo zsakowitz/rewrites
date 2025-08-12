@@ -85,10 +85,10 @@ function parseAtom(scan: Scan): Expr {
         on: el,
       })
     }
-    case K.OLParen: {
+    case K.LParen: {
       const { els, finalComma, end } = parseGroupList(
         scan,
-        K.ORParen,
+        K.RParen,
         "parenthesis",
         parseExpr,
       )
@@ -99,8 +99,8 @@ function parseAtom(scan: Scan): Expr {
         return new Expr(pos, E.Tuple, els)
       }
     }
-    case K.OLBrack: {
-      const { els, end } = parseGroupList(scan, K.ORBrack, "bracket", parseExpr)
+    case K.LBrack: {
+      const { els, end } = parseGroupList(scan, K.RBrack, "bracket", parseExpr)
       const pos = new Pos(token.pos.file, token.pos.start, end)
       return new Expr(pos, E.Array, els)
     }

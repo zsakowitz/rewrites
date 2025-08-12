@@ -52,17 +52,17 @@ export class Scan {
     let ret = ""
     for (const el of this.p) {
       switch (el.k) {
-        case K.OLParen:
-        case K.OLBrack:
-        case K.OLBrace:
+        case K.LParen:
+        case K.LBrack:
+        case K.LBrace:
         case K.OLAngle:
-        case K.OLIterp:
+        case K.LIterp:
           ret += (ret ? "\n" : "") + " ".repeat(indent) + inspect(el, p)
           indent += 2
           continue
-        case K.ORParen:
-        case K.ORBrack:
-        case K.ORBrace:
+        case K.RParen:
+        case K.RBrack:
+        case K.RBrace:
         case K.ORAngle:
         case K.ORIterp:
           indent -= 2
@@ -116,7 +116,7 @@ function isAlpha(code: number) {
 
 export function scan(file: File): Scan {
   const body = file.body
-  const depth: { kind: K.OLBrace | K.OLIterp; hashes: number }[] = []
+  const depth: { kind: K.LBrace | K.LIterp; hashes: number }[] = []
   let row = 1
   let col = 1
   const ret = []
@@ -144,7 +144,7 @@ export function scan(file: File): Scan {
         parseHashOrQuote()
         break
       case CODE_LBRC:
-        depth.push({ kind: K.OLBrace, hashes: 0 })
+        depth.push({ kind: K.LBrace, hashes: 0 })
         i++
         col++
         continue
@@ -157,8 +157,8 @@ export function scan(file: File): Scan {
         if (!last) {
           issue("Unmatched closing brace.", pos)
         }
-        if (last.kind == K.OLBrace) {
-          ret.push(new Token(K.ORBrace, pos))
+        if (last.kind == K.LBrace) {
+          ret.push(new Token(K.RBrace, pos))
           continue
         }
         ret.push(new Token(K.ORIterp, pos))
@@ -292,7 +292,7 @@ export function scan(file: File): Scan {
   const last = depth.at(-1)
   if (last) {
     const pos = new Pos(file, new Loc(row, col, i), new Loc(row, col, i))
-    if (last.kind == K.OLBrace) {
+    if (last.kind == K.LBrace) {
       issue(`Unclosed block.`, pos)
     } else {
       issue(`Unterminated string.`, pos)
@@ -416,11 +416,11 @@ export function scan(file: File): Scan {
                 new Pos(file, start, end),
               ),
             )
-            depth.push({ kind: K.OLIterp, hashes })
+            depth.push({ kind: K.LIterp, hashes })
             i += dollars + 1
             col += dollars + 1
             const end2 = new Loc(row, col, i)
-            ret.push(new Token(K.OLIterp, new Pos(file, end, end2)))
+            ret.push(new Token(K.LIterp, new Pos(file, end, end2)))
             return
           }
           i++
