@@ -1,11 +1,10 @@
 import * as ANSI from "../ansi"
 import type { Adt } from "./adt"
-import { Var } from "./coercion"
 import { Const } from "./const"
 import type { Fn } from "./fn"
 import type { IdGlobal } from "./id"
 import { INSPECT } from "./inspect"
-import { Param, ParamKind, type FnParams } from "./param"
+import { Param, ParamKind, Var, type FnParams } from "./param"
 
 // prettier-ignore
 // no uint b/c js doesn't support it and glsl only uses `int`

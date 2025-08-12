@@ -2,7 +2,7 @@ import type * as Bun from "bun"
 import type { BunInspectOptions } from "bun"
 import { INSPECT } from "./inspect"
 import { Param, ParamKind, type FnParams } from "./param"
-import { T, Ty } from "./ty"
+import type { T, Ty } from "./ty"
 
 type ConstVal<K extends T.Const> =
   | (K extends T.Bool ? boolean : never)

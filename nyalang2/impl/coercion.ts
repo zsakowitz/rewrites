@@ -2,7 +2,7 @@ import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
-import { FnParams } from "./param"
+import { FnParams, Var } from "./param"
 import type { Pos } from "./pos"
 import { Null, T, Ty, type TyData } from "./ty"
 import { Val } from "./val"
@@ -243,11 +243,6 @@ class CoercionsRaw {
 // - (~?)[A; M, N, ...] -> (~?)[B; M, N, ...], if A->B and (~ on the input) => (~ on the output)
 // - (~?)[A; M, N, ...] -> [B], if A->B
 // - AdtExt<A> -> AdtExt<B>, if A->B
-
-export const enum Var {
-  Coercible, // coercible for ty, <= for const
-  Invar, // invariant for ty, == for const
-}
 
 export class Coercions {
   readonly #raw = new CoercionsRaw()

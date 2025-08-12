@@ -1,9 +1,8 @@
 import { Adt } from "../impl/adt"
-import { Var } from "../impl/coercion"
 import { Const } from "../impl/const"
 import { Fn } from "../impl/fn"
 import { ident } from "../impl/id"
-import { FnParamsTempl } from "../impl/param"
+import { FnParamsTempl, Var } from "../impl/param"
 import { Int, T, Ty } from "../impl/ty"
 
 function repr(ty: Ty<T.Adt>) {

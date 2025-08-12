@@ -1,7 +1,6 @@
-import type { Var } from "./coercion"
 import type { Ctx } from "./ctx"
 import type { IdGlobal } from "./id"
-import type { FnParams } from "./param"
+import type { FnParams, Var } from "./param"
 import { T, Ty } from "./ty"
 import type { Val } from "./val"
 
