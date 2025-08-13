@@ -44,6 +44,15 @@ export function evalTy(expr: Expr, block: Block): Ty {
       ])
     case E.Runtime:
       return evalTy(expr.d as EData[E.Runtime], block)
+    case E.TupleIndex: {
+      const d = expr.d as EData[E.TupleIndex]
+      const v = evalTy(d.on, block)
+      if (v.is(T.Tuple)) {
+        return ctx.indexTupleTy(v, d.idx)
+      } else {
+        return ctx.at(d.on.p).issue("Tuple indexing is only valid on tuples.")
+      }
+    }
   }
 }
 
@@ -81,7 +90,16 @@ export function evalVal(expr: Expr, block: Block): Val {
       ])
     case E.Runtime: {
       const v = evalVal(expr.d as EData[E.Runtime], block)
-      return new Val(v.runtime(ctx), v.ty, false)
+      return ctx.asRuntime(v)
+    }
+    case E.TupleIndex: {
+      const d = expr.d as EData[E.TupleIndex]
+      const v = evalVal(d.on, block)
+      if (v.ty.is(T.Tuple)) {
+        return ctx.indexTuple(v as Val<T.Tuple>, d.idx)
+      } else {
+        return ctx.at(d.on.p).issue("Tuple indexing is only valid on tuples.")
+      }
     }
   }
 }

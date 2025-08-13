@@ -53,6 +53,10 @@ export class Ctx<SymTag = unknown> {
     return this.target.x(this, val)
   }
 
+  asRuntime(val: Val): Val {
+    return new Val(this.runtime(val), val.ty, false)
+  }
+
   // doesn't yet handle broadcasting and lists
   tryCallTy(name: IdGlobal | Param, args: Ty[]): Ty | null {
     if (typeof name == "string") {
@@ -227,5 +231,25 @@ export class Ctx<SymTag = unknown> {
 
   some(val: Val): Val<T.Option> {
     return this.target.optFromVal(this, val)
+  }
+
+  indexTupleTy(ty: Ty<T.Tuple>, idx: number) {
+    if (!(0 <= idx && idx <= ty.of.length && idx == Math.floor(idx))) {
+      this.issue(`Index '${idx}' is out of bounds for tuple of type '${ty}'.`)
+    }
+    return ty.of[idx]!
+  }
+
+  indexTuple(val: Val<T.Tuple>, idx: number) {
+    if (!(0 <= idx && idx <= val.ty.of.length && idx == Math.floor(idx))) {
+      this.issue(
+        `Index '${idx}' is out of bounds for tuple of type '${val.ty}'.`,
+      )
+    }
+    return this.target.tupleIndex(this, val, idx)
+  }
+
+  at(pos: Pos) {
+    return new Ctx(this.block, pos)
   }
 }
