@@ -24,6 +24,7 @@ export enum E {
   Binary,
   Runtime,
   TupleIndex,
+  Ascribe,
 }
 
 export interface EData {
@@ -43,6 +44,7 @@ export interface EData {
   [E.Binary]: { kind: K.Binary; id: IdGlobal; lhs: Expr; rhs: Expr }
   [E.Runtime]: Expr
   [E.TupleIndex]: { on: Expr; idx: number }
+  [E.Ascribe]: { on: Expr; ty: Type }
 }
 
 export class Expr<K extends E = E> {
@@ -58,6 +60,46 @@ export class Expr<K extends E = E> {
       return `${E[this.k]} ${inner}`
     } else {
       return `${E[this.k]}(${inner})`
+    }
+  }
+}
+
+/** Type kind */
+export enum Y {
+  Ident,
+  Sym,
+  Paren,
+  Option,
+  Null,
+  Tuple,
+  ArrayFixed,
+  ArrayUnsized,
+}
+
+export interface YData {
+  [Y.Ident]: IdGlobal
+  [Y.Sym]: { tag: IdGlobal | null; of: Type | null }
+  [Y.Paren]: Type
+  [Y.Option]: Type
+  [Y.Null]: null
+  [Y.Tuple]: Type[]
+  [Y.ArrayFixed]: { el: Type; size: Expr[] }
+  [Y.ArrayUnsized]: { el: Type; size: null }
+}
+
+export class Type<K extends Y = Y> {
+  constructor(
+    readonly p: Pos,
+    readonly k: K,
+    readonly d: YData[K],
+  ) {}
+
+  [INSPECT](_: unknown, p: BunInspectOptions, inspect: typeof Bun.inspect) {
+    const inner = inspect(this.d, p)
+    if (inner[0] == "[" || inner[0] == "{") {
+      return `${Y[this.k]} ${inner}`
+    } else {
+      return `${Y[this.k]}(${inner})`
     }
   }
 }

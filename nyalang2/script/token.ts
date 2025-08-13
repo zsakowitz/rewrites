@@ -45,6 +45,7 @@ export enum K {
   Comma,
   Dot,
   Colon,
+  ColonColon,
   Arrow, // ->
   ArrowDouble, // =>
   Semi,
@@ -73,7 +74,18 @@ export enum K {
   KNull,
   KFn,
   KRuntime,
+  KSym,
 }
+
+export const KWS = new Map<string, K>([
+  ["_", K.Underscore],
+  ["true", K.KTrue],
+  ["false", K.KFalse],
+  ["null", K.KNull],
+  ["fn", K.KFn],
+  ["runtime", K.KRuntime],
+  ["sym", K.KSym],
+])
 
 export declare namespace K {
   type UnaryPre = K.Bang | K.Plus | K.Minus | K.Tilde
@@ -144,6 +156,7 @@ export const OPS = new Map<string, K>([
   [",", K.Comma],
   [".", K.Dot],
   [":", K.Colon],
+  ["::", K.ColonColon],
   ["->", K.Arrow],
   ["=>", K.ArrowDouble],
   [";", K.Semi],
@@ -174,12 +187,3 @@ for (const [k, v] of OPS) {
     m.set(0, v)
   }
 }
-
-export const KWS = new Map<string, K>([
-  ["_", K.Underscore],
-  ["true", K.KTrue],
-  ["false", K.KFalse],
-  ["null", K.KNull],
-  ["fn", K.KFn],
-  ["runtime", K.KRuntime],
-])

@@ -54,7 +54,7 @@ function toRuntime(ctx: Ctx, val: Val): string {
   const v = val.value
   switch (val.ty.k) {
     case T.Never:
-      ctx.bug(`Values of type '!' cannot be constructed.`)
+      return "0"
     case T.Bool:
       return "" + v
     case T.Int:
@@ -483,6 +483,13 @@ export const TARGET_JS = {
       ty,
       false,
     )
+  },
+
+  toConst(ctx, val) {
+    if (!val.const) {
+      ctx.issue(`Expected constant value.`)
+    }
+    return new Const(val.value as any, val.ty)
   },
 } satisfies Target<Repr.SymTag> as Target<any> as Target<SymTag>
 

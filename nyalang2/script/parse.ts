@@ -1,9 +1,11 @@
 import { ident, type IdGlobal } from "../impl/id"
 import { join, Pos, type Loc } from "../impl/pos"
-import { E, Expr } from "./ast"
+import { E, Expr, Type, Y } from "./ast"
 import { tokenIdent } from "./ident"
 import type { Scan, Token } from "./scan"
 import { K } from "./token"
+
+// #region Helpers
 
 function parseGroupList<T>(
   scan: Scan,
@@ -46,6 +48,9 @@ function parseGroupList<T>(
   }
 }
 
+// #endregion
+// #region Expr parsing
+
 type ExprScanner = (scan: Scan) => Expr
 
 function parseExprAtom(scan: Scan): Expr {
@@ -63,7 +68,7 @@ function parseExprAtom(scan: Scan): Expr {
     case K.Colon: {
       const next = scan.next()
       if (next.k != K.Ident) {
-        scan.issue(`Expected identifier following symbol.`)
+        scan.issue(`Expected symbol identifier after colon.`)
       }
       return new Expr(join(token.p, next.p), E.SymTag, tokenIdent(next))
     }
@@ -281,15 +286,96 @@ const parseExprBinary = binLhsAssoc(
   ),
 )
 
-function parseExprBig(scan: Scan): Expr {
+function parseExprAscribe(scan: Scan): Expr {
+  let ret = parseExprBinary(scan)
+  while (scan.peekK() == K.ColonColon) {
+    scan.next()
+    const ty = parseType(scan)
+    ret = new Expr(join(ret.p, ty.p), E.Ascribe, { on: ret, ty })
+  }
+  return ret
+}
+
+function parseExprRuntime(scan: Scan): Expr {
   if (scan.peek()?.k == K.KRuntime) {
     const t = scan.next()!
-    const el = parseExprBinary(scan)
+    const el = parseExprAscribe(scan)
     return new Expr(join(t.p, el.p), E.Runtime, el)
+  } else {
+    return parseExprAscribe(scan)
   }
-  return parseExprBinary(scan)
 }
 
 export function parseExpr(scan: Scan): Expr {
-  return parseExprBig(scan)
+  return parseExprRuntime(scan)
 }
+
+// #endregion
+
+// #region Type parsing
+
+export function parseType(scan: Scan): Type {
+  const token = scan.next()
+
+  switch (token.k) {
+    case K.Ident:
+      return new Type(token.p, Y.Ident, tokenIdent(token))
+    case K.KSym:
+    case K.Colon: {
+      const next = scan.next()
+      if (next.k != K.Ident && next.k != K.KSym) {
+        scan.issue(`Expected symbol identifier after colon.`)
+      }
+      if (scan.peekK() == K.LParen) {
+        const inner = parseType(scan) // parenthesized or tuple
+        return new Type(join(token.p, inner.p), Y.Sym, {
+          tag: tokenIdent(next),
+          of: inner,
+        })
+      }
+      return new Type(join(token.p, next.p), Y.Sym, {
+        tag: next.k == K.KSym ? null : tokenIdent(next),
+        of: null,
+      })
+    }
+    case K.KNull:
+      return new Type(token.p, Y.Null, null)
+    case K.LParen: {
+      const { els, finalComma, end } = parseGroupList(
+        scan,
+        K.RParen,
+        "parenthesis",
+        parseType,
+      )
+      const pos = new Pos(token.p.file, token.p.start, end)
+      if (els.length == 1 && !finalComma) {
+        return new Type(pos, Y.Paren, els[0]!)
+      } else {
+        return new Type(pos, Y.Tuple, els)
+      }
+    }
+    case K.LBrack: {
+      const lbrack = scan.next()!
+      const el = parseType(scan)
+      const semi = scan.next()
+      if (semi.k == K.RBrack) {
+        return new Type(join(lbrack.p, semi.p), Y.ArrayUnsized, {
+          el,
+          size: null,
+        })
+      }
+
+      const { els, end } = parseGroupList(scan, K.RBrack, "bracket", parseExpr)
+      const pos = new Pos(token.p.file, token.p.start, end)
+      return new Type(pos, Y.ArrayFixed, { el, size: els })
+    }
+    case K.Ques: {
+      const el = parseType(scan)
+      return new Type(join(token.p, el.p), Y.Option, el)
+    }
+    default:
+      return token.issue("Expected type.")
+  }
+}
+
+// #endregion

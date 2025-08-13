@@ -5,6 +5,7 @@ import { Bool, Int, Num, Ty } from "./ty"
 
 export class Scope {
   readonly #fns = new Map<FnName, Fn[]>()
+  readonly #tys = new Map<IdGlobal, Ty>()
 
   constructor(
     readonly root: ScopeRoot,
@@ -13,6 +14,10 @@ export class Scope {
 
   fns(id: FnName): Fn[] {
     return this.#fns.get(id) ?? (this.parent ? this.parent.fns(id) : [])
+  }
+
+  ty(id: IdGlobal): Ty | null {
+    return this.#tys.get(id) ?? (this.parent ? this.parent.ty(id) : null)
   }
 
   pushFn(fn: Fn) {
@@ -24,17 +29,20 @@ export class Scope {
 
     list.push(fn)
   }
+
+  setTy(id: IdGlobal, ty: Ty) {
+    this.#tys.set(id, ty)
+  }
 }
 
 export class ScopeRoot extends Scope {
-  readonly types = new Map<IdGlobal, Ty>()
   readonly coerce = new Coercions()
 
   constructor() {
     super(null!, null)
     ;(this as any).root = this
-    this.types.set(ident("bool"), Bool)
-    this.types.set(ident("int"), Int)
-    this.types.set(ident("num"), Num)
+    this.setTy(ident("bool"), Bool)
+    this.setTy(ident("int"), Int)
+    this.setTy(ident("num"), Num)
   }
 }

@@ -33,6 +33,10 @@ export class Ctx<SymTag = unknown> {
     return this.block.scope.root
   }
 
+  get coerce() {
+    return this.block.scope.root.coerce
+  }
+
   join(text: TemplateStringsArray, ...args: (Val | string)[]): ValString {
     let ret = text[0]!
     for (let i = 1; i < text.length; i++) {

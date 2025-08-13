@@ -4,7 +4,7 @@ import { Fn } from "./fn"
 import { ident } from "./id"
 import { FnParamsTempl } from "./param"
 import { ScopeRoot } from "./scope"
-import { Bool, Int, Num } from "./ty"
+import { Bool, Int, Never, Num } from "./ty"
 import { Val } from "./val"
 
 export function createEnv() {
@@ -136,6 +136,12 @@ export function createEnv() {
   boolBin("&&", "&&", (a, b) => a && b)
   boolBin("||", "||", (a, b) => a || b)
   boolUnr("!", "!", (a) => !a)
+
+  env.root.pushFn(
+    new Fn(ident("never"), new FnParamsTempl(), [], [], Never, [], (ctx) => {
+      return new Val(`(0,eval)("for(;;);")`, Never, false)
+    }),
+  )
 
   return env
 }

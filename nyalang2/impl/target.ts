@@ -59,4 +59,6 @@ export interface Target<SymTag = unknown> {
     retTy: Ty,
     map: (val: Val) => Val,
   ): Val<T.Option>
+
+  toConst(ctx: Ctx, val: Val<T.Int | T.Bool>): Const
 }

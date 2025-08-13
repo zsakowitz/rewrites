@@ -1,3 +1,5 @@
+import { issue } from "./error"
+
 export class Loc {
   constructor(
     readonly row: number,
@@ -36,6 +38,10 @@ export class Pos {
     return this.start && this.end ?
         this.file.body.slice(this.start.idx, this.end.idx)
       : ""
+  }
+
+  issue(reason: string): never {
+    issue(reason, this)
   }
 
   toString() {

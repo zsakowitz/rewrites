@@ -436,8 +436,9 @@ export class Coercions {
 
     switch (from.k) {
       case T.Never:
-        // `val` shouldn't actually exist
-        return val as never
+        // val must be a non-constant which doesn't terminate when evaluated
+        // so transmuting it is fine
+        return val.transmute(into)
       case T.Fn:
       case T.Param:
         return val
