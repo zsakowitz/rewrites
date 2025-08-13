@@ -4,7 +4,8 @@ import { Const } from "./const"
 import type { Fn } from "./fn"
 import type { IdGlobal } from "./id"
 import { INSPECT } from "./inspect"
-import { Param, ParamKind, Var, type FnParams } from "./param"
+import { Param, ParamKind, type FnParams } from "./param"
+import { Var } from "./variance"
 
 // prettier-ignore
 // no uint b/c js doesn't support it and glsl only uses `int`

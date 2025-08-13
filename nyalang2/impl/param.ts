@@ -4,11 +4,7 @@ import type { Ctx } from "./ctx"
 import { IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
 import type { Ty } from "./ty"
-
-export const enum Var {
-  Coercible, // coercible for ty, <= for const
-  Invar, // invariant for ty, == for const
-}
+import { Var } from "./variance"
 
 export const enum ParamKind {
   Ty,

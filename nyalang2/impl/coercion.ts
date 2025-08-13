@@ -2,10 +2,11 @@ import type { Ctx } from "./ctx"
 import { issue } from "./error"
 import type { IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
-import { FnParams, Var } from "./param"
+import { FnParams } from "./param"
 import type { Pos } from "./pos"
 import { Null, T, Ty, type TyData } from "./ty"
 import { Val } from "./val"
+import { Var } from "./variance"
 
 function isCoercionTarget(ty: Ty) {
   return (

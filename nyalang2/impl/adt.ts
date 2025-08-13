@@ -1,8 +1,9 @@
 import type { Ctx } from "./ctx"
 import type { IdGlobal } from "./id"
-import type { FnParams, Var } from "./param"
+import type { FnParams } from "./param"
 import { T, Ty } from "./ty"
 import type { Val } from "./val"
+import type { Var } from "./variance"
 
 export class AdtSym {
   constructor(

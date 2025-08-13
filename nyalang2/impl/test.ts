@@ -3,10 +3,11 @@ import { Const } from "./const"
 import { ScriptError } from "./error"
 import { Fn } from "./fn"
 import { ident } from "./id"
-import { FnParamsTempl, Param, ParamKind, Var } from "./param"
+import { FnParamsTempl, Param, ParamKind } from "./param"
 import { createEnv } from "./std"
 import { Bool, Int, Num, T, Ty } from "./ty"
 import { Val } from "./val"
+import { Var } from "./variance"
 
 function createProps() {
   const env = createEnv()

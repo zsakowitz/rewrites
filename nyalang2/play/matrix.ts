@@ -2,8 +2,9 @@ import { Adt } from "../impl/adt"
 import { Const } from "../impl/const"
 import { Fn } from "../impl/fn"
 import { ident } from "../impl/id"
-import { FnParamsTempl, Var } from "../impl/param"
+import { FnParamsTempl } from "../impl/param"
 import { Int, T, Ty } from "../impl/ty"
+import { Var } from "../impl/variance"
 
 function repr(ty: Ty<T.Adt>) {
   return new Ty(T.ArrayFixed, {
