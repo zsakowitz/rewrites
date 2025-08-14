@@ -1,4 +1,3 @@
-import { DEV } from "../debug"
 import { Const } from "../impl/const"
 import type { Ctx } from "../impl/ctx"
 import { Id, type IdGlobal } from "../impl/id"
@@ -43,11 +42,10 @@ function toRuntime(ctx: Ctx, val: Val): string {
   }
 
   if (!val.const) {
-    if (DEV) {
-      if (typeof val.value != "string") {
-        ctx.bug(`Non-const values should have strings as their values.`)
-      }
+    if (typeof val.value != "string") {
+      ctx.bug(`Non-const values should have strings as their values.`)
     }
+
     return val.value as string
   }
 
