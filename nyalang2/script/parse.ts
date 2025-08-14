@@ -124,7 +124,7 @@ function parseExprSuffixed(scan: Scan): Expr {
   }
 }
 
-const EXPR_TIGHT_PREFIXES = [K.Ques, K.Bang, K.Plus, K.Minus] as const
+const EXPR_TIGHT_PREFIXES = [K.Ques, K.Bang, K.Plus, K.Tilde, K.Minus] as const
 type ExprTightPrefix = (typeof EXPR_TIGHT_PREFIXES)[number]
 function parseExprPrefixed(scan: Scan): Expr {
   const prefixes: Token<ExprTightPrefix>[] = []
@@ -355,7 +355,7 @@ export function parseType(scan: Scan): Type {
       }
     }
     case K.LBrack: {
-      const lbrack = scan.next()!
+      const lbrack = token
       const el = parseType(scan)
       const semi = scan.next()
       if (semi.k == K.RBrack) {

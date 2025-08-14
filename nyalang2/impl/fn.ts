@@ -27,6 +27,12 @@ export class FnSignature {
 }
 
 export class Fn extends FnSignature {
+  /**
+   * Whether or not this "collects" its arguments into a single array parameter.
+   * True iff this `Fn` accepts a single array.
+   */
+  readonly collects
+
   constructor(
     id: IdGlobal | Param,
     readonly params: FnParamsTempl,
@@ -38,6 +44,7 @@ export class Fn extends FnSignature {
     readonly exec: (ctx: Ctx, args: Val[]) => UntypedVal,
   ) {
     super(id, args, ret)
+    this.collects = this.args.length == 1 && this.args[0]!.isArray()
   }
 
   [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {

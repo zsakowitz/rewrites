@@ -34,7 +34,7 @@ function test(fn: (props: Props) => boolean | void) {
 }
 
 test(({ ctx, N }) => {
-  const params = new FnParamsTempl().set(N.value, Var.Invar, Int).within(ctx)
+  const params = new FnParamsTempl().setConst(N, Var.Invar).within(ctx)
 
   const val = new Val(
     [ctx.int("2"), ctx.int("7"), ctx.int("5")],
@@ -50,11 +50,9 @@ test(({ ctx, N }) => {
 
 test(({ env, ctx }) => {
   {
-    const templ = new FnParamsTempl()
-    const U = new Param("U", ParamKind.Const)
-    templ.set(U, Var.Invar, Int)
-
-    const array = new Ty(T.ArrayFixed, { el: Num, size: [new Const(U, Int)] })
+    const U = Const.Param("U", Int)
+    const templ = new FnParamsTempl().setConst(U, Var.Invar)
+    const array = new Ty(T.ArrayFixed, { el: Num, size: [U] })
 
     env.root.pushFn(
       new Fn(

@@ -25,6 +25,7 @@ export interface Target<SymTag = unknown> {
 
   /** The passed `ty` is valid for empty arrays. */
   arrayEmpty(ctx: Ctx, ty: Ty<T.ArrayAny>): Val<T.ArrayAny>
+  /** Each element of `vals` has type `el`. */
   arrayCons(
     ctx: Ctx,
     size: number[],

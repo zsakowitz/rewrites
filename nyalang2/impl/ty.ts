@@ -92,6 +92,14 @@ export class Ty<out K extends T = T> {
     return this.k == (k as any as K)
   }
 
+  isArray(): this is Ty<T.ArrayAny> {
+    return (
+      this.k == T.ArrayFixed
+      || this.k == T.ArrayCapped
+      || this.k == T.ArrayUnsized
+    )
+  }
+
   eq(other: Ty, params: FnParams | null): boolean {
     if (this.k != other.k) {
       return false

@@ -83,7 +83,7 @@ export class Ctx<SymTag = unknown> {
       }
 
       for (let i = 0; i < fn.where.length; i++) {
-        if (!fn.where[i]!.matches(this, params)) {
+        if (!fn.where[i]!.matches(params)) {
           continue next
         }
       }
@@ -116,7 +116,7 @@ export class Ctx<SymTag = unknown> {
       }
 
       for (let i = 0; i < fn.where.length; i++) {
-        if (!fn.where[i]!.matches(this, params)) {
+        if (!fn.where[i]!.matches(params)) {
           continue next
         }
       }

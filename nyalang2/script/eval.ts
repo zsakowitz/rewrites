@@ -177,7 +177,7 @@ export function exprVal(expr: Expr, block: Block): Val {
         return ctx.coerce.map(ctx, actual, expected, null)
       } else {
         return d.on.p.issue(
-          `Expected value of type '${expected}', but found '${actual}'.`,
+          `Expected value of type '${expected}', but found '${actual.ty}'.`,
         )
       }
     }

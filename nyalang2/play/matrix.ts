@@ -42,9 +42,9 @@ const U = Ty.Param("U")
 export const matrixFn = new Fn(
   ident("matrix"),
   new FnParamsTempl()
-    .set(R.value, Var.Invar, Int)
-    .set(C.value, Var.Invar, Int)
-    .set(U.of, Var.Coercible),
+    .setConst(R, Var.Invar)
+    .setConst(C, Var.Invar)
+    .setTy(U, Var.Coercible),
   [ident("array")],
   [new Ty(T.ArrayFixed, { el: U, size: [R, C] })],
   new Ty(T.Adt, { adt: Matrix, tys: [U], consts: [R, C] }),

@@ -3,7 +3,7 @@ import type { Const } from "./const"
 import type { Ctx } from "./ctx"
 import { IdLabeled } from "./id"
 import { INSPECT } from "./inspect"
-import type { Ty } from "./ty"
+import type { T, Ty } from "./ty"
 import { Var } from "./variance"
 
 export const enum ParamKind {
@@ -42,10 +42,13 @@ export class FnParam {
 export class FnParamsTempl {
   readonly map = new Map<Param, FnParam>()
 
-  set(param: Param<ParamKind.Ty>, vrx: Var): this
-  set(param: Param<ParamKind.Const>, vrx: Var, ty: Ty): this
-  set(param: Param, vrx: Var, ty?: Ty) {
-    this.map.set(param, new FnParam(param, vrx, ty ?? null))
+  setTy(ty: Ty<T.Param>, vrx: Var) {
+    this.map.set(ty.of, new FnParam(ty.of, vrx, ty ?? null))
+    return this
+  }
+
+  setConst(const_: Const<T.Const, Param<ParamKind.Const>>, vrx: Var): this {
+    this.map.set(const_.value, new FnParam(const_.value, vrx, const_.ty))
     return this
   }
 
