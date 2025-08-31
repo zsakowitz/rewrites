@@ -1,4 +1,5 @@
 import { Cmp } from "./cmp"
+import { Domino } from "./domino"
 import { reduce } from "./reduce"
 import { toString } from "./repr"
 
@@ -89,9 +90,9 @@ export class Num extends Cmp {
   }
 }
 
-const _0 = new Num([], [])
-const _1 = new Num([_0], [])
-const _2 = _1.add(_1)
-const _3 = _1.add(_2)
-const _4 = _2.mul(_2)
-console.log(_0, _1, _2, _3, _4, _3.mul(_4))
+const b = Domino.from(`
+,,,
+,,,
+`)
+console.log(b)
+console.log(b.eval())
