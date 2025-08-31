@@ -137,31 +137,10 @@ export function createEnv() {
   boolBin("||", "||", (a, b) => a || b)
   boolUnr("!", "!", (a) => !a)
 
-  //   {
-  //     const N = Const.Param("N", Int)
-  //     const templ = new FnParamsTempl().setConst(N, Var.Invar)
-  //
-  //     env.root.pushFn(
-  //       new Fn(
-  //         ident("max"),
-  //         templ,
-  //         [ident("x")],
-  //         // how do we make it generic over # of dimensions?
-  //         [new Ty(T.ArrayFixed, { el: Num, size: [N] })],
-  //         Never,
-  //         [],
-  //         (ctx, [v]) => {
-  //           ctx.target.
-  //           v = v!
-  //           return new Val(`(0,eval)("for(;;);")`, Never, false)
-  //         },
-  //       ),
-  //     )
-  //   }
-
   env.root.pushFn(
     new Fn(ident("never"), new FnParamsTempl(), [], [], Never, [], (ctx) => {
-      return new Val(`(0,eval)("for(;;);")`, Never, false)
+      ctx.source += `for(;;);`
+      return new Val(null, Never, false)
     }),
   )
 
