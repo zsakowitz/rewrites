@@ -2,7 +2,7 @@ import { Num } from "."
 
 export class Domino {
   static from(data: string) {
-    const rows = data.split("\n").filter((x) => x)
+    const rows = data.replace(/^\n*|\n*$/g, "").split("\n")
     const cols = rows.reduce((a, b) => Math.max(a, b.length), 0)
     const cells = new Uint8Array(cols * rows.length)
     cells.fill(1)

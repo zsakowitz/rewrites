@@ -58,7 +58,8 @@ function reduceReversible(self: Num) {
       const B = A.rhs[j]!
 
       if (self.ge(B)) {
-        lhs.splice(i, 1, ...B.lhs)
+        lhs.splice(i, 1)
+        lhs.push(...B.lhs)
         changed = true
         i--
         continue outer
@@ -73,7 +74,8 @@ function reduceReversible(self: Num) {
       const B = A.lhs[j]!
 
       if (self.le(B)) {
-        rhs.splice(i, 1, ...B.rhs)
+        rhs.splice(i, 1)
+        rhs.push(...B.rhs)
         changed = true
         i--
         continue outer
@@ -90,4 +92,7 @@ export function reduce(self: Num) {
       break
     }
   }
+
+  self.lhs.sort((a, b) => a.birthday() - b.birthday())
+  self.rhs.sort((a, b) => a.birthday() - b.birthday())
 }

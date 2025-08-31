@@ -10,8 +10,6 @@ export class Num extends Cmp {
   ) {
     super()
     reduce(this)
-    lhs.sort((a, b) => a.birthday() - b.birthday())
-    rhs.sort((a, b) => a.birthday() - b.birthday())
   }
 
   le(rhs: Num): boolean {
@@ -91,12 +89,13 @@ export class Num extends Cmp {
 }
 
 const b = Domino.from(`
-xxx
-x x
-x
-
-xxx
-x
+xxx xx xx
+x x x  xx
+x   x
 `)
 console.log(b)
-console.log(b.eval())
+console.time()
+for (let i = 0; i < 1e1; i++) {
+  b.eval()
+}
+console.timeEnd()
