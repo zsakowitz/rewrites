@@ -91,8 +91,12 @@ export class Num extends Cmp {
 }
 
 const b = Domino.from(`
-,,,
-,,,
+xxx
+x x
+x
+
+xxx
+x
 `)
 console.log(b)
 console.log(b.eval())

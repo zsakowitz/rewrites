@@ -27,13 +27,13 @@ function repr(
   if (num.lhs.length == 1 && num.rhs.length == 1) {
     const lhs = repr(num.lhs[0]!)
     const rhs = repr(num.rhs[0]!)
-    if (
-      lhs?.type == "num"
-      && rhs?.type == "num"
-      && lhs.val < rhs.val
-      && lhs.exp == rhs.exp
-    ) {
-      return { type: "num", val: lhs.val + rhs.val, exp: lhs.exp + 1 }
+    if (lhs?.type == "num" && rhs?.type == "num") {
+      const exp = Math.max(lhs.exp, rhs.exp)
+      const lv = lhs.val * 2 ** (exp - lhs.exp)
+      const rv = rhs.val * 2 ** (exp - rhs.exp)
+      if (lv < rv) {
+        return { type: "num", val: lv + rv, exp: exp + 1 }
+      }
     }
   }
 

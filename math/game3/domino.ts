@@ -5,11 +5,12 @@ export class Domino {
     const rows = data.split("\n").filter((x) => x)
     const cols = rows.reduce((a, b) => Math.max(a, b.length), 0)
     const cells = new Uint8Array(cols * rows.length)
+    cells.fill(1)
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]!
       for (let j = 0; j < row.length; j++) {
-        if (row[j] != ",") {
-          cells[i * cols + j] = 1
+        if (row[j] == "x") {
+          cells[i * cols + j] = 0
         }
       }
     }
