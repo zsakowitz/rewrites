@@ -27,7 +27,7 @@ function reduceDominated(self: Num) {
   outer: for (let i = 0; i < rhs.length; i++) {
     inner: for (let j = 0; j < rhs.length; j++) {
       if (i == j) continue
-      const A = lhs[i]!
+      const A = rhs[i]!
       const B = rhs[j]!
       if (B.le(A)) {
         rhs.splice(i, 1)

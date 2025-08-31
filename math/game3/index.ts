@@ -9,6 +9,8 @@ export class Num extends Cmp {
   ) {
     super()
     reduce(this)
+    lhs.sort((a, b) => a.birthday() - b.birthday())
+    rhs.sort((a, b) => a.birthday() - b.birthday())
   }
 
   le(rhs: Num): boolean {
@@ -36,25 +38,60 @@ export class Num extends Cmp {
     return toString(this)
   }
 
+  neg(): Num {
+    return new Num(
+      this.rhs.map((x) => x.neg()),
+      this.lhs.map((x) => x.neg()),
+    )
+  }
+
+  add(rhs: Num): Num {
+    return new Num(
+      [...this.lhs.map((l) => l.add(rhs)), ...rhs.lhs.map((l) => this.add(l))],
+      [...this.rhs.map((r) => r.add(rhs)), ...rhs.rhs.map((r) => this.add(r))],
+    )
+  }
+
+  sub(rhs: Num): Num {
+    return this.add(rhs.neg())
+  }
+
+  mul(rhs: Num): Num {
+    const XL = this.lhs
+    const XR = this.rhs
+    const YL = rhs.lhs
+    const YR = rhs.rhs
+    const x = this
+    const y = rhs
+
+    return new Num(
+      [
+        ...XL.flatMap((XL) =>
+          YL.map((YL) => XL.mul(y).add(x.mul(YL)).sub(XL.mul(YL))),
+        ),
+        ...XR.flatMap((XR) =>
+          YR.map((YR) => XR.mul(y).add(x.mul(YR)).sub(XR.mul(YR))),
+        ),
+      ],
+      [
+        ...XL.flatMap((XL) =>
+          YR.map((YR) => XL.mul(y).add(x.mul(YR)).sub(XL.mul(YR))),
+        ),
+        ...YL.flatMap((YL) =>
+          XR.map((XR) => x.mul(YL).add(XR.mul(y)).sub(XR.mul(YL))),
+        ),
+      ],
+    )
+  }
+
   [Symbol.for("nodejs.util.inspect.custom")]() {
     return "" + this
   }
 }
 
-const N0 = new Num([], [])
-const M1 = new Num([], [N0])
-const N1 = new Num([N0], [])
-const N2 = new Num([N0, N1], [])
-const N02 = new Num([M1], [N1])
-console.timeEnd()
-console.log(N0)
-console.log(N1)
-console.log(N2)
-console.log(N02)
-console.log(new Num([N0, N1], [N2]))
-console.log(new Num([N2], [N1]))
-const S0 = N0
-const S1 = new Num([S0], [S0])
-const S2 = new Num([S0, S1], [S0, S1])
-const S3 = new Num([S0, S1, S2], [S0, S1, S2])
-console.log(S0, S1, S2, S3)
+const _0 = new Num([], [])
+const _1 = new Num([_0], [])
+const _2 = _1.add(_1)
+const _3 = _1.add(_2)
+const _4 = _2.mul(_2)
+console.log(_0, _1, _2, _3, _4, _3.mul(_4))
