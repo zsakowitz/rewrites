@@ -1,6 +1,11 @@
 import type { Num } from "."
 
-function repr(num: Num): { type: "num"; val: number; exp: number } | null {
+function repr(
+  num: Num,
+):
+  | { type: "num"; val: number; exp: number }
+  | { type: "star"; val: number }
+  | null {
   // Integers
   if (num.lhs.length == 0 && num.rhs.length == 0) {
     return { type: "num", val: 0, exp: 0 }
@@ -32,6 +37,55 @@ function repr(num: Num): { type: "num"; val: number; exp: number } | null {
     }
   }
 
+  // Stars
+  if (num.lhs.length == 1 && num.rhs.length == 1) {
+    if (
+      num.lhs[0]!.lhs.length == 0
+      && num.lhs[0]!.rhs.length == 0
+      && num.rhs[0]!.lhs.length == 0
+      && num.rhs[0]!.rhs.length == 0
+    ) {
+      return { type: "star", val: 1 }
+    }
+  }
+  star: if (num.lhs.length > 1 && num.lhs.length == num.rhs.length) {
+    const lnums: number[] = []
+    for (let i = 0; i < num.lhs.length; i++) {
+      const r = repr(num.lhs[i]!)
+      if (r?.type == "num" && r.val == 0) {
+        lnums.push(0)
+      } else if (r?.type == "star") {
+        lnums.push(r.val)
+      } else {
+        break star
+      }
+    }
+    for (let i = 0; i < num.lhs.length; i++) {
+      if (!lnums.includes(i)) {
+        break star
+      }
+    }
+
+    const rnums: number[] = []
+    for (let i = 0; i < num.rhs.length; i++) {
+      const r = repr(num.rhs[i]!)
+      if (r?.type == "num" && r.val == 0) {
+        rnums.push(0)
+      } else if (r?.type == "star") {
+        rnums.push(r.val)
+      } else {
+        break star
+      }
+    }
+    for (let i = 0; i < num.rhs.length; i++) {
+      if (!rnums.includes(i)) {
+        break star
+      }
+    }
+
+    return { type: "star", val: num.lhs.length }
+  }
+
   return null
 }
 
@@ -47,6 +101,13 @@ function inner(num: Num): {
     }
     return {
       val: r.val + "/" + 2 ** r.exp,
+      maxUsedBars: 0,
+      needsBrackets: false,
+    }
+  }
+  if (r?.type == "star") {
+    return {
+      val: "*" + (r.val == 1 ? "" : r.val),
       maxUsedBars: 0,
       needsBrackets: false,
     }
@@ -80,18 +141,18 @@ function inner(num: Num): {
     num.lhs
       .map((v) => {
         const s = inner(v)
-        return s.needsBrackets ? `{${s}}` : s
+        return s.needsBrackets ? `{${s.val}}` : s.val
       })
       .join(",")
     + "|"
     + num.rhs
       .map((v) => {
         const s = inner(v)
-        return s.needsBrackets ? `{${s}}` : s
+        return s.needsBrackets ? `{${s.val}}` : s.val
       })
       .join(",")
 
-  return { val, maxUsedBars: 0, needsBrackets: false }
+  return { val: `{${val}}`, maxUsedBars: 0, needsBrackets: false }
 }
 
 export function toString(num: Num) {
