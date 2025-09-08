@@ -105,6 +105,10 @@ function evaluateFruits(g: Graph<boolean | void, void>): NimValue {
 }
 
 const g = new Graph<boolean | void, void>()
-g.node(false).branch(5)
+const x = g.node(false)
+const y = x.branch(1)
+y.branch(1)
+y.branch(2)
+x.branch(1)
 console.log("" + g)
 console.log("*" + evaluateFruits(g))
