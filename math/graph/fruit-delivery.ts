@@ -1,4 +1,5 @@
 import { Graph } from "."
+import { mex, type NimValue } from "../game2/nim"
 import { createForceGraph } from "./force"
 
 class FruitDeliveryGraph extends Graph<0 | 1 | void, void> {
@@ -40,29 +41,58 @@ function project(g: FruitDeliveryGraph) {
   document.body.append(
     `Player ${wins ? 1 : 2} wins (computation took ${dt}ms).`,
   )
-  createForceGraph(g)
+  document.body.append(
+    `Nim-value is *${calc(g)} (computation took ${Date.now() - now + dt}ms).`,
+  )
+  createForceGraph(g).nodeColor((c) =>
+    c.data === 0 ? "red"
+    : c.data === 1 ? "blue"
+    : "gray",
+  )
 }
 
-const g = new FruitDeliveryGraph()
+function calc(g: FruitDeliveryGraph): NimValue {
+  const ret: NimValue[] = []
+  for (const v of g.vl) {
+    if (
+      v.data == null
+      && !v.edges.some((x) => x.src.data === 0 || x.dst.data === 0)
+    ) {
+      v.data = 0
+      ret.push(calc(g))
+      v.data = undefined
+    }
+    if (
+      v.data == null
+      && !v.edges.some((x) => x.src.data === 1 || x.dst.data === 1)
+    ) {
+      v.data = 1
+      ret.push(calc(g))
+      v.data = undefined
+    }
+  }
+  return mex(ret)
+}
 
-const H1 = g.vertex()
-const H2 = g.vertex()
-const H3 = g.vertex()
-const H4 = g.vertex()
-const H5 = g.vertex()
+const G = new FruitDeliveryGraph()
 
-g.edge(H1, H2)
-g.edge(H1, H3)
-g.edge(H1, H4)
-g.edge(H1, H5)
+const a = G.vertex()
+const b = G.vertex()
+const c = G.vertex()
+const d = G.vertex()
+const e = G.vertex()
+const f = G.vertex()
+const g = G.vertex()
 
-g.edge(H2, H3)
-g.edge(H2, H4)
-g.edge(H2, H5)
+f.data = 0
+b.data = 1
+G.edge(a, b)
+G.edge(b, c)
+G.edge(c, d)
+G.edge(c, e)
+G.edge(e, f)
+G.edge(f, a)
+G.edge(f, g)
+G.edge(a, g)
 
-g.edge(H3, H4)
-g.edge(H3, H5)
-
-g.edge(H4, H5)
-
-project(g)
+project(G)
