@@ -158,6 +158,12 @@ export class Graph<T = void, E = void> {
   readonly el: Edge<T, E>[] = []
   readonly ev: Edge<T, E>[][] = []
 
+  clear() {
+    this.vl.length = 0
+    this.el.length = 0
+    this.ev.length = 0
+  }
+
   vertex(data: T) {
     const id = this.vl.length
     const v = new Vertex(this, id, data)
