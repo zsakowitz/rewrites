@@ -65,6 +65,12 @@ function branch2(base: Path) {
   base.branch(x).branch(0).branch(0)
 }
 
+function branch9(base: Path) {
+  base.ground()
+  base.branch(0)
+  base.branch(-x).branch(0)
+}
+
 function branch7(base: Path) {
   base.ground()
   base.branch(0)
@@ -124,6 +130,7 @@ export function branches() {
   branch7(base.forkBy(400, 100))
   branch8(base.forkBy(-350, 300))
   branch2(base.forkBy(100, 400))
+  branch9(base.forkBy(-100, 200))
   branch3(base.forkBy(900, 200))
   branch4(base.forkBy(1050, 200))
   branch5(base.forkBy(300, 1100))
