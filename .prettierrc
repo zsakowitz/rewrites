@@ -13,7 +13,7 @@
     },
     {
       "files": "canvas/scene/**/*",
-      "options": { "printWidth": 30 }
+      "options": { "printWidth": 80 }
     },
     {
       "files": "five-point-conic.ts",

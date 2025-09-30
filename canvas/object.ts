@@ -134,6 +134,10 @@ export class Path extends Item {
     cv.ctx.stroke(this._path)
   }
 
+  forkBy(x: number, y: number) {
+    return this.path().moveTo(this.x + x, this.y + y)
+  }
+
   moveTo(x: number, y: number) {
     this._path.moveTo(x, y)
     this.x = x
