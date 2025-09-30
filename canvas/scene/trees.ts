@@ -28,23 +28,23 @@ const x = 100 * Math.SQRT1_2
 
 function branch1(base: Path) {
   base.ground()
-  const A = base.fork(-x)
-  A.fork(x)
-  A.fork(-x)
-  const B = A.fork(0).fork(0)
-  B.fork(-x)
-  B.fork(0).fork(x)
-  base.fork(20)
-  const C = base.fork(90).fork(0)
-  C.fork(0)
-  C.fork(x).fork(x).fork(-x).fork(x)
+  const A = base.branch(-x)
+  A.branch(x)
+  A.branch(-x)
+  const B = A.branch(0).branch(0)
+  B.branch(-x)
+  B.branch(0).branch(x)
+  base.branch(20)
+  const C = base.branch(90).branch(0)
+  C.branch(0)
+  C.branch(x).branch(x).branch(-x).branch(x)
 }
 
 function branch2(base: Path) {
   base.ground()
-  base.fork(0)
-  base.fork(-x).fork(0)
-  base.fork(x).fork(0).fork(0)
+  base.branch(0)
+  base.branch(-x).branch(0)
+  base.branch(x).branch(0).branch(0)
 }
 
 function branch3(base: Path) {
@@ -54,7 +54,7 @@ function branch3(base: Path) {
   let height = LIMIT * (1 - FACTOR)
   let color = R
   for (let i = 0; i < 40; i++) {
-    base = base.fork(0, -height).stroke((color = color == R ? B : R))
+    base = base.branch(0, -height).stroke((color = color == R ? B : R))
     height *= FACTOR
   }
 }
@@ -65,9 +65,9 @@ function branch4(base: Path) {
   const FACTOR = 2 / 3
   let height = LIMIT * (1 - FACTOR)
   let color = R
-  base = base.moveBy(0, -LIMIT)
+  base = base.forkBy(0, -LIMIT)
   for (let i = 0; i < 40; i++) {
-    base = base.fork(0, height).stroke((color = color == R ? B : R))
+    base = base.branch(0, height).stroke((color = color == R ? B : R))
     height *= FACTOR
   }
   root.ground()
