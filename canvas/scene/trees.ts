@@ -136,5 +136,13 @@ export function branches() {
   branch5(base.forkBy(300, 1100))
   branch6(base.forkBy(150, 1100))
 
+  const X = base.forkBy(-800, 0).ground()
+  X.branch(0).branch(80).stroke(B)
+  X.branch(-x)
+
+  const Y = base.forkBy(-800, 300).ground()
+  Y.branch(0).stroke(B)
+  Y.branch(x).stroke(R).branch(0)
+
   return base
 }
