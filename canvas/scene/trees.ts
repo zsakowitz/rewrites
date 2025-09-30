@@ -95,15 +95,23 @@ function branch5(base: Path) {
   }
 }
 
+function branch6(base: Path) {
+  base = base.ground().stroke(B).branch(0)
+  for (const el of diffSeq(0, -300, 0.2)) {
+    base = base.branch(0, el).stroke(R)
+  }
+}
+
 export function branches() {
   const base = new Path()
   base.stroke(G)
 
   branch1(base.forkBy(0, 0))
   branch2(base.forkBy(-300, 200))
-  branch3(base.forkBy(600, 200))
-  branch4(base.forkBy(750, 200))
-  branch5(base.forkBy(400, 400))
+  branch3(base.forkBy(800, 200))
+  branch4(base.forkBy(950, 200))
+  branch5(base.forkBy(300, 1000))
+  branch6(base.forkBy(150, 1000))
 
   return base
 }
