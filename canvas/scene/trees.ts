@@ -65,6 +65,20 @@ function branch2(base: Path) {
   base.branch(x).branch(0).branch(0)
 }
 
+function branch7(base: Path) {
+  base.ground()
+  base.branch(0)
+  base.branch(-x).branch(0).branch(0)
+  base.branch(x).branch(0).branch(0).branch(0)
+}
+
+function branch8(base: Path) {
+  base.ground()
+  base.branch(0).branch(0).branch(0).branch(0).branch(0).branch(0)
+  base.branch(-x).branch(0).branch(0)
+  base.branch(x).branch(0).branch(0).branch(0).branch(0)
+}
+
 function branch3(base: Path) {
   base.ground()
   const LIMIT = 600
@@ -81,7 +95,7 @@ function branch4(base: Path) {
   const root = base
   let color = R
   base = base.forkBy(0, -599.999)
-  for (const height of diffSeq(0, 599, 0.1)) {
+  for (const height of diffSeq(0, 599, 1 / 3)) {
     base = base.branch(0, height).stroke((color = color == R ? B : R))
   }
   root.ground()
@@ -107,11 +121,13 @@ export function branches() {
   base.stroke(G)
 
   branch1(base.forkBy(0, 0))
-  branch2(base.forkBy(-300, 200))
-  branch3(base.forkBy(800, 200))
-  branch4(base.forkBy(950, 200))
-  branch5(base.forkBy(300, 1000))
-  branch6(base.forkBy(150, 1000))
+  branch7(base.forkBy(400, 100))
+  branch8(base.forkBy(-350, 300))
+  branch2(base.forkBy(100, 400))
+  branch3(base.forkBy(900, 200))
+  branch4(base.forkBy(1050, 200))
+  branch5(base.forkBy(300, 1100))
+  branch6(base.forkBy(150, 1100))
 
   return base
 }
