@@ -153,16 +153,19 @@ export class Path extends Item {
   }
 
   fork(x: number, y = -Math.sqrt(1e4 - x * x)) {
+    const scale1 = Math.min(8, Math.hypot(x, y) / 3)
+    const scale2 = Math.min(8, Math.hypot(x, y) / 4)
     const next = new Path()
       .moveTo(this.x, this.y)
       .lineTo(this.x + x, this.y + y)
+      .lineWidth(scale2)
     this.push(next)
     new Ellipse()
       .at(this.x, this.y)
-      .radius(8)
+      .radius(scale1)
       .fill("#404a59ff")
       .stroke("white")
-      .lineWidth(2)
+      .lineWidth(scale1 / 4)
       .pushTo(this)
     return next
   }
