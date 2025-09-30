@@ -26,6 +26,22 @@ export const G = "#17A34A"
 
 const x = 100 * Math.SQRT1_2
 
+function* limitSeq(x0: number, x1: number, first: number) {
+  let base = 1
+  for (let i = 0; i < 100; i++) {
+    yield x0 + (x1 - x0) * base
+    base *= 1 - first
+  }
+}
+
+function* diffSeq(x0: number, x1: number, first: number) {
+  let base = 1
+  for (let i = 0; i < 100; i++) {
+    base *= 1 - first
+    yield x0 + (x1 - x0) * base
+  }
+}
+
 function branch1(base: Path) {
   base.ground()
   const A = base.branch(-x)
@@ -61,16 +77,24 @@ function branch3(base: Path) {
 
 function branch4(base: Path) {
   const root = base
-  const LIMIT = 600
+  const LIMIT = 599
   const FACTOR = 2 / 3
   let height = LIMIT * (1 - FACTOR)
   let color = R
-  base = base.forkBy(0, -LIMIT)
+  base = base.forkBy(0, -600)
   for (let i = 0; i < 40; i++) {
     base = base.branch(0, height).stroke((color = color == R ? B : R))
     height *= FACTOR
   }
   root.ground()
+}
+
+function branch5(base: Path) {
+  base = base.ground().stroke(B).branch(0)
+  for (const el of limitSeq(Math.PI / 2, -Math.PI / 2, 1 - Math.SQRT1_2)) {
+    console.log(el)
+    base.branch(100 * Math.sin(el)).stroke(R)
+  }
 }
 
 export function branches() {
@@ -79,8 +103,9 @@ export function branches() {
 
   branch1(base.forkBy(0, 0))
   branch2(base.forkBy(-300, 200))
-  branch3(base.forkBy(300, 200))
-  branch4(base.forkBy(450, 200))
+  branch3(base.forkBy(600, 200))
+  branch4(base.forkBy(750, 200))
+  branch5(base.forkBy(400, 400))
 
   return base
 }
