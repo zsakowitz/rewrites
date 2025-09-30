@@ -16,6 +16,48 @@ export interface Item {
   push(item: Object): void
 }
 
+class Tx {
+  private el = document.createElement("span")
+
+  constructor(cv: Cv) {
+    this.el.style = "position:fixed;opacity:0;left:0px;pointer-events:none"
+    document.body.appendChild(this.el)
+    let af = -1
+    this.el.ontransitionstart = () => {
+      ;(function f() {
+        cv.queue()
+        af = requestAnimationFrame(f)
+      })()
+    }
+    this.el.ontransitionend = () => {
+      cv.queue()
+      cancelAnimationFrame(af)
+    }
+    this.el.ontransitioncancel = () => {
+      cv.queue()
+      cancelAnimationFrame(af)
+    }
+  }
+
+  get() {
+    return +getComputedStyle(this.el).left.slice(0, -2)
+  }
+
+  getTarget() {
+    return +this.el.style.left.slice(0, -2)
+  }
+
+  animateTo(v: number) {
+    this.el.style.transition = "left 0.5s"
+    this.el.style.left = v + "px"
+  }
+
+  set(v: number) {
+    this.el.style.transition = "none"
+    this.el.style.left = v + "px"
+  }
+}
+
 export class Cv {
   readonly el
   readonly ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
@@ -24,17 +66,22 @@ export class Cv {
   private height: number = 0
   private width: number = 0
 
-  private rawBounds: Bounds
+  readonly x = new Tx(this)
+  readonly y = new Tx(this)
+  readonly w = new Tx(this)
 
-  constructor(
-    rawBounds: Bounds = { xmin: -500, w: 1000, ymin: -500, h: 1000 },
-    private autofit = true,
-  ) {
+  constructor() {
     const bounds = localStorage.getItem("cv:position")
     if (bounds) {
-      rawBounds = JSON.parse(bounds)
+      const { x, y, w } = JSON.parse(bounds)
+      this.x.set(x ?? 0)
+      this.y.set(y ?? 0)
+      this.w.set(w ?? 960 * 2)
+    } else {
+      this.x.set(0)
+      this.y.set(0)
+      this.w.set(960 * 2)
     }
-    this.rawBounds = rawBounds
     this.el = hx("canvas")
     this.ctx = this.el.getContext("2d")!
     const resize = () => {
@@ -53,41 +100,13 @@ export class Cv {
     Cv.#makeInteractive(this)
   }
 
-  private bounds(): Bounds {
-    if (this.autofit) {
-      const { xmin, w, ymin, h } = this.rawBounds
-      const ymid = ymin + h / 2
-      const ydiff = ((this.height / this.width) * w) / 2
-
-      return {
-        xmin,
-        w,
-        ymin: ymid - ydiff,
-        h: 2 * ydiff,
-      }
-    } else {
-      return this.rawBounds
-    }
+  #bounds(): Bounds {
+    const xc = this.x.get()
+    const yc = this.y.get()
+    const w = this.w.get()
+    const h = this.#hGet()
+    return { xmin: xc - w / 2, w, ymin: yc - h / 2, h }
   }
-
-  // private nya() {
-  //   const { xmin, w, ymin, h } = this.bounds()
-  //   const { width, height } = this
-  //   const xs = width / w
-  //   const ys = height
-  //   return {
-  //     sx: xs,
-  //     sy: -ys / h,
-  //     ox: -xmin * xs,
-  //     oy: (ymin * ys) / h + ys,
-  //     x0: xmin,
-  //     x1: xmin + w,
-  //     y0: ymin,
-  //     y1: ymin + h,
-  //     wx: w,
-  //     wy: h,
-  //   }
-  // }
 
   readonly root = new ObjectRoot()
 
@@ -101,11 +120,11 @@ export class Cv {
     return p
   }
 
-  private draw() {
+  #draw() {
     this.ctx.resetTransform()
     this.ctx.clearRect(0, 0, this.el.width, this.el.height)
 
-    const b = this.bounds()
+    const b = this.#bounds()
     this.ctx.scale(
       (this.width / b.w) * this.scale,
       (this.height / b.h) * this.scale,
@@ -115,15 +134,22 @@ export class Cv {
     this.root.render(this)
   }
 
-  private queued = false
+  #queued = false
 
   queue() {
-    if (this.queued) return
-    this.queued = true
-    queueMicrotask(() => {
-      this.queued = false
-      localStorage.setItem("cv:position", JSON.stringify(this.rawBounds))
-      this.draw()
+    if (this.#queued) return
+    this.#queued = true
+    requestAnimationFrame(() => {
+      this.#queued = false
+      localStorage.setItem(
+        "cv:position",
+        JSON.stringify({
+          x: this.x.get(),
+          y: this.y.get(),
+          w: this.w.get(),
+        }),
+      )
+      this.#draw()
     })
   }
 
@@ -131,13 +157,13 @@ export class Cv {
   #toPaper(offset: Point): Point {
     const ox = offset.x / this.width
     const oy = offset.y / this.height
-    const { xmin, w, ymin, h } = this.bounds()
+    const { xmin, w, ymin, h } = this.#bounds()
     return p(xmin + w * ox, ymin + h * (1 - oy))
   }
 
   /** Paper --> offset */
   #toOffset({ x, y }: Point): Point {
-    const { xmin, w, ymin, h } = this.bounds()
+    const { xmin, w, ymin, h } = this.#bounds()
     return p(((x - xmin) / w) * this.width, (1 - (y - ymin) / h) * this.height)
   }
 
@@ -149,46 +175,28 @@ export class Cv {
   #toPaperDelta(offsetDelta: Point): Point {
     const ox = offsetDelta.x / this.width
     const oy = offsetDelta.y / this.height
-    const { w, h } = this.bounds()
+    const { w, h } = this.#bounds()
     return p(w * ox, -h * oy)
   }
 
-  get w() {
-    return this.rawBounds.w
-  }
-
-  get h() {
-    return this.bounds().h
-  }
-
-  get x() {
-    return this.bounds().xmin + this.bounds().w / 2
-  }
-
-  get y() {
-    return this.bounds().ymin + this.bounds().h / 2
-  }
-
-  moveTo(x: number, y: number, w = this.rawBounds.w) {
-    this.rawBounds = { xmin: x - w / 2, w, ymin: y - w / 2, h: w }
-    this.autofit = true
-    this.queue()
-  }
-
   #move({ x, y }: Point) {
-    this.rawBounds = {
-      ...this.rawBounds,
-      xmin: this.rawBounds.xmin + x,
-      ymin: this.rawBounds.ymin + y,
-    }
+    this.x.set(this.x.get() + x)
+    this.y.set(this.y.get() + y)
     this.queue()
+  }
+
+  #hGet() {
+    return this.w.get() * (this.el.clientHeight / this.el.clientWidth)
   }
 
   #zoom({ x, y }: Point, scale: number) {
-    const { xmin, w, ymin, h } = this.rawBounds
+    const w = this.w.get()
+    const h = this.#hGet()
+    const xmin = this.x.get() - w / 2
+    const ymin = this.y.get() - h / 2
 
-    const xCenter = xmin + w / 2
-    const yCenter = ymin + h / 2
+    const xCenter = this.x.get()
+    const yCenter = this.y.get()
     const xAdj = (x - xCenter) * (1 - scale) + xCenter
     const yAdj = (y - yCenter) * (1 - scale) + yCenter
 
@@ -205,13 +213,9 @@ export class Cv {
       return
     }
 
-    this.rawBounds = {
-      xmin: xmin2,
-      w: w2,
-      ymin: ymin2,
-      h: h2,
-    }
-
+    this.x.set(xmin2 + w2 / 2)
+    this.y.set(ymin2 + h2 / 2)
+    this.w.set(w2)
     this.queue()
   }
 

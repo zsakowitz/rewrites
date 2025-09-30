@@ -6,29 +6,29 @@ cv.el.id = "inner"
 document.body.appendChild(cv.el)
 cv.push(branches())
 
+const W = 960 * 2
+const H = 540 * 2
+
 window.addEventListener("keydown", (ev) => {
-  if (ev.key == "s") {
+  if (ev.key == "0") {
+    cv.x.animateTo(0)
+    cv.y.animateTo(0)
+    cv.w.animateTo(W)
   }
-  // if (ev.key == "0") {
-  //   tx.setImm(cv.x)
-  //   ty.setImm(cv.y)
-  //   tw.setImm(cv.w)
-  //   setTimeout(() => {
-  //     tx.set(0)
-  //     ty.set(0)
-  //     tw.set(960 * 2)
-  //   })
-  // }
-  // if (ev.key == "ArrowDown") {
-  //   ty.set(ty.get() + 540 * 2)
-  // }
-  // if (ev.key == "ArrowUp") {
-  //   ty.set(ty.get() - 540 * 2)
-  // }
-  // if (ev.key == "ArrowLeft") {
-  //   tx.set(tx.get() - 960 * 2)
-  // }
-  // if (ev.key == "ArrowRight") {
-  //   tx.set(tx.get() + 960 * 2)
-  // }
+  if (ev.key == "1" || ev.key.includes("Arrow")) {
+    cv.x.animateTo(W * Math.round(cv.x.getTarget() / W))
+    cv.y.animateTo(H * Math.round(cv.y.getTarget() / H))
+  }
+  if (ev.key == "ArrowDown") {
+    cv.y.animateTo(cv.y.getTarget() + H)
+  }
+  if (ev.key == "ArrowUp") {
+    cv.y.animateTo(cv.y.getTarget() - H)
+  }
+  if (ev.key == "ArrowLeft") {
+    cv.x.animateTo(cv.x.getTarget() - W)
+  }
+  if (ev.key == "ArrowRight") {
+    cv.x.animateTo(cv.x.getTarget() + W)
+  }
 })
