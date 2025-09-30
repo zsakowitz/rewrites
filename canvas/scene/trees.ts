@@ -35,10 +35,12 @@ function* limitSeq(x0: number, x1: number, first: number) {
 }
 
 function* diffSeq(x0: number, x1: number, first: number) {
+  let last = x1
   let base = 1
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 1000; i++) {
     base *= 1 - first
-    yield x0 + (x1 - x0) * base
+    yield last - (x0 + (x1 - x0) * base)
+    last = x0 + (x1 - x0) * base
   }
 }
 
@@ -77,14 +79,10 @@ function branch3(base: Path) {
 
 function branch4(base: Path) {
   const root = base
-  const LIMIT = 599
-  const FACTOR = 2 / 3
-  let height = LIMIT * (1 - FACTOR)
   let color = R
-  base = base.forkBy(0, -600)
-  for (let i = 0; i < 40; i++) {
+  base = base.forkBy(0, -599.999)
+  for (const height of diffSeq(0, 599, 0.1)) {
     base = base.branch(0, height).stroke((color = color == R ? B : R))
-    height *= FACTOR
   }
   root.ground()
 }
