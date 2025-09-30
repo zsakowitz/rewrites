@@ -17,8 +17,35 @@
         aspect-ratio: 16 / 9;
         width: min(100dvw, 100dvh * (16 / 9));
         height: min(100dvh, 100dvw * (9 / 16));
+        /* width: 100dvw; */
+        /* height: 100dvh; */
       }
+      /* .cover-w {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: calc(50dvw - min(50dvw, 50dvh * (16 / 9)));
+        z-index: 10;
+      }
+      .cover-h {
+        position: fixed;
+        left: 0;
+        right: 0;
+        height: calc(50dvh - min(50dvh, 50dvw * (9 / 16)));
+        z-index: 10;
+      }
+      #cover-t {
+        top: 0;
+        background: linear-gradient(white calc(100% - 8px), transparent);
+      }
+      #cover-b {
+        bottom: 0;
+        background: linear-gradient(transparent, white 8px);
+      } */
     </style>
   </head>
-  <body></body>
+  <body>
+    <div class="cover-h" id="cover-t"></div>
+    <div class="cover-h" id="cover-b"></div>
+  </body>
 </html>

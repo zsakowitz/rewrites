@@ -145,16 +145,14 @@ export function branches() {
   Y.branch(x).stroke(R).branch(0)
 
   for (let i = -10; i < 10; i++) {
-    for (let j = -10; j < 10; j++) {
-      const M = 10
-      const x0 = 1920 * (i - 1 / 2) + M
-      const y0 = 1080 * (j - 1 / 2) + M
-      base
-        .path()
-        .lineWidth(1)
-        .stroke("#959fadff")
-        .rect(x0, y0, 1920 - 2 * M, 1080 - 2 * M)
-    }
+    const x1 = 1920 * i + 960 - 10
+    const y1 = 1080 * i + 540 - 10
+    const x2 = 1920 * i + 960 + 10
+    const y2 = 1080 * i + 540 + 10
+    base.path().lineWidth(1).stroke("#959fad").moveTo(x1, -1e6).lineTo(x1, 1e6)
+    base.path().lineWidth(1).stroke("#959fad").moveTo(x2, -1e6).lineTo(x2, 1e6)
+    base.path().lineWidth(1).stroke("#959fad").moveTo(-1e6, y1).lineTo(1e6, y1)
+    base.path().lineWidth(1).stroke("#959fad").moveTo(-1e6, y2).lineTo(1e6, y2)
   }
 
   return base

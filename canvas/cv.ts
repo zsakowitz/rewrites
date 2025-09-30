@@ -153,7 +153,23 @@ export class Cv {
     return p(w * ox, -h * oy)
   }
 
-  moveTo(x: number, y: number, w: number) {
+  get w() {
+    return this.rawBounds.w
+  }
+
+  get h() {
+    return this.bounds().h
+  }
+
+  get x() {
+    return this.bounds().xmin + this.bounds().w / 2
+  }
+
+  get y() {
+    return this.bounds().ymin + this.bounds().h / 2
+  }
+
+  moveTo(x: number, y: number, w = this.rawBounds.w) {
     this.rawBounds = { xmin: x - w / 2, w, ymin: y - w / 2, h: w }
     this.autofit = true
     this.queue()
