@@ -2,8 +2,8 @@ import { Cv } from "./cv"
 import { branches } from "./scene/trees"
 
 const cv = new Cv()
-cv.el.id = "inner"
-document.body.appendChild(cv.el)
+cv.el.id = "cv"
+document.body.prepend(cv.el)
 cv.push(branches())
 
 const W = 960 * 2

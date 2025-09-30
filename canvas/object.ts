@@ -164,7 +164,7 @@ export class Path extends Item {
       .at(this.x, this.y)
       .radius(scale1)
       .fill("#404a59")
-      .stroke("white")
+      .stroke("#f1f5f9")
       .lineWidth(scale1 / 4)
       .pushTo(this)
     return next

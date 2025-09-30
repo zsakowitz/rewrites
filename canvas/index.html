@@ -7,45 +7,43 @@
       body {
         display: flex;
         background-color: black;
-        width: 100dvw;
-        height: 100dvh;
+        width: 100svw;
+        height: 100svh;
         margin: 0;
+        --cv-w: min(100svw, 100svh * (16 / 9));
+        --cv-h: min(100svh, 100svw * (9 / 16));
+        --cv-l: calc(50svw - var(--cv-w) / 2 + 1rem);
+        --cv-b: calc(50svh - var(--cv-h) / 2 + 1rem);
       }
-      #inner {
+      #cv {
         margin: auto;
+        background-color: #f1f5f9;
+        width: var(--cv-w);
+        height: var(--cv-h);
+      }
+      #palette {
+        position: fixed;
+        left: var(--cv-l);
+        bottom: var(--cv-b);
+        width: 24rem;
         background-color: white;
-        aspect-ratio: 16 / 9;
-        width: min(100dvw, 100dvh * (16 / 9));
-        height: min(100dvh, 100dvw * (9 / 16));
-        /* width: 100dvw; */
-        /* height: 100dvh; */
-      }
-      /* .cover-w {
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        width: calc(50dvw - min(50dvw, 50dvh * (16 / 9)));
         z-index: 10;
+        box-shadow:
+          0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+        border-radius: 0.5rem;
+        border: 0;
+        padding: 0.5rem 0.75rem;
+        font-family: monospace;
+        &:focus-visible {
+          outline: none;
+        }
       }
-      .cover-h {
-        position: fixed;
-        left: 0;
-        right: 0;
-        height: calc(50dvh - min(50dvh, 50dvw * (9 / 16)));
-        z-index: 10;
-      }
-      #cover-t {
-        top: 0;
-        background: linear-gradient(white calc(100% - 8px), transparent);
-      }
-      #cover-b {
-        bottom: 0;
-        background: linear-gradient(transparent, white 8px);
-      } */
     </style>
   </head>
   <body>
-    <div class="cover-h" id="cover-t"></div>
-    <div class="cover-h" id="cover-b"></div>
+    <form>
+      <input type="text" id="palette" spellcheck="false" placeholder="help" />
+    </form>
   </body>
 </html>
