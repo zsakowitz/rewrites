@@ -134,21 +134,21 @@ export class Path extends Item {
     cv.ctx.stroke(this._path)
   }
 
-  forkBy(x: number, y: number) {
-    return this.path().moveTo(this.x + x, this.y + y)
+  forkBy(x = 0, y = 0) {
+    return this.path().moveBy(x, y)
   }
 
-  moveTo(x: number, y: number) {
-    this._path.moveTo(x, y)
-    this.x = x
-    this.y = y
+  moveBy(x = 0, y = 0) {
+    this._path.moveTo(this.x + x, this.y + y)
+    this.x += x
+    this.y += y
     return this
   }
 
-  lineTo(x: number, y: number) {
-    this._path.lineTo(x, y)
-    this.x = x
-    this.y = y
+  lineBy(x: number, y: number) {
+    this._path.lineTo(this.x + x, this.y + y)
+    this.x += x
+    this.y += y
     return this
   }
 
@@ -156,8 +156,8 @@ export class Path extends Item {
     const scale1 = Math.min(8, Math.hypot(x, y) / 3)
     const scale2 = Math.min(8, Math.hypot(x, y) / 4)
     const next = new Path()
-      .moveTo(this.x, this.y)
-      .lineTo(this.x + x, this.y + y)
+      .moveBy(this.x, this.y)
+      .lineBy(this.x + x, this.y + y)
       .lineWidth(scale2)
     this.push(next)
     new Ellipse()
@@ -172,8 +172,8 @@ export class Path extends Item {
 
   ground() {
     this.path()
-      .moveTo(this.x - 50, this.y)
-      .lineTo(this.x + 50, this.y)
+      .moveBy(this.x - 50, this.y)
+      .lineBy(this.x + 50, this.y)
       .stroke("black")
       .lineWidth(2)
       .lineDash([16, 20 / 4])

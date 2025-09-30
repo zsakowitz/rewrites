@@ -49,7 +49,7 @@ function branch2(base: Path) {
 
 function branch3(base: Path) {
   base.ground()
-  const LIMIT = 300
+  const LIMIT = 600
   const FACTOR = 2 / 3
   let height = LIMIT * (1 - FACTOR)
   let color = R
@@ -59,6 +59,20 @@ function branch3(base: Path) {
   }
 }
 
+function branch4(base: Path) {
+  const root = base
+  const LIMIT = 600
+  const FACTOR = 2 / 3
+  let height = LIMIT * (1 - FACTOR)
+  let color = R
+  base = base.moveBy(0, -LIMIT)
+  for (let i = 0; i < 40; i++) {
+    base = base.fork(0, height).stroke((color = color == R ? B : R))
+    height *= FACTOR
+  }
+  root.ground()
+}
+
 export function branches() {
   const base = new Path()
   base.stroke(G)
@@ -66,6 +80,7 @@ export function branches() {
   branch1(base.forkBy(0, 0))
   branch2(base.forkBy(-300, 200))
   branch3(base.forkBy(300, 200))
+  branch4(base.forkBy(450, 200))
 
   return base
 }
