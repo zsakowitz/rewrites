@@ -24,20 +24,18 @@ export class Cv {
   private height: number = 0
   private width: number = 0
 
-  //   get xPrecision() {
-  //     return (this.scale * this.width) / this.bounds().w
-  //   }
-  //
-  //   get yPrecision() {
-  //     return (this.scale * this.height) / this.bounds().h
-  //   }
+  private rawBounds: Bounds
 
   constructor(
-    private rawBounds: Bounds = { xmin: 0, w: 1, ymin: 0, h: 1 },
+    rawBounds: Bounds = { xmin: -500, w: 1000, ymin: -500, h: 1000 },
     private autofit = true,
   ) {
+    const bounds = localStorage.getItem("cv:position")
+    if (bounds) {
+      rawBounds = JSON.parse(bounds)
+    }
+    this.rawBounds = rawBounds
     this.el = hx("canvas")
-    this.el.style = "position:absolute;inset:0;width:100%;height:100%"
     this.ctx = this.el.getContext("2d")!
     const resize = () => {
       const scale = (this.scale = window.devicePixelRatio ?? 1)
@@ -108,7 +106,6 @@ export class Cv {
     this.ctx.clearRect(0, 0, this.el.width, this.el.height)
 
     const b = this.bounds()
-    console.log(b)
     this.ctx.scale(
       (this.width / b.w) * this.scale,
       (this.height / b.h) * this.scale,
@@ -125,6 +122,7 @@ export class Cv {
     this.queued = true
     queueMicrotask(() => {
       this.queued = false
+      localStorage.setItem("cv:position", JSON.stringify(this.rawBounds))
       this.draw()
     })
   }
@@ -153,18 +151,6 @@ export class Cv {
     const oy = offsetDelta.y / this.height
     const { w, h } = this.bounds()
     return p(w * ox, -h * oy)
-  }
-
-  /** Paper --> offset */
-  #toOffsetDelta(paperDelta: Point): Point {
-    const { w, h } = this.bounds()
-    return p((paperDelta.x / w) * this.width, -(paperDelta.y / h) * this.height)
-  }
-
-  /** Shortcut for Math.hypot(.toOffset(a - b)) */
-  #offsetDistance(a: Point, b: Point) {
-    const { x, y } = this.#toOffsetDelta(p(a.x - b.x, a.y - b.y))
-    return Math.hypot(x, y)
   }
 
   moveTo(x: number, y: number, w: number) {

@@ -1,2 +1,24 @@
 <!doctype html>
-<script type="module" src="./index.ts"></script>
+<html>
+  <head>
+    <script type="module" src="./index.ts"></script>
+    <title>risal</title>
+    <style>
+      body {
+        display: flex;
+        background-color: black;
+        width: 100dvw;
+        height: 100dvh;
+        margin: 0;
+      }
+      #inner {
+        margin: auto;
+        background-color: white;
+        aspect-ratio: 16 / 9;
+        width: min(100dvw, 100dvh * (16 / 9));
+        height: min(100dvh, 100dvw * (9 / 16));
+      }
+    </style>
+  </head>
+  <body></body>
+</html>

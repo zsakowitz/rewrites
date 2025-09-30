@@ -163,7 +163,7 @@ export class Path extends Item {
     new Ellipse()
       .at(this.x, this.y)
       .radius(scale1)
-      .fill("#404a59ff")
+      .fill("#404a59")
       .stroke("white")
       .lineWidth(scale1 / 4)
       .pushTo(this)
@@ -177,6 +177,23 @@ export class Path extends Item {
       .stroke("black")
       .lineWidth(2)
       .lineDash([16, 20 / 4])
+    return this
+  }
+
+  close() {
+    this._path.closePath()
+    return this
+  }
+
+  rect(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    rr?: number | DOMPointInit | Iterable<number | DOMPointInit>,
+  ) {
+    this._path.roundRect(x, y, w, h, rr)
+    this.moveTo(x, y)
     return this
   }
 }

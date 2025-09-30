@@ -23,6 +23,7 @@ export function xor() {
 export const B = "#3C82F5"
 export const R = "#EF4345"
 export const G = "#17A34A"
+export const L = "#404a59"
 
 const x = 100 * Math.SQRT1_2
 
@@ -110,7 +111,6 @@ function branch4(base: Path) {
 function branch5(base: Path) {
   base = base.ground().stroke(B).branch(0)
   for (const el of limitSeq(Math.PI / 2, -Math.PI / 2, 1 - Math.SQRT1_2)) {
-    console.log(el)
     base.branch(100 * Math.sin(el)).stroke(R)
   }
 }
@@ -143,6 +143,19 @@ export function branches() {
   const Y = base.forkBy(-800, 300).ground()
   Y.branch(0).stroke(B)
   Y.branch(x).stroke(R).branch(0)
+
+  for (let i = -10; i < 10; i++) {
+    for (let j = -10; j < 10; j++) {
+      const M = 10
+      const x0 = 1920 * (i - 1 / 2) + M
+      const y0 = 1080 * (j - 1 / 2) + M
+      base
+        .path()
+        .lineWidth(1)
+        .stroke("#959fadff")
+        .rect(x0, y0, 1920 - 2 * M, 1080 - 2 * M)
+    }
+  }
 
   return base
 }
