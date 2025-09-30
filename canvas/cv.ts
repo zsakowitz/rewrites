@@ -1,29 +1,36 @@
+import { Size } from "./consts"
 import { hx } from "./jsx"
-import { px, type Point } from "./point"
+import { ObjectRoot, Path, type Renderable } from "./object"
+import { p, type Point } from "./point"
 import { onTheme } from "./theme"
 
-interface Bounds {
+export interface Bounds {
   readonly xmin: number
   readonly w: number
   readonly ymin: number
   readonly h: number
 }
 
+export interface Item {
+  render(cv: Cv): void
+  push(item: Object): void
+}
+
 export class Cv {
   readonly el
   readonly ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
-  readonly scale: number = 1
-  readonly height: number = 0
-  readonly width: number = 0
+  private scale: number = 1
+  private height: number = 0
+  private width: number = 0
 
-  get xPrecision() {
-    return (this.scale * this.width) / this.bounds().w
-  }
-
-  get yPrecision() {
-    return (this.scale * this.height) / this.bounds().h
-  }
+  //   get xPrecision() {
+  //     return (this.scale * this.width) / this.bounds().w
+  //   }
+  //
+  //   get yPrecision() {
+  //     return (this.scale * this.height) / this.bounds().h
+  //   }
 
   constructor(
     private rawBounds: Bounds = { xmin: 0, w: 1, ymin: 0, h: 1 },
@@ -33,9 +40,9 @@ export class Cv {
     this.el.style = "position:absolute;inset:0;width:100%;height:100%"
     this.ctx = this.el.getContext("2d")!
     const resize = () => {
-      const scale = ((this as CvMut).scale = window.devicePixelRatio ?? 1)
-      const width = ((this as CvMut).width = this.el.clientWidth)
-      const height = ((this as CvMut).height = this.el.clientHeight)
+      const scale = (this.scale = window.devicePixelRatio ?? 1)
+      const width = (this.width = this.el.clientWidth)
+      const height = (this.height = this.el.clientHeight)
       this.el.width = width * scale
       this.el.height = height * scale
     }
@@ -45,9 +52,10 @@ export class Cv {
       this.queue()
     }).observe(this.el)
     onTheme(() => this.queue())
+    Cv.#makeInteractive(this)
   }
 
-  bounds(): Bounds {
+  private bounds(): Bounds {
     if (this.autofit) {
       const { xmin, w, ymin, h } = this.rawBounds
       const ymid = ymin + h / 2
@@ -64,36 +72,35 @@ export class Cv {
     }
   }
 
-  nya() {
-    const { xmin, w, ymin, h } = this.bounds()
-    const { width, height } = this
-    const xs = width / w
-    const ys = height
-    return {
-      sx: xs,
-      sy: -ys / h,
-      ox: -xmin * xs,
-      oy: (ymin * ys) / h + ys,
-      x0: xmin,
-      x1: xmin + w,
-      y0: ymin,
-      y1: ymin + h,
-      wx: w,
-      wy: h,
-    }
+  // private nya() {
+  //   const { xmin, w, ymin, h } = this.bounds()
+  //   const { width, height } = this
+  //   const xs = width / w
+  //   const ys = height
+  //   return {
+  //     sx: xs,
+  //     sy: -ys / h,
+  //     ox: -xmin * xs,
+  //     oy: (ymin * ys) / h + ys,
+  //     x0: xmin,
+  //     x1: xmin + w,
+  //     y0: ymin,
+  //     y1: ymin + h,
+  //     wx: w,
+  //     wy: h,
+  //   }
+  // }
+
+  readonly root = new ObjectRoot()
+
+  push(object: Renderable) {
+    this.root.push(object)
   }
 
-  private readonly fns: ((() => void) & { order: number })[] = []
-
-  fn(order: number, fn: (() => void) & { order?: number }) {
-    fn.order = order
-    const index = this.fns.findIndex((a) => a.order > order)
-
-    if (index == -1) {
-      this.fns.push(fn as any)
-    } else {
-      this.fns.splice(index, 0, fn as any)
-    }
+  path() {
+    const p = new Path()
+    this.push(p)
+    return p
   }
 
   private draw() {
@@ -102,16 +109,13 @@ export class Cv {
 
     const b = this.bounds()
     console.log(b)
-    this.ctx.scale(this.width / b.w, this.height / b.h)
-    this.ctx.translate(-b.xmin * this.scale, -b.ymin * this.scale)
+    this.ctx.scale(
+      (this.width / b.w) * this.scale,
+      (this.height / b.h) * this.scale,
+    )
+    this.ctx.translate(-b.xmin, -b.ymin)
 
-    for (const fn of this.fns) {
-      try {
-        fn()
-      } catch (e) {
-        console.warn("[draw]", e)
-      }
-    }
+    this.root.render(this)
   }
 
   private queued = false
@@ -126,53 +130,50 @@ export class Cv {
   }
 
   /** Offset --> paper */
-  toPaper(offset: Point): Point {
+  #toPaper(offset: Point): Point {
     const ox = offset.x / this.width
     const oy = offset.y / this.height
     const { xmin, w, ymin, h } = this.bounds()
-    return px(xmin + w * ox, ymin + h * (1 - oy))
+    return p(xmin + w * ox, ymin + h * (1 - oy))
   }
 
   /** Paper --> offset */
-  toOffset({ x, y }: Point): Point {
+  #toOffset({ x, y }: Point): Point {
     const { xmin, w, ymin, h } = this.bounds()
-    return px(((x - xmin) / w) * this.width, (1 - (y - ymin) / h) * this.height)
+    return p(((x - xmin) / w) * this.width, (1 - (y - ymin) / h) * this.height)
   }
 
-  eventToPaper(event: { offsetX: number; offsetY: number }): Point {
-    return this.toPaper(px(event.offsetX, event.offsetY))
+  #eventToPaper(event: { offsetX: number; offsetY: number }): Point {
+    return this.#toPaper(p(event.offsetX, event.offsetY))
   }
 
   /** Offset --> paper */
-  toPaperDelta(offsetDelta: Point): Point {
+  #toPaperDelta(offsetDelta: Point): Point {
     const ox = offsetDelta.x / this.width
     const oy = offsetDelta.y / this.height
     const { w, h } = this.bounds()
-    return px(w * ox, -h * oy)
+    return p(w * ox, -h * oy)
   }
 
   /** Paper --> offset */
-  toOffsetDelta(paperDelta: Point): Point {
+  #toOffsetDelta(paperDelta: Point): Point {
     const { w, h } = this.bounds()
-    return px(
-      (paperDelta.x / w) * this.width,
-      -(paperDelta.y / h) * this.height,
-    )
+    return p((paperDelta.x / w) * this.width, -(paperDelta.y / h) * this.height)
   }
 
   /** Shortcut for Math.hypot(.toOffset(a - b)) */
-  offsetDistance(a: Point, b: Point) {
-    const { x, y } = this.toOffsetDelta(px(a.x - b.x, a.y - b.y))
+  #offsetDistance(a: Point, b: Point) {
+    const { x, y } = this.#toOffsetDelta(p(a.x - b.x, a.y - b.y))
     return Math.hypot(x, y)
   }
 
-  moveTo({ x, y }: Point, w: number) {
+  moveTo(x: number, y: number, w: number) {
     this.rawBounds = { xmin: x - w / 2, w, ymin: y - w / 2, h: w }
     this.autofit = true
     this.queue()
   }
 
-  move({ x, y }: Point) {
+  #move({ x, y }: Point) {
     this.rawBounds = {
       ...this.rawBounds,
       xmin: this.rawBounds.xmin + x,
@@ -181,7 +182,7 @@ export class Cv {
     this.queue()
   }
 
-  zoom({ x, y }: Point, scale: number) {
+  #zoom({ x, y }: Point, scale: number) {
     const { xmin, w, ymin, h } = this.rawBounds
 
     const xCenter = xmin + w / 2
@@ -211,6 +212,141 @@ export class Cv {
 
     this.queue()
   }
-}
 
-type CvMut = { -readonly [K in keyof Cv]: Cv[K] }
+  static #registerWheel(cv: Cv) {
+    cv.el.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault()
+        if (event.metaKey || event.ctrlKey) {
+          const scale =
+            1
+            + Math.sign(event.deltaY) * Math.sqrt(Math.abs(event.deltaY)) * 0.03
+          let { x, y } = cv.#eventToPaper({
+            offsetX: event.offsetX,
+            offsetY: cv.el.clientHeight - event.offsetY,
+          })
+          if (scale < 1) {
+            const origin = cv.#toOffset(p(0, 0))
+            if (Math.abs(event.offsetX - origin.x) < Size.ZoomSnap) {
+              x = 0
+            }
+            if (Math.abs(event.offsetY - origin.y) < Size.ZoomSnap) {
+              y = 0
+            }
+          }
+          cv.#zoom(p(x, y), scale)
+        } else {
+          cv.#move(cv.#toPaperDelta(p(event.deltaX, -event.deltaY)))
+        }
+      },
+      { passive: false },
+    )
+  }
+
+  static #registerPointer(cv: Cv) {
+    let initial: Point | undefined
+    let ptrs = 0
+
+    function onPointerMove(event: { offsetX: number; offsetY: number }) {
+      if (!initial) {
+        return
+      }
+
+      ;(document.activeElement as HTMLElement).blur?.()
+      const self = cv.#eventToPaper({
+        offsetX: event.offsetX,
+        offsetY: -event.offsetY,
+      })
+      cv.#move(p(initial.x - self.x, initial.y - self.y))
+    }
+
+    cv.el.addEventListener("pointermove", onPointerMove, { passive: true })
+    cv.el.addEventListener("wheel", onPointerMove, { passive: true })
+
+    cv.el.addEventListener(
+      "pointerdown",
+      (event) => {
+        event.preventDefault()
+
+        ptrs++
+        cv.el.setPointerCapture(event.pointerId)
+        if (ptrs != 1) {
+          return
+        }
+
+        const pt: Point = p(event.offsetX, -event.offsetY)
+        initial = cv.#toPaper(pt)
+      },
+      { passive: false },
+    )
+
+    function onPointerUp(_event?: PointerEvent) {
+      ptrs--
+
+      if (ptrs < 0) {
+        ptrs = 0
+      }
+
+      initial = undefined
+
+      if (ptrs != 0) {
+        return
+      }
+    }
+
+    addEventListener("pointerup", onPointerUp)
+    addEventListener("contextmenu", () => onPointerUp())
+  }
+
+  static #registerPinch(cv: Cv) {
+    let previousDistance: number | undefined
+
+    cv.el.addEventListener("touchmove", (event) => {
+      event.preventDefault()
+
+      const { touches } = event
+      const a = touches[0]
+      const b = touches[1]
+      const c = touches[2]
+
+      if (!a || c) {
+        return
+      }
+
+      if (!b) {
+        return
+      }
+
+      const { x, y } = cv.el.getBoundingClientRect()
+
+      const distance = Math.hypot(
+        b.clientX - a.clientX,
+        (b.clientY - a.clientY) ** 2,
+      )
+
+      if (!previousDistance) {
+        previousDistance = distance
+        return
+      }
+
+      const xCenter = (a.clientX + b.clientX) / 2 - x
+      const yCenter = (a.clientY + b.clientY) / 2 - y
+      const center = cv.#toPaper(p(xCenter, yCenter))
+
+      if (distance > previousDistance) {
+        cv.#zoom(center, 0.9)
+      } else {
+        cv.#zoom(center, 1.1)
+      }
+
+      previousDistance = distance
+    })
+  }
+
+  static #makeInteractive(cv: Cv) {
+    Cv.#registerWheel(cv)
+    Cv.#registerPointer(cv)
+    Cv.#registerPinch(cv)
+  }
+}

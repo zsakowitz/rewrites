@@ -12,6 +12,10 @@
       "options": { "arrowParens": "avoid", "semi": false }
     },
     {
+      "files": "canvas/scene/**/*",
+      "options": { "printWidth": 30 }
+    },
+    {
       "files": "five-point-conic.ts",
       "options": {
         "printWidth": 40
