@@ -10,10 +10,14 @@
         width: 100svw;
         height: 100svh;
         margin: 0;
-        --cv-w: min(100svw, 100svh * (16 / 9));
-        --cv-h: min(100svh, 100svw * (9 / 16));
+        --cv-w: 100svw;
+        --cv-h: 100svh;
         --cv-l: calc(50svw - var(--cv-w) / 2 + 1rem);
         --cv-b: calc(50svh - var(--cv-h) / 2 + 1rem);
+      }
+      .aspect-video {
+        --cv-w: min(100svw, 100svh * (16 / 9));
+        --cv-h: min(100svh, 100svw * (9 / 16));
       }
       #cv {
         margin: auto;

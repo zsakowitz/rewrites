@@ -32,3 +32,7 @@ window.addEventListener("keydown", (ev) => {
     cv.x.animateTo(cv.x.getTarget() + W)
   }
 })
+
+if (new URL(location.href).searchParams.has("present")) {
+  document.body.classList.add("aspect-video")
+}
