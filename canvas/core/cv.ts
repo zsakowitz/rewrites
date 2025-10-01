@@ -1,6 +1,6 @@
 import { Size } from "./consts"
 import { hx } from "./jsx"
-import { ObjectRoot, Path, slide, type Item, type Renderable } from "../object"
+import { ObjectRoot, Path, slide, type Item, type Renderable } from "./object"
 import { p, type Point } from "./point"
 import { onTheme } from "./theme"
 
