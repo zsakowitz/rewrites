@@ -1,4 +1,4 @@
-import { Path, prepareTexture } from "../object"
+import { Path, prepareTexture } from "../core/object"
 
 export function xor() {
   const TEX = prepareTexture(256, 256, (ctx) => {

@@ -1,4 +1,4 @@
-import type { Cv } from "./cv"
+import type { Cv } from "./core/cv"
 
 type Style = string | CanvasGradient | CanvasPattern | false
 

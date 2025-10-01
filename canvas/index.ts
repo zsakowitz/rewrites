@@ -1,5 +1,5 @@
-import { Cv } from "./cv"
-import { load } from "./load"
+import { Cv } from "./core/cv"
+import { load } from "./core/load"
 import { grid } from "./scene/grid"
 
 const cv = new Cv()

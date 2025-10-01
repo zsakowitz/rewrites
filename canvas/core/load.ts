@@ -1,6 +1,6 @@
+import { cacti } from "../scene/cacti"
+import { xor } from "../scene/xor"
 import type { Cv } from "./cv"
-import { cacti } from "./scene/cacti"
-import { xor } from "./scene/xor"
 
 export function load(cv: Cv) {
   cv.slide(1, 0, "Cacti", "", cacti)

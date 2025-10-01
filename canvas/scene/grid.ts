@@ -1,4 +1,4 @@
-import { Path } from "../object"
+import { Path } from "../core/object"
 
 export function grid() {
   const rect = new Path().lineWidth(1).stroke("#CBD5E0")

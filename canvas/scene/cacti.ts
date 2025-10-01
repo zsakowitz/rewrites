@@ -1,6 +1,6 @@
-import { B, G, R } from "../colors"
-import { Path } from "../object"
-import { diffSeq, limitSeq } from "../seq"
+import { B, G, R } from "../core/colors"
+import { Path } from "../core/object"
+import { diffSeq, limitSeq } from "../core/seq"
 
 const x = 100 * Math.SQRT1_2
 
