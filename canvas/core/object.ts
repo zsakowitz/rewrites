@@ -1,4 +1,4 @@
-import type { Cv } from "./core/cv"
+import type { Cv } from "./cv"
 
 type Style = string | CanvasGradient | CanvasPattern | false
 
@@ -87,6 +87,11 @@ export class Item {
     return this
   }
 
+  rotate(degrees: number) {
+    ;(this._transform ??= new DOMMatrix()).rotateSelf(degrees)
+    return this
+  }
+
   by(x: number, y: number) {
     return this.translate(960 * 2 * x, 540 * 2 * y)
   }
@@ -155,6 +160,7 @@ export class Item {
 
   path() {
     const path = new Path()
+    path.moveTo(0, 0)
     this.push(path)
     return path
   }
@@ -185,7 +191,6 @@ export class Path extends Item {
   y: number = 0
 
   draw(cv: Cv): void {
-    cv.ctx.beginPath()
     cv.ctx.fill(this._path)
     cv.ctx.stroke(this._path)
   }
@@ -208,9 +213,26 @@ export class Path extends Item {
     return this
   }
 
+  bezierTo(x1: number, y1: number, x2: number, y2: number, x3 = 0, y3 = 0) {
+    this._path.bezierCurveTo(x1, y1, x2, y2, x3, y3)
+    this.x = x3
+    this.y = y3
+    return this
+  }
+
   arcTo(x1: number, y1: number, x2: number, y2: number, r: number) {
     this._path.arcTo(x1, y1, x2, y2, r)
     return this
+  }
+
+  node(scale1 = 8) {
+    new Ellipse()
+      .at(this.x, this.y)
+      .radius(scale1)
+      .fill("#404a59")
+      .stroke("#f1f5f9")
+      .lineWidth(scale1 / 4)
+      .pushTo(this)
   }
 
   branch(x: number, y = -Math.sqrt(1e4 - x * x)) {
@@ -221,14 +243,17 @@ export class Path extends Item {
       .lineTo(this.x + x, this.y + y)
       .lineWidth(scale2)
     this.push(next)
-    new Ellipse()
-      .at(this.x, this.y)
-      .radius(scale1)
-      .fill("#404a59")
-      .stroke("#f1f5f9")
-      .lineWidth(scale1 / 4)
-      .pushTo(this)
+    this.node(scale1)
     return next
+  }
+
+  petal(angle = 0) {
+    const p = this.path()
+      .translate(this.x, this.y)
+      .rotate(angle)
+      .bezierTo(-50, -100, 50, -100)
+    this.node()
+    return p
   }
 
   ground() {
