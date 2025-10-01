@@ -87,6 +87,10 @@ export class Item {
     return this
   }
 
+  by(x: number, y: number) {
+    return this.translate(960 * 2 * x, 540 * 2 * y)
+  }
+
   push(child: Renderable) {
     this.children.push(child)
   }
@@ -319,9 +323,8 @@ export function prepareTexture(
   return cv.transferToImageBitmap()
 }
 
-export function label(x: number, y: number, title: string, extra?: string) {
+export function slide(title: string, extra: string, f: () => Item) {
   const item = new Item()
-  item.translate(960 * x, 540 * y)
   const text = new Text(title, 30, 40)
     .align("left", "middle")
     .font("700 32px Carlito")
@@ -338,5 +341,6 @@ export function label(x: number, y: number, title: string, extra?: string) {
       .font("400 32px Carlito")
       .fill("#334156")
   }
+  item.push(f())
   return item
 }

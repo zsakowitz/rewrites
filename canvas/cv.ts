@@ -1,6 +1,6 @@
 import { Size } from "./consts"
 import { hx } from "./jsx"
-import { ObjectRoot, Path, type Renderable } from "./object"
+import { ObjectRoot, Path, slide, type Item, type Renderable } from "./object"
 import { p, type Point } from "./point"
 import { onTheme } from "./theme"
 
@@ -108,6 +108,11 @@ export class Cv {
         },
       })
     }
+  }
+
+  slide(x: number, y: number, title: string, extra: string, f: () => Item) {
+    this.push(slide(title, extra, f).by(x, y))
+    return this
   }
 
   path() {

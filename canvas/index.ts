@@ -1,13 +1,12 @@
 import { Cv } from "./cv"
-import { label } from "./object"
-import { branches, grid } from "./scene/trees"
+import { load } from "./load"
+import { grid } from "./scene/grid"
 
 const cv = new Cv()
 cv.el.id = "cv"
 document.body.prepend(cv.el)
-cv.push(branches())
 cv.push(grid())
-cv.push(label(0, 0, "Cacti", "The essence of nature"))
+load(cv)
 
 const W = 960 * 2
 const H = 540 * 2
@@ -21,6 +20,9 @@ window.addEventListener("keydown", (ev) => {
   if (ev.key == "1" || ev.key.includes("Arrow")) {
     cv.x.animateTo(W * Math.floor(cv.x.getTarget() / W) + W / 2)
     cv.y.animateTo(H * Math.floor(cv.y.getTarget() / H) + H / 2)
+  }
+  if (ev.key == "1" || ev.key == "0") {
+    cv.w.animateTo(W)
   }
   if (ev.key == "ArrowDown") {
     cv.y.animateTo(cv.y.getTarget() + H)

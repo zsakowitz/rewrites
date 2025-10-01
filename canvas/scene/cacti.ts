@@ -1,49 +1,8 @@
-import { Path, prepareTexture } from "../object"
-
-export function xor() {
-  const TEX = prepareTexture(256, 256, (ctx) => {
-    for (let i = 0; i < 256; i++) {
-      for (let j = 0; j < 256; j++) {
-        ctx.beginPath()
-        ctx.rect(i, j, 1, 1)
-        const r = (360 / 256) * (i ^ j)
-        const g = 0
-        const b = 0
-        ctx.fillStyle = `hsl(${r} 100% 50%)`
-        ctx.fill()
-      }
-    }
-  })
-  return new Path().fn((ctx) => {
-    ctx.imageSmoothingEnabled = false
-    ctx.drawImage(TEX, 0, 0, 1, 1)
-  })
-}
-
-export const B = "#3C82F5"
-export const R = "#EF4345"
-export const G = "#17A34A"
-export const L = "#404a59"
+import { B, G, R } from "../colors"
+import { Path } from "../object"
+import { diffSeq, limitSeq } from "../seq"
 
 const x = 100 * Math.SQRT1_2
-
-function* limitSeq(x0: number, x1: number, first: number) {
-  let base = 1
-  for (let i = 0; i < 100; i++) {
-    yield x0 + (x1 - x0) * base
-    base *= 1 - first
-  }
-}
-
-function* diffSeq(x0: number, x1: number, first: number) {
-  let last = x1
-  let base = 1
-  for (let i = 0; i < 1000; i++) {
-    base *= 1 - first
-    yield last - (x0 + (x1 - x0) * base)
-    last = x0 + (x1 - x0) * base
-  }
-}
 
 function branch1(base: Path) {
   base.ground()
@@ -122,7 +81,7 @@ function branch6(base: Path) {
   }
 }
 
-export function branches() {
+export function cacti() {
   const base = new Path()
   base.translate(960, 540)
   base.stroke(G)
@@ -146,19 +105,4 @@ export function branches() {
   Y.branch(x).stroke(R).branch(0)
 
   return base
-}
-
-export function grid() {
-  const rect = new Path().lineWidth(1).stroke("#CBD5E0")
-  for (let i = -10; i < 10; i++) {
-    const x1 = 1920 * i - 10
-    const y1 = 1080 * i - 10
-    const x2 = 1920 * i + 10
-    const y2 = 1080 * i + 10
-    rect.path().moveTo(x1, -1e6).lineTo(x1, 1e6)
-    rect.path().moveTo(x2, -1e6).lineTo(x2, 1e6)
-    rect.path().moveTo(-1e6, y1).lineTo(1e6, y1)
-    rect.path().moveTo(-1e6, y2).lineTo(1e6, y2)
-  }
-  return rect
 }
