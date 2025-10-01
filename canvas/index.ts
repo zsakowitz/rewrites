@@ -5,26 +5,32 @@ const cv = new Cv()
 cv.el.id = "cv"
 document.body.prepend(cv.el)
 cv.push(branches())
-cv.push((ctx) => {
-  ctx.font = "60px Carlito"
-  ctx.textAlign = "left"
-  ctx.textBaseline = "top"
-
-  const m = ctx.measureText("hello world")
-  ctx.fillStyle = "red"
-  ctx.fillRect(
-    20,
-    20,
-    m.actualBoundingBoxRight + m.actualBoundingBoxLeft,
-    m.actualBoundingBoxDescent + m.actualBoundingBoxAscent,
-  )
-  ctx.fillStyle = "#020617"
-  ctx.fillText(
-    "hello world",
-    20 + m.actualBoundingBoxLeft,
-    20 + m.actualBoundingBoxAscent,
-  )
-})
+cv.path().fill("#CBD5E1").rect(0, 0, 60, 60)
+cv.root
+  .text("03", 30, 30)
+  .align("center", "middle")
+  .font("32px system-ui")
+  .fill("#000")
+// cv.push((ctx) => {
+//   ctx.font = "60px Carlito"
+//   ctx.textBaseline = "left"
+//   ctx.textBaseline = "top"
+//
+//   // const m = ctx.measureText("hello world")
+//   // ctx.fillStyle = "red"
+//   // ctx.fillRect(
+//   //   20,
+//   //   20,
+//   //   m.actualBoundingBoxRight + m.actualBoundingBoxLeft,
+//   //   m.actualBoundingBoxDescent + m.actualBoundingBoxAscent,
+//   // )
+//   // ctx.fillStyle = "#020617"
+//   // ctx.fillText(
+//   //   "hello world",
+//   //   20 + m.actualBoundingBoxLeft,
+//   //   20 + m.actualBoundingBoxAscent,
+//   // )
+// })
 
 const W = 960 * 2
 const H = 540 * 2

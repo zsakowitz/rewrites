@@ -15,13 +15,16 @@ export class Item {
   private _lineDashOffset: number | undefined
   private _lineDash: readonly number[] | undefined
   private _transform: DOMMatrix | undefined
+  private _font: string | undefined
+  private _textAlign: CanvasTextAlign | undefined
+  private _textBaseline: CanvasTextBaseline | undefined
   private children: Renderable[] = []
 
   draw(cv: Cv): void {}
 
-  render(cv: Cv): void {
+  apply(ctx: Cv["ctx"]) {
     if (this._transform != null) {
-      cv.ctx.transform(
+      ctx.transform(
         this._transform.a,
         this._transform.b,
         this._transform.c,
@@ -31,33 +34,46 @@ export class Item {
       )
     }
     if (this._lineWidth != null) {
-      cv.ctx.lineWidth = this._lineWidth
+      ctx.lineWidth = this._lineWidth
+    }
+    if (this._textBaseline != null) {
+      ctx.textBaseline = this._textBaseline
+    }
+    if (this._textAlign != null) {
+      ctx.textAlign = this._textAlign
+    }
+    if (this._font != null) {
+      ctx.font = this._font
     }
     if (this._lineCap != null) {
-      cv.ctx.lineCap = this._lineCap
+      ctx.lineCap = this._lineCap
     }
     if (this._lineJoin != null) {
-      cv.ctx.lineJoin = this._lineJoin
+      ctx.lineJoin = this._lineJoin
     }
     if (this._lineWidth != null) {
-      cv.ctx.lineWidth = this._lineWidth
+      ctx.lineWidth = this._lineWidth
     }
     if (this._lineDashOffset != null) {
-      cv.ctx.lineDashOffset = this._lineDashOffset
+      ctx.lineDashOffset = this._lineDashOffset
     }
     if (this._lineDash != null) {
-      cv.ctx.setLineDash(this._lineDash)
+      ctx.setLineDash(this._lineDash)
     }
     if (this._stroke === false) {
-      cv.ctx.strokeStyle = "transparent"
+      ctx.strokeStyle = "transparent"
     } else if (this._stroke != null) {
-      cv.ctx.strokeStyle = this._stroke
+      ctx.strokeStyle = this._stroke
     }
     if (this._fill === false) {
-      cv.ctx.fillStyle = "transparent"
+      ctx.fillStyle = "transparent"
     } else if (this._fill != null) {
-      cv.ctx.fillStyle = this._fill
+      ctx.fillStyle = this._fill
     }
+  }
+
+  render(cv: Cv): void {
+    this.apply(cv.ctx)
     this.draw(cv)
     for (const child of this.children) {
       cv.ctx.save()
@@ -114,6 +130,20 @@ export class Item {
     this._lineDashOffset = offset
   }
 
+  font(v: string | undefined) {
+    this._font = v
+    return this
+  }
+
+  align(
+    textAlign: CanvasTextAlign | undefined,
+    textBaseline: CanvasTextBaseline | undefined,
+  ) {
+    this._textAlign = textAlign
+    this._textBaseline = textBaseline
+    return this
+  }
+
   pushTo<T extends Item>(object: T) {
     object.push(this)
     return object
@@ -123,6 +153,12 @@ export class Item {
     const path = new Path()
     this.push(path)
     return path
+  }
+
+  text(text: string, x: number, y: number) {
+    const ret = new Text(text, x, y)
+    this.push(ret)
+    return ret
   }
 }
 
@@ -237,6 +273,38 @@ export class Ellipse extends Item {
     cv.ctx.ellipse(this.x, this.y, this.rx, this.ry, 0, 0, 2 * Math.PI)
     cv.ctx.fill()
     cv.ctx.stroke()
+  }
+}
+
+export class Text extends Item {
+  constructor(
+    private readonly _text: string,
+    readonly x: number,
+    readonly y: number,
+  ) {
+    super()
+  }
+
+  draw({ ctx }: Cv): void {
+    const m = ctx.measureText(this._text)
+    const dx =
+      ctx.textAlign == "center" ?
+        (m.actualBoundingBoxLeft - m.actualBoundingBoxRight) / 2
+      : 0
+    const dy =
+      ctx.textBaseline == "middle" ?
+        (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2
+      : 0
+    ctx.strokeText(this._text, this.x + dx, this.y + dy)
+    ctx.fillText(this._text, this.x + dx, this.y + dy)
+  }
+
+  metrics(ctx: Cv["ctx"]) {
+    ctx.save()
+    this.apply(ctx)
+    const metrics = ctx.measureText(this._text)
+    ctx.restore()
+    return metrics
   }
 }
 

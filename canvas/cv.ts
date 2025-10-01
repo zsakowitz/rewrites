@@ -4,18 +4,6 @@ import { ObjectRoot, Path, type Renderable } from "./object"
 import { p, type Point } from "./point"
 import { onTheme } from "./theme"
 
-export interface Bounds {
-  readonly xmin: number
-  readonly w: number
-  readonly ymin: number
-  readonly h: number
-}
-
-export interface Item {
-  render(cv: Cv): void
-  push(item: Object): void
-}
-
 class Tx {
   private el = document.createElement("span")
 
@@ -100,7 +88,7 @@ export class Cv {
     Cv.#makeInteractive(this)
   }
 
-  #bounds(): Bounds {
+  #bounds() {
     const xc = this.x.get()
     const yc = this.y.get()
     const w = this.w.get()
