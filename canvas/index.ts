@@ -7,7 +7,7 @@ cv.el.id = "cv"
 document.body.prepend(cv.el)
 cv.push(branches())
 cv.push(grid())
-cv.push(label(3, "Hello world", 0, 0))
+cv.push(label(0, 0, "Cacti", "The essence of nature"))
 
 const W = 960 * 2
 const H = 540 * 2

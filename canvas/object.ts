@@ -319,27 +319,24 @@ export function prepareTexture(
   return cv.transferToImageBitmap()
 }
 
-export function label(index: number, title: string, x: number, y: number) {
+export function label(x: number, y: number, title: string, extra?: string) {
   const item = new Item()
   item.translate(960 * x, 540 * y)
-  item.path().fill("#CBD5E1").rect(10, 10, 70, 70)
-  item
-    .text(index.toString().padStart(2, "0"), 45, 46)
-    .align("center", "middle")
-    .font("700 32px Nunito")
-    .fill("#000")
-  const text = new Text(title, 100, 46)
+  const text = new Text(title, 30, 40)
     .align("left", "middle")
-    .font("32px Carlito")
-    .fill("#000")
+    .font("700 32px Carlito")
+    .fill("black")
   const tw = text.metrics().width
-  item.push(text)
   item
     .path()
-    .moveTo(tw + 120, 10)
-    .arcTo(tw + 120, 79.5, 60, 79.5, 8)
-    .lineTo(60, 79.5)
-    .stroke("#cbd5e1")
-    .lineWidth(1)
+    .fill("#CBD5E1")
+    .rect(10, 10, 40 + tw, 60, [0, 0, 8, 0])
+  item.push(text)
+  if (extra) {
+    text
+      .text(extra, 70 + tw, 40)
+      .font("400 32px Carlito")
+      .fill("#334156")
+  }
   return item
 }
