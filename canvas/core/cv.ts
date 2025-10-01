@@ -64,7 +64,11 @@ export class Cv {
       const { x, y, w } = JSON.parse(bounds)
       this.x.set(x ?? 0)
       this.y.set(y ?? 0)
-      this.w.set(w ?? 960 * 2)
+      if (1e-4 <= w && w <= 1e4) {
+        this.w.set(w)
+      } else {
+        this.w.set(960 * 2)
+      }
     } else {
       this.x.set(0)
       this.y.set(0)

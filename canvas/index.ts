@@ -53,6 +53,9 @@ window.addEventListener("keydown", (ev) => {
   if (ev.key == "-" || ev.key == "_") {
     const w = cv.w.getTarget()
     if (w >= 960 * 2) {
+      if (cv.w.getTarget() > 1e4) {
+        return
+      }
       cv.w.animateTo(Math.floor(w / (960 * 2)) * (960 * 2) + 960 * 2)
     } else {
       cv.w.animateTo(2 * cv.w.getTarget())
@@ -63,6 +66,9 @@ window.addEventListener("keydown", (ev) => {
     if (w > 960 * 2) {
       cv.w.animateTo(Math.ceil(w / (960 * 2)) * (960 * 2) - 960 * 2)
     } else {
+      if (cv.w.getTarget() < 1e-4) {
+        return
+      }
       cv.w.animateTo(0.5 * cv.w.getTarget())
     }
   }
