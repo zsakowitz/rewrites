@@ -1,36 +1,33 @@
 import { Cv } from "./cv"
-import { branches } from "./scene/trees"
+import { Text } from "./object"
+import { branches, grid } from "./scene/trees"
 
 const cv = new Cv()
 cv.el.id = "cv"
 document.body.prepend(cv.el)
 cv.push(branches())
-cv.path().fill("#CBD5E1").rect(0, 0, 60, 60)
+cv.push(grid())
+cv.path().fill("#CBD5E1").rect(0, 0, 70, 70)
 cv.root
-  .text("03", 30, 30)
+  .text("03", 35, 36)
   .align("center", "middle")
-  .font("32px system-ui")
+  .font("700 32px Nunito")
   .fill("#000")
-// cv.push((ctx) => {
-//   ctx.font = "60px Carlito"
-//   ctx.textBaseline = "left"
-//   ctx.textBaseline = "top"
-//
-//   // const m = ctx.measureText("hello world")
-//   // ctx.fillStyle = "red"
-//   // ctx.fillRect(
-//   //   20,
-//   //   20,
-//   //   m.actualBoundingBoxRight + m.actualBoundingBoxLeft,
-//   //   m.actualBoundingBoxDescent + m.actualBoundingBoxAscent,
-//   // )
-//   // ctx.fillStyle = "#020617"
-//   // ctx.fillText(
-//   //   "hello world",
-//   //   20 + m.actualBoundingBoxLeft,
-//   //   20 + m.actualBoundingBoxAscent,
-//   // )
-// })
+const text = new Text("Hello world", 90, 36)
+  .align("left", "middle")
+  .font("32px Carlito")
+  .fill("#000")
+const tw = text.metrics().width
+cv.path()
+  .rect(70, 0, tw + 40, 70)
+  .fill("#f1f5f9")
+cv.push(text)
+cv.path()
+  .moveTo(tw + 110, 0)
+  .arcTo(tw + 110, 69.5, 70, 69.5, 8)
+  .lineTo(60, 69.5)
+  .stroke("#cbd5e1")
+  .lineWidth(1)
 
 const W = 960 * 2
 const H = 540 * 2

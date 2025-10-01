@@ -204,6 +204,11 @@ export class Path extends Item {
     return this
   }
 
+  arcTo(x1: number, y1: number, x2: number, y2: number, r: number) {
+    this._path.arcTo(x1, y1, x2, y2, r)
+    return this
+  }
+
   branch(x: number, y = -Math.sqrt(1e4 - x * x)) {
     const scale1 = Math.min(8, Math.hypot(x, y) / 3)
     const scale2 = Math.min(8, Math.hypot(x, y) / 4)
@@ -276,6 +281,8 @@ export class Ellipse extends Item {
   }
 }
 
+let ctx = document.createElement("canvas").getContext("2d")!
+
 export class Text extends Item {
   constructor(
     private readonly _text: string,
@@ -286,20 +293,11 @@ export class Text extends Item {
   }
 
   draw({ ctx }: Cv): void {
-    const m = ctx.measureText(this._text)
-    const dx =
-      ctx.textAlign == "center" ?
-        (m.actualBoundingBoxLeft - m.actualBoundingBoxRight) / 2
-      : 0
-    const dy =
-      ctx.textBaseline == "middle" ?
-        (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2
-      : 0
-    ctx.strokeText(this._text, this.x + dx, this.y + dy)
-    ctx.fillText(this._text, this.x + dx, this.y + dy)
+    ctx.strokeText(this._text, this.x + 0, this.y + 0)
+    ctx.fillText(this._text, this.x + 0, this.y + 0)
   }
 
-  metrics(ctx: Cv["ctx"]) {
+  metrics() {
     ctx.save()
     this.apply(ctx)
     const metrics = ctx.measureText(this._text)

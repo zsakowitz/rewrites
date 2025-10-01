@@ -149,7 +149,7 @@ export function branches() {
 }
 
 export function grid() {
-  const rect = new Path().lineWidth(1).stroke("#959fad")
+  const rect = new Path().lineWidth(1).stroke("#CBD5E0")
   for (let i = -10; i < 10; i++) {
     const x1 = 1920 * i - 10
     const y1 = 1080 * i - 10
