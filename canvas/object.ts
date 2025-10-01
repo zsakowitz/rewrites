@@ -20,7 +20,7 @@ export class Item {
   private _textBaseline: CanvasTextBaseline | undefined
   private children: Renderable[] = []
 
-  draw(cv: Cv): void {}
+  draw(_cv: Cv): void {}
 
   apply(ctx: Cv["ctx"]) {
     if (this._transform != null) {
@@ -306,7 +306,7 @@ export class Text extends Item {
   }
 }
 
-export function tex(
+export function prepareTexture(
   w: number,
   h: number,
   make: (ctx: OffscreenCanvasRenderingContext2D) => void,
@@ -317,4 +317,29 @@ export function tex(
   const ctx = cv.getContext("2d")!
   make(ctx)
   return cv.transferToImageBitmap()
+}
+
+export function label(index: number, title: string, x: number, y: number) {
+  const item = new Item()
+  item.translate(960 * x, 540 * y)
+  item.path().fill("#CBD5E1").rect(10, 10, 70, 70)
+  item
+    .text(index.toString().padStart(2, "0"), 45, 46)
+    .align("center", "middle")
+    .font("700 32px Nunito")
+    .fill("#000")
+  const text = new Text(title, 100, 46)
+    .align("left", "middle")
+    .font("32px Carlito")
+    .fill("#000")
+  const tw = text.metrics().width
+  item.push(text)
+  item
+    .path()
+    .moveTo(tw + 120, 10)
+    .arcTo(tw + 120, 79.5, 60, 79.5, 8)
+    .lineTo(60, 79.5)
+    .stroke("#cbd5e1")
+    .lineWidth(1)
+  return item
 }

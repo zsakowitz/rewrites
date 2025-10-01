@@ -1,7 +1,7 @@
-import { Path, tex } from "../object"
+import { Path, prepareTexture } from "../object"
 
 export function xor() {
-  const TEX = tex(256, 256, (ctx) => {
+  const TEX = prepareTexture(256, 256, (ctx) => {
     for (let i = 0; i < 256; i++) {
       for (let j = 0; j < 256; j++) {
         ctx.beginPath()
