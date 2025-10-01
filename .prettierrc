@@ -10,11 +10,7 @@
     {
       "files": "lambda-in-js.js",
       "options": { "arrowParens": "avoid", "semi": false }
-    },
-    {
-      "files": "canvas/scene/**/*",
-      "options": { "printWidth": 80 }
-    },
+    },Ó
     {
       "files": "five-point-conic.ts",
       "options": {
