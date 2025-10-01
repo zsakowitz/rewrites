@@ -110,8 +110,8 @@ export class Cv {
     }
   }
 
-  slide(x: number, y: number, title: string, extra: string, f: () => Item) {
-    this.push(slide(title, extra, f).by(x, y))
+  slide(x: number, y: number, title: string, f: () => Item) {
+    this.push(slide(title, "", f).by(x, y))
     return this
   }
 

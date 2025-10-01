@@ -11,17 +11,26 @@ load(cv)
 const W = 960 * 2
 const H = 540 * 2
 
+function nearest(initial: number, spacing: number, pos: number) {
+  // spacing = Math.abs(spacing)
+  // initial = ((initial % spacing) + spacing) % spacing
+  return Math.ceil((pos - initial) / spacing) * spacing + initial
+}
+
 window.addEventListener("keydown", (ev) => {
-  if (ev.key == "0") {
+  const Z = ev.key == "0" || ev.key == ")"
+  if (ev.key == "h" || ev.key == "H") {
     cv.x.animateTo(960)
     cv.y.animateTo(540)
     cv.w.animateTo(W)
   }
-  if (ev.key == "1" || ev.key.includes("Arrow")) {
-    cv.x.animateTo(W * Math.floor(cv.x.getTarget() / W) + W / 2)
-    cv.y.animateTo(H * Math.floor(cv.y.getTarget() / H) + H / 2)
+  if (Z || ev.key.includes("Arrow")) {
+    const w = cv.w.getTarget() / 960 / 2
+    const o = w % 2 ? 1 : 0
+    cv.x.animateTo(nearest(o * 960, 2 * 960, cv.x.getTarget()))
+    cv.y.animateTo(nearest(o * 540, 2 * 540, cv.y.getTarget()))
   }
-  if (ev.key == "1" || ev.key == "0") {
+  if (Z) {
     cv.w.animateTo(W)
   }
   if (ev.key == "ArrowDown") {
@@ -35,6 +44,22 @@ window.addEventListener("keydown", (ev) => {
   }
   if (ev.key == "ArrowRight") {
     cv.x.animateTo(cv.x.getTarget() + W)
+  }
+  if (ev.key == "-" || ev.key == "_") {
+    const w = cv.w.getTarget()
+    if (w >= 960 * 2) {
+      cv.w.animateTo(Math.floor(w / (960 * 2)) * (960 * 2) + 960 * 2)
+    } else {
+      cv.w.animateTo(2 * cv.w.getTarget())
+    }
+  }
+  if (ev.key == "=" || ev.key == "+") {
+    const w = cv.w.getTarget()
+    if (w > 960 * 2) {
+      cv.w.animateTo(Math.ceil(w / (960 * 2)) * (960 * 2) - 960 * 2)
+    } else {
+      cv.w.animateTo(0.5 * cv.w.getTarget())
+    }
   }
 })
 

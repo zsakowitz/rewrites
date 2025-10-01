@@ -87,22 +87,23 @@ export function cacti() {
   base.stroke(G)
 
   branch1(base.forkBy(0, 0))
-  branch7(base.forkBy(400, 100))
-  branch8(base.forkBy(-350, 300))
+  branch7(base.forkBy(600, 100))
+  branch8(base.forkBy(-750, 300))
   branch2(base.forkBy(100, 400))
-  branch9(base.forkBy(-100, 200))
-  branch3(base.forkBy(900, 200))
-  branch4(base.forkBy(1050, 200))
-  branch5(base.forkBy(300, 1100))
-  branch6(base.forkBy(150, 1100))
+  branch9(base.forkBy(-300, 200))
+  base.forkBy(550, 450).ground().branch(0)
+  // branch3(base.forkBy(900, 200))
+  // branch4(base.forkBy(1050, 200))
+  // branch5(base.forkBy(300, 1100))
+  // branch6(base.forkBy(150, 1100))
 
-  const X = base.forkBy(-800, 0).ground()
-  X.branch(0).branch(80).stroke(B)
-  X.branch(-x)
-
-  const Y = base.forkBy(-800, 300).ground()
-  Y.branch(0).stroke(B)
-  Y.branch(x).stroke(R).branch(0)
+  // const X = base.forkBy(-800, 0).ground()
+  // X.branch(0).branch(80).stroke(B)
+  // X.branch(-x)
+  //
+  // const Y = base.forkBy(-800, 300).ground()
+  // Y.branch(0).stroke(B)
+  // Y.branch(x).stroke(R).branch(0)
 
   return base
 }
