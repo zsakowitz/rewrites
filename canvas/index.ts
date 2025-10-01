@@ -24,26 +24,31 @@ window.addEventListener("keydown", (ev) => {
     cv.y.animateTo(540)
     cv.w.animateTo(W)
   }
-  if (Z || ev.key.includes("Arrow")) {
-    const w = cv.w.getTarget() / 960 / 2
-    const o = w % 2 ? 1 : 0
+  const o = (cv.w.getTarget() / 960 / 2) % 2 ? 1 : 0
+  if (Z) {
     cv.x.animateTo(nearest(o * 960, 2 * 960, cv.x.getTarget()))
     cv.y.animateTo(nearest(o * 540, 2 * 540, cv.y.getTarget()))
-  }
-  if (Z) {
     cv.w.animateTo(W)
   }
-  if (ev.key == "ArrowDown") {
-    cv.y.animateTo(cv.y.getTarget() + H)
-  }
-  if (ev.key == "ArrowUp") {
-    cv.y.animateTo(cv.y.getTarget() - H)
-  }
   if (ev.key == "ArrowLeft") {
-    cv.x.animateTo(cv.x.getTarget() - W)
+    const x = cv.x.getTarget()
+    const O = o * 960
+    cv.x.animateTo(Math.ceil((x - O) / (960 * 2) - 1) * (960 * 2) + O)
   }
   if (ev.key == "ArrowRight") {
-    cv.x.animateTo(cv.x.getTarget() + W)
+    const x = cv.x.getTarget()
+    const O = o * 960
+    cv.x.animateTo(Math.floor((x + O) / (960 * 2) + 1) * (960 * 2) - O)
+  }
+  if (ev.key == "ArrowUp") {
+    const y = cv.y.getTarget()
+    const O = o * 540
+    cv.y.animateTo(Math.ceil((y - O) / (540 * 2) - 1) * (540 * 2) + O)
+  }
+  if (ev.key == "ArrowDown") {
+    const y = cv.y.getTarget()
+    const O = o * 540
+    cv.y.animateTo(Math.floor((y + O) / (540 * 2) + 1) * (540 * 2) - O)
   }
   if (ev.key == "-" || ev.key == "_") {
     const w = cv.w.getTarget()
