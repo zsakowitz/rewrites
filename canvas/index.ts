@@ -18,14 +18,14 @@ function nearest(initial: number, spacing: number, pos: number) {
 }
 
 window.addEventListener("keydown", (ev) => {
-  const Z = ev.key == "0" || ev.key == ")"
-  if (ev.key == "h" || ev.key == "H") {
+  if (ev.key == ")") {
     cv.x.animateTo(960)
     cv.y.animateTo(540)
     cv.w.animateTo(W)
+    return
   }
   const o = (cv.w.getTarget() / 960 / 2) % 2 ? 1 : 0
-  if (Z) {
+  if (ev.key == "0") {
     cv.x.animateTo(nearest(o * 960, 2 * 960, cv.x.getTarget()))
     cv.y.animateTo(nearest(o * 540, 2 * 540, cv.y.getTarget()))
     cv.w.animateTo(W)
