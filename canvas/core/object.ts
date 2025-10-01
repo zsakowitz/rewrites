@@ -247,13 +247,14 @@ export class Path extends Item {
     return next
   }
 
-  petal(angle = 0) {
-    const p = this.path()
+  petal(angle = 0, stroke?: Style) {
+    this.path()
       .translate(this.x, this.y)
       .rotate(angle)
       .bezierTo(-50, -100, 50, -100)
+      .stroke(stroke)
     this.node()
-    return p
+    return this
   }
 
   ground() {
