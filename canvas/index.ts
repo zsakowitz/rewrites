@@ -5,19 +5,39 @@ const cv = new Cv()
 cv.el.id = "cv"
 document.body.prepend(cv.el)
 cv.push(branches())
+cv.push((ctx) => {
+  ctx.font = "60px Carlito"
+  ctx.textAlign = "left"
+  ctx.textBaseline = "top"
+
+  const m = ctx.measureText("hello world")
+  ctx.fillStyle = "red"
+  ctx.fillRect(
+    20,
+    20,
+    m.actualBoundingBoxRight + m.actualBoundingBoxLeft,
+    m.actualBoundingBoxDescent + m.actualBoundingBoxAscent,
+  )
+  ctx.fillStyle = "#020617"
+  ctx.fillText(
+    "hello world",
+    20 + m.actualBoundingBoxLeft,
+    20 + m.actualBoundingBoxAscent,
+  )
+})
 
 const W = 960 * 2
 const H = 540 * 2
 
 window.addEventListener("keydown", (ev) => {
   if (ev.key == "0") {
-    cv.x.animateTo(0)
-    cv.y.animateTo(0)
+    cv.x.animateTo(960)
+    cv.y.animateTo(540)
     cv.w.animateTo(W)
   }
   if (ev.key == "1" || ev.key.includes("Arrow")) {
-    cv.x.animateTo(W * Math.round(cv.x.getTarget() / W))
-    cv.y.animateTo(H * Math.round(cv.y.getTarget() / H))
+    cv.x.animateTo(W * Math.floor(cv.x.getTarget() / W) + W / 2)
+    cv.y.animateTo(H * Math.floor(cv.y.getTarget() / H) + H / 2)
   }
   if (ev.key == "ArrowDown") {
     cv.y.animateTo(cv.y.getTarget() + H)

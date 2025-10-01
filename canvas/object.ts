@@ -14,11 +14,22 @@ export class Item {
   private _fill: Style | undefined
   private _lineDashOffset: number | undefined
   private _lineDash: readonly number[] | undefined
+  private _transform: DOMMatrix | undefined
   private children: Renderable[] = []
 
   draw(cv: Cv): void {}
 
   render(cv: Cv): void {
+    if (this._transform != null) {
+      cv.ctx.transform(
+        this._transform.a,
+        this._transform.b,
+        this._transform.c,
+        this._transform.d,
+        this._transform.e,
+        this._transform.f,
+      )
+    }
     if (this._lineWidth != null) {
       cv.ctx.lineWidth = this._lineWidth
     }
@@ -53,6 +64,11 @@ export class Item {
       child.render(cv)
       cv.ctx.restore()
     }
+  }
+
+  translate(x: number, y: number) {
+    ;(this._transform ??= new DOMMatrix()).translateSelf(x, y)
+    return this
   }
 
   push(child: Renderable) {

@@ -110,8 +110,16 @@ export class Cv {
 
   readonly root = new ObjectRoot()
 
-  push(object: Renderable) {
-    this.root.push(object)
+  push(object: ((ctx: Cv["ctx"], cv: Cv) => void) | Renderable) {
+    if ("render" in object) {
+      this.root.push(object)
+    } else {
+      this.root.push({
+        render(cv) {
+          object(cv.ctx, cv)
+        },
+      })
+    }
   }
 
   path() {
