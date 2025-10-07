@@ -63,5 +63,8 @@
     "ytdl-core": "^4.11.2",
     "ytpl": "^2.3.0",
     "zod": "^3.20.2"
-  }
+  },
+  "trustedDependencies": [
+    "protobufjs"
+  ]
 }

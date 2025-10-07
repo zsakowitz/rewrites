@@ -10,7 +10,7 @@
     {
       "files": "lambda-in-js.js",
       "options": { "arrowParens": "avoid", "semi": false }
-    },Ó
+    },
     {
       "files": "five-point-conic.ts",
       "options": {
