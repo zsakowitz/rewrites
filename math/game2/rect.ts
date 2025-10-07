@@ -1,6 +1,6 @@
 import { mex, type Nimber } from "./nim"
 
-class Grid {
+export class Grid {
   n = 0n
 
   constructor(
