@@ -1,4 +1,4 @@
-import { mex, type NimValue } from "../game2/nim"
+import { mex, type Nimber } from "../game2/nim"
 
 class Node<V, E> {
   readonly outgoing: Edge<V, E>[] = []
@@ -76,8 +76,8 @@ class Graph<V, E> {
   }
 }
 
-function evaluateFruits(g: Graph<boolean | void, void>): NimValue {
-  const vals: NimValue[] = []
+function evaluateFruits(g: Graph<boolean | void, void>): Nimber {
+  const vals: Nimber[] = []
 
   for (const node of g.nodes) {
     if (node.data != null) continue

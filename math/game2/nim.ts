@@ -1,6 +1,6 @@
-export type NimValue = number
+export type Nimber = number
 
-export function mex(args: NimValue[]): NimValue {
+export function mex(args: Nimber[]): Nimber {
   for (let i = 0; ; i++) {
     if (args.includes(i)) {
       continue

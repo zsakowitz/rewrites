@@ -1,4 +1,4 @@
-import { mex, type NimValue } from "./nim"
+import { mex, type Nimber } from "./nim"
 
 /**
  * 15-bit pin code. Pins are:
@@ -35,14 +35,14 @@ const JUMPS_RAW = [
 ].map((x) => x.map((el) => 1 << (14 - el)) as Jump)
 
 /** Map from pincode to appropriate nimber. */
-const cache = new Map<PinCode, NimValue>()
+const cache = new Map<PinCode, Nimber>()
 
-function check(code: PinCode): NimValue {
+function check(code: PinCode): Nimber {
   if (cache.has(code)) {
     return cache.get(code)!
   }
 
-  const els: NimValue[] = []
+  const els: Nimber[] = []
   for (const [src, mid, dst] of JUMPS_RAW) {
     if (code & src && code & mid && !(code & dst)) {
       els.push(check(code ^ src ^ mid ^ dst))
@@ -57,7 +57,7 @@ function check(code: PinCode): NimValue {
 }
 
 const INIT = 0x7fff
-function checkInit(): NimValue {
+function checkInit(): Nimber {
   if (cache.has(INIT)) {
     return cache.get(INIT)!
   }

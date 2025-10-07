@@ -1,5 +1,5 @@
 import { Graph } from "."
-import { mex, type NimValue } from "../game2/nim"
+import { mex, type Nimber } from "../game2/nim"
 import { createForceGraph } from "./force"
 
 class FruitDeliveryGraph extends Graph<0 | 1 | void, void> {
@@ -51,8 +51,8 @@ function project(g: FruitDeliveryGraph) {
   )
 }
 
-function calc(g: FruitDeliveryGraph): NimValue {
-  const ret: NimValue[] = []
+function calc(g: FruitDeliveryGraph): Nimber {
+  const ret: Nimber[] = []
   for (const v of g.vl) {
     if (
       v.data == null
