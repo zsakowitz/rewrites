@@ -1,50 +1,48 @@
 import { mex, type Nimber } from "./nim"
 
 class Grid {
-  n = 0
+  n = 0n
 
   constructor(
     readonly w: number,
     readonly h: number,
-  ) {
-    if (w * h > 31) {
-      throw new Error("grid is too big")
-    }
-  }
+  ) {}
 
   get(x: number, y: number) {
-    return this.n & (1 << (y * this.w + x))
+    return this.n & (1n << BigInt(y * this.w + x))
   }
 
   set(x: number, y: number, on: boolean) {
-    const cell = 1 << (y * this.w + x)
-    this.n = (this.n & ~cell) | (+on * cell)
-  }
-
-  setRect(x1: number, y1: number, x2: number, y2: number, on: boolean) {
-    let cell = 0
-    for (let i = x1; i < x2; i++) {
-      for (let j = y1; j < y2; j++) {
-        cell |= 1 << (j * this.w + i)
-      }
-    }
-    this.n = (this.n & ~cell) | (+on * cell)
+    const cell = 1n << BigInt(y * this.w + x)
+    this.n = (this.n & ~cell) | (BigInt(on) * cell)
   }
 
   getXorRect(x1: number, y1: number, x2: number, y2: number) {
-    let cell = 0
+    let cell = 0n
     for (let i = x1; i < x2; i++) {
       for (let j = y1; j < y2; j++) {
-        cell |= 1 << (j * this.w + i)
+        cell |= 1n << BigInt(j * this.w + i)
       }
     }
     return cell
   }
 
-  cache: Record<number, number> = Object.create(null)
+  cache = new Map<bigint, number>()
   calcRect(): number {
-    if (this.n in this.cache) {
-      return this.cache[this.n]!
+    let ret = 0
+    const n = this.n
+    for (let i = 0n; i < this.w * this.h; i++) {
+      if ((1n << i) & n) {
+        this.n = 1n << i
+        ret ^= this.calcInner()
+      }
+    }
+    this.n = n
+    return ret
+  }
+  calcInner(): number {
+    if (this.cache.has(this.n)) {
+      return this.cache.get(this.n)!
     }
     const ret: Nimber[] = []
 
@@ -64,7 +62,10 @@ class Grid {
     }
 
     const m = mex(ret)
-    this.cache[this.n] = m
+    this.cache.set(this.n, m)
+    if (this.cache.size % 1e4 == 0) {
+      console.error(this.cache.size)
+    }
     return m
   }
 
@@ -86,12 +87,14 @@ class Grid {
   }
 }
 
-const I = new Grid(7, 4)
-const q = Array.from({ length: 4 }, (_, j) =>
-  Array.from({ length: 7 }, (_, i) => {
+const n = 6
+const I = new Grid(2 ** n + 1, 2 ** n + 1)
+for (let y = 0; y <= n; y++) {
+  for (let x = 0; x <= n; x++) {
     I.text = ""
-    I.set(i, j, true)
-    return I.calcRect()
-  }).join(" "),
-).join("\n")
-console.log(q)
+    I.set(2 ** x, 2 ** y, true)
+    const val = I.calcRect()
+    console.write(val.toString().padStart(3) + " ")
+  }
+  console.log()
+}
