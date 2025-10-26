@@ -51,9 +51,7 @@ const mul = cache(function (a: number, b: number): number {
 })
 
 console.log(
-  JSON.stringify(
-    Array.from({ length: 16 }, (_, i) =>
-      Array.from({ length: 16 }, (_, j) => mul(i, j)).join("\t"),
-    ).join("\n"),
-  ),
+  Array.from({ length: 256 }, (_, i) =>
+    Array.from({ length: 256 }, (_, j) => mul(i, j)).join("\t"),
+  ).join("\n"),
 )
