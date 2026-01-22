@@ -1,27 +1,33 @@
 {
-  "proseWrap": "always",
-  "semi": false,
-  "trailingComma": "all",
-  "plugins": ["prettier-plugin-jsdoc"],
-  "experimentalTernaries": true,
-  "experimentalOperatorPosition": "start",
-  "jsdocCapitalizeDescription": false,
-  "overrides": [
-    {
-      "files": "lambda-in-js.js",
-      "options": { "arrowParens": "avoid", "semi": false }
-    },
-    {
-      "files": "five-point-conic.ts",
-      "options": {
-        "printWidth": 40
-      }
-    },
-    {
-      "files": "block-lang/**/*",
-      "options": {
-        "singleAttributePerLine": true
-      }
-    }
-  ]
+    "proseWrap": "always",
+    "semi": false,
+    "trailingComma": "all",
+    "plugins": ["prettier-plugin-jsdoc"],
+    "experimentalTernaries": true,
+    "experimentalOperatorPosition": "start",
+    "jsdocCapitalizeDescription": false,
+    "overrides": [
+        {
+            "files": "lambda-in-js.js",
+            "options": { "arrowParens": "avoid", "semi": false }
+        },
+        {
+            "files": "five-point-conic.ts",
+            "options": {
+                "printWidth": 40
+            }
+        },
+        {
+            "files": "block-lang/**/*",
+            "options": {
+                "singleAttributePerLine": true
+            }
+        },
+        {
+            "files": ["flat-ast.ts", ".prettierrc"],
+            "options": {
+                "tabWidth": 4
+            }
+        }
+    ]
 }
