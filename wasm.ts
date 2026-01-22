@@ -182,6 +182,86 @@ class Memory {
             }[v],
         )
     }
+
+    rectype(v: rectype) {
+        if (v.length == 1) {
+            this.subtype(v[0]!)
+            return
+        }
+
+        this.byte(0x4e)
+        this.list(v, this.subtype)
+    }
+
+    subtype(v: subtype) {
+        if (v.final && v.typeuse.length == 0) {
+            this.comptype(v.comptype)
+            return
+        }
+
+        this.byte(v.final ? 0x4f : 0x50)
+        this.list(v.typeuse, this.int)
+        this.comptype(v.comptype)
+    }
+
+    limits(a: addrtype, v: limits) {
+        this.byte(
+            v.max == null ?
+                { i32: 0x00, i64: 0x04 }[a]
+            :   { i32: 0x01, i64: 0x05 }[a],
+        )
+
+        this.int(v.min)
+        if (v.max != null) this.int(v.max)
+    }
+
+    tagtype(v: tagtype) {
+        this.byte(0x00)
+        this.int(v)
+    }
+
+    globaltype(v: globaltype) {
+        this.valtype(v.type)
+        this.mut(v.mut)
+    }
+
+    memtype(v: memtype) {
+        this.limits(v.at, v.lim)
+    }
+
+    tabletype(v: tabletype) {
+        this.reftype(v.rt)
+        this.limits(v.at, v.lim)
+    }
+
+    externtype(v: externtype) {
+        switch (v.k) {
+            case "func":
+                this.byte(0x00)
+                this.int(v.v)
+                break
+
+            case "table":
+                this.byte(0x01)
+                this.tabletype(v.v)
+                break
+
+            case "mem":
+                this.byte(0x02)
+                this.memtype(v.v)
+                break
+
+            case "global":
+                this.byte(0x03)
+                this.globaltype(v.v)
+                break
+
+            case "tag":
+                this.byte(0x04)
+                this.tagtype(v.v)
+                break
+        }
+    }
 }
 
 type numtype = "i32" | "i64" | "f32" | "f64"
@@ -226,3 +306,45 @@ type fieldtype = {
 }
 
 type packtype = "i8" | "i16"
+
+type rectype = subtype[]
+
+type subtype = {
+    final: boolean
+    typeuse: typeuse[]
+    comptype: comptype
+}
+
+type typeuse = typeidx
+
+type addrtype = "i32" | "i64"
+
+type limits = {
+    min: bigint
+    max: bigint | null
+}
+
+type tagtype = typeidx
+
+type globaltype = {
+    mut: boolean
+    type: valtype
+}
+
+type memtype = {
+    at: addrtype
+    lim: limits
+}
+
+type tabletype = {
+    at: addrtype
+    lim: limits
+    rt: reftype
+}
+
+type externtype =
+    | { k: "func"; v: typeidx }
+    | { k: "table"; v: tabletype }
+    | { k: "mem"; v: memtype }
+    | { k: "global"; v: globaltype }
+    | { k: "tag"; v: tagtype }
