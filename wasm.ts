@@ -23,6 +23,18 @@ class Memory {
 const encoder = new TextEncoder()
 
 export class Source {
+    static export<T>(body: (this: Source, value: T) => void, value: T) {
+        const self = new Source()
+        body.call(self, value)
+        return self.memory.export()
+    }
+
+    static exportList<T>(body: (this: Source, value: T) => void, value: T[]) {
+        const self = new Source()
+        self.list(value, body)
+        return self.memory.export()
+    }
+
     readonly memory = new Memory()
 
     byte(v: number) {
@@ -291,6 +303,89 @@ export class Source {
         this.many(v, this.instr)
         this.byte(0x0b)
     }
+
+    externidx(v: externidx) {
+        this.byte(
+            {
+                func: 0x00,
+                table: 0x01,
+                memory: 0x02,
+                global: 0x03,
+                tag: 0x04,
+            }[v.k],
+        )
+        this.int(v.v)
+    }
+
+    section(id: number, body: Uint8Array) {
+        this.int(id)
+        this.int(body.length)
+        this.bytes(body)
+    }
+
+    typesec(v: rectype[]) {
+        this.section(1, Source.exportList(this.rectype, v))
+    }
+
+    importsec(v: import_[]) {
+        this.section(2, Source.exportList(this.import, v))
+    }
+
+    import(v: import_) {
+        this.name(v.nm1)
+        this.name(v.nm2)
+        this.externtype(v.xt)
+    }
+
+    funcsec(v: typeidx[]) {
+        this.section(3, Source.exportList(this.int, v))
+    }
+
+    memsec(v: mem[]) {
+        this.section(5, Source.exportList(this.memtype, v))
+    }
+
+    globalsec(v: global[]) {
+        this.section(6, Source.exportList(this.global, v))
+    }
+
+    global(v: global) {
+        this.globaltype(v.gt)
+        this.expr(v.e)
+    }
+
+    exportsec(v: export_[]) {
+        this.section(7, Source.exportList(this.export, v))
+    }
+
+    export(v: export_) {
+        this.name(v.nm)
+        this.externidx(v.xx)
+    }
+
+    startsec(v: start) {
+        this.section(8, Source.export(this.int, v))
+    }
+
+    codesec(v: code[]) {
+        this.section(10, Source.exportList(this.code, v))
+    }
+
+    code(v: code) {
+        const code = Source.export(this.func, v)
+        this.int(code.length)
+        this.bytes(code)
+    }
+
+    func(v: func) {
+        this.list(v.loc, this.local)
+        this.expr(v.e)
+    }
+
+    local(local: valtype) {
+        this.int(1)
+        this.valtype(local)
+    }
 }
 
 type numtype = "i32" | "i64" | "f32" | "f64"
@@ -413,12 +508,13 @@ type instr =
 
     // aggregate instructions
     | { k: "struct_new"; v: typeidx }
-// | { k: "struct_get" | "struct_set"; v: { ty: typeidx; i: number } }
-// | { k: "array_new"; v: typeidx }
+    // | { k: "struct_get" | "struct_set"; v: { ty: typeidx; i: number } }
+    // | { k: "array_new"; v: typeidx }
 
-// numeric instructions
-// vector instructions
-// expressions
+    // numeric instructions
+    // vector instructions
+    // expressions
+    | never
 
 type expr = instr[]
 
@@ -514,3 +610,41 @@ const instr_encoders: {
         this.int(arg)
     },
 }
+
+type externidx =
+    | { k: "func"; v: funcidx }
+    | { k: "table"; v: tableidx }
+    | { k: "memory"; v: memidx }
+    | { k: "global"; v: globalidx }
+    | { k: "tag"; v: tagidx }
+
+type tableidx = number
+
+type memidx = number
+
+type import_ = {
+    nm1: string
+    nm2: string
+    xt: externtype
+}
+
+type mem = memtype
+
+type global = {
+    gt: globaltype
+    e: expr
+}
+
+type export_ = {
+    nm: string
+    xx: externidx
+}
+
+type start = funcidx
+
+type func = {
+    loc: valtype[]
+    e: expr
+}
+
+type code = func
