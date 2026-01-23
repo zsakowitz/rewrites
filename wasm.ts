@@ -364,7 +364,9 @@ export class Source {
     }
 
     startsec(v: start) {
-        this.section(8, Source.export(this.int, v))
+        if (v != null) {
+            this.section(8, Source.export(this.int, v))
+        }
     }
 
     codesec(v: code[]) {
@@ -385,6 +387,19 @@ export class Source {
     local(local: valtype) {
         this.int(1)
         this.valtype(local)
+    }
+
+    module(mod: module) {
+        this.bytes(new Uint8Array([0x00, 0x61, 0x73, 0x6d]))
+        this.bytes(new Uint8Array([0x01, 0x00, 0x00, 0x00]))
+        this.typesec(mod.type)
+        this.importsec(mod.import)
+        this.funcsec(mod.func)
+        this.memsec(mod.mem)
+        this.globalsec(mod.global)
+        this.exportsec(mod.export)
+        this.startsec(mod.start)
+        this.codesec(mod.code)
     }
 }
 
@@ -640,7 +655,7 @@ type export_ = {
     xx: externidx
 }
 
-type start = funcidx
+type start = funcidx | null
 
 type func = {
     loc: valtype[]
@@ -648,3 +663,14 @@ type func = {
 }
 
 type code = func
+
+type module = {
+    type: rectype[]
+    import: import_[]
+    func: typeidx[]
+    mem: mem[]
+    global: global[]
+    export: export_[]
+    start: start
+    code: code[]
+}
