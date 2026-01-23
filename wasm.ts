@@ -283,8 +283,13 @@ export class Source {
         ;(instr_encoders[v.k] as any).call(this, v.v)
     }
 
-    ilist(v: instr[]) {
+    insts(v: expr) {
         this.many(v, this.instr)
+    }
+
+    expr(v: expr) {
+        this.many(v, this.instr)
+        this.byte(0x0b)
     }
 }
 
@@ -391,8 +396,8 @@ type instr =
 
     // control instructions
     | { k: "select"; v: valtype[] | null }
-    | { k: "block" | "loop"; v: { bt: blocktype; in: instr[] } }
-    | { k: "if"; v: { bt: blocktype; if: instr[]; else: instr[] } }
+    | { k: "block" | "loop"; v: { bt: blocktype; in: expr } }
+    | { k: "if"; v: { bt: blocktype; if: expr; else: expr } }
     | { k: "throw"; v: tagidx }
     | { k: "br" | "br_if"; v: labelidx }
     | { k: "return"; v: null }
@@ -410,6 +415,12 @@ type instr =
     | { k: "struct_new"; v: typeidx }
 // | { k: "struct_get" | "struct_set"; v: { ty: typeidx; i: number } }
 // | { k: "array_new"; v: typeidx }
+
+// numeric instructions
+// vector instructions
+// expressions
+
+type expr = instr[]
 
 const instr_encoders: {
     [K in instr["k"]]: (this: Source, arg: (instr & { k: K })["v"]) => void
@@ -437,22 +448,22 @@ const instr_encoders: {
     block(v) {
         this.byte(0x02)
         this.blocktype(v.bt)
-        this.ilist(v.in)
+        this.insts(v.in)
         this.byte(0x0b)
     },
     loop(v) {
         this.byte(0x03)
         this.blocktype(v.bt)
-        this.ilist(v.in)
+        this.insts(v.in)
         this.byte(0x0b)
     },
     if(v) {
         this.byte(0x04)
         this.blocktype(v.bt)
-        this.ilist(v.if)
+        this.insts(v.if)
         if (v.else.length) {
             this.byte(0x05)
-            this.ilist(v.else)
+            this.insts(v.else)
         }
         this.byte(0x0b)
     },
