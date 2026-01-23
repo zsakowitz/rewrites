@@ -1,4 +1,4 @@
-class MemoryRaw {
+class Memory {
     private raw: number[] = []
 
     byte(byte: number) {
@@ -22,15 +22,15 @@ class MemoryRaw {
 
 const encoder = new TextEncoder()
 
-class Memory {
-    readonly raw = new MemoryRaw()
+export class Source {
+    readonly memory = new Memory()
 
     byte(v: number) {
-        this.raw.byte(v)
+        this.memory.byte(v)
     }
 
     bytes(v: Uint8Array) {
-        this.raw.bytes(v)
+        this.memory.bytes(v)
     }
 
     //! https://en.wikipedia.org/wiki/LEB128#JavaScript_code
@@ -48,9 +48,15 @@ class Memory {
         }
     }
 
-    list<T>(v: T[], encode: (this: Memory, value: T) => void) {
+    list<T>(v: T[], encode: (this: Source, value: T) => void) {
         this.int(v.length)
 
+        for (let i = 0; i < v.length; i++) {
+            encode.call(this, v[i]!)
+        }
+    }
+
+    many<T>(v: T[], encode: (this: Source, value: T) => void) {
         for (let i = 0; i < v.length; i++) {
             encode.call(this, v[i]!)
         }
@@ -262,6 +268,24 @@ class Memory {
                 break
         }
     }
+
+    blocktype(v: blocktype) {
+        if (v == null) {
+            this.byte(0x40)
+        } else if (typeof v == "number") {
+            this.int(v)
+        } else {
+            this.valtype(v)
+        }
+    }
+
+    instr(v: instr) {
+        ;(instr_encoders[v.k] as any).call(this, v.v)
+    }
+
+    ilist(v: instr[]) {
+        this.many(v, this.instr)
+    }
 }
 
 type numtype = "i32" | "i64" | "f32" | "f64"
@@ -348,3 +372,134 @@ type externtype =
     | { k: "mem"; v: memtype }
     | { k: "global"; v: globaltype }
     | { k: "tag"; v: tagtype }
+
+type blocktype = valtype | typeidx | null
+
+type tagidx = number
+
+type labelidx = number
+
+type funcidx = number
+
+type localidx = number
+
+type globalidx = number
+
+type instr =
+    // parametric instructions
+    | { k: "unreachable" | "nop" | "drop"; v: null }
+
+    // control instructions
+    | { k: "select"; v: valtype[] | null }
+    | { k: "block" | "loop"; v: { bt: blocktype; in: instr[] } }
+    | { k: "if"; v: { bt: blocktype; if: instr[]; else: instr[] } }
+    | { k: "throw"; v: tagidx }
+    | { k: "br" | "br_if"; v: labelidx }
+    | { k: "return"; v: null }
+    | { k: "call"; v: funcidx }
+
+    // variable instructions
+    | { k: "local_get" | "local_set" | "local_tee"; v: localidx }
+    | { k: "global_get" | "global_set"; v: globalidx }
+
+    // table instructions
+    // memory instructions
+    // reference instructions
+
+    // aggregate instructions
+    | { k: "struct_new"; v: typeidx }
+// | { k: "struct_get" | "struct_set"; v: { ty: typeidx; i: number } }
+// | { k: "array_new"; v: typeidx }
+
+const instr_encoders: {
+    [K in instr["k"]]: (this: Source, arg: (instr & { k: K })["v"]) => void
+} & { __proto__: never } = {
+    __proto__: null!,
+
+    unreachable() {
+        this.byte(0x00)
+    },
+    nop() {
+        this.byte(0x01)
+    },
+    drop() {
+        this.byte(0x1a)
+    },
+    select(ty) {
+        if (ty == null) {
+            this.byte(0x1b)
+        } else {
+            this.byte(0x1c)
+            this.list(ty, this.valtype)
+        }
+    },
+
+    block(v) {
+        this.byte(0x02)
+        this.blocktype(v.bt)
+        this.ilist(v.in)
+        this.byte(0x0b)
+    },
+    loop(v) {
+        this.byte(0x03)
+        this.blocktype(v.bt)
+        this.ilist(v.in)
+        this.byte(0x0b)
+    },
+    if(v) {
+        this.byte(0x04)
+        this.blocktype(v.bt)
+        this.ilist(v.if)
+        if (v.else.length) {
+            this.byte(0x05)
+            this.ilist(v.else)
+        }
+        this.byte(0x0b)
+    },
+    throw(v) {
+        this.byte(0x08)
+        this.int(v)
+    },
+    br(v) {
+        this.byte(0x0c)
+        this.int(v)
+    },
+    br_if(v) {
+        this.byte(0x0c)
+        this.int(v)
+    },
+    return() {
+        this.byte(0x0f)
+    },
+    call(v) {
+        this.byte(0x10)
+        this.int(v)
+    },
+
+    local_get(arg) {
+        this.byte(0x20)
+        this.int(arg)
+    },
+    local_set(arg) {
+        this.byte(0x21)
+        this.int(arg)
+    },
+    local_tee(arg) {
+        this.byte(0x22)
+        this.int(arg)
+    },
+    global_get(arg) {
+        this.byte(0x23)
+        this.int(arg)
+    },
+    global_set(arg) {
+        this.byte(0x24)
+        this.int(arg)
+    },
+
+    struct_new(arg) {
+        this.byte(0xfb)
+        this.int(0)
+        this.int(arg)
+    },
+}
