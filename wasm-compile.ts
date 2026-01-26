@@ -88,6 +88,7 @@ export class Source {
 
     name(v: string) {
         const ret = encoder.encode(v)
+        this.int(ret.length)
         this.bytes(ret)
     }
 
@@ -403,11 +404,11 @@ export class Source {
     }
 }
 
-type numtype = "i32" | "i64" | "f32" | "f64"
+export type numtype = "i32" | "i64" | "f32" | "f64"
 
-type vectype = "v128"
+export type vectype = "v128"
 
-type absheaptype =
+export type absheaptype =
     | "exn"
     | "array"
     | "struct"
@@ -421,86 +422,89 @@ type absheaptype =
     | "nofunc"
     | "noexn"
 
-type heaptype = absheaptype | typeidx
+export type heaptype = absheaptype | typeidx
 
-type typeidx = number
+export type typeidx = number
 
-type reftype = {
+export type reftype<T extends heaptype = heaptype> = {
     null: boolean
-    ht: heaptype
+    ht: T
 }
 
-type valtype = numtype | vectype | reftype
+export type valtype = numtype | vectype | reftype
 
-type resulttype = valtype[]
+export type resulttype = valtype[]
 
-type comptype =
-    | { k: "array"; v: fieldtype }
-    | { k: "struct"; v: fieldtype[] }
-    | { k: "func"; v: { p: resulttype; r: resulttype } }
+export type comptype = comptype_array | comptype_struct | comptype_func
 
-type fieldtype = {
+export type comptype_array = { k: "array"; v: fieldtype }
+
+export type comptype_struct = { k: "struct"; v: fieldtype[] }
+
+export type comptype_func = { k: "func"; v: { p: resulttype; r: resulttype } }
+
+export type fieldtype = {
     mut: boolean
     zt: valtype | packtype
 }
 
-type packtype = "i8" | "i16"
+export type packtype = "i8" | "i16"
 
-type rectype = subtype[]
+export type rectype = subtype[]
 
-type subtype = {
+export type subtype = {
     final: boolean
     typeuse: typeuse[]
     comptype: comptype
 }
 
-type typeuse = typeidx
+export type typeuse = typeidx
 
-type addrtype = "i32" | "i64"
+export type addrtype = "i32" | "i64"
 
-type limits = {
+export type limits = {
     min: bigint
     max: bigint | null
 }
 
-type tagtype = typeidx
+export type tagtype = typeidx
 
-type globaltype = {
+export type globaltype = {
     mut: boolean
     type: valtype
 }
 
-type memtype = {
+export type memtype = {
     at: addrtype
     lim: limits
 }
 
-type tabletype = {
+export type tabletype = {
     at: addrtype
     lim: limits
     rt: reftype
 }
 
-type externtype =
+export type externtype =
     | { k: "func"; v: typeidx }
     | { k: "table"; v: tabletype }
     | { k: "mem"; v: memtype }
     | { k: "global"; v: globaltype }
     | { k: "tag"; v: tagtype }
 
-type blocktype = valtype | typeidx | null
+export type blocktype = valtype | typeidx | null
 
-type tagidx = number
+export type tagidx = number
 
-type labelidx = number
+export type labelidx = number
 
-type funcidx = number
+export type funcidx = number
 
-type localidx = number
+export type localidx = number
 
-type globalidx = number
+export type globalidx = number
 
-type instr =
+export type instr =
     // parametric instructions
     | { k: "unreachable" | "nop" | "drop"; v: null }
 
@@ -527,11 +531,17 @@ type instr =
     // | { k: "array_new"; v: typeidx }
 
     // numeric instructions
+    | { k: "i32_const"; v: number }
+    | { k: "i64_const"; v: bigint }
+    | { k: "f32_const"; v: number }
+    | { k: "f64_const"; v: number }
+    | { k: "i32_add"; v: null }
+
     // vector instructions
     // expressions
     | never
 
-type expr = instr[]
+export type expr = instr[]
 
 const instr_encoders: {
     [K in instr["k"]]: (this: Source, arg: (instr & { k: K })["v"]) => void
@@ -624,47 +634,67 @@ const instr_encoders: {
         this.int(0)
         this.int(arg)
     },
+
+    i32_const(arg) {
+        this.byte(0x41)
+        this.int(arg)
+    },
+    i64_const(arg) {
+        this.byte(0x42)
+        this.int(arg)
+    },
+    f32_const(arg) {
+        this.byte(0x43)
+        this.f32(arg)
+    },
+    f64_const(arg) {
+        this.byte(0x44)
+        this.f64(arg)
+    },
+    i32_add() {
+        this.byte(0x6a)
+    },
 }
 
-type externidx =
+export type externidx =
     | { k: "func"; v: funcidx }
     | { k: "table"; v: tableidx }
     | { k: "memory"; v: memidx }
     | { k: "global"; v: globalidx }
     | { k: "tag"; v: tagidx }
 
-type tableidx = number
+export type tableidx = number
 
-type memidx = number
+export type memidx = number
 
-type import_ = {
+export type import_ = {
     nm1: string
     nm2: string
     xt: externtype
 }
 
-type mem = memtype
+export type mem = memtype
 
-type global = {
+export type global = {
     gt: globaltype
     e: expr
 }
 
-type export_ = {
+export type export_ = {
     nm: string
     xx: externidx
 }
 
-type start = funcidx | null
+export type start = funcidx | null
 
-type func = {
+export type func = {
     loc: valtype[]
     e: expr
 }
 
-type code = func
+export type code = func
 
-type module = {
+export type module = {
     type: rectype[]
     import: import_[]
     func: typeidx[]

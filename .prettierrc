@@ -24,7 +24,7 @@
             }
         },
         {
-            "files": ["flat-ast.ts", ".prettierrc", "wasm.ts"],
+            "files": ["flat-ast.ts", ".prettierrc", "wasm-compile.ts", "wasm-test.ts", "wasm-define.ts"],
             "options": {
                 "tabWidth": 4
             }
