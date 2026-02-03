@@ -43,15 +43,27 @@ const mul = cache(function (a: number, b: number): number {
     )
 })
 
-const SIZE = 256
+function smul(a: number, b: number): number {
+    let res = 0
+
+    for (let i = 0; i < 16; i++)
+        for (let j = 0; j < 16; j++)
+            if (a & (1 << i) && b & (1 << j)) {
+                res ^= 1 << (i + j)
+            }
+
+    return res
+}
+
+export const SIZE = 256
 const CV_SIZE = 4096
 const PPX = CV_SIZE / SIZE
 
-console.time()
-const data = Array.from({ length: SIZE }, (_, a) =>
-    Array.from({ length: SIZE }, (_, b) => mul(a, b)),
+console.time("v2")
+export const data_v2 = Array.from({ length: SIZE }, (_, a) =>
+    Array.from({ length: SIZE }, (_, b) => a ^ b),
 )
-console.timeEnd()
+console.timeEnd("v2")
 
 const cv = document.createElement("canvas")
 cv.style.imageRendering = "pixelated"
@@ -61,9 +73,9 @@ const ctx = cv.getContext("2d")!
 
 for (let i = 0; i < SIZE; i++) {
     for (let j = 0; j < SIZE; j++) {
-        const v = (360 * data[i]![j]!) / SIZE
+        const v = (256 * data_v2[i]![j]!) / SIZE
         ctx.beginPath()
-        ctx.fillStyle = `hsl(${v}, 100%, 50%)`
+        ctx.fillStyle = `rgb(${v},${v},${v})`
         ctx.moveTo(i * PPX, j * PPX)
         ctx.lineTo((i + 1) * PPX, j * PPX)
         ctx.lineTo((i + 1) * PPX, (j + 1) * PPX)
