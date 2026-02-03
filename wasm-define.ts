@@ -14,7 +14,7 @@ import {
 export class Module {
     readonly t = new Types()
 
-    readonly "~raw": module = {
+    readonly raw: module = {
         type: (this.t as unknown as { type: module["type"] }).type,
         import: [],
         func: [],
@@ -27,13 +27,13 @@ export class Module {
 
     compile() {
         return WebAssembly.compile(
-            Source.export(Source.prototype.module, this["~raw"]),
+            Source.export(Source.prototype.module, this["raw"]),
         )
     }
 
     instantiate(imports?: Record<string, any>) {
         return WebAssembly.instantiate(
-            Source.export(Source.prototype.module, this["~raw"]),
+            Source.export(Source.prototype.module, this["raw"]),
             imports,
         )
     }
@@ -119,8 +119,8 @@ class Func {
 
     constructor(private readonly mod: Module) {
         const reftype = mod.t.func(this.p, this.r)
-        this._i = mod["~raw"].func.push(reftype.ht as number) - 1
-        mod["~raw"].code.push(this.func)
+        this._i = mod["raw"].func.push(reftype.ht as number) - 1
+        mod["raw"].code.push(this.func)
     }
 
     func_param(ty: valtype) {
@@ -148,7 +148,7 @@ class Func {
     }
 
     func_export(name: string) {
-        this.mod["~raw"].export.push({
+        this.mod["raw"].export.push({
             nm: name,
             xx: {
                 k: "func",

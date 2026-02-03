@@ -2,18 +2,24 @@ import { Module } from "./wasm-define"
 
 const wasm = new Module()
 
-wasm["~raw"].global.push({
-    gt: { mut: false, type: "i32" },
-    e: [{ k: "i32_const", v: 23 }],
-})
-
-wasm["~raw"].global.push({
-    gt: { mut: false, type: "i32" },
-    e: [
-        { k: "global_get", v: 0 },
-        { k: "i32_const", v: 4 },
-        { k: "i32_add", v: null },
-    ],
-})
+wasm.raw.type.push([
+    {
+        final: true,
+        typeuse: [],
+        comptype: {
+            k: "struct",
+            v: [{ mut: false, zt: { null: false, ht: 1 } }],
+        },
+    },
+    {
+        final: true,
+        typeuse: [],
+        comptype: {
+            k: "struct",
+            v: [{ mut: false, zt: { null: false, ht: 0 } }],
+        },
+    },
+])
 
 await wasm.instantiate()
+console.log("done")
