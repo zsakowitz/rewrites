@@ -1,7 +1,7 @@
 // Constants defining the reserved names and functions of Desmos.
 
 export const SINGLE_CHARACTER_VARIABLES =
-  /^Pi|Xi|mp|mu|nu|pi|pm|xi|Phi|Psi|chi|div|eta|mid|phi|psi|rho|tau|beta|iota|perp|zeta|Delta|Gamma|Omega|Sigma|Theta|alpha|delta|gamma|infty|kappa|omega|sigma|theta|times|varpi|Lambda|lambda|varphi|varrho|Upsilon|digamma|epsilon|upsilon|varkappa|varsigma|vartheta|nparallel|varepsilon/
+    /^Pi|Xi|mp|mu|nu|pi|pm|xi|Phi|Psi|chi|div|eta|mid|phi|psi|rho|tau|beta|iota|perp|zeta|Delta|Gamma|Omega|Sigma|Theta|alpha|delta|gamma|infty|kappa|omega|sigma|theta|times|varpi|Lambda|lambda|varphi|varrho|Upsilon|digamma|epsilon|upsilon|varkappa|varsigma|vartheta|nparallel|varepsilon/
 
 // Typings are in this format:
 //   fn_name arg1 arg2 -> return_type
@@ -229,16 +229,16 @@ var LR -> R
 `.trim()
 
 export const BUILT_INS_WITH_COMPLEX_ALTERNATIVES = TYPINGS_SOURCE.split("\n")
-  .filter((x): x is typeof x & `+${string}` => x.startsWith("+"))
-  .map((x) => x.split(" ", 1)[0]!.slice(1))
+    .filter((x): x is typeof x & `+${string}` => x.startsWith("+"))
+    .map((x) => x.split(" ", 1)[0]!.slice(1))
 
 export const BUILT_INS = TYPINGS_SOURCE.split("\n")
-  .map((row) => row.split(" ")[0]!)
-  .filter((x): x is Exclude<typeof x, ""> => x != "")
-  .filter((x): x is Exclude<typeof x, `+${string}`> => !x.startsWith("+"))
-  .filter((item, index, array) => array.indexOf(item) == index)
+    .map((row) => row.split(" ")[0]!)
+    .filter((x): x is Exclude<typeof x, ""> => x != "")
+    .filter((x): x is Exclude<typeof x, `+${string}`> => !x.startsWith("+"))
+    .filter((item, index, array) => array.indexOf(item) == index)
 
 export const IMPLICIT_FUNCTION_BUILT_INS =
-  "arccos arccosh arccot arccoth arccsc arccsch arcsec arcsech arcsin arcsinh arctan arctanh cos cosh cot coth csc csch distance dotplot ln log sec sech sin sinh tan tanh".split(
-    " ",
-  )
+    "arccos arccosh arccot arccoth arccsc arccsch arcsec arcsech arcsin arcsinh arctan arctanh cos cosh cot coth csc csch distance dotplot ln log sec sech sin sinh tan tanh".split(
+        " ",
+    )

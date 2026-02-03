@@ -1,11 +1,11 @@
 import { GameEq } from ".."
 
 export class Empty extends GameEq<never> {
-  moves(): readonly never[] {
-    return []
-  }
+    moves(): readonly never[] {
+        return []
+    }
 
-  move(): void {}
+    move(): void {}
 
-  undo(): void {}
+    undo(): void {}
 }

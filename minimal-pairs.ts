@@ -128,76 +128,79 @@ monsuta
 n`.split("\n")
 
 export interface Pair {
-  a: string
-  b: string
-  ac: string
-  bc: string
+    a: string
+    b: string
+    ac: string
+    bc: string
 }
 
 export function find(data: readonly string[]) {
-  const pairs: Pair[] = []
+    const pairs: Pair[] = []
 
-  for (const a of data) {
-    for (const b of data) {
-      if (a.length != b.length || a == b) {
-        continue
-      }
+    for (const a of data) {
+        for (const b of data) {
+            if (a.length != b.length || a == b) {
+                continue
+            }
 
-      const differenceIndices = a
-        .split("")
-        .map((x, i) => [x, i] as const)
-        .filter(([a, i]) => b[i] != a)
+            const differenceIndices = a
+                .split("")
+                .map((x, i) => [x, i] as const)
+                .filter(([a, i]) => b[i] != a)
 
-      if (differenceIndices.length != 1) {
-        continue
-      }
+            if (differenceIndices.length != 1) {
+                continue
+            }
 
-      const index = differenceIndices[0]![1]
+            const index = differenceIndices[0]![1]
 
-      pairs.push({ a, b, ac: a[index]!, bc: b[index]! })
+            pairs.push({ a, b, ac: a[index]!, bc: b[index]! })
+        }
     }
-  }
 
-  return pairs
+    return pairs
 }
 
 const pairs = find(array)
-  .map(({ a, b, ac, bc }) => `${a}\t${b}\t${ac}\t${bc}`)
-  .join("\n")
+    .map(({ a, b, ac, bc }) => `${a}\t${b}\t${ac}\t${bc}`)
+    .join("\n")
 
 export function reduce(rawData: readonly string[]) {
-  const data = rawData.filter((x, i, a) => a.indexOf(x) == i).sort()
+    const data = rawData.filter((x, i, a) => a.indexOf(x) == i).sort()
 
-  const chars = data
-    .join("")
-    .split("")
-    .filter((x, i, a) => a.indexOf(x) == i)
-    .sort()
+    const chars = data
+        .join("")
+        .split("")
+        .filter((x, i, a) => a.indexOf(x) == i)
+        .sort()
 
-  const output = []
+    const output = []
 
-  for (let i = 0; i < chars.length; i++) {
-    const a = chars[i]!
+    for (let i = 0; i < chars.length; i++) {
+        const a = chars[i]!
 
-    for (const b of chars) {
-      if (a == b) {
-        continue
-      }
+        for (const b of chars) {
+            if (a == b) {
+                continue
+            }
 
-      const next = data.map((x) => x.replaceAll(a, b))
+            const next = data.map((x) => x.replaceAll(a, b))
 
-      const merged = next
-        .map((x, i) => [x, i] as const)
-        .filter(([x, i]) => next.indexOf(x) != i)
-        .map(([, i]) => i)
+            const merged = next
+                .map((x, i) => [x, i] as const)
+                .filter(([x, i]) => next.indexOf(x) != i)
+                .map(([, i]) => i)
 
-      output.push(
-        `${a} -> ${b}\t${merged.length}\t${merged
-          .map((index) => `${data[next.indexOf(next[index]!)]}/${data[index]}`)
-          .join(", ")}`,
-      )
+            output.push(
+                `${a} -> ${b}\t${merged.length}\t${merged
+                    .map(
+                        (index) =>
+                            `${data[next.indexOf(next[index]!)]}/${data[index]}`,
+                    )
+                    .join(", ")}`,
+            )
+        }
     }
-  }
 
-  return output.join("\n")
+    return output.join("\n")
 }

@@ -4,16 +4,16 @@
 import { Lock } from "./lock-2.js"
 
 export class DataLock<T> {
-  #data: T
-  readonly #lock = new Lock()
+    #data: T
+    readonly #lock = new Lock()
 
-  constructor(data: T) {
-    this.#data = data
-  }
+    constructor(data: T) {
+        this.#data = data
+    }
 
-  async run(fn: (data: T) => T | PromiseLike<T>) {
-    await this.#lock.run(async () => {
-      this.#data = await fn(this.#data)
-    })
-  }
+    async run(fn: (data: T) => T | PromiseLike<T>) {
+        await this.#lock.run(async () => {
+            this.#data = await fn(this.#data)
+        })
+    }
 }

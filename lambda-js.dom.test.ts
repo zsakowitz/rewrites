@@ -6,130 +6,128 @@
 import * as L from "./lambda-js.js"
 
 function run() {
-  try {
-    let parsed = L.parse(code.value)
+    try {
+        let parsed = L.parse(code.value)
 
-    let output =
-      (isCompact() ? parsed.toCompactString() : parsed.toString()) + "\n"
+        let output =
+            (isCompact() ? parsed.toCompactString() : parsed.toString()) + "\n"
 
-    const next = parsed.ski()
+        const next = parsed.ski()
 
-    if (next.toString() != parsed.toString()) {
-      if (willShowSteps()) {
-        const nextOutput = isCompact()
-          ? next.toCompactString()
-          : next.toString()
+        if (next.toString() != parsed.toString()) {
+            if (willShowSteps()) {
+                const nextOutput =
+                    isCompact() ? next.toCompactString() : next.toString()
 
-        if (nextOutput.length > 40) {
-          output += nextOutput + "\n\n"
-        } else {
-          output += nextOutput + "\n"
+                if (nextOutput.length > 40) {
+                    output += nextOutput + "\n\n"
+                } else {
+                    output += nextOutput + "\n"
+                }
+            }
+
+            parsed = next
         }
-      }
 
-      parsed = next
-    }
+        for (let i = 0; i < iterCount(); i++) {
+            const next = parsed.eval()
 
-    for (let i = 0; i < iterCount(); i++) {
-      const next = parsed.eval()
+            if (next.toString() == parsed.toString()) {
+                break
+            }
 
-      if (next.toString() == parsed.toString()) {
-        break
-      }
+            if (willShowSteps()) {
+                const nextOutput =
+                    isCompact() ? next.toCompactString() : next.toString()
 
-      if (willShowSteps()) {
-        const nextOutput = isCompact()
-          ? next.toCompactString()
-          : next.toString()
+                if (nextOutput.length > 40) {
+                    output += nextOutput + "\n\n"
+                } else {
+                    output += nextOutput + "\n"
+                }
+            }
 
-        if (nextOutput.length > 40) {
-          output += nextOutput + "\n\n"
-        } else {
-          output += nextOutput + "\n"
+            parsed = next
         }
-      }
 
-      parsed = next
-    }
+        if (willShowSteps()) {
+            outputEl.value = output
+            return
+        }
 
-    if (willShowSteps()) {
-      outputEl.value = output
-      return
+        if (isCompact()) {
+            outputEl.value = parsed.toCompactString()
+        } else {
+            outputEl.value = parsed.toString()
+        }
+    } catch (error) {
+        outputEl.value = error instanceof Error ? error.message : String(error)
     }
-
-    if (isCompact()) {
-      outputEl.value = parsed.toCompactString()
-    } else {
-      outputEl.value = parsed.toString()
-    }
-  } catch (error) {
-    outputEl.value = error instanceof Error ? error.message : String(error)
-  }
 }
 
 function createControl<T>({
-  label,
-  type,
-  value,
-  get,
-  set,
+    label,
+    type,
+    value,
+    get,
+    set,
 }: {
-  label: string
-  type: "checkbox" | "number" | "text"
-  value: T
-  get: (field: HTMLInputElement) => T
-  set: (field: HTMLInputElement, value: T) => void
+    label: string
+    type: "checkbox" | "number" | "text"
+    value: T
+    get: (field: HTMLInputElement) => T
+    set: (field: HTMLInputElement, value: T) => void
 }): [HTMLLabelElement, () => T] {
-  const labelEl = document.createElement("label")
-  labelEl.textContent = label
+    const labelEl = document.createElement("label")
+    labelEl.textContent = label
 
-  const fieldEl = document.createElement("input")
-  fieldEl.type = type
-  set(fieldEl, value)
-  fieldEl.addEventListener("input", () => {
-    value = get(fieldEl)
-    run()
-  })
+    const fieldEl = document.createElement("input")
+    fieldEl.type = type
+    set(fieldEl, value)
+    fieldEl.addEventListener("input", () => {
+        value = get(fieldEl)
+        run()
+    })
 
-  labelEl.append(fieldEl)
+    labelEl.append(fieldEl)
 
-  return [labelEl, () => value]
+    return [labelEl, () => value]
 }
 
 const [iterCountEl, iterCount] = createControl({
-  get(field) {
-    return field.valueAsNumber
-  },
-  set(field, value) {
-    field.valueAsNumber = value
-  },
-  label: "Number of Steps:",
-  type: "number",
-  value: 1000,
+    get(field) {
+        return field.valueAsNumber
+    },
+    set(field, value) {
+        field.valueAsNumber = value
+    },
+    label: "Number of Steps:",
+    type: "number",
+    value: 1000,
 })
 
 const [isCompactEl, isCompact] = createControl({
-  get(field) {
-    return field.checked
-  },
-  set(field, value) {
-    field.checked = value
-  },
-  label: "Compact Output?",
-  type: "checkbox",
-  value: true,
+    get(field) {
+        return field.checked
+    },
+    set(field, value) {
+        field.checked = value
+    },
+    label: "Compact Output?",
+    type: "checkbox",
+    value: true,
 })
 
 const [willShowStepsEl, willShowSteps] = createControl({
-  get(field) {
-    return field.checked
-  },
-  set(field, value) {
-    field.checked = value
-  },
-  label: "Show Steps?",
-  type: "checkbox",
-  value: false,
+    get(field) {
+        return field.checked
+    },
+    set(field, value) {
+        field.checked = value
+    },
+    label: "Show Steps?",
+    type: "checkbox",
+    value: false,
 })
 
 const code = document.createElement("textarea")

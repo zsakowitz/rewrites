@@ -6,148 +6,160 @@ import "./sheet.css"
 import type { Affix, Value } from "./types.js"
 
 export type CSVRow = {
-  readonly Name: string
-  readonly Letter: string
-  readonly Notes: string
-  readonly "#": string
-  readonly "": string
-  readonly Meaning: string
-  readonly "Additional Meaning": string
+    readonly Name: string
+    readonly Letter: string
+    readonly Notes: string
+    readonly "#": string
+    readonly "": string
+    readonly Meaning: string
+    readonly "Additional Meaning": string
 }
 
 export function rowToValue(row: CSVRow | undefined): Value | undefined {
-  if (row && row.Meaning && row["#"]?.match(/[1-9]\./)) {
-    return {
-      degree: +row["#"][0]! as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
-      description: row.Meaning.replace(/[ \t]*\n+[ \t]*/g, "\n"),
-      extendedDescription: row["Additional Meaning"] || undefined,
+    if (row && row.Meaning && row["#"]?.match(/[1-9]\./)) {
+        return {
+            degree: +row["#"][0]! as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
+            description: row.Meaning.replace(/[ \t]*\n+[ \t]*/g, "\n"),
+            extendedDescription: row["Additional Meaning"] || undefined,
+        }
     }
-  }
 }
 
 export function stringToElement<K extends keyof HTMLElementTagNameMap>(
-  type: K,
-  value: string,
+    type: K,
+    value: string,
 ) {
-  const el = document.createElement(type)
+    const el = document.createElement(type)
 
-  const split = value.split("\n")
+    const split = value.split("\n")
 
-  for (let index = 0; index < split.length; index++) {
-    if (index != 0) {
-      el.appendChild(document.createElement("br"))
+    for (let index = 0; index < split.length; index++) {
+        if (index != 0) {
+            el.appendChild(document.createElement("br"))
+        }
+
+        el.appendChild(new Text(split[index]))
     }
 
-    el.appendChild(new Text(split[index]))
-  }
-
-  return el
+    return el
 }
 
 export async function parseCSV(source: string) {
-  const data = parse(source, {
-    columns: true,
-  }) as CSVRow[]
+    const data = parse(source, {
+        columns: true,
+    }) as CSVRow[]
 
-  console.log(source)
-  console.log(data)
+    console.log(source)
+    console.log(data)
 
-  const output: Affix[] = []
+    const output: Affix[] = []
 
-  for (let index = 0; index < data.length; index += 9) {
-    const head = data[index]!
+    for (let index = 0; index < data.length; index += 9) {
+        const head = data[index]!
 
-    if (!head.Name || !head.Letter) {
-      continue
+        if (!head.Name || !head.Letter) {
+            continue
+        }
+
+        const values = [
+            rowToValue(data[index]),
+            rowToValue(data[index + 1]),
+            rowToValue(data[index + 2]),
+            rowToValue(data[index + 3]),
+            rowToValue(data[index + 4]),
+            rowToValue(data[index + 5]),
+            rowToValue(data[index + 6]),
+            rowToValue(data[index + 7]),
+            rowToValue(data[index + 8]),
+        ] as const
+
+        if (values.some((value) => value == null)) {
+            continue
+        }
+
+        const affix: Affix = {
+            name: head.Name.replace(/- /g, "-").replace(
+                /-[a-z]/g,
+                (x) => x[1]!,
+            ),
+            letter:
+                head.Letter.startsWith("-") ?
+                    head.Letter.slice(1, -1)
+                :   head.Letter,
+            values: values as any,
+        }
+
+        output.push(affix)
     }
 
-    const values = [
-      rowToValue(data[index]),
-      rowToValue(data[index + 1]),
-      rowToValue(data[index + 2]),
-      rowToValue(data[index + 3]),
-      rowToValue(data[index + 4]),
-      rowToValue(data[index + 5]),
-      rowToValue(data[index + 6]),
-      rowToValue(data[index + 7]),
-      rowToValue(data[index + 8]),
-    ] as const
-
-    if (values.some((value) => value == null)) {
-      continue
-    }
-
-    const affix: Affix = {
-      name: head.Name.replace(/- /g, "-").replace(/-[a-z]/g, (x) => x[1]!),
-      letter: head.Letter.startsWith("-")
-        ? head.Letter.slice(1, -1)
-        : head.Letter,
-      values: values as any,
-    }
-
-    output.push(affix)
-  }
-
-  return output
+    return output
 }
 
 export function makeTableRow(first: string, second: string, third?: string) {
-  const tr = document.createElement("tr")
+    const tr = document.createElement("tr")
 
-  const td1 = stringToElement("td", first)
-  const td2 = stringToElement("td", second)
+    const td1 = stringToElement("td", first)
+    const td2 = stringToElement("td", second)
 
-  tr.append(td1, td2)
+    tr.append(td1, td2)
 
-  let td3
+    let td3
 
-  if (third) {
-    td3 = stringToElement("td", third)
-    td2.colSpan = 2
+    if (third) {
+        td3 = stringToElement("td", third)
+        td2.colSpan = 2
 
-    tr.append(td3)
-  } else {
-    td2.colSpan = 3
-  }
+        tr.append(td3)
+    } else {
+        td2.colSpan = 3
+    }
 
-  return { tr, td1, td2, td3 }
+    return { tr, td1, td2, td3 }
 }
 
 export async function csvToHTML(source: string) {
-  const data = await parseCSV(source)
+    const data = await parseCSV(source)
 
-  return data.map((affix) => {
-    const table = document.createElement("table")
+    return data.map((affix) => {
+        const table = document.createElement("table")
 
-    const tr = document.createElement("tr")
+        const tr = document.createElement("tr")
 
-    const td = document.createElement("td")
-    td.colSpan = 4
+        const td = document.createElement("td")
+        td.colSpan = 4
 
-    const span1 = document.createElement("span")
-    span1.textContent = "-" + affix.letter + "-"
+        const span1 = document.createElement("span")
+        span1.textContent = "-" + affix.letter + "-"
 
-    const span2 = document.createElement("span")
-    span2.textContent = affix.name
+        const span2 = document.createElement("span")
+        span2.textContent = affix.name
 
-    td.append(span1, span2)
-    tr.appendChild(td)
-    table.appendChild(tr)
+        td.append(span1, span2)
+        tr.appendChild(td)
+        table.appendChild(tr)
 
-    for (const { degree, description, extendedDescription } of affix.values) {
-      const { tr } = makeTableRow("" + degree, description, extendedDescription)
+        for (const {
+            degree,
+            description,
+            extendedDescription,
+        } of affix.values) {
+            const { tr } = makeTableRow(
+                "" + degree,
+                description,
+                extendedDescription,
+            )
 
-      table.appendChild(tr)
-    }
+            table.appendChild(tr)
+        }
 
-    if (affix.notes) {
-      const td = stringToElement("td", affix.notes)
-      tr.appendChild(td)
-      td.rowSpan = 10
-    }
+        if (affix.notes) {
+            const td = stringToElement("td", affix.notes)
+            tr.appendChild(td)
+            td.rowSpan = 10
+        }
 
-    return table
-  })
+        return table
+    })
 }
 
 const output = await csvToHTML(`Name,Letter,Notes,#,,Meaning,Additional Meaning

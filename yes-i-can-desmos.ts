@@ -1,10 +1,10 @@
 const a = document.querySelector(".session-state-cover")
 const { elementFromPoint } = document
 document.elementFromPoint = function (x, y) {
-  if ((x == 5 && y == 5) || (x == innerWidth - 5 && y == innerHeight - 5)) {
-    return a
-  }
-  return elementFromPoint.call(document, x, y)
+    if ((x == 5 && y == 5) || (x == innerWidth - 5 && y == innerHeight - 5)) {
+        return a
+    }
+    return elementFromPoint.call(document, x, y)
 }
 a.parentElement.remove()
 

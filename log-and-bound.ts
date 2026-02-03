@@ -1,35 +1,35 @@
 // Experiments with ECMAScript decorators, as they're finally at stage 3!
 
 function log<P, T extends readonly any[], R>(
-  originalMethod: (this: P, ...args: T) => R,
-  context: ClassMethodDecoratorContext,
+    originalMethod: (this: P, ...args: T) => R,
+    context: ClassMethodDecoratorContext,
 ) {
-  return function (this: P, ...args: T) {
-    console.log("LOG: Entering method.")
+    return function (this: P, ...args: T) {
+        console.log("LOG: Entering method.")
 
-    const result = originalMethod.call(this, ...args)
+        const result = originalMethod.call(this, ...args)
 
-    if (result instanceof Promise) {
-      return result.finally(() => console.log("LOG: Exiting method."))
+        if (result instanceof Promise) {
+            return result.finally(() => console.log("LOG: Exiting method."))
+        }
+
+        console.log("LOG: Exiting method.")
+        return result
     }
-
-    console.log("LOG: Exiting method.")
-    return result
-  }
 }
 
 function bound<This>(_: unknown, context: ClassMethodDecoratorContext<This>) {
-  console.log(context.name)
-  // const methodName = context.name
+    console.log(context.name)
+    // const methodName = context.name
 
-  // context.addInitializer(function () {
-  //   this[methodName] = this[methodName].bind(this)
-  // })
+    // context.addInitializer(function () {
+    //   this[methodName] = this[methodName].bind(this)
+    // })
 }
 
 class Person {
-  @log
-  abc() {}
+    @log
+    abc() {}
 }
 
 const person = new Person()

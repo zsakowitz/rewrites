@@ -7,56 +7,56 @@ import { render, type JSX } from "./jsx-runtime"
 type Truthy<T> = Exclude<T & {}, 0 | "" | false | 0n>
 
 function Show<T, U extends JSX.Element>({
-  when,
-  children,
+    when,
+    children,
 }: {
-  when(): T
-  children: Exclude<U, Function> | ((fn: () => Truthy<T>) => U)
+    when(): T
+    children: Exclude<U, Function> | ((fn: () => Truthy<T>) => U)
 }): () => U | undefined {
-  const getValue = memo(when, { equal: (a, b) => !a === !b })
+    const getValue = memo(when, { equal: (a, b) => !a === !b })
 
-  return memo(() => {
-    const value = getValue()
+    return memo(() => {
+        const value = getValue()
 
-    if (value) {
-      return untrack(inner1)
+        if (value) {
+            return untrack(inner1)
+        }
+    })
+
+    function inner1() {
+        if (typeof children == "function") {
+            return children(inner2)
+        } else {
+            return children
+        }
     }
-  })
 
-  function inner1() {
-    if (typeof children == "function") {
-      return children(inner2)
-    } else {
-      return children
+    function inner2() {
+        let value
+        if (!untrack(getValue) || !(value = when())) {
+            throw new Error("Invalid access in <Show />")
+        }
+        return value satisfies NonNullable<T> as Truthy<T>
     }
-  }
-
-  function inner2() {
-    let value
-    if (!untrack(getValue) || !(value = when())) {
-      throw new Error("Invalid access in <Show />")
-    }
-    return value satisfies NonNullable<T> as Truthy<T>
-  }
 }
 
 function Main() {
-  console.log("main")
-  const [shown, setShown] = signal(false)
+    console.log("main")
+    const [shown, setShown] = signal(false)
 
-  return (
-    <div>
-      <h1>world</h1>
-      <button
-        ref={(el) => {
-          el.addEventListener("click", () => setShown(true))
-        }}
-      >
-        magic!
-      </button>
-      <Show when={shown}>look i exist!</Show>
-    </div>
-  )
+    return (
+        <div>
+            <h1>world</h1>
+            <button
+                ref={(el) => {
+                    el.addEventListener("click", () => setShown(true))
+                }}
+            >
+                magic!
+            </button>
+            <Show when={shown}>look i exist!</Show>
+        </div>
+    )
 }
 
 render(document.body, Main)

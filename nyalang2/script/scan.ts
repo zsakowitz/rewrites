@@ -5,77 +5,78 @@ import { Loc, Pos, type File } from "../impl/pos"
 import { K, KWS, OPS_KEYED } from "./token"
 
 export class Token<V extends K = K> {
-  constructor(
-    readonly k: V,
-    readonly p: Pos,
-  ) {}
+    constructor(
+        readonly k: V,
+        readonly p: Pos,
+    ) {}
 
-  get content() {
-    return this.p.content
-  }
+    get content() {
+        return this.p.content
+    }
 
-  issue(reason: string): never {
-    return issue(reason, this.p)
-  }
+    issue(reason: string): never {
+        return issue(reason, this.p)
+    }
 
-  [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
-    return `${K[this.k].padEnd(10, " ")} ${inspect(this.p.content, p)}`
-  }
+    [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
+        return `${K[this.k].padEnd(10, " ")} ${inspect(this.p.content, p)}`
+    }
 }
 
 export class Scan {
-  i = 0
+    i = 0
 
-  constructor(
-    readonly end: Pos,
-    readonly p: Token[],
-  ) {}
+    constructor(
+        readonly end: Pos,
+        readonly p: Token[],
+    ) {}
 
-  peekK() {
-    return this.p[this.i]?.k ?? -1
-  }
-
-  peek() {
-    return this.p[this.i]
-  }
-
-  eof(): never {
-    this.issue("Unexpected end of input.")
-  }
-
-  next() {
-    return this.p[this.i++] ?? this.eof()
-  }
-
-  issue(reason: string): never {
-    issue(reason, this.peek()?.p ?? this.end)
-  }
-
-  [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
-    let indent = 0
-    let ret = ""
-    for (const el of this.p) {
-      switch (el.k) {
-        case K.LParen:
-        case K.LBrack:
-        case K.LBrace:
-        case K.OLAngle:
-        case K.LIterp:
-          ret += (ret ? "\n" : "") + " ".repeat(indent) + inspect(el, p)
-          indent += 2
-          continue
-        case K.RParen:
-        case K.RBrack:
-        case K.RBrace:
-        case K.ORAngle:
-        case K.ORIterp:
-          indent -= 2
-          break
-      }
-      ret += (ret ? "\n" : "") + " ".repeat(indent) + inspect(el, p)
+    peekK() {
+        return this.p[this.i]?.k ?? -1
     }
-    return ret
-  }
+
+    peek() {
+        return this.p[this.i]
+    }
+
+    eof(): never {
+        this.issue("Unexpected end of input.")
+    }
+
+    next() {
+        return this.p[this.i++] ?? this.eof()
+    }
+
+    issue(reason: string): never {
+        issue(reason, this.peek()?.p ?? this.end)
+    }
+
+    [INSPECT](d: number, p: BunInspectOptions, inspect: typeof Bun.inspect) {
+        let indent = 0
+        let ret = ""
+        for (const el of this.p) {
+            switch (el.k) {
+                case K.LParen:
+                case K.LBrack:
+                case K.LBrace:
+                case K.OLAngle:
+                case K.LIterp:
+                    ret +=
+                        (ret ? "\n" : "") + " ".repeat(indent) + inspect(el, p)
+                    indent += 2
+                    continue
+                case K.RParen:
+                case K.RBrack:
+                case K.RBrace:
+                case K.ORAngle:
+                case K.ORIterp:
+                    indent -= 2
+                    break
+            }
+            ret += (ret ? "\n" : "") + " ".repeat(indent) + inspect(el, p)
+        }
+        return ret
+    }
 }
 
 const WS0 = " ".charCodeAt(0)
@@ -111,369 +112,376 @@ const CODE_LBRC = "{".charCodeAt(0)
 const CODE_RBRC = "}".charCodeAt(0)
 
 function isAlpha(code: number) {
-  return (
-    code == CODE__
-    || (CODE_A <= code && code <= CODE_Z)
-    || (CODE_a <= code && code <= CODE_z)
-  )
+    return (
+        code == CODE__
+        || (CODE_A <= code && code <= CODE_Z)
+        || (CODE_a <= code && code <= CODE_z)
+    )
 }
 
 export function scan(file: File): Scan {
-  const body = file.body
-  const depth: { kind: K.LBrace | K.LIterp; hashes: number }[] = []
-  let row = 1
-  let col = 1
-  const ret = []
+    const body = file.body
+    const depth: { kind: K.LBrace | K.LIterp; hashes: number }[] = []
+    let row = 1
+    let col = 1
+    const ret = []
 
-  let i = 0
-  let code
-  const len = body.length
-  while (i < len) {
-    code = body.charCodeAt(i)
+    let i = 0
+    let code
+    const len = body.length
+    while (i < len) {
+        code = body.charCodeAt(i)
 
-    switch (code) {
-      case CODE_NL:
-        row++
-        col = 1
-        i++
-        break
-      case WS0:
-      case WS1:
-      case WS2:
-        col++
-        i++
-        break
-      case CODE_HASH:
-      case CODE_QUOT:
-        parseHashOrQuote()
-        break
-      case CODE_LBRC:
-        depth.push({ kind: K.LBrace, hashes: 0 })
-        i++
-        col++
-        continue
-      case CODE_RBRC: {
-        const start = new Loc(row, col, i)
-        i++
-        col++
-        const pos = new Pos(file, start, new Loc(row, col, i))
-        const last = depth.pop()
-        if (!last) {
-          issue("Unmatched closing brace.", pos)
-        }
-        if (last.kind == K.LBrace) {
-          ret.push(new Token(K.RBrace, pos))
-          continue
-        }
-        ret.push(new Token(K.ORIterp, pos))
-        stringContents(last.hashes, false)
-        continue
-      }
-      case 0x30:
-      case 0x31:
-      case 0x32:
-      case 0x33:
-      case 0x34:
-      case 0x35:
-      case 0x36:
-      case 0x37:
-      case 0x38:
-      case 0x39:
-        parseNum()
-        break
-      case CODE_DOT: {
-        const next = body.charCodeAt(i + 1)
-        if (CODE_0 <= next && next <= CODE_9) {
-          parseNum()
-          break
-        }
-        const start = new Loc(row, col, i)
-        i++
-        col++
-        const end = new Loc(row, col, i)
-        ret.push(new Token(K.Dot, new Pos(file, start, end)))
-        break
-      }
-      case 0x41:
-      case 0x42:
-      case 0x43:
-      case 0x44:
-      case 0x45:
-      case 0x46:
-      case 0x47:
-      case 0x48:
-      case 0x49:
-      case 0x4a:
-      case 0x4b:
-      case 0x4c:
-      case 0x4d:
-      case 0x4e:
-      case 0x4f:
-      case 0x50:
-      case 0x51:
-      case 0x52:
-      case 0x53:
-      case 0x54:
-      case 0x55:
-      case 0x56:
-      case 0x57:
-      case 0x58:
-      case 0x59:
-      case 0x5a:
-      case 0x61:
-      case 0x62:
-      case 0x63:
-      case 0x64:
-      case 0x65:
-      case 0x66:
-      case 0x67:
-      case 0x68:
-      case 0x69:
-      case 0x6a:
-      case 0x6b:
-      case 0x6c:
-      case 0x6d:
-      case 0x6e:
-      case 0x6f:
-      case 0x70:
-      case 0x71:
-      case 0x72:
-      case 0x73:
-      case 0x74:
-      case 0x75:
-      case 0x76:
-      case 0x77:
-      case 0x78:
-      case 0x79:
-      case 0x7a:
-      case 0x5f: {
-        const start = new Loc(row, col, i)
-        while (
-          (code = body.charCodeAt(++i))
-          && (isAlpha(code) || (CODE_0 <= code && code <= CODE_9))
-        );
-
-        const word = body.slice(start.idx, i)
-        const pos = new Pos(file, start, new Loc(row, col, i))
-        ret.push(new Token(KWS.get(word) ?? K.Ident, pos))
-        continue
-      }
-      default: {
-        const start = new Loc(row, col, i)
-        const entry = OPS_KEYED.get(code)
-        if (entry) {
-          i++
-          col++
-          const code2 = body.charCodeAt(i)
-          if (entry.has(code2)) {
-            i++
-            col++
-            const op = entry.get(code2)!
-            if (op == K.Comment) {
-              while (i < body.length && body.charCodeAt(i) != CODE_NL) {
+        switch (code) {
+            case CODE_NL:
+                row++
+                col = 1
+                i++
+                break
+            case WS0:
+            case WS1:
+            case WS2:
+                col++
+                i++
+                break
+            case CODE_HASH:
+            case CODE_QUOT:
+                parseHashOrQuote()
+                break
+            case CODE_LBRC:
+                depth.push({ kind: K.LBrace, hashes: 0 })
                 i++
                 col++
-              }
+                continue
+            case CODE_RBRC: {
+                const start = new Loc(row, col, i)
+                i++
+                col++
+                const pos = new Pos(file, start, new Loc(row, col, i))
+                const last = depth.pop()
+                if (!last) {
+                    issue("Unmatched closing brace.", pos)
+                }
+                if (last.kind == K.LBrace) {
+                    ret.push(new Token(K.RBrace, pos))
+                    continue
+                }
+                ret.push(new Token(K.ORIterp, pos))
+                stringContents(last.hashes, false)
+                continue
             }
-            const end = new Loc(row, col, i)
-            ret.push(new Token(op, new Pos(file, start, end)))
-          } else if (entry.has(0)) {
-            const end = new Loc(row, col, i)
-            ret.push(new Token(entry.get(0)!, new Pos(file, start, end)))
-          } else {
-            issue(
-              `Unknown operator '${body[i - 1]!}'`,
-              new Pos(file, start, start),
+            case 0x30:
+            case 0x31:
+            case 0x32:
+            case 0x33:
+            case 0x34:
+            case 0x35:
+            case 0x36:
+            case 0x37:
+            case 0x38:
+            case 0x39:
+                parseNum()
+                break
+            case CODE_DOT: {
+                const next = body.charCodeAt(i + 1)
+                if (CODE_0 <= next && next <= CODE_9) {
+                    parseNum()
+                    break
+                }
+                const start = new Loc(row, col, i)
+                i++
+                col++
+                const end = new Loc(row, col, i)
+                ret.push(new Token(K.Dot, new Pos(file, start, end)))
+                break
+            }
+            case 0x41:
+            case 0x42:
+            case 0x43:
+            case 0x44:
+            case 0x45:
+            case 0x46:
+            case 0x47:
+            case 0x48:
+            case 0x49:
+            case 0x4a:
+            case 0x4b:
+            case 0x4c:
+            case 0x4d:
+            case 0x4e:
+            case 0x4f:
+            case 0x50:
+            case 0x51:
+            case 0x52:
+            case 0x53:
+            case 0x54:
+            case 0x55:
+            case 0x56:
+            case 0x57:
+            case 0x58:
+            case 0x59:
+            case 0x5a:
+            case 0x61:
+            case 0x62:
+            case 0x63:
+            case 0x64:
+            case 0x65:
+            case 0x66:
+            case 0x67:
+            case 0x68:
+            case 0x69:
+            case 0x6a:
+            case 0x6b:
+            case 0x6c:
+            case 0x6d:
+            case 0x6e:
+            case 0x6f:
+            case 0x70:
+            case 0x71:
+            case 0x72:
+            case 0x73:
+            case 0x74:
+            case 0x75:
+            case 0x76:
+            case 0x77:
+            case 0x78:
+            case 0x79:
+            case 0x7a:
+            case 0x5f: {
+                const start = new Loc(row, col, i)
+                while (
+                    (code = body.charCodeAt(++i))
+                    && (isAlpha(code) || (CODE_0 <= code && code <= CODE_9))
+                );
+
+                const word = body.slice(start.idx, i)
+                const pos = new Pos(file, start, new Loc(row, col, i))
+                ret.push(new Token(KWS.get(word) ?? K.Ident, pos))
+                continue
+            }
+            default: {
+                const start = new Loc(row, col, i)
+                const entry = OPS_KEYED.get(code)
+                if (entry) {
+                    i++
+                    col++
+                    const code2 = body.charCodeAt(i)
+                    if (entry.has(code2)) {
+                        i++
+                        col++
+                        const op = entry.get(code2)!
+                        if (op == K.Comment) {
+                            while (
+                                i < body.length
+                                && body.charCodeAt(i) != CODE_NL
+                            ) {
+                                i++
+                                col++
+                            }
+                        }
+                        const end = new Loc(row, col, i)
+                        ret.push(new Token(op, new Pos(file, start, end)))
+                    } else if (entry.has(0)) {
+                        const end = new Loc(row, col, i)
+                        ret.push(
+                            new Token(entry.get(0)!, new Pos(file, start, end)),
+                        )
+                    } else {
+                        issue(
+                            `Unknown operator '${body[i - 1]!}'`,
+                            new Pos(file, start, start),
+                        )
+                    }
+
+                    continue
+                }
+            }
+        }
+    }
+
+    const last = depth.at(-1)
+    if (last) {
+        const pos = new Pos(file, new Loc(row, col, i), new Loc(row, col, i))
+        if (last.kind == K.LBrace) {
+            issue(`Unclosed block.`, pos)
+        } else {
+            issue(`Unterminated string.`, pos)
+        }
+    }
+
+    const end = new Pos(file, new Loc(row, col, i), new Loc(row, col, i))
+
+    return new Scan(end, ret)
+
+    function parseNum() {
+        const start = new Loc(row, col, i)
+
+        while (
+            (code = body.charCodeAt(i))
+            && i < body.length
+            && CODE_0 <= code
+            && code <= CODE_9
+        )
+            i++
+
+        let tupleIndex = i == start.idx
+        let num = false
+        if (code == CODE_DOT && !isAlpha(body.charCodeAt(i + 1))) {
+            num = true
+            i++
+            col++
+            while (
+                ((code = body.charCodeAt(i)), CODE_0 <= code && code <= CODE_9)
             )
-          }
-
-          continue
+                i++
+            col++
         }
-      }
-    }
-  }
 
-  const last = depth.at(-1)
-  if (last) {
-    const pos = new Pos(file, new Loc(row, col, i), new Loc(row, col, i))
-    if (last.kind == K.LBrace) {
-      issue(`Unclosed block.`, pos)
-    } else {
-      issue(`Unterminated string.`, pos)
-    }
-  }
-
-  const end = new Pos(file, new Loc(row, col, i), new Loc(row, col, i))
-
-  return new Scan(end, ret)
-
-  function parseNum() {
-    const start = new Loc(row, col, i)
-
-    while (
-      (code = body.charCodeAt(i))
-      && i < body.length
-      && CODE_0 <= code
-      && code <= CODE_9
-    )
-      i++
-
-    let tupleIndex = i == start.idx
-    let num = false
-    if (code == CODE_DOT && !isAlpha(body.charCodeAt(i + 1))) {
-      num = true
-      i++
-      col++
-      while (((code = body.charCodeAt(i)), CODE_0 <= code && code <= CODE_9))
-        i++
-      col++
-    }
-
-    if (code == CODE_E || code == CODE_e) {
-      const next = body.charCodeAt(i + 1)
-      const next2 = body.charCodeAt(i + 2)
-      if (
-        ((next == CODE_P || next == CODE_M)
-          && CODE_0 <= next2
-          && next2 <= CODE_9)
-        || (CODE_0 <= next && next <= CODE_9)
-      ) {
-        tupleIndex = false
-        num = true
-        if (next == CODE_P || next == CODE_M) {
-          i++
-          col++
+        if (code == CODE_E || code == CODE_e) {
+            const next = body.charCodeAt(i + 1)
+            const next2 = body.charCodeAt(i + 2)
+            if (
+                ((next == CODE_P || next == CODE_M)
+                    && CODE_0 <= next2
+                    && next2 <= CODE_9)
+                || (CODE_0 <= next && next <= CODE_9)
+            ) {
+                tupleIndex = false
+                num = true
+                if (next == CODE_P || next == CODE_M) {
+                    i++
+                    col++
+                }
+                i++
+                col++
+                while (
+                    i < body.length
+                    && (code = body.charCodeAt(++i))
+                    && CODE_0 <= next
+                    && next <= CODE_9
+                );
+            }
         }
+
+        const pos = new Pos(file, start, new Loc(row, col, i))
+        ret.push(
+            new Token(
+                tupleIndex ? K.NumOrTupleIndex
+                : num ? K.Num
+                : K.Int,
+                pos,
+            ),
+        )
+    }
+
+    function parseHashOrQuote() {
+        let code
+
+        let hashes = 0
+        while (((code = body.charCodeAt(i)), code == CODE_HASH))
+            (hashes++, i++, col++)
+
+        if (code != CODE_QUOT)
+            issue(
+                `Unknown string delimeter '${body[i] ?? "<EOF>"}'.`,
+                new Pos(file, new Loc(row, col, i), new Loc(row, col, i)),
+            )
+
         i++
         col++
-        while (
-          i < body.length
-          && (code = body.charCodeAt(++i))
-          && CODE_0 <= next
-          && next <= CODE_9
-        );
-      }
+
+        stringContents(hashes, true)
     }
 
-    const pos = new Pos(file, start, new Loc(row, col, i))
-    ret.push(
-      new Token(
-        tupleIndex ? K.NumOrTupleIndex
-        : num ? K.Num
-        : K.Int,
-        pos,
-      ),
-    )
-  }
-
-  function parseHashOrQuote() {
-    let code
-
-    let hashes = 0
-    while (((code = body.charCodeAt(i)), code == CODE_HASH))
-      (hashes++, i++, col++)
-
-    if (code != CODE_QUOT)
-      issue(
-        `Unknown string delimeter '${body[i] ?? "<EOF>"}'.`,
-        new Pos(file, new Loc(row, col, i), new Loc(row, col, i)),
-      )
-
-    i++
-    col++
-
-    stringContents(hashes, true)
-  }
-
-  function stringContents(hashes: number, isStart: boolean) {
-    const dollars = Math.max(hashes, 1)
-    let code
-    const start = new Loc(row, col, i)
-    while (true) {
-      if (i >= body.length) {
-        issue(
-          "Unterminated string literal.",
-          new Pos(file, new Loc(row, col, i), new Loc(row, col, i)),
-        )
-      }
-      code = body.charCodeAt(i)
-      switch (code) {
-        case CODE_NL:
-          i++
-          row++
-          col = 1
-          break
-        case CODE_DOLR:
-          interp: {
-            for (let j = 1; j < dollars; j++) {
-              if (body.charCodeAt(i + j) != CODE_DOLR) {
-                break interp
-              }
+    function stringContents(hashes: number, isStart: boolean) {
+        const dollars = Math.max(hashes, 1)
+        let code
+        const start = new Loc(row, col, i)
+        while (true) {
+            if (i >= body.length) {
+                issue(
+                    "Unterminated string literal.",
+                    new Pos(file, new Loc(row, col, i), new Loc(row, col, i)),
+                )
             }
-            if (body.charCodeAt(i + dollars) != CODE_LBRC) {
-              break interp
+            code = body.charCodeAt(i)
+            switch (code) {
+                case CODE_NL:
+                    i++
+                    row++
+                    col = 1
+                    break
+                case CODE_DOLR:
+                    interp: {
+                        for (let j = 1; j < dollars; j++) {
+                            if (body.charCodeAt(i + j) != CODE_DOLR) {
+                                break interp
+                            }
+                        }
+                        if (body.charCodeAt(i + dollars) != CODE_LBRC) {
+                            break interp
+                        }
+                        const end = new Loc(row, col, i)
+                        ret.push(
+                            new Token(
+                                isStart ? K.StrStart : K.StrMid,
+                                new Pos(file, start, end),
+                            ),
+                        )
+                        depth.push({ kind: K.LIterp, hashes })
+                        i += dollars + 1
+                        col += dollars + 1
+                        const end2 = new Loc(row, col, i)
+                        ret.push(new Token(K.LIterp, new Pos(file, end, end2)))
+                        return
+                    }
+                    i++
+                    col++
+                    break
+                case CODE_QUOT:
+                    final: {
+                        for (let j = 0; j < hashes; j++) {
+                            if (body.charCodeAt(i + 1 + j) != CODE_HASH) {
+                                break final
+                            }
+                        }
+                        const end = new Loc(row, col, i)
+                        ret.push(
+                            new Token(
+                                isStart ? K.StrFull : K.StrFinal,
+                                new Pos(file, start, end),
+                            ),
+                        )
+                        i += hashes + 1
+                        col += hashes + 1
+                        return
+                    }
+                    i++
+                    col++
+                    break
+                case CODE_BACKSLASH:
+                    if (hashes == 0) {
+                        i++
+                        col++
+                        if (body.charCodeAt(i) == CODE_NL) {
+                            i++
+                            row++
+                            col += 1
+                        } else {
+                            i++
+                            col++
+                        }
+                        break
+                    } else {
+                        i++
+                        col++
+                        break
+                    }
+                default:
+                    i++
+                    col++
+                    break
             }
-            const end = new Loc(row, col, i)
-            ret.push(
-              new Token(
-                isStart ? K.StrStart : K.StrMid,
-                new Pos(file, start, end),
-              ),
-            )
-            depth.push({ kind: K.LIterp, hashes })
-            i += dollars + 1
-            col += dollars + 1
-            const end2 = new Loc(row, col, i)
-            ret.push(new Token(K.LIterp, new Pos(file, end, end2)))
-            return
-          }
-          i++
-          col++
-          break
-        case CODE_QUOT:
-          final: {
-            for (let j = 0; j < hashes; j++) {
-              if (body.charCodeAt(i + 1 + j) != CODE_HASH) {
-                break final
-              }
-            }
-            const end = new Loc(row, col, i)
-            ret.push(
-              new Token(
-                isStart ? K.StrFull : K.StrFinal,
-                new Pos(file, start, end),
-              ),
-            )
-            i += hashes + 1
-            col += hashes + 1
-            return
-          }
-          i++
-          col++
-          break
-        case CODE_BACKSLASH:
-          if (hashes == 0) {
-            i++
-            col++
-            if (body.charCodeAt(i) == CODE_NL) {
-              i++
-              row++
-              col += 1
-            } else {
-              i++
-              col++
-            }
-            break
-          } else {
-            i++
-            col++
-            break
-          }
-        default:
-          i++
-          col++
-          break
-      }
+        }
     }
-  }
 }

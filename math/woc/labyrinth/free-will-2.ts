@@ -1,140 +1,141 @@
 import { ANSI } from "../../../ansi"
 
 const cycle = ANSI.cycle([
-  ANSI.blue,
-  ANSI.cyan,
-  ANSI.magenta,
-  ANSI.red,
-  ANSI.yellow,
+    ANSI.blue,
+    ANSI.cyan,
+    ANSI.magenta,
+    ANSI.red,
+    ANSI.yellow,
 ])
 
 export class NodeN {
-  readonly paths = new Map<string, Set<NodeN>>()
-  readonly pnull = new Set<NodeN>()
+    readonly paths = new Map<string, Set<NodeN>>()
+    readonly pnull = new Set<NodeN>()
 
-  constructor(
-    readonly rom: boolean,
-    readonly label: number,
-  ) {}
+    constructor(
+        readonly rom: boolean,
+        readonly label: number,
+    ) {}
 
-  tx(to: NodeN, char: string | void) {
-    if (char == null) {
-      this.pnull.add(to)
-      return
+    tx(to: NodeN, char: string | void) {
+        if (char == null) {
+            this.pnull.add(to)
+            return
+        }
+
+        let set = this.paths.get(char)
+        if (!set) {
+            set = new Set()
+            this.paths.set(char, set)
+        }
+        set.add(to)
     }
 
-    let set = this.paths.get(char)
-    if (!set) {
-      set = new Set()
-      this.paths.set(char, set)
-    }
-    set.add(to)
-  }
+    debug() {
+        function join(l: unknown[]) {
+            return l.join("")
+            // return l.length == 0 ? "" : l.length == 1 ? l[0]! : `[${l.join(comma)}]`
+        }
 
-  debug() {
-    function join(l: unknown[]) {
-      return l.join("")
-      // return l.length == 0 ? "" : l.length == 1 ? l[0]! : `[${l.join(comma)}]`
+        const semi = ANSI.reset + ANSI.dim + "; " + ANSI.reset
+        // const comma = ANSI.reset + ANSI.dim + "," + ANSI.reset
+        const arr = ANSI.reset + ANSI.dim + "->" + ANSI.reset
+        const initial =
+            cycle(this.label) + (this.rom ? "R" : " ") + this.label + ANSI.reset
+        const pnull = join(
+            Array.from(this.pnull).map(
+                (x) => cycle(x.label) + x.label + ANSI.reset,
+            ),
+        )
+        const paths = Array.from(this.paths)
+            .filter((x) => x[1].size)
+            .map(
+                ([k, v]) =>
+                    `${ANSI.green}${k}${arr}${join(Array.from(v).map((x) => cycle(x.label) + x.label + ANSI.reset))}`,
+            )
+            .join(semi)
+        const head =
+            pnull ? `${initial}${semi}${ANSI.green}_${arr}${pnull}` : initial
+        return paths ? `${head}${semi}${paths}` : head
     }
-
-    const semi = ANSI.reset + ANSI.dim + "; " + ANSI.reset
-    // const comma = ANSI.reset + ANSI.dim + "," + ANSI.reset
-    const arr = ANSI.reset + ANSI.dim + "->" + ANSI.reset
-    const initial =
-      cycle(this.label) + (this.rom ? "R" : " ") + this.label + ANSI.reset
-    const pnull = join(
-      Array.from(this.pnull).map((x) => cycle(x.label) + x.label + ANSI.reset),
-    )
-    const paths = Array.from(this.paths)
-      .filter((x) => x[1].size)
-      .map(
-        ([k, v]) =>
-          `${ANSI.green}${k}${arr}${join(Array.from(v).map((x) => cycle(x.label) + x.label + ANSI.reset))}`,
-      )
-      .join(semi)
-    const head = pnull
-      ? `${initial}${semi}${ANSI.green}_${arr}${pnull}`
-      : initial
-    return paths ? `${head}${semi}${paths}` : head
-  }
 }
 
 export class LabyrinthN {
-  readonly roots = new Set<NodeN>()
+    readonly roots = new Set<NodeN>()
 
-  finalize() {
-    const done = new Set<NodeN>()
-    const globalTodo = new Set(this.roots)
+    finalize() {
+        const done = new Set<NodeN>()
+        const globalTodo = new Set(this.roots)
 
-    for (const node of globalTodo) {
-      if (done.has(node)) continue
-      done.add(node)
+        for (const node of globalTodo) {
+            if (done.has(node)) continue
+            done.add(node)
 
-      // Ensure everything in this.pnull.pnull... is in this.pnull
-      {
-        const done = new Set([node])
-        const todo = new Set(node.pnull)
-        for (const adj of todo) {
-          todo.delete(adj)
-          globalTodo.add(adj)
-          if (done.has(adj)) continue
-          done.add(adj)
-          node.pnull.add(adj)
+            // Ensure everything in this.pnull.pnull... is in this.pnull
+            {
+                const done = new Set([node])
+                const todo = new Set(node.pnull)
+                for (const adj of todo) {
+                    todo.delete(adj)
+                    globalTodo.add(adj)
+                    if (done.has(adj)) continue
+                    done.add(adj)
+                    node.pnull.add(adj)
 
-          for (const adj2 of adj.pnull) {
-            todo.add(adj2)
-          }
+                    for (const adj2 of adj.pnull) {
+                        todo.add(adj2)
+                    }
+                }
+            }
+
+            // Ensure every outgoing path includes possible pnulls
+            for (const nexts of node.paths.values()) {
+                const done = new Set()
+                const todo = new Set(nexts)
+                for (const adj of todo) {
+                    todo.delete(adj)
+                    globalTodo.add(adj)
+                    if (done.has(adj)) continue
+                    done.add(adj)
+                    nexts.add(adj)
+
+                    for (const adj2 of adj.pnull) {
+                        todo.add(adj2)
+                    }
+                }
+            }
         }
-      }
-
-      // Ensure every outgoing path includes possible pnulls
-      for (const nexts of node.paths.values()) {
-        const done = new Set()
-        const todo = new Set(nexts)
-        for (const adj of todo) {
-          todo.delete(adj)
-          globalTodo.add(adj)
-          if (done.has(adj)) continue
-          done.add(adj)
-          nexts.add(adj)
-
-          for (const adj2 of adj.pnull) {
-            todo.add(adj2)
-          }
-        }
-      }
-    }
-  }
-
-  walk(text: string): Set<NodeN> {
-    let states = new Set<NodeN>(this.roots)
-
-    for (const char of text) {
-      const next = new Set<NodeN>()
-
-      for (const state of states) {
-        const out = state.paths.get(char)
-        if (!out) continue
-
-        for (const adj of out) {
-          next.add(adj)
-        }
-      }
-
-      states = next
     }
 
-    return states
-  }
+    walk(text: string): Set<NodeN> {
+        let states = new Set<NodeN>(this.roots)
+
+        for (const char of text) {
+            const next = new Set<NodeN>()
+
+            for (const state of states) {
+                const out = state.paths.get(char)
+                if (!out) continue
+
+                for (const adj of out) {
+                    next.add(adj)
+                }
+            }
+
+            states = next
+        }
+
+        return states
+    }
 }
 
 if (typeof Bun != "undefined") {
-  const util = import.meta.require("node:util") as typeof import("node:util")
-  Object.assign(NodeN.prototype, {
-    [util.inspect.custom](this: NodeN) {
-      return this.debug()
-    },
-  })
+    const util = import.meta.require("node:util") as typeof import("node:util")
+    Object.assign(NodeN.prototype, {
+        [util.inspect.custom](this: NodeN) {
+            return this.debug()
+        },
+    })
 }
 
 // Example labyrinth matching [01]*10?1[01]*

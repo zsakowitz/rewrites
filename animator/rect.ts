@@ -4,26 +4,26 @@ import { Node, type NodeProps } from "./node.js"
 import { get, type MaybeValue } from "./value.js"
 
 export interface RectProps extends NodeProps {
-  width?: MaybeValue<number>
-  height?: MaybeValue<number>
+    width?: MaybeValue<number>
+    height?: MaybeValue<number>
 }
 
 export class Rect extends Node {
-  width
-  height
+    width
+    height
 
-  constructor(props: RectProps = {}) {
-    super(props)
-    this.width = props.width
-    this.height = props.height
-  }
+    constructor(props: RectProps = {}) {
+        super(props)
+        this.width = props.width
+        this.height = props.height
+    }
 
-  path(path: Path2D) {
-    path.rect(
-      get(this.x) || 0,
-      get(this.y) || 0,
-      get(this.width) || 0,
-      get(this.height) || 0,
-    )
-  }
+    path(path: Path2D) {
+        path.rect(
+            get(this.x) || 0,
+            get(this.y) || 0,
+            get(this.width) || 0,
+            get(this.height) || 0,
+        )
+    }
 }

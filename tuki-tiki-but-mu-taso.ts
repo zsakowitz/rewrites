@@ -154,19 +154,19 @@ tuki	toki, mu, pilin
 tulu	suno, seli, kule, wawa
 uli	wile, wawa, nasin
 upi	sin, open, tan`
-  .split("\n")
-  .map((a) => a.split("\t"))
-  .map(
-    ([tuki, tok]) =>
-      [
-        tuki,
-        tok,
-        tok
-          .split(", ")
-          .map((word) => toki.indexOf(word))
-          .reduce((a, b) => a + b, 0) / tok.length,
-      ] as const,
-  )
-  .sort(([, , a], [, , b]) => a - b)
-  .map(([a, b]) => a + "\t" + b)
-  .join("\n")
+    .split("\n")
+    .map((a) => a.split("\t"))
+    .map(
+        ([tuki, tok]) =>
+            [
+                tuki,
+                tok,
+                tok
+                    .split(", ")
+                    .map((word) => toki.indexOf(word))
+                    .reduce((a, b) => a + b, 0) / tok.length,
+            ] as const,
+    )
+    .sort(([, , a], [, , b]) => a - b)
+    .map(([a, b]) => a + "\t" + b)
+    .join("\n")

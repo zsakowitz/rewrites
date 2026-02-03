@@ -4,18 +4,18 @@
 import { computed } from "./decorators-old.js"
 
 export class Unwrap<T> {
-  readonly #signal: T | (() => T)
+    readonly #signal: T | (() => T)
 
-  constructor(signal: T | (() => T)) {
-    this.#signal = signal
-  }
-
-  @computed
-  get value(): T {
-    if (typeof this.#signal == "function") {
-      return (this.#signal as Function)() as T
+    constructor(signal: T | (() => T)) {
+        this.#signal = signal
     }
 
-    return this.#signal as Exclude<T, Function>
-  }
+    @computed
+    get value(): T {
+        if (typeof this.#signal == "function") {
+            return (this.#signal as Function)() as T
+        }
+
+        return this.#signal as Exclude<T, Function>
+    }
 }

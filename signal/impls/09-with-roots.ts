@@ -4,105 +4,107 @@ export type VoidFunction = (this: void) => void
 export type VoidFunctionSet = Set<(this: void) => void>
 
 function warn(message: string) {
-  console.warn(message)
+    console.warn(message)
 }
 
 function safeCall(fn: VoidFunction) {
-  try {
-    fn()
-  } catch {}
+    try {
+        fn()
+    } catch {}
 }
 
 let currentCleanups: VoidFunctionSet | undefined
 let currentEffect: (() => void) | undefined
 
 export class EffectRoot {
-  static run<T>(fn: () => T): T {
-    return new EffectRoot().run(fn)
-  }
-
-  #cleanupList: VoidFunctionSet = new Set()
-  #cleanedUp = false
-  #myCleanup = this.cleanup.bind(this)
-
-  run<T>(this: EffectRoot, fn: () => T): T {
-    if (this.#cleanedUp) {
-      throw new Error("Cannot use an effect root that has been cleaned up.")
+    static run<T>(fn: () => T): T {
+        return new EffectRoot().run(fn)
     }
 
-    const parentCleanups = currentCleanups
+    #cleanupList: VoidFunctionSet = new Set()
+    #cleanedUp = false
+    #myCleanup = this.cleanup.bind(this)
 
-    if (parentCleanups) {
-      parentCleanups.add(this.#myCleanup)
+    run<T>(this: EffectRoot, fn: () => T): T {
+        if (this.#cleanedUp) {
+            throw new Error(
+                "Cannot use an effect root that has been cleaned up.",
+            )
+        }
+
+        const parentCleanups = currentCleanups
+
+        if (parentCleanups) {
+            parentCleanups.add(this.#myCleanup)
+        }
+
+        try {
+            currentCleanups = this.#cleanupList
+            return fn()
+        } finally {
+            currentCleanups = parentCleanups
+        }
     }
 
-    try {
-      currentCleanups = this.#cleanupList
-      return fn()
-    } finally {
-      currentCleanups = parentCleanups
+    cleanup(this: EffectRoot) {
+        this.#cleanedUp = true
+        this.#cleanupList.forEach(safeCall)
+        this.#cleanupList.clear()
     }
-  }
 
-  cleanup(this: EffectRoot) {
-    this.#cleanedUp = true
-    this.#cleanupList.forEach(safeCall)
-    this.#cleanupList.clear()
-  }
-
-  get cleanedUp() {
-    return this.#cleanedUp
-  }
+    get cleanedUp() {
+        return this.#cleanedUp
+    }
 }
 
 export function onCleanup(fn: VoidFunction) {
-  if (currentCleanups) {
-    currentCleanups.add(fn)
-  } else {
-    warn(
-      "[onCleanup]: Cleanup functions created outside of an effect root will never be run.",
-    )
-  }
+    if (currentCleanups) {
+        currentCleanups.add(fn)
+    } else {
+        warn(
+            "[onCleanup]: Cleanup functions created outside of an effect root will never be run.",
+        )
+    }
 }
 
 export function createEffect(fn: VoidFunction) {
-  function wrapper() {
-    const parentEffect = currentEffect
+    function wrapper() {
+        const parentEffect = currentEffect
 
-    if (parentEffect) {
-      warn("[createEffect]: Nesting effects is not recommended.")
+        if (parentEffect) {
+            warn("[createEffect]: Nesting effects is not recommended.")
+        }
+
+        try {
+            currentEffect = wrapper
+            fn()
+        } finally {
+            currentEffect = parentEffect
+        }
     }
 
-    try {
-      currentEffect = wrapper
-      fn()
-    } finally {
-      currentEffect = parentEffect
-    }
-  }
-
-  wrapper()
+    wrapper()
 }
 
 export type Signal<T> = [get: () => T, set: (value: T) => void]
 
 export function createSignal<T>(initialValue: T): Signal<T> {
-  let value = initialValue
+    let value = initialValue
 
-  const tracking: VoidFunctionSet = new Set()
+    const tracking: VoidFunctionSet = new Set()
 
-  return [
-    () => {
-      if (currentEffect) {
-        tracking.add(currentEffect)
-      }
+    return [
+        () => {
+            if (currentEffect) {
+                tracking.add(currentEffect)
+            }
 
-      return value
-    },
-    (newValue) => {
-      value = newValue
+            return value
+        },
+        (newValue) => {
+            value = newValue
 
-      tracking.forEach(safeCall)
-    },
-  ]
+            tracking.forEach(safeCall)
+        },
+    ]
 }

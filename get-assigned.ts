@@ -1,1 +1,40 @@
-export const EVERYTHING = new Proxy( {}, { defineProperty() { return false }, deleteProperty() { return false }, isExtensible() { return false }, preventExtensions() { return true }, set() { return false }, setPrototypeOf() { return false }, get(target, p, receiver) { return "hi" }, getOwnPropertyDescriptor(target, p) { return { configurable: false, enumerable: true, writable: false, value: "hi", } }, has(target, p) { return true }, ownKeys(target) { throw new Error("Nope.") }, }, ) 
+export const EVERYTHING = new Proxy(
+    {},
+    {
+        defineProperty() {
+            return false
+        },
+        deleteProperty() {
+            return false
+        },
+        isExtensible() {
+            return false
+        },
+        preventExtensions() {
+            return true
+        },
+        set() {
+            return false
+        },
+        setPrototypeOf() {
+            return false
+        },
+        get(target, p, receiver) {
+            return "hi"
+        },
+        getOwnPropertyDescriptor(target, p) {
+            return {
+                configurable: false,
+                enumerable: true,
+                writable: false,
+                value: "hi",
+            }
+        },
+        has(target, p) {
+            return true
+        },
+        ownKeys(target) {
+            throw new Error("Nope.")
+        },
+    },
+)

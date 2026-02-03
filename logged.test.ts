@@ -4,20 +4,20 @@ import { logged } from "./logged.js"
 
 @logged
 export class Person {
-  @logged
-  field = ""
+    @logged
+    field = ""
 
-  @logged
-  accessor accessor = ""
+    @logged
+    accessor accessor = ""
 
-  @logged
-  method() {}
+    @logged
+    method() {}
 
-  @logged
-  get getter() {
-    return undefined
-  }
+    @logged
+    get getter() {
+        return undefined
+    }
 
-  @logged
-  set setter(value: unknown) {}
+    @logged
+    set setter(value: unknown) {}
 }

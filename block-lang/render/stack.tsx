@@ -8,36 +8,36 @@ import { render } from "./render.js"
 const tempSvg = (<svg />) as SVGSVGElement
 
 function getBBox(el: SVGGraphicsElement): SVGRect {
-  tempSvg.appendChild(el)
-  document.body.appendChild(tempSvg)
+    tempSvg.appendChild(el)
+    document.body.appendChild(tempSvg)
 
-  const box = el.getBBox()
+    const box = el.getBBox()
 
-  tempSvg.remove()
+    tempSvg.remove()
 
-  return box
+    return box
 }
 
 export function renderStack(
-  blocks: readonly Block[],
-  instance: BlockLangInstance,
+    blocks: readonly Block[],
+    instance: BlockLangInstance,
 ): [g: SVGGElement, width: number, height: number] {
-  const g = (<g />) as SVGGElement
+    const g = (<g />) as SVGGElement
 
-  let width = 0
-  let height = 0
+    let width = 0
+    let height = 0
 
-  for (const block of blocks) {
-    const [container, w, h] = render(block, instance, false)
-    const y = getBBox(container).y
+    for (const block of blocks) {
+        const [container, w, h] = render(block, instance, false)
+        const y = getBBox(container).y
 
-    container.setAttribute("transform", `translate(0,${-y + height})`)
-    g.appendChild(container)
+        container.setAttribute("transform", `translate(0,${-y + height})`)
+        g.appendChild(container)
 
-    width = Math.max(width, w)
+        width = Math.max(width, w)
 
-    height += h + 16 * +(block.type == "head")
-  }
+        height += h + 16 * +(block.type == "head")
+    }
 
-  return [g, width, height]
+    return [g, width, height]
 }

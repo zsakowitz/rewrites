@@ -6,6 +6,7 @@
     "experimentalTernaries": true,
     "experimentalOperatorPosition": "start",
     "jsdocCapitalizeDescription": false,
+    "tabWidth": 4,
     "overrides": [
         {
             "files": "lambda-in-js.js",
@@ -21,12 +22,6 @@
             "files": "block-lang/**/*",
             "options": {
                 "singleAttributePerLine": true
-            }
-        },
-        {
-            "files": ["flat-ast.ts", ".prettierrc", "wasm-compile.ts", "wasm-test.ts", "wasm-define.ts", "math/nim/v2.ts"],
-            "options": {
-                "tabWidth": 4
             }
         }
     ]

@@ -9,7 +9,7 @@ import tests from "promises-aplus-tests"
 import { Deferred } from "./deferred.js"
 
 tests({
-  pending: () => new Deferred(),
-  resolve: Deferred.resolve,
-  reject: Deferred.reject,
+    pending: () => new Deferred(),
+    resolve: Deferred.resolve,
+    reject: Deferred.reject,
 })

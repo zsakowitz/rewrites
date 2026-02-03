@@ -4,80 +4,80 @@ let currentEffect: (() => void) | undefined
 let currentBatch: Set<() => void> | undefined
 
 function safeCall(fn: () => void) {
-  try {
-    fn()
-  } catch {}
+    try {
+        fn()
+    } catch {}
 }
 
 function addToCurrentBatch(fn: () => void) {
-  currentBatch?.add(fn)
+    currentBatch?.add(fn)
 }
 
 export function createEffect(effect: () => void) {
-  function main() {
-    const parentEffect = currentEffect
+    function main() {
+        const parentEffect = currentEffect
 
-    try {
-      currentEffect = main
-      effect()
-    } finally {
-      currentEffect = parentEffect
+        try {
+            currentEffect = main
+            effect()
+        } finally {
+            currentEffect = parentEffect
+        }
     }
-  }
 
-  main()
+    main()
 }
 
 export type Signal<T> = [get: () => T, set: (value: T) => void]
 
 export function createSignal<T>(value: T): Signal<T> {
-  const trackedEffects = new Set<() => void>()
+    const trackedEffects = new Set<() => void>()
 
-  return [
-    () => {
-      if (currentEffect) {
-        trackedEffects.add(currentEffect)
-      }
+    return [
+        () => {
+            if (currentEffect) {
+                trackedEffects.add(currentEffect)
+            }
 
-      return value
-    },
-    (newValue) => {
-      value = newValue
+            return value
+        },
+        (newValue) => {
+            value = newValue
 
-      if (currentBatch) {
-        trackedEffects.forEach(addToCurrentBatch)
-      } else {
-        trackedEffects.forEach(safeCall)
-      }
-    },
-  ]
+            if (currentBatch) {
+                trackedEffects.forEach(addToCurrentBatch)
+            } else {
+                trackedEffects.forEach(safeCall)
+            }
+        },
+    ]
 }
 
 export function createMemo<T>(memo: () => T): () => T {
-  const [get, set] = (createSignal as () => Signal<T>)()
-  createEffect(() => set(memo()))
-  return get
+    const [get, set] = (createSignal as () => Signal<T>)()
+    createEffect(() => set(memo()))
+    return get
 }
 
 export function useUntrack<T>(fn: () => T): T {
-  const parentEffect = currentEffect
-  currentEffect = undefined
+    const parentEffect = currentEffect
+    currentEffect = undefined
 
-  try {
-    return fn()
-  } finally {
-    currentEffect = parentEffect
-  }
+    try {
+        return fn()
+    } finally {
+        currentEffect = parentEffect
+    }
 }
 
 export function useBatch<T>(fn: () => T): T {
-  const parentBatch = currentBatch
-  const batch = (currentBatch = new Set())
+    const parentBatch = currentBatch
+    const batch = (currentBatch = new Set())
 
-  try {
-    return fn()
-  } finally {
-    batch.forEach(safeCall)
-    currentBatch = parentBatch
-  }
+    try {
+        return fn()
+    } finally {
+        batch.forEach(safeCall)
+        currentBatch = parentBatch
+    }
 }

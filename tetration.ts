@@ -17,45 +17,45 @@ const Decimal = D as typeof D.default
 type Decimal = D.default
 
 function factorial(x: Decimal): Decimal {
-  if (x.lessThan(0) && x.floor().equals(x)) {
-    return new Decimal(Infinity)
-  }
+    if (x.lessThan(0) && x.floor().equals(x)) {
+        return new Decimal(Infinity)
+    }
 
-  return gamma(x.plus(1))
+    return gamma(x.plus(1))
 }
 
 function tetrate(base: Decimal, exponent: number): Decimal {
-  let result = new Decimal(1)
+    let result = new Decimal(1)
 
-  for (let i = 0; i < exponent; i++) {
-    result = base.pow(result)
-  }
+    for (let i = 0; i < exponent; i++) {
+        result = base.pow(result)
+    }
 
-  return result
+    return result
 }
 
 function tetrateAny(
-  a: Decimal | number,
-  z: Decimal | number,
-  approx: number,
+    a: Decimal | number,
+    z: Decimal | number,
+    approx: number,
 ): Decimal {
-  a = new Decimal(a)
-  z = new Decimal(z)
+    a = new Decimal(a)
+    z = new Decimal(z)
 
-  let result = new Decimal(0)
+    let result = new Decimal(0)
 
-  for (let n = 0; n <= approx; n++) {
-    for (let k = 0; k <= n; k++) {
-      result = result.plus(
-        factorial(z)
-          .dividedBy(factorial(new Decimal(k)))
-          .dividedBy(factorial(new Decimal(n - k)))
-          .dividedBy(factorial(z.minus(n)))
-          .times(tetrate(a, k))
-          .times((-1) ** (n - k)),
-      )
+    for (let n = 0; n <= approx; n++) {
+        for (let k = 0; k <= n; k++) {
+            result = result.plus(
+                factorial(z)
+                    .dividedBy(factorial(new Decimal(k)))
+                    .dividedBy(factorial(new Decimal(n - k)))
+                    .dividedBy(factorial(z.minus(n)))
+                    .times(tetrate(a, k))
+                    .times((-1) ** (n - k)),
+            )
+        }
     }
-  }
 
-  return result
+    return result
 }

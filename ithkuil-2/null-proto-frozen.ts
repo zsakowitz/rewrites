@@ -1,5 +1,5 @@
 export function freezeNullPrototype<const T>(object: T): Readonly<T> {
-  Object.setPrototypeOf(object, null)
+    Object.setPrototypeOf(object, null)
 
-  return Object.freeze(object)
+    return Object.freeze(object)
 }

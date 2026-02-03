@@ -3,75 +3,75 @@ import { mex, type Nimber } from "../game2/nim"
 import { createForceGraph } from "./force"
 
 class FruitDeliveryGraph extends Graph<0 | 1 | void, void> {
-  isWinningPosition() {
-    return this.vl.some((vertex) => {
-      if (vertex.data !== undefined) {
-        return false
-      }
+    isWinningPosition() {
+        return this.vl.some((vertex) => {
+            if (vertex.data !== undefined) {
+                return false
+            }
 
-      const canPlay0 = !vertex.edges.some(
-        (edge) => edge.src.data === 0 || edge.dst.data === 0,
-      )
+            const canPlay0 = !vertex.edges.some(
+                (edge) => edge.src.data === 0 || edge.dst.data === 0,
+            )
 
-      const canPlay1 = !vertex.edges.some(
-        (edge) => edge.src.data === 1 || edge.dst.data === 1,
-      )
+            const canPlay1 = !vertex.edges.some(
+                (edge) => edge.src.data === 1 || edge.dst.data === 1,
+            )
 
-      if (canPlay0) {
-        vertex.data = 0
-        const weWinHere = !this.isWinningPosition()
-        vertex.data = undefined
-        if (weWinHere) return true
-      }
+            if (canPlay0) {
+                vertex.data = 0
+                const weWinHere = !this.isWinningPosition()
+                vertex.data = undefined
+                if (weWinHere) return true
+            }
 
-      if (canPlay1) {
-        vertex.data = 1
-        const weWinHere = !this.isWinningPosition()
-        vertex.data = undefined
-        if (weWinHere) return true
-      }
-    })
-  }
+            if (canPlay1) {
+                vertex.data = 1
+                const weWinHere = !this.isWinningPosition()
+                vertex.data = undefined
+                if (weWinHere) return true
+            }
+        })
+    }
 }
 
 function project(g: FruitDeliveryGraph) {
-  const now = Date.now()
-  const wins = g.isWinningPosition()
-  const dt = Date.now() - now
-  document.body.append(
-    `Player ${wins ? 1 : 2} wins (computation took ${dt}ms).`,
-  )
-  document.body.append(
-    `Nim-value is *${calc(g)} (computation took ${Date.now() - now + dt}ms).`,
-  )
-  createForceGraph(g).nodeColor((c) =>
-    c.data === 0 ? "red"
-    : c.data === 1 ? "blue"
-    : "gray",
-  )
+    const now = Date.now()
+    const wins = g.isWinningPosition()
+    const dt = Date.now() - now
+    document.body.append(
+        `Player ${wins ? 1 : 2} wins (computation took ${dt}ms).`,
+    )
+    document.body.append(
+        `Nim-value is *${calc(g)} (computation took ${Date.now() - now + dt}ms).`,
+    )
+    createForceGraph(g).nodeColor((c) =>
+        c.data === 0 ? "red"
+        : c.data === 1 ? "blue"
+        : "gray",
+    )
 }
 
 function calc(g: FruitDeliveryGraph): Nimber {
-  const ret: Nimber[] = []
-  for (const v of g.vl) {
-    if (
-      v.data == null
-      && !v.edges.some((x) => x.src.data === 0 || x.dst.data === 0)
-    ) {
-      v.data = 0
-      ret.push(calc(g))
-      v.data = undefined
+    const ret: Nimber[] = []
+    for (const v of g.vl) {
+        if (
+            v.data == null
+            && !v.edges.some((x) => x.src.data === 0 || x.dst.data === 0)
+        ) {
+            v.data = 0
+            ret.push(calc(g))
+            v.data = undefined
+        }
+        if (
+            v.data == null
+            && !v.edges.some((x) => x.src.data === 1 || x.dst.data === 1)
+        ) {
+            v.data = 1
+            ret.push(calc(g))
+            v.data = undefined
+        }
     }
-    if (
-      v.data == null
-      && !v.edges.some((x) => x.src.data === 1 || x.dst.data === 1)
-    ) {
-      v.data = 1
-      ret.push(calc(g))
-      v.data = undefined
-    }
-  }
-  return mex(ret)
+    return mex(ret)
 }
 
 const G = new FruitDeliveryGraph()

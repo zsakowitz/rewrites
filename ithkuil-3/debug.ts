@@ -27,10 +27,10 @@ import { parseFormativeTokens } from "./parse/formative.js"
 // }
 
 export function debugFormative(source: string) {
-  const word = ParsedWord.of(source)
-  const slots = word.toFormativeSlots()
-  const formative = parseFormativeTokens(slots)
-  return { word, slots, formative }
+    const word = ParsedWord.of(source)
+    const slots = word.toFormativeSlots()
+    const formative = parseFormativeTokens(slots)
+    return { word, slots, formative }
 }
 
 const result = debugFormative("hlaséi")

@@ -5,11 +5,11 @@ import { memo } from "./stores.js"
 
 /** Creates a component that renders each item in a list. */
 export function For<T>({
-  children,
-  each,
+    children,
+    each,
 }: {
-  children: (item: T) => Renderable
-  each: readonly T[]
+    children: (item: T) => Renderable
+    each: readonly T[]
 }) {
-  return memo(() => each.map(children))
+    return memo(() => each.map(children))
 }

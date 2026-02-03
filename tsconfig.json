@@ -1,22 +1,22 @@
 {
-  "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "moduleResolution": "Bundler",
-    "jsx": "react",
-    "jsxFactory": "h",
-    "jsxFragmentFactory": "f",
-    "module": "ESNext",
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "outDir": "./dist",
-    "skipLibCheck": true,
-    "strict": true,
-    "strictFunctionTypes": true,
-    "target": "ES2022",
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force"
-  },
-  "exclude": ["node_modules/**/*.ts", "node_modules/**/*.tsx", "dist"]
+    "compilerOptions": {
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "lib": ["ESNext", "DOM", "DOM.Iterable"],
+        "moduleResolution": "Bundler",
+        "jsx": "react",
+        "jsxFactory": "h",
+        "jsxFragmentFactory": "f",
+        "module": "ESNext",
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "outDir": "./dist",
+        "skipLibCheck": true,
+        "strict": true,
+        "strictFunctionTypes": true,
+        "target": "ES2022",
+        "verbatimModuleSyntax": true,
+        "moduleDetection": "force"
+    },
+    "exclude": ["node_modules/**/*.ts", "node_modules/**/*.tsx", "dist"]
 }

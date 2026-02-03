@@ -7,9 +7,9 @@ const [text, setText] = createSignal("")
 const output = createMemo(() => sArCaStIcIfY(text()))
 
 render(
-  [
-    <textarea on:input={(event) => setText(event.currentTarget.value)} />,
-    <textarea readOnly value={output} />,
-  ],
-  document.body,
+    [
+        <textarea on:input={(event) => setText(event.currentTarget.value)} />,
+        <textarea readOnly value={output} />,
+    ],
+    document.body,
 )

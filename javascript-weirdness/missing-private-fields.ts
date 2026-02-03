@@ -2,54 +2,55 @@
 // supposed to have, leading to issues with `#x in instance`.
 
 class Abc {
-  static #createWithAge = false
-  static #instance?: Abc
+    static #createWithAge = false
+    static #instance?: Abc
 
-  static create(withAge: boolean) {
-    Abc.#createWithAge = withAge
+    static create(withAge: boolean) {
+        Abc.#createWithAge = withAge
 
-    try {
-      return new Abc()
-    } catch {
-      return Abc.#instance!
+        try {
+            return new Abc()
+        } catch {
+            return Abc.#instance!
+        }
     }
-  }
 
-  #name = "sakawi"
+    #name = "sakawi"
 
-  _ = ((Abc.#instance = this), void 0)
+    _ = ((Abc.#instance = this), void 0)
 
-  #age = Abc.#createWithAge
-    ? 48
-    : ((): never => {
-        throw new Error()
-      })()
+    #age =
+        Abc.#createWithAge ? 48 : (
+            ((): never => {
+                throw new Error()
+            })()
+        )
 
-  private constructor() {}
+    private constructor() {}
 
-  hasName() {
-    return #name in this
-  }
+    hasName() {
+        return #name in this
+    }
 
-  hasAge() {
-    return #age in this
-  }
+    hasAge() {
+        return #age in this
+    }
 
-  getName() {
-    return this.#name
-  }
+    getName() {
+        return this.#name
+    }
 
-  getAge() {
-    return this.#age
-  }
+    getAge() {
+        return this.#age
+    }
 
-  setName(value: string) {
-    this.#name = value
-  }
+    setName(value: string) {
+        this.#name = value
+    }
 
-  setAge(value: number) {
-    this.#age = value
-  }
+    setAge(value: number) {
+        this.#age = value
+    }
 }
 
 const withoutAge = Abc.create(false)

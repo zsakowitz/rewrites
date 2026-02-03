@@ -5,17 +5,17 @@ import * as P from "puppeteer"
 export const browser = P.launch()
 
 export async function createPage() {
-  const page = await (await browser).newPage()
-  return new Page(page)
+    const page = await (await browser).newPage()
+    return new Page(page)
 }
 
 export class Page {
-  readonly #page: P.Page
+    readonly #page: P.Page
 
-  constructor(page: P.Page) {
-    this.#page = page
+    constructor(page: P.Page) {
+        this.#page = page
 
-    page.evaluate(`// This injects a box into the page that moves with the mouse;
+        page.evaluate(`// This injects a box into the page that moves with the mouse;
 // Useful for debugging
 (function () {
   const box = document.createElement('div');
@@ -89,13 +89,13 @@ export class Page {
       {box.classList.toggle('button-' + i, buttons & (1 << i));}
   }
 })();`)
-  }
+    }
 
-  setViewport(width: number, height: number) {
-    this.#page.setViewport({ height, width })
-  }
+    setViewport(width: number, height: number) {
+        this.#page.setViewport({ height, width })
+    }
 
-  screenshot() {
-    return this.#page.screenshot()
-  }
+    screenshot() {
+        return this.#page.screenshot()
+    }
 }

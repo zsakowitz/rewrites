@@ -9,19 +9,19 @@ const source = ["2+2x", "x+y-1", "2y-1", "x+1", "y", "3"]
 const els = source.map((a, ai) => [a, ai] as const)
 
 const result = els
-  .flatMap(([a, ai]) =>
-    els
-      .map(([b, bi]) => {
-        if (ai == bi) {
-          return undefined
-        }
+    .flatMap(([a, ai]) =>
+        els
+            .map(([b, bi]) => {
+                if (ai == bi) {
+                    return undefined
+                }
 
-        return `${a}=${b} \\left \\{${source
-          .map((source) => `${a} \\le ${source}`)
-          .join("\\right \\} \\left \\{")} \\right \\}`
-      })
-      .filter((x) => x),
-  )
-  .filter((x) => x)
+                return `${a}=${b} \\left \\{${source
+                    .map((source) => `${a} \\le ${source}`)
+                    .join("\\right \\} \\left \\{")} \\right \\}`
+            })
+            .filter((x) => x),
+    )
+    .filter((x) => x)
 
 copy(result.join("\n"))

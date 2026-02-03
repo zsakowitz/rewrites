@@ -1,18 +1,18 @@
 import { Group } from "./group"
 
 export interface El {
-  rev: boolean
-  which: number
+    rev: boolean
+    which: number
 }
 
 export class D extends Group<El> {
-  constructor(readonly n: number) {
-    super()
-  }
+    constructor(readonly n: number) {
+        super()
+    }
 
-  id(): El {
-    return { rev: false, which: 0 }
-  }
+    id(): El {
+        return { rev: false, which: 0 }
+    }
 
-  inv(el: El): El {}
+    inv(el: El): El {}
 }

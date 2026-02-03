@@ -7,9 +7,9 @@ const FPS = 60
 const MS_BETWEEN_FRAMES = FPS / 1000
 
 const styles = html(
-  "style",
-  {},
-  `
+    "style",
+    {},
+    `
 .player-button {
   color: white;
   background-color: #252525;
@@ -30,19 +30,19 @@ const styles = html(
 )
 
 function makeCanvas() {
-  const canvas = html("canvas", {
-    height: 1080,
-    width: 1920,
-    style: `
+    const canvas = html("canvas", {
+        height: 1080,
+        width: 1920,
+        style: `
 background-color: #151515;
 max-width: 100%;
 max-height: 100%`,
-  })
+    })
 
-  const canvasOuter = html(
-    "div",
-    {
-      style: `
+    const canvasOuter = html(
+        "div",
+        {
+            style: `
 position: fixed;
 inset: 0;
 display: flex;
@@ -51,44 +51,44 @@ max-height: 100vh;
 justify-content: center;
 align-items: center;
 background-color: black;`,
-    },
-    canvas,
-  )
+        },
+        canvas,
+    )
 
-  const context = canvas.getContext("2d")!
+    const context = canvas.getContext("2d")!
 
-  if (!context) {
-    throw new Error("Could not acquire 2D canvas context.")
-  }
+    if (!context) {
+        throw new Error("Could not acquire 2D canvas context.")
+    }
 
-  return { canvasOuter, canvas, context }
+    return { canvasOuter, canvas, context }
 }
 
 function button(label: string, action: () => void) {
-  return html(
-    "button",
-    { "on:click": action, className: "player-button" },
-    label,
-  )
+    return html(
+        "button",
+        { "on:click": action, className: "player-button" },
+        label,
+    )
 }
 
 function makeToolbar({
-  scene,
-  context,
-  next,
-  frameId,
+    scene,
+    context,
+    next,
+    frameId,
 }: {
-  context: CanvasRenderingContext2D
-  frameId: () => number
-  next: (time: number) => void
-  scene: Scene
+    context: CanvasRenderingContext2D
+    frameId: () => number
+    next: (time: number) => void
+    scene: Scene
 }) {
-  const frames = button("0000", () => {})
+    const frames = button("0000", () => {})
 
-  return html(
-    "div",
-    {
-      style: `
+    return html(
+        "div",
+        {
+            style: `
 position: fixed;
 left: 1rem;
 right: 1rem;
@@ -96,54 +96,54 @@ bottom: 1rem;
 display: flex;
 justify-content: center;
 gap: 1rem;`,
-    },
+        },
 
-    button("Reset", () => {
-      scene.reset()
-      scene.render(context)
-    }),
+        button("Reset", () => {
+            scene.reset()
+            scene.render(context)
+        }),
 
-    button("Step", () => {
-      scene.next()
-      scene.render(context)
-    }),
+        button("Step", () => {
+            scene.next()
+            scene.render(context)
+        }),
 
-    button("Play", () => next(performance.now())),
-    button("Stop", () => cancelAnimationFrame(frameId())),
-    frames,
-  )
+        button("Play", () => next(performance.now())),
+        button("Stop", () => cancelAnimationFrame(frameId())),
+        frames,
+    )
 }
 
 export function preview(scene: Scene) {
-  const { canvasOuter, context } = makeCanvas()
+    const { canvasOuter, context } = makeCanvas()
 
-  scene.render(context)
+    scene.render(context)
 
-  const toolbar = makeToolbar({
-    scene,
-    context,
-    next,
-    frameId: () => frameId,
-  })
-
-  let frameId = 0
-
-  function next(start: number) {
-    frameId = requestAnimationFrame(async (time) => {
-      if (time - start >= MS_BETWEEN_FRAMES) {
-        const isDone = scene.next()
-        scene.render(context)
-
-        if (isDone) {
-          return
-        }
-
-        next(start + MS_BETWEEN_FRAMES)
-      } else {
-        next(start)
-      }
+    const toolbar = makeToolbar({
+        scene,
+        context,
+        next,
+        frameId: () => frameId,
     })
-  }
 
-  document.body.append(styles, canvasOuter, toolbar)
+    let frameId = 0
+
+    function next(start: number) {
+        frameId = requestAnimationFrame(async (time) => {
+            if (time - start >= MS_BETWEEN_FRAMES) {
+                const isDone = scene.next()
+                scene.render(context)
+
+                if (isDone) {
+                    return
+                }
+
+                next(start + MS_BETWEEN_FRAMES)
+            } else {
+                next(start)
+            }
+        })
+    }
+
+    document.body.append(styles, canvasOuter, toolbar)
 }

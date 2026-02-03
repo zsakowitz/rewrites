@@ -15,12 +15,12 @@ const [x, setX] = signal(23)
 const [exitEarly, setExitEarly] = signal(false)
 
 immediateEffect(() => {
-  console.log("effect is running")
-  if (exitEarly()) {
-    console.log("exit early")
-    return
-  }
-  console.log(x())
+    console.log("effect is running")
+    if (exitEarly()) {
+        console.log("exit early")
+        return
+    }
+    console.log(x())
 })
 
 setX(78)
@@ -47,36 +47,36 @@ console.group("section 2")
 type Truthy<T> = Exclude<T & {}, 0 | "" | false | 0n>
 
 function Show<T, U>(
-  when: () => T,
-  children: (fn: () => Truthy<T>) => U,
+    when: () => T,
+    children: (fn: () => Truthy<T>) => U,
 ): () => U | undefined {
-  const getValue = memo(when, { equal: (a, b) => !a === !b })
+    const getValue = memo(when, { equal: (a, b) => !a === !b })
 
-  return memo(() => {
-    const value = getValue()
+    return memo(() => {
+        const value = getValue()
 
-    if (value) {
-      return untrack(() =>
-        children(() => {
-          let value
-          if (!untrack(getValue) || !(value = when())) {
-            throw new Error("Invalid access in <Show />")
-          }
-          return value satisfies NonNullable<T> as Truthy<T>
-        }),
-      )
-    }
-  })
+        if (value) {
+            return untrack(() =>
+                children(() => {
+                    let value
+                    if (!untrack(getValue) || !(value = when())) {
+                        throw new Error("Invalid access in <Show />")
+                    }
+                    return value satisfies NonNullable<T> as Truthy<T>
+                }),
+            )
+        }
+    })
 }
 
 const [name, setName] = signal<string>()
 
 const shown = Show(name, () => {
-  console.log("creating children")
-  onCleanup(() => {
-    console.log("destroying children")
-  })
-  return 23
+    console.log("creating children")
+    onCleanup(() => {
+        console.log("destroying children")
+    })
+    return 23
 })
 
 // memos do nothing unless they're watched
