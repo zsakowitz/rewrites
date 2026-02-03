@@ -22,7 +22,7 @@ function sortFilenames(files: string[]) {
                 return 1
             }
 
-            if (a.length == 2 && b.length == 3) {
+            if (a.length < b.length) {
                 if (a[0] == b[0]) {
                     return -1
                 }
@@ -30,7 +30,7 @@ function sortFilenames(files: string[]) {
                 return a[0]! < b[0]! ? -1 : 1
             }
 
-            if (b.length == 2 && a.length == 3) {
+            if (b.length < a.length) {
                 if (b[0] == a[0]) {
                     return 1
                 }

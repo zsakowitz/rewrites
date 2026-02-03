@@ -3,7 +3,7 @@
 This repository contains lots of test projects that I've created. The name is a
 relic from its initial creation, when I used it to rewrite the Iterator Helpers
 proposal. Now it contains everything from stacks to language parsers to the JS
-standard library implemented solely in the TS type system. Enjoy the 338 files
+standard library implemented solely in the TS type system. Enjoy the 454 files
 this repository has to offer.
 
 # File listing
@@ -60,6 +60,10 @@ Incomplete.
 proper keyboard shortcuts to StackBlitz and doubles the speed of a video in
 YouTube when activated.
 
+**[coercions.ts](./coercions.ts)**: An experiment to ensure the logic for
+project nya's coercion system will work before implementing it in the
+(admittedly more complicated) actual codebase.
+
 **[complex.ts](./complex.ts)**: An arbitrary precision complex number library.
 
 **[conjuncts3.js](./conjuncts3.js)**: @ts-check
@@ -101,9 +105,6 @@ https://github.com/iamcal/enchant-order/blob/main/data.js
 
 **[encode-uri.js](./encode-uri.js)**: Encodes standard input into a javascript:
 bookmark.
-
-**[enumerable-weak-set.ts](./enumerable-weak-set.ts)**: An enumerable WeakSet
-created using WeakRefs.
 
 **[env.d.ts](./env.d.ts)**: Declares modules without @types/... declarations.
 
@@ -328,6 +329,9 @@ tetration.
 **[tick-oat-two.ts](./tick-oat-two.ts)**: An AI for the TickoaTTwo game created
 by Oats Jenkins: https://www.youtube.com/watch?v=ePxrVU4M9uA
 
+**[times.ts](./times.ts)**: Sets each file's "last updated" timestamp to its
+creation timestamp.
+
 **[toki-pona-names.ts](./toki-pona-names.ts)**: Generates random toki pona-style
 names.
 
@@ -414,6 +418,12 @@ for Animator.
 
 **[animator/scenes/colors.ts](./animator/scenes/colors.ts)**: An Animator scene
 with colored rectangles.
+
+**[cursed/enumerable-weak-map-01.ts](./cursed/enumerable-weak-map-01.ts)**: An
+enumerable WeakMap. Pretty much the wrong data structure for everything.
+
+**[cursed/enumerable-weak-set.ts](./cursed/enumerable-weak-set.ts)**: An
+enumerable WeakSet created using WeakRefs.
 
 **[desmos/expression-parser.ts](./desmos/expression-parser.ts)**: Parses simple
 math expressions.
