@@ -38,6 +38,18 @@ export function orders(g: Group): readonly number[] {
     return ret
 }
 
+export function isAutomorphism(g: Group, el: (x: number) => number): boolean {
+    for (let a = 0; a < g.len; a++) {
+        for (let b = 0; b < g.len; b++) {
+            if (el(g.op(a, b)) != g.op(el(a), el(b))) {
+                return false
+            }
+        }
+    }
+
+    return true
+}
+
 console.log(orders(new Z(12)))
 
-// export function Aut<T>({ id, len, op, write }: Group) {}
+export function Aut<T>(g: Group) {}
