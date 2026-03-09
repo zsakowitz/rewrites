@@ -20,6 +20,7 @@ function write() {
     cv.ctx.save()
     cv.ctx.resetTransform()
     cv.ctx.scale(devicePixelRatio, devicePixelRatio)
+    cv.ctx.lineWidth = 2 * ((movement.pos.zy * cv.el.height) / devicePixelRatio)
     for (const key in paths.active) {
         cv.ctx.stroke(asCanvasPath(paths.active[key]!.points))
     }
