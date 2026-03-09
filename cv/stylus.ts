@@ -1,3 +1,5 @@
+import { getStroke } from "perfect-freehand"
+
 interface Path {
     id: number
     points: Point[]
@@ -106,41 +108,52 @@ export class PathCapturer {
     }
 }
 
-export function asCanvasPath(points: Point[]) {
-    const path = new Path2D()
+const average = (a: number, b: number) => (a + b) / 2
 
-    path.moveTo(points[0]!.x, points[0]!.y)
+function getSvgPathFromStroke(points: [number, number][], closed = true) {
+    const len = points.length
 
-    if (points.length == 1) {
-        return path
+    if (len < 4) {
+        return new Path2D()
     }
 
-    const FST = {
-        x: 2 * points[0]!.x - points[1]!.x,
-        y: 2 * points[0]!.y - points[1]!.y,
+    let a = points[0]!
+    let b = points[1]!
+    const c = points[2]!
+
+    let result = `M${a[0].toFixed(2)},${a[1].toFixed(2)} Q${b[0].toFixed(
+        2,
+    )},${b[1].toFixed(2)} ${average(b[0], c[0]).toFixed(2)},${average(
+        b[1],
+        c[1],
+    ).toFixed(2)} T`
+
+    for (let i = 2, max = len - 1; i < max; i++) {
+        a = points[i]!
+        b = points[i + 1]!
+        result += `${average(a[0], b[0]).toFixed(2)},${average(
+            a[1],
+            b[1],
+        ).toFixed(2)} `
     }
 
-    const LST = {
-        x: 2 * points[points.length - 1]!.x - points[points.length - 2]!.x,
-        y: 2 * points[points.length - 1]!.y - points[points.length - 2]!.y,
+    if (closed) {
+        result += "Z"
     }
 
-    const end = points.length - 2
-    for (let i = 0; i <= end; i++) {
-        const { x: x0, y: y0 } = i == 0 ? FST : points[i - 1]!
-        const { x: x1, y: y1 } = points[i]!
-        const { x: x2, y: y2 } = points[i + 1]!
-        const { x: x3, y: y3 } = i == end ? LST : points[i + 2]!
+    const path = new Path2D(result)
 
-        path.bezierCurveTo(
-            x1 + (x2 - x0) / 6,
-            y1 + (y2 - y0) / 6,
-            x2 - (x3 - x1) / 6,
-            y2 - (y3 - y1) / 6,
-            x2,
-            y2,
-        )
+    for (const [x, y] of points) {
+        path.moveTo(x + 8, y)
+        path.ellipse(x, y, 8, 8, 0, 0, 2 * Math.PI)
     }
 
     return path
+}
+
+export function asCanvasPath(points: (Point | [number, number])[]): Path2D {
+    return getSvgPathFromStroke(
+        getStroke(points, { size: 4, thinning: 0, last: true }),
+        false,
+    )
 }

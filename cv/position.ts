@@ -196,14 +196,28 @@ export class MovementTarget {
         this.onUpdate?.()
     }
 
-    transform(ctx: CanvasRenderingContext2D, pos = this.pos) {
+    transformContext(ctx: CanvasRenderingContext2D, pos = this.pos) {
         ctx.resetTransform()
         ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2)
         ctx.scale(
-            ((1 / pos.zx) * ctx.canvas.height) / 2,
-            (-(1 / pos.zy) * ctx.canvas.height) / 2,
+            ctx.canvas.height / (2 * pos.zx),
+            -ctx.canvas.height / (2 * pos.zy),
         )
         ctx.translate(-pos.tx, -pos.ty)
+    }
+
+    transformPoint({ x, y }: { x: number; y: number }): [number, number] {
+        const pos = this.pos
+
+        return [
+            devicePixelRatio
+                * (x / this.el.clientHeight
+                    - this.el.clientWidth / this.el.clientHeight / 2)
+                * pos.zx
+                + pos.tx,
+            devicePixelRatio * -(y / this.el.clientHeight - 0.5) * pos.zy
+                + pos.ty,
+        ]
     }
 }
 
@@ -215,6 +229,6 @@ interface Position {
     tx: number // x-coordinate of center point
     ty: number // y-coordinate of center point
 
-    zx: number // zx>1 stretches screen so that horizontal things are wider than usual
-    zy: number // 1/zy is distance from center point to top-center point
+    zx: number
+    zy: number // zy is distance from center point to top-center point
 }
