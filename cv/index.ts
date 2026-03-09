@@ -1,5 +1,4 @@
 import { Canvas } from "./canvas"
-import { di } from "./debug"
 import { MovementTarget } from "./position"
 import { simplify } from "./simplify"
 import { asCanvasPath, PathCapturer } from "./stylus"
@@ -38,8 +37,6 @@ paths.onEnd = ({ points }, ev) => {
         write()
         return
     }
-
-    di.by``.number++
 
     movement.transform(cv.ctx)
     const path = simplify(points, 0.5, true).map(({ x, y }) => {

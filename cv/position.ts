@@ -1,5 +1,3 @@
-import { di } from "./debug"
-
 interface ActivePointer {
     id: number
     ox: number // original x
@@ -83,11 +81,6 @@ export class MovementTarget {
 
         const x2 = (a.x + b.x - cw) / ch
         const y2 = 1 - (a.y + b.y) / ch
-
-        di.write`
-P1  ${x1} ${y1}
-P2  ${x2} ${y2}
-`
 
         return {
             tx: tx + x1 * zx - x2 * (zx / scale),
