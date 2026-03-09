@@ -17,11 +17,10 @@ class DebugInfo {
     }
 }
 
-const di = new DebugInfo()
-
 interface Path {
     id: number
     points: Point[]
+    predicted: number
 }
 
 interface Point {
@@ -60,9 +59,11 @@ class PathCapturer {
 
     #onDown(ev: PointerEvent) {
         this.el.setPointerCapture(ev.pointerId)
+
         this.active[ev.pointerId] = {
             id: ev.pointerId,
             points: [{ x: ev.offsetX, y: ev.offsetY }],
+            predicted: 0,
         }
 
         this.onChange?.(this.active[ev.pointerId]!, ev)
@@ -71,6 +72,10 @@ class PathCapturer {
     #onMove(ev: PointerEvent) {
         const active = this.active[ev.pointerId]
         if (!active) return
+
+        for (let i = 0; i < active.predicted; i++) {
+            active.points.pop()
+        }
 
         if (
             ev.offsetX == active.points.at(-1)!.x
@@ -87,12 +92,27 @@ class PathCapturer {
             })
         }
 
+        const predicted = ev.getPredictedEvents()
+
+        for (const ev of predicted) {
+            active.points.push({
+                x: ev.offsetX,
+                y: ev.offsetY,
+            })
+        }
+
+        active.predicted = predicted.length
+
         this.onChange?.(this.active[ev.pointerId]!, ev)
     }
 
     #onUp(ev: PointerEvent) {
         const active = this.active[ev.pointerId]
         if (!active) return
+
+        for (let i = 0; i < active.predicted; i++) {
+            active.points.pop()
+        }
 
         active.points.push({ x: ev.offsetX, y: ev.offsetY })
 
@@ -158,18 +178,7 @@ class Canvas {
                 x2,
                 y2,
             )
-            this.ctx.strokeStyle = `oklch(0.7 0.2 ${Math.floor(i * (360 / 4.5))})`
-            this.ctx.stroke()
-            this.ctx.beginPath()
-            this.ctx.ellipse(
-                x1 + 4 * (Math.random() * 2 - 1),
-                y1 + 4 * (Math.random() * 2 - 1),
-                8,
-                8,
-                0,
-                0,
-                2 * Math.PI,
-            )
+            this.ctx.strokeStyle = `oklch(0.7 0.2 ${Math.floor(i * (360 / 100))})`
             this.ctx.stroke()
         }
     }
