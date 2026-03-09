@@ -90,9 +90,6 @@ P1  ${x1} ${y1}
 P2  ${x2} ${y2}
 `
 
-        // x1 / zx - x2 / (zx * scale) == dx
-        // y1 / zy - y2 / (zy * scale) == dy
-
         return {
             tx: tx + x1 / zx - x2 / (zx * scale),
             ty: ty + y1 / zy - y2 / (zy * scale),
@@ -216,9 +213,14 @@ P2  ${x2} ${y2}
     }
 }
 
+// If an on-screen point is represented by considering top-left to be (-1,-1)
+// and bottom-right to be (1,1), then its mapped position is
+//
+// (x / zx + tx, y / zy + ty)
 interface Position {
-    tx: number
-    ty: number
-    zx: number
-    zy: number
+    tx: number // x-coordinate of center point
+    ty: number // y-coordinate of center point
+
+    zx: number // zx>1 stretches screen so that horizontal things are wider than usual
+    zy: number // 1/zy is distance from center point to top-center point
 }
