@@ -208,5 +208,5 @@ function simp1(path: Point[]): Point[] {
 
 function simp2(path: Point[]): Point[] {
     if (path.length == 1) return [path[0]!, path[0]!]
-    return simplifyDouglasPeucker(path, 1)
+    return simplifyDouglasPeucker(path, 0.01)
 }
