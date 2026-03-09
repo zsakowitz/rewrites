@@ -5,7 +5,7 @@ interface Point {
     y: number
 }
 
-function simplify(points: Point[], end: Point, epsilon: number): Point[] {
+function simplify(points: Point[], epsilon: number): Point[] {
     const l0 = points[0]!
     const l1 = points.at(-1)!
 
@@ -23,19 +23,18 @@ function simplify(points: Point[], end: Point, epsilon: number): Point[] {
     }
 
     if (dmax < epsilon) {
-        return [points[0]!]
+        return []
     }
 
     return [
-        ...simplify(points.slice(0, index), points[index]!, epsilon),
-        ...simplify(points.slice(index), end, epsilon),
+        ...simplify(points.slice(0, index + 1), epsilon),
+        points[index]!,
+        ...simplify(points.slice(index), epsilon),
     ]
 }
 
 export function rdp(points: Point[], epsilon: number): Point[] {
     if (points.length <= 2) return points
 
-    return simplify(points.slice(0, -1), points.at(-1)!, epsilon).concat(
-        points.at(-1)!,
-    )
+    return [points[0]!, ...simplify(points, epsilon), points.at(-1)!]
 }
