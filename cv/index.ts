@@ -17,18 +17,19 @@ function write() {
     cv.ctx.lineCap = "round"
     cv.ctx.lineJoin = "round"
 
+    for (const el of completedPaths) {
+        cv.ctx.stroke(el)
+    }
+
     cv.ctx.save()
     cv.ctx.resetTransform()
     cv.ctx.scale(devicePixelRatio, devicePixelRatio)
-    cv.ctx.lineWidth = 2 * ((movement.pos.zy * cv.el.height) / devicePixelRatio)
+    cv.ctx.lineWidth =
+        2 * (((1 / movement.pos.zy) * cv.el.height) / devicePixelRatio)
     for (const key in paths.active) {
         cv.ctx.stroke(asCanvasPath(paths.active[key]!.points))
     }
     cv.ctx.restore()
-
-    for (const el of completedPaths) {
-        cv.ctx.stroke(el)
-    }
 }
 
 paths.onEnd = ({ points }, ev) => {

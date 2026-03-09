@@ -18,7 +18,7 @@ export class MovementTarget {
 
     constructor(
         readonly el: HTMLElement,
-        private _pos: Position = { tx: 0, ty: 0, zx: 0.001, zy: 0.001 },
+        private _pos: Position = { tx: 0, ty: 0, zx: 1000, zy: 1000 },
     ) {
         const wheel = this.#onWheel.bind(this)
         const pointerdown = this.#onPointerDown.bind(this)
@@ -59,9 +59,8 @@ export class MovementTarget {
         const { tx, ty, zx, zy } = this._pos
 
         const dx =
-            -((a.x - a.ox) / (zx * this.el.clientHeight)) * devicePixelRatio
-        const dy =
-            ((a.y - a.oy) / (zy * this.el.clientHeight)) * devicePixelRatio
+            -((a.x - a.ox) * (zx / this.el.clientHeight)) * devicePixelRatio
+        const dy = (a.y - a.oy) * (zy / this.el.clientHeight) * devicePixelRatio
 
         return {
             tx: tx + dx,
@@ -91,10 +90,10 @@ P2  ${x2} ${y2}
 `
 
         return {
-            tx: tx + x1 / zx - x2 / (zx * scale),
-            ty: ty + y1 / zy - y2 / (zy * scale),
-            zx: zx * scale,
-            zy: zy * scale,
+            tx: tx + x1 * zx - x2 * (zx / scale),
+            ty: ty + y1 * zy - y2 * (zy / scale),
+            zx: zx / scale,
+            zy: zy / scale,
         }
     }
 
@@ -169,18 +168,20 @@ P2  ${x2} ${y2}
     }
 
     #onWheel(ev: WheelEvent) {
+        if (this.pointers.size) return
+
+        ev.preventDefault()
+
         const { tx, ty, zx, zy } = this.pos
         const { deltaX: dx, deltaY: dy } = ev
         const { clientWidth: cw, clientHeight: ch } = this.el
 
-        ev.preventDefault()
-
         if (!(ev.ctrlKey || ev.metaKey)) {
-            this._pos = {
-                tx: tx + (2 * dx) / (zx * ch),
-                ty: ty - (2 * dy) / (zy * ch),
-                zx: zx,
-                zy: zy,
+            this.posCached = this._pos = {
+                tx: tx + 2 * dx * (zx / ch),
+                ty: ty - 2 * dy * (zy / ch),
+                zx,
+                zy,
             }
             this.onUpdate?.()
             return
@@ -192,11 +193,11 @@ P2  ${x2} ${y2}
         const px = (2 * ev.offsetX - cw) / ch
         const py = 1 - (2 * ev.offsetY) / ch
 
-        this._pos = {
-            tx: tx + (px * (1 - zmc)) / zx,
-            ty: ty + (py * (1 - zmc)) / zy,
-            zx: zx / zmc,
-            zy: zy / zmc,
+        this.posCached = this._pos = {
+            tx: tx + px * (1 - zmc) * zx,
+            ty: ty + py * (1 - zmc) * zy,
+            zx: zx * zmc,
+            zy: zy * zmc,
         }
 
         this.onUpdate?.()
@@ -206,8 +207,8 @@ P2  ${x2} ${y2}
         ctx.resetTransform()
         ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2)
         ctx.scale(
-            (pos.zx * ctx.canvas.height) / 2,
-            (-pos.zy * ctx.canvas.height) / 2,
+            ((1 / pos.zx) * ctx.canvas.height) / 2,
+            (-(1 / pos.zy) * ctx.canvas.height) / 2,
         )
         ctx.translate(-pos.tx, -pos.ty)
     }
