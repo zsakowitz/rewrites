@@ -1,18 +1,71 @@
+interface ActivePointer {
+    id: number
+    ox: number // original x
+    oy: number // original y
+    x: number
+    y: number
+}
+
 export class MovementTarget {
     destroy
     onUpdate: ((this: MovementTarget) => void) | undefined
 
+    pointers = new Map<number, ActivePointer>()
+
     constructor(
         readonly el: HTMLElement,
-        public pos: Position = { tx: 0, ty: 0, zx: 0.001, zy: 0.001 },
+        private _pos: Position = { tx: 0, ty: 0, zx: 0.001, zy: 0.001 },
     ) {
         const wheel = this.#onWheel.bind(this)
+        const pointerdown = this.#onPointerDown.bind(this)
+        const pointermove = this.#onPointerMove.bind(this)
+        const pointerup = this.#onPointerUp.bind(this)
 
         el.addEventListener("wheel", wheel, { passive: false })
+        el.addEventListener("pointerdown", pointerdown, { passive: true })
+        el.addEventListener("pointermove", pointermove, { passive: true })
+        el.addEventListener("pointerup", pointerup, { passive: true })
 
         this.destroy = () => {
             el.removeEventListener("wheel", wheel)
+            el.removeEventListener("pointerdown", pointerdown)
+            el.removeEventListener("pointermove", pointermove)
+            el.removeEventListener("pointerup", pointerup)
         }
+    }
+
+    get pos() {
+        return this._pos
+    }
+
+    #onPointerDown(ev: PointerEvent) {
+        if (ev.pointerType != "touch") return
+
+        this.el.setPointerCapture(ev.pointerId)
+
+        this.pointers.set(ev.pointerId, {
+            id: ev.pointerId,
+            ox: ev.offsetX,
+            oy: ev.offsetY,
+            x: ev.offsetX,
+            y: ev.offsetY,
+        })
+    }
+
+    #onPointerMove(ev: PointerEvent) {
+        const ptr = this.pointers.get(ev.pointerId)
+        if (!ptr) return
+
+        ptr.x = ev.offsetX
+        ptr.y = ev.offsetY
+    }
+
+    #onPointerUp(ev: PointerEvent) {
+        const ptr = this.pointers.get(ev.pointerId)
+        if (!ptr) return
+
+        ptr.x = ev.offsetX
+        ptr.y = ev.offsetY
     }
 
     #onWheel(ev: WheelEvent) {
@@ -23,7 +76,7 @@ export class MovementTarget {
         ev.preventDefault()
 
         if (!(ev.ctrlKey || ev.metaKey)) {
-            this.pos = {
+            this._pos = {
                 tx: tx + (2 * dx) / (zx * ch),
                 ty: ty - (2 * dy) / (zy * ch),
                 zx: zx,
@@ -39,7 +92,7 @@ export class MovementTarget {
         const px = (2 * ev.offsetX - cw) / ch
         const py = 1 - (2 * ev.offsetY) / ch
 
-        this.pos = {
+        this._pos = {
             tx: tx + (px * (1 - zmc)) / zx,
             ty: ty + (py * (1 - zmc)) / zy,
             zx: zx / zmc,

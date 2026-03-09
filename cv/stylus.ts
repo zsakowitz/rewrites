@@ -39,6 +39,10 @@ export class PathCapturer {
         null
 
     #onDown(ev: PointerEvent) {
+        if (ev.pointerType == "touch") {
+            return
+        }
+
         this.el.setPointerCapture(ev.pointerId)
 
         this.active[ev.pointerId] = {
