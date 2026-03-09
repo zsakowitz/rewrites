@@ -37,7 +37,9 @@ export class MovementTarget {
         }
     }
 
+    posCached: Position | undefined
     get pos(): Position {
+        if (this.posCached) return this.posCached
         const pos = this._pos
 
         di.el.textContent = "no world"
@@ -59,12 +61,12 @@ export class MovementTarget {
             ((a.y - a.oy) / (zy * this.el.clientHeight)) * devicePixelRatio
         di.el.textContent = `touchdiff ${dx} ${dy}`
 
-        return {
+        return (this.posCached = {
             tx: tx + dx,
             ty: ty + dy,
             zx,
             zy,
-        }
+        })
     }
 
     #onPointerDown(ev: PointerEvent) {
@@ -81,6 +83,7 @@ export class MovementTarget {
             down: true,
         })
 
+        this.posCached = undefined
         this.onUpdate?.()
     }
 
@@ -91,6 +94,7 @@ export class MovementTarget {
         ptr.x = ev.offsetX
         ptr.y = ev.offsetY
 
+        this.posCached = undefined
         this.onUpdate?.()
     }
 
@@ -107,6 +111,7 @@ export class MovementTarget {
 
         this._pos = this.pos
         this.pointers.clear()
+        this.posCached = undefined
         this.onUpdate?.()
     }
 
