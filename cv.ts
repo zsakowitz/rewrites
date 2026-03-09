@@ -17,6 +17,8 @@ class DebugInfo {
     }
 }
 
+const di = new DebugInfo()
+
 interface Path {
     id: number
     points: Point[]
@@ -143,10 +145,12 @@ class Canvas {
 
     clear() {
         this.resize()
+        di.el.textContent = "0"
     }
 
     drawPath(points: readonly Point[]) {
         if (points.length < 2) return
+        di.el.textContent = +di.el.textContent + points.length + ""
 
         const FST = {
             x: 2 * points[0]!.x - points[1]!.x,
@@ -209,7 +213,7 @@ paths.onEnd = (path, ev) => {
         return
     }
 
-    done.push(simplify(path.points, 2, true))
+    done.push(simplify(path.points, 1, true))
 
     write()
 }
