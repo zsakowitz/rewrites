@@ -3,15 +3,21 @@ const cv2 = document.createElement("canvas")
 const ctx = cv.getContext("2d")!
 const ctx2 = cv2.getContext("2d")!
 document.body.appendChild(cv)
-cv.style =
+document.body.appendChild(cv2)
+cv.style = cv2.style =
     "width:100vw;height:100vh;position:fixed;top:0;left:0;background:#ddd;touch-action:none"
+cv2.style.pointerEvents = "none"
+cv2.style.background = "none"
 
 const box = document.createElement("div")
 box.style =
-    "position:fixed;top:1em;left:1em;white-space:pre;font-family:monospace"
+    "position:fixed;top:1em;left:1em;white-space:pre;font-family:monospace;user-select:none;pointer-events:none"
 document.body.appendChild(box)
 
 cv.addEventListener("pointerdown", (ev) => {})
+
+const x: Record<number, number | null> = Object.create(null)
+const y: Record<number, number | null> = Object.create(null)
 
 cv.addEventListener("pointermove", (ev) => {
     box.textContent = `
@@ -37,6 +43,9 @@ twist              ${ev.twist}
         cv.width != devicePixelRatio * cv.clientWidth
         || cv.height != devicePixelRatio * cv.clientHeight
     ) {
+        ctx.resetTransform()
+        ctx2.resetTransform()
+
         cv.width = devicePixelRatio * cv.clientWidth
         cv.height = devicePixelRatio * cv.clientHeight
         ctx.scale(devicePixelRatio, devicePixelRatio)
@@ -46,14 +55,42 @@ twist              ${ev.twist}
         ctx2.scale(devicePixelRatio, devicePixelRatio)
     }
 
-    ctx.clearRect(0, 0, cv.width, cv.height)
+    for (const el of ev.getCoalescedEvents()) {
+        ctx.beginPath()
+        ctx.lineWidth = 4
+        ctx.lineCap = "round"
+        ctx.strokeStyle = "black"
+        const angle =
+            el.azimuthAngle
+            - Math.atan2(
+                el.offsetY - (y[el.pointerId] ?? el.offsetY),
+                el.offsetX - (x[el.pointerId] ?? el.offsetX),
+            )
+        ctx.strokeStyle = `hsl(${(180 / Math.PI) * angle},100%,50%)`
+        ctx.moveTo(x[el.pointerId] ?? el.offsetX, y[el.pointerId] ?? el.offsetY)
+        ctx.lineTo(
+            (x[el.pointerId] = el.offsetX),
+            (y[el.pointerId] = el.offsetY),
+        )
+        ctx.stroke()
+    }
 
-    const w = 64 * Math.cos(ev.altitudeAngle)
-    const h = 16
-    ctx.beginPath()
-    ctx.fillStyle = "black"
-    ctx.ellipse(ev.offsetX, ev.offsetY, w, h, ev.azimuthAngle, 0, 2 * Math.PI)
-    ctx.fill()
+    // ctx2.clearRect(0, 0, cv.clientWidth, cv.clientHeight)
+    // let px = x[ev.pointerId] ?? ev.offsetX
+    // let py = y[ev.pointerId] ?? ev.offsetY
+    // for (const el of ev.getPredictedEvents()) {
+    //     ctx2.beginPath()
+    //     ctx2.lineWidth = 4
+    //     ctx2.lineCap = "round"
+    //     ctx2.strokeStyle = "black"
+    //     ctx2.moveTo(px, py)
+    //     ctx2.lineTo((px = el.offsetX), (py = el.offsetY))
+    //     ctx2.stroke()
+    // }
 })
 
-cv.addEventListener("pointerrawupdate", (ev) => {})
+cv.addEventListener("pointerup", (ev) => {
+    ctx2.clearRect(0, 0, cv.clientWidth, cv.clientHeight)
+    x[ev.pointerId] = null
+    y[ev.pointerId] = null
+})
