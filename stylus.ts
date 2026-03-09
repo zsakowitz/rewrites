@@ -20,6 +20,10 @@ const x: Record<number, number | null> = Object.create(null)
 const y: Record<number, number | null> = Object.create(null)
 
 cv.addEventListener("pointermove", (ev) => {
+    const ay = ev.offsetY - (y[ev.pointerId] ?? ev.offsetY)
+    const ax = ev.offsetX - (x[ev.pointerId] ?? ev.offsetX)
+    const angle = Math.atan2(ay, ax)
+
     box.textContent = `
 time               ${Date.now()}
 pointerId          ${ev.pointerId}
@@ -37,6 +41,10 @@ tangentialPressure ${ev.tangentialPressure}
 tiltX              ${ev.tiltX}
 tiltY              ${ev.tiltY}
 twist              ${ev.twist}
+
+angle              ${angle}
+ay                 ${ay}
+ax                 ${ax}
 `.trim()
 
     if (
@@ -60,13 +68,9 @@ twist              ${ev.twist}
         ctx.lineWidth = 4
         ctx.lineCap = "round"
         ctx.strokeStyle = "black"
-        const angle =
-            el.azimuthAngle
-            - Math.atan2(
-                el.offsetY - (y[el.pointerId] ?? el.offsetY),
-                el.offsetX - (x[el.pointerId] ?? el.offsetX),
-            )
-        ctx.strokeStyle = `hsl(${(180 / Math.PI) * angle},100%,50%)`
+
+        ctx.strokeStyle = `hsl(${Math.round((180 / Math.PI) * angle)},100%,50%)`
+        ctx.lineWidth = 4
         ctx.moveTo(x[el.pointerId] ?? el.offsetX, y[el.pointerId] ?? el.offsetY)
         ctx.lineTo(
             (x[el.pointerId] = el.offsetX),
@@ -90,7 +94,11 @@ twist              ${ev.twist}
 })
 
 cv.addEventListener("pointerup", (ev) => {
+    box.textContent = "up"
+
     ctx2.clearRect(0, 0, cv.clientWidth, cv.clientHeight)
     x[ev.pointerId] = null
     y[ev.pointerId] = null
 })
+
+box.textContent = "not down"
