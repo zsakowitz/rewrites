@@ -51,7 +51,6 @@ paths.onEnd = ({ points }, ev) => {
     completedPaths.push(asCanvasPath(path))
 
     write()
-    navigator.clipboard.writeText(JSON.stringify(path))
 }
 
 paths.onChange = write

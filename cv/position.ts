@@ -1,9 +1,12 @@
+import { di } from "./debug"
+
 interface ActivePointer {
     id: number
     ox: number // original x
     oy: number // original y
     x: number
     y: number
+    down: boolean
 }
 
 export class MovementTarget {
@@ -34,8 +37,34 @@ export class MovementTarget {
         }
     }
 
-    get pos() {
-        return this._pos
+    get pos(): Position {
+        const pos = this._pos
+
+        di.el.textContent = "no world"
+
+        if (this.pointers.size == 0) {
+            return pos
+        }
+
+        di.el.textContent = "world"
+
+        const { tx, ty, zx, zy } = pos
+
+        const [a, b] = this.pointers.values()
+        if (!a || b) return pos
+
+        const dx =
+            -((a.x - a.ox) / (zx * this.el.clientHeight)) * devicePixelRatio
+        const dy =
+            ((a.y - a.oy) / (zy * this.el.clientHeight)) * devicePixelRatio
+        di.el.textContent = `touchdiff ${dx} ${dy}`
+
+        return {
+            tx: tx + dx,
+            ty: ty + dy,
+            zx,
+            zy,
+        }
     }
 
     #onPointerDown(ev: PointerEvent) {
@@ -49,7 +78,10 @@ export class MovementTarget {
             oy: ev.offsetY,
             x: ev.offsetX,
             y: ev.offsetY,
+            down: true,
         })
+
+        this.onUpdate?.()
     }
 
     #onPointerMove(ev: PointerEvent) {
@@ -58,14 +90,24 @@ export class MovementTarget {
 
         ptr.x = ev.offsetX
         ptr.y = ev.offsetY
+
+        this.onUpdate?.()
     }
 
     #onPointerUp(ev: PointerEvent) {
         const ptr = this.pointers.get(ev.pointerId)
         if (!ptr) return
+        ptr.down = false
 
-        ptr.x = ev.offsetX
-        ptr.y = ev.offsetY
+        for (const el of this.pointers) {
+            if (el[1].down) {
+                return
+            }
+        }
+
+        this._pos = this.pos
+        this.pointers.clear()
+        this.onUpdate?.()
     }
 
     #onWheel(ev: WheelEvent) {

@@ -18,10 +18,10 @@ export class PathCapturer {
         const move = this.#onMove.bind(this)
         const up = this.#onUp.bind(this)
 
-        el.addEventListener("pointerdown", down)
-        el.addEventListener("pointermove", move)
-        el.addEventListener("pointerup", up)
-        el.addEventListener("pointercancel", up)
+        el.addEventListener("pointerdown", down, { passive: true })
+        el.addEventListener("pointermove", move, { passive: true })
+        el.addEventListener("pointerup", up, { passive: true })
+        el.addEventListener("pointercancel", up, { passive: true })
 
         this.destroy = () => {
             el.removeEventListener("pointerdown", down)
