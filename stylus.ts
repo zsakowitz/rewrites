@@ -14,15 +14,18 @@ box.style =
     "position:fixed;top:1em;left:1em;white-space:pre;font-family:monospace;user-select:none;pointer-events:none"
 document.body.appendChild(box)
 
-cv.addEventListener("pointerdown", (ev) => {})
-
 const x: Record<number, number | null> = Object.create(null)
 const y: Record<number, number | null> = Object.create(null)
 
 cv.addEventListener("pointermove", (ev) => {
-    const ay = ev.offsetY - (y[ev.pointerId] ?? ev.offsetY)
-    const ax = ev.offsetX - (x[ev.pointerId] ?? ev.offsetX)
-    const angle = Math.atan2(ay, ax)
+    if (x[ev.pointerId] == null) return
+
+    const ay = ev.offsetY - y[ev.pointerId]!
+    const ax = ev.offsetX - x[ev.pointerId]!
+    if (ay == 0 && ax == 0) return
+
+    const angle = 2 * (Math.atan2(ay, ax) - ev.azimuthAngle) + Math.PI
+    const cos = Math.cos(angle)
 
     box.textContent = `
 time               ${Date.now()}
@@ -45,7 +48,8 @@ twist              ${ev.twist}
 angle              ${angle}
 ay                 ${ay}
 ax                 ${ax}
-`.trim()
+cos                ${cos}
+`.trimStart()
 
     if (
         cv.width != devicePixelRatio * cv.clientWidth
@@ -65,13 +69,10 @@ ax                 ${ax}
 
     for (const el of ev.getCoalescedEvents()) {
         ctx.beginPath()
-        ctx.lineWidth = 4
+        ctx.lineWidth = Math.min(4, 4 + 4 * cos)
         ctx.lineCap = "round"
-        ctx.strokeStyle = "black"
-
-        ctx.strokeStyle = `hsl(${Math.round((180 / Math.PI) * angle)},100%,50%)`
-        ctx.lineWidth = 4
-        ctx.moveTo(x[el.pointerId] ?? el.offsetX, y[el.pointerId] ?? el.offsetY)
+        ctx.strokeStyle = `oklch(0.7 0.2 ${Math.round(cos * 90 + 90)})`
+        ctx.moveTo(x[el.pointerId]!, y[el.pointerId]!)
         ctx.lineTo(
             (x[el.pointerId] = el.offsetX),
             (y[el.pointerId] = el.offsetY),
@@ -79,26 +80,33 @@ ax                 ${ax}
         ctx.stroke()
     }
 
-    // ctx2.clearRect(0, 0, cv.clientWidth, cv.clientHeight)
-    // let px = x[ev.pointerId] ?? ev.offsetX
-    // let py = y[ev.pointerId] ?? ev.offsetY
-    // for (const el of ev.getPredictedEvents()) {
-    //     ctx2.beginPath()
-    //     ctx2.lineWidth = 4
-    //     ctx2.lineCap = "round"
-    //     ctx2.strokeStyle = "black"
-    //     ctx2.moveTo(px, py)
-    //     ctx2.lineTo((px = el.offsetX), (py = el.offsetY))
-    //     ctx2.stroke()
-    // }
+    ctx2.clearRect(0, 0, cv.clientWidth, cv.clientHeight)
+    let px = x[ev.pointerId] ?? ev.offsetX
+    let py = y[ev.pointerId] ?? ev.offsetY
+    for (const el of ev.getPredictedEvents()) {
+        ctx2.beginPath()
+        ctx2.lineWidth = 4
+        ctx2.lineCap = "round"
+        ctx2.strokeStyle = "black"
+        ctx2.moveTo(px, py)
+        ctx2.lineTo((px = el.offsetX), (py = el.offsetY))
+        ctx2.stroke()
+    }
 })
 
 cv.addEventListener("pointerup", (ev) => {
-    box.textContent = "up"
+    box.textContent = "pointerup"
 
     ctx2.clearRect(0, 0, cv.clientWidth, cv.clientHeight)
     x[ev.pointerId] = null
     y[ev.pointerId] = null
+})
+
+cv.addEventListener("pointerdown", (ev) => {
+    box.textContent = "pointerdown"
+
+    x[ev.pointerId] = ev.offsetX
+    y[ev.pointerId] = ev.offsetY
 })
 
 box.textContent = "not down"
