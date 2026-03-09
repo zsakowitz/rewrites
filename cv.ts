@@ -1,4 +1,4 @@
-import { simplifyDouglasPeucker, simplifyRadialDist } from "./cv-simplify"
+import { simplify } from "./cv-simplify"
 
 class DebugInfo {
     readonly el = document.createElement("pre")
@@ -53,8 +53,12 @@ class PathCapturer {
         }
     }
 
-    onChange: ((this: PathCapturer, path: Path) => void) | null = null
-    onEnd: ((this: PathCapturer, path: Path) => void) | null = null
+    onChange:
+        | ((this: PathCapturer, path: Path, ev: PointerEvent) => void)
+        | null = null
+
+    onEnd: ((this: PathCapturer, path: Path, ev: PointerEvent) => void) | null =
+        null
 
     #onDown(ev: PointerEvent) {
         this.el.setPointerCapture(ev.pointerId)
@@ -64,7 +68,7 @@ class PathCapturer {
             predicted: 0,
         }
 
-        this.onChange?.(this.active[ev.pointerId]!)
+        this.onChange?.(this.active[ev.pointerId]!, ev)
     }
 
     #onMove(ev: PointerEvent) {
@@ -75,7 +79,7 @@ class PathCapturer {
             active.points.pop()
         }
 
-        const coalesced = [ev]
+        const coalesced = ev.getCoalescedEvents()
 
         for (const ev of coalesced) {
             active.points.push({
@@ -95,7 +99,7 @@ class PathCapturer {
 
         active.predicted = predicted.length
 
-        this.onChange?.(this.active[ev.pointerId]!)
+        this.onChange?.(this.active[ev.pointerId]!, ev)
     }
 
     #onUp(ev: PointerEvent) {
@@ -110,7 +114,7 @@ class PathCapturer {
         active.predicted = 0
 
         delete this.active[ev.pointerId]
-        this.onEnd?.(active)
+        this.onEnd?.(active, ev)
     }
 }
 
@@ -139,16 +143,20 @@ class Canvas {
     }
 
     drawPath(points: readonly Point[]) {
+        if (points.length < 2) return
+
         const FST = {
             x: 2 * points[0]!.x - points[1]!.x,
             y: 2 * points[0]!.y - points[1]!.y,
         }
+
         const LST = {
             x: 2 * points[points.length - 1]!.x - points[points.length - 2]!.x,
             y: 2 * points[points.length - 1]!.y - points[points.length - 2]!.y,
         }
 
-        this.ctx.beginPath()
+        this.ctx.lineCap = "round"
+        this.ctx.lineWidth = 2
 
         const end = points.length - 2
         for (let i = 0; i < points.length - 1; i++) {
@@ -157,6 +165,7 @@ class Canvas {
             const { x: x2, y: y2 } = points[i + 1]!
             const { x: x3, y: y3 } = i == end ? LST : points[i + 2]!
 
+            this.ctx.beginPath()
             this.ctx.moveTo(x1, y1)
             this.ctx.bezierCurveTo(
                 x1 + (x2 - x0) / 6,
@@ -166,12 +175,12 @@ class Canvas {
                 x2,
                 y2,
             )
+            this.ctx.strokeStyle = `oklch(0.7 0.2 ${Math.floor(i * (360 / 4))})`
+            this.ctx.stroke()
+            this.ctx.beginPath()
+            this.ctx.ellipse(x1, y1, 8, 8, 0, 0, 2 * Math.PI)
+            this.ctx.stroke()
         }
-
-        this.ctx.lineCap = "round"
-        this.ctx.lineWidth = 2
-        this.ctx.strokeStyle = "white"
-        this.ctx.stroke()
     }
 }
 
@@ -194,14 +203,37 @@ function write() {
 
 paths.onChange = write
 
-paths.onEnd = (path) => {
-    const simplified = simp(path.points)
+paths.onEnd = (path, ev) => {
+    if (ev.type == "pointercancel") {
+        write()
+        return
+    }
+    const simplified = simp2(path.points)
     done.push(simplified)
     di.value += `${path.points.length} --> ${simplified.length}`
     write()
 }
 
 function simp(path: Point[]): Point[] {
-    if (path.length == 1) return [path[0]!, path[0]!]
-    return simplifyRadialDist(path, 0.25)
+    if (path.length == 1) {
+        return [path[0]!, path[0]!]
+    }
+
+    if (path.length == 2) {
+        return path
+    }
+
+    return path
+}
+
+function simp2(path: Point[]): Point[] {
+    if (path.length == 1) {
+        return [path[0]!, path[0]!]
+    }
+
+    if (path.length == 2) {
+        return path
+    }
+
+    return simplify(path, 4, true)
 }

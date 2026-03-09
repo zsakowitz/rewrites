@@ -43,9 +43,9 @@ function getSqSegDist(p: Point, p1: Point, p2: Point) {
 // rest of the code doesn't care about point format
 
 // basic distance-based simplification
-export function simplifyRadialDist(points: Point[], sqTolerance: number) {
+function simplifyRadialDist(points: Point[], sqTolerance: number) {
     var prevPoint = points[0]!,
-        newPoints = [prevPoint!],
+        newPoints = [prevPoint],
         point!: Point
 
     for (var i = 1, len = points.length; i < len; i++) {
@@ -59,7 +59,7 @@ export function simplifyRadialDist(points: Point[], sqTolerance: number) {
 
     if (prevPoint !== point) newPoints.push(point)
 
-    return newPoints as Point[]
+    return newPoints
 }
 
 function simplifyDPStep(
@@ -91,10 +91,7 @@ function simplifyDPStep(
 }
 
 // simplification using Ramer-Douglas-Peucker algorithm
-export function simplifyDouglasPeucker(
-    points: Point[],
-    sqTolerance: number,
-): Point[] {
+function simplifyDouglasPeucker(points: Point[], sqTolerance: number) {
     var last = points.length - 1
 
     var simplified = [points[0]!]
@@ -102,4 +99,20 @@ export function simplifyDouglasPeucker(
     simplified.push(points[last]!)
 
     return simplified
+}
+
+// both algorithms combined for awesome performance
+export function simplify(
+    points: Point[],
+    tolerance: number,
+    highestQuality: boolean,
+) {
+    if (points.length <= 2) return points
+
+    var sqTolerance = tolerance !== undefined ? tolerance * tolerance : 1
+
+    points = highestQuality ? points : simplifyRadialDist(points, sqTolerance)
+    points = simplifyDouglasPeucker(points, sqTolerance)
+
+    return points
 }
