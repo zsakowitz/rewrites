@@ -188,25 +188,20 @@ function write() {
     }
 
     for (const key in paths.active) {
-        cv.drawPath(simp1(paths.active[key]!.points))
+        cv.drawPath(simp(paths.active[key]!.points))
     }
 }
 
 paths.onChange = write
 
 paths.onEnd = (path) => {
-    const simplified = simp2(path.points)
+    const simplified = simp(path.points)
     done.push(simplified)
     di.value += `${path.points.length} --> ${simplified.length}`
     write()
 }
 
-function simp1(path: Point[]): Point[] {
+function simp(path: Point[]): Point[] {
     if (path.length == 1) return [path[0]!, path[0]!]
-    return simplifyRadialDist(path, 1)
-}
-
-function simp2(path: Point[]): Point[] {
-    if (path.length == 1) return [path[0]!, path[0]!]
-    return simplifyDouglasPeucker(path, 0.01)
+    return simplifyRadialDist(path, 0.25)
 }
