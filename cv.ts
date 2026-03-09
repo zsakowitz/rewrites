@@ -199,6 +199,7 @@ function write() {
 
     cv.ctx.strokeStyle = "white"
     cv.ctx.lineWidth = 2
+    cv.ctx.lineCap = "round"
     cv.ctx.stroke()
 }
 
