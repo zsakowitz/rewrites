@@ -9,7 +9,7 @@ interface Point {
 // for 3D version, see 3d branch (configurability would draw significant performance overhead)
 
 // square distance between 2 points
-function getSqDist(p1: Point, p2) {
+function getSqDist(p1: Point, p2: Point) {
     var dx = p1.x - p2.x,
         dy = p1.y - p2.y
 
@@ -43,10 +43,10 @@ function getSqSegDist(p: Point, p1: Point, p2: Point) {
 // rest of the code doesn't care about point format
 
 // basic distance-based simplification
-function simplifyRadialDist(points: Point[], sqTolerance: number) {
-    var prevPoint = points[0],
-        newPoints = [prevPoint],
-        point
+export function simplifyRadialDist(points: Point[], sqTolerance: number) {
+    var prevPoint = points[0]!,
+        newPoints = [prevPoint!],
+        point!: Point
 
     for (var i = 1, len = points.length; i < len; i++) {
         point = points[i]!
@@ -59,7 +59,7 @@ function simplifyRadialDist(points: Point[], sqTolerance: number) {
 
     if (prevPoint !== point) newPoints.push(point)
 
-    return newPoints
+    return newPoints as Point[]
 }
 
 function simplifyDPStep(
@@ -91,7 +91,10 @@ function simplifyDPStep(
 }
 
 // simplification using Ramer-Douglas-Peucker algorithm
-export function simplifyDouglasPeucker(points: Point[], sqTolerance: number) {
+export function simplifyDouglasPeucker(
+    points: Point[],
+    sqTolerance: number,
+): Point[] {
     var last = points.length - 1
 
     var simplified = [points[0]!]
