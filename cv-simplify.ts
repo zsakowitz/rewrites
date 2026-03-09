@@ -17,7 +17,7 @@ function getSqDist(p1: Point, p2: Point) {
 }
 
 // square distance from a point to a segment
-function getSqSegDist(p: Point, p1: Point, p2: Point) {
+export function getSqSegDist(p: Point, p1: Point, p2: Point) {
     var x = p1.x,
         y = p1.y,
         dx = p2.x - x,
