@@ -17,8 +17,6 @@ class DebugInfo {
     }
 }
 
-const di = new DebugInfo()
-
 interface Path {
     id: number
     points: Point[]
@@ -145,12 +143,12 @@ class Canvas {
 
     clear() {
         this.resize()
-        di.el.textContent = "0"
     }
 
     drawPath(points: readonly Point[]) {
-        if (points.length < 2) return
-        di.el.textContent = +di.el.textContent + points.length + ""
+        this.ctx.moveTo(points[0]!.x, points[0]!.y)
+
+        if (points.length == 1) return
 
         const FST = {
             x: 2 * points[0]!.x - points[1]!.x,
@@ -162,18 +160,13 @@ class Canvas {
             y: 2 * points[points.length - 1]!.y - points[points.length - 2]!.y,
         }
 
-        this.ctx.lineCap = "round"
-        this.ctx.lineWidth = 2
-
         const end = points.length - 2
-        for (let i = 0; i < points.length - 1; i++) {
+        for (let i = 0; i <= end; i++) {
             const { x: x0, y: y0 } = i == 0 ? FST : points[i - 1]!
             const { x: x1, y: y1 } = points[i]!
             const { x: x2, y: y2 } = points[i + 1]!
             const { x: x3, y: y3 } = i == end ? LST : points[i + 2]!
 
-            this.ctx.beginPath()
-            this.ctx.moveTo(x1, y1)
             this.ctx.bezierCurveTo(
                 x1 + (x2 - x0) / 6,
                 y1 + (y2 - y0) / 6,
@@ -182,8 +175,6 @@ class Canvas {
                 x2,
                 y2,
             )
-            this.ctx.strokeStyle = `oklch(0.7 0.2 ${Math.floor(i * (360 / 100))})`
-            this.ctx.stroke()
         }
     }
 }
@@ -196,6 +187,8 @@ const done: Point[][] = []
 function write() {
     cv.clear()
 
+    cv.ctx.beginPath()
+
     for (const el of done) {
         cv.drawPath(el)
     }
@@ -203,6 +196,10 @@ function write() {
     for (const key in paths.active) {
         cv.drawPath(paths.active[key]!.points.slice())
     }
+
+    cv.ctx.strokeStyle = "white"
+    cv.ctx.lineWidth = 2
+    cv.ctx.stroke()
 }
 
 paths.onChange = write
