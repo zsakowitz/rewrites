@@ -18,10 +18,12 @@ const x: Record<number, number | null> = Object.create(null)
 const y: Record<number, number | null> = Object.create(null)
 
 cv.addEventListener("pointermove", (ev) => {
-    if (x[ev.pointerId] == null) return
+    const ox = x[ev.pointerId]
+    const oy = y[ev.pointerId]
+    if (ox == null || oy == null) return
 
-    const ay = ev.offsetY - y[ev.pointerId]!
-    const ax = ev.offsetX - x[ev.pointerId]!
+    const ay = ev.offsetY - oy
+    const ax = ev.offsetX - ox
     if (ay == 0 && ax == 0) return
 
     box.textContent = `
@@ -79,7 +81,7 @@ twist              ${ev.twist}
         ctx2.beginPath()
         ctx2.lineWidth = 4
         ctx2.lineCap = "round"
-        ctx2.strokeStyle = "black"
+        ctx2.strokeStyle = "#888"
         ctx2.moveTo(px, py)
         ctx2.lineTo((px = el.offsetX), (py = el.offsetY))
         ctx2.stroke()
