@@ -24,9 +24,6 @@ cv.addEventListener("pointermove", (ev) => {
     const ax = ev.offsetX - x[ev.pointerId]!
     if (ay == 0 && ax == 0) return
 
-    const angle = 2 * (Math.atan2(ay, ax) - ev.azimuthAngle) + Math.PI
-    const cos = Math.cos(angle)
-
     box.textContent = `
 time               ${Date.now()}
 pointerId          ${ev.pointerId}
@@ -44,11 +41,6 @@ tangentialPressure ${ev.tangentialPressure}
 tiltX              ${ev.tiltX}
 tiltY              ${ev.tiltY}
 twist              ${ev.twist}
-
-angle              ${angle}
-ay                 ${ay}
-ax                 ${ax}
-cos                ${cos}
 `.trimStart()
 
     if (
@@ -69,9 +61,9 @@ cos                ${cos}
 
     for (const el of ev.getCoalescedEvents()) {
         ctx.beginPath()
-        ctx.lineWidth = Math.min(4, 4 + 4 * cos)
+        ctx.lineWidth = 4
         ctx.lineCap = "round"
-        ctx.strokeStyle = `oklch(0.7 0.2 ${Math.round(cos * 90 + 90)})`
+        ctx.strokeStyle = "black"
         ctx.moveTo(x[el.pointerId]!, y[el.pointerId]!)
         ctx.lineTo(
             (x[el.pointerId] = el.offsetX),
