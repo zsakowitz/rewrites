@@ -7,6 +7,7 @@ interface ActivePointer {
     x: number
     y: number
     down: boolean
+    moved: boolean
 }
 
 export class MovementTarget {
@@ -28,49 +29,76 @@ export class MovementTarget {
         el.addEventListener("pointerdown", pointerdown, { passive: true })
         el.addEventListener("pointermove", pointermove, { passive: true })
         el.addEventListener("pointerup", pointerup, { passive: true })
+        el.addEventListener("pointercancel", pointerup, { passive: true })
 
         this.destroy = () => {
             el.removeEventListener("wheel", wheel)
             el.removeEventListener("pointerdown", pointerdown)
             el.removeEventListener("pointermove", pointermove)
             el.removeEventListener("pointerup", pointerup)
+            el.removeEventListener("pointercancel", pointerup)
         }
+
+        setInterval(
+            () =>
+                (di.el.textContent = Array.from(this.pointers.values())
+                    .map((x) => `${x.id} down?${x.down} moved?${x.moved}`)
+                    .join("\n")),
+        )
     }
 
     posCached: Position | undefined
     get pos(): Position {
         if (this.posCached) return this.posCached
-        const pos = this._pos
 
-        di.el.textContent = "no world"
+        const [a, b, c] = this.pointers.values()
 
-        if (this.pointers.size == 0) {
-            return pos
-        }
+        const pos =
+            !a || c ? this._pos
+            : !a.down || (b && !b.down) ? this._pos
+            : b ? this.#pos2(a, b)
+            : this.#pos1(a)
 
-        di.el.textContent = "world"
+        return (this.posCached = pos)
+    }
 
-        const { tx, ty, zx, zy } = pos
-
-        const [a, b] = this.pointers.values()
-        if (!a || b) return pos
+    #pos1(a: ActivePointer) {
+        const { tx, ty, zx, zy } = this._pos
 
         const dx =
             -((a.x - a.ox) / (zx * this.el.clientHeight)) * devicePixelRatio
         const dy =
             ((a.y - a.oy) / (zy * this.el.clientHeight)) * devicePixelRatio
-        di.el.textContent = `touchdiff ${dx} ${dy}`
 
-        return (this.posCached = {
+        return {
             tx: tx + dx,
             ty: ty + dy,
             zx,
             zy,
-        })
+        }
+    }
+
+    #pos2(a: ActivePointer, b: ActivePointer): Position {
+        const { tx, ty, zx, zy } = this._pos
+
+        const scale =
+            Math.hypot(a.x - b.x, a.y - b.y)
+            / Math.hypot(a.ox - b.ox, a.oy - b.oy)
+
+        return {
+            tx,
+            ty,
+            zx: zx * scale,
+            zy: zy * scale,
+        }
     }
 
     #onPointerDown(ev: PointerEvent) {
         if (ev.pointerType != "touch") return
+        if (this.pointers.size >= 2) return
+
+        const [a] = this.pointers.values()
+        if (a?.moved) return
 
         this.el.setPointerCapture(ev.pointerId)
 
@@ -81,6 +109,7 @@ export class MovementTarget {
             x: ev.offsetX,
             y: ev.offsetY,
             down: true,
+            moved: false,
         })
 
         this.posCached = undefined
@@ -94,6 +123,10 @@ export class MovementTarget {
         ptr.x = ev.offsetX
         ptr.y = ev.offsetY
 
+        if (Math.hypot(ptr.x - ptr.ox, ptr.y - ptr.oy) > 8) {
+            ptr.moved = true
+        }
+
         this.posCached = undefined
         this.onUpdate?.()
     }
@@ -101,17 +134,32 @@ export class MovementTarget {
     #onPointerUp(ev: PointerEvent) {
         const ptr = this.pointers.get(ev.pointerId)
         if (!ptr) return
-        ptr.down = false
 
-        for (const el of this.pointers) {
-            if (el[1].down) {
-                return
+        let didReturn = false
+        for (const el of this.pointers.values()) {
+            if (!el.down) {
+                didReturn = true
+                break
             }
         }
 
-        this._pos = this.pos
-        this.pointers.clear()
-        this.posCached = undefined
+        ptr.down = false
+
+        if (ev.type == "pointerup" && !didReturn) {
+            this.posCached = this._pos = this.pos
+        }
+
+        let done = true
+        for (const el of this.pointers.values()) {
+            if (el.down) {
+                done = false
+            }
+        }
+
+        if (done) {
+            this.pointers.clear()
+        }
+
         this.onUpdate?.()
     }
 
