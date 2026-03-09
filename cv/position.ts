@@ -38,13 +38,6 @@ export class MovementTarget {
             el.removeEventListener("pointerup", pointerup)
             el.removeEventListener("pointercancel", pointerup)
         }
-
-        setInterval(
-            () =>
-                (di.el.textContent = Array.from(this.pointers.values())
-                    .map((x) => `${x.id} down?${x.down} moved?${x.moved}`)
-                    .join("\n")),
-        )
     }
 
     posCached: Position | undefined
@@ -80,14 +73,29 @@ export class MovementTarget {
 
     #pos2(a: ActivePointer, b: ActivePointer): Position {
         const { tx, ty, zx, zy } = this._pos
+        const { clientWidth: cw, clientHeight: ch } = this.el
 
         const scale =
             Math.hypot(a.x - b.x, a.y - b.y)
             / Math.hypot(a.ox - b.ox, a.oy - b.oy)
 
+        const x1 = (a.ox + b.ox - cw) / ch
+        const y1 = 1 - (a.oy + b.oy) / ch
+
+        const x2 = (a.x + b.x - cw) / ch
+        const y2 = 1 - (a.y + b.y) / ch
+
+        di.write`
+P1  ${x1} ${y1}
+P2  ${x2} ${y2}
+`
+
+        // x1 / zx - x2 / (zx * scale) == dx
+        // y1 / zy - y2 / (zy * scale) == dy
+
         return {
-            tx,
-            ty,
+            tx: tx + x1 / zx - x2 / (zx * scale),
+            ty: ty + y1 / zy - y2 / (zy * scale),
             zx: zx * scale,
             zy: zy * scale,
         }

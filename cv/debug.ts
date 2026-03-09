@@ -13,6 +13,15 @@ class DebugInfo {
         this.el.appendChild(btn)
         btn.onclick = () => navigator.clipboard.writeText(text)
     }
+
+    write(text: TemplateStringsArray, ...args: (string | number)[]) {
+        this.el.textContent = String.raw(
+            { raw: text },
+            ...args.map((x) =>
+                typeof x == "string" ? x : (x < 0 ? "" : "+") + x.toFixed(4),
+            ),
+        )
+    }
 }
 
 export const di = new DebugInfo()
