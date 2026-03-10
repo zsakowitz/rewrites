@@ -103,12 +103,12 @@ function simplifyDouglasPeucker(points: Point[], sqTolerance: number) {
 // both algorithms combined for awesome performance
 export function simplify(
     points: Point[],
-    tolerance: number,
-    highestQuality: boolean,
+    tolerance = 1,
+    highestQuality = false,
 ) {
     if (points.length <= 2) return points
 
-    var sqTolerance = tolerance !== undefined ? tolerance * tolerance : 1
+    var sqTolerance = tolerance * tolerance
 
     points = highestQuality ? points : simplifyRadialDist(points, sqTolerance)
     points = simplifyDouglasPeucker(points, sqTolerance)
