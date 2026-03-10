@@ -1,3 +1,5 @@
+export type Point = readonly [x: number, y: number]
+
 interface ActivePointer {
     id: number
     ox: number // original x
@@ -12,7 +14,7 @@ export class MovementTarget {
     destroy
     onUpdate: ((this: MovementTarget) => void) | undefined
 
-    pointers = new Map<number, ActivePointer>()
+    private pointers = new Map<number, ActivePointer>()
 
     constructor(
         readonly el: HTMLElement,
@@ -38,7 +40,7 @@ export class MovementTarget {
         }
     }
 
-    posCached: Transform | undefined
+    private posCached: Transform | undefined
     get pos(): Transform {
         if (this.posCached) return this.posCached
 
@@ -238,9 +240,6 @@ export function compose(a: Transform, b: Transform): Transform {
     }
 }
 
-export function apply(
-    a: Transform,
-    pt: [number, number][],
-): [number, number][] {
+export function apply(a: Transform, pt: Point[]): Point[] {
     return pt.map(([x, y]) => [x * a.zx + a.tx, y * a.zy + a.ty])
 }

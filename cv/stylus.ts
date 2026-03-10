@@ -1,12 +1,11 @@
 import { getStrokePoints } from "perfect-freehand"
+import type { Point } from "./transform"
 
 interface Path {
     id: number
     points: Point[]
     predicted: number
 }
-
-type Point = [number, number]
 
 export class PathCapturer {
     active: Record<number, Path> = Object.create(null)
@@ -101,7 +100,7 @@ export class PathCapturer {
 
 const average = (a: number, b: number) => (a + b) / 2
 
-export function getPath(points: [number, number][]) {
+export function getPath(points: Point[]) {
     const len = points.length
 
     if (len < 4) {
@@ -127,10 +126,10 @@ export function getPath(points: [number, number][]) {
 }
 
 export function getPathRaw(
-    points: [number, number][],
+    points: Point[],
     size: number,
     last: boolean,
-): [number, number][] {
+): Point[] {
     const stroke = getStrokePoints(points, { last, size }).map((x) => x.point)
     return stroke
 }

@@ -1,7 +1,13 @@
 import { Canvas } from "./canvas"
 import { di } from "./debug"
-import { apply, inverse, MovementTarget, type Transform } from "./position"
 import { getPath, getPathRaw, PathCapturer } from "./stylus"
+import {
+    apply,
+    compose,
+    inverse,
+    MovementTarget,
+    type Transform,
+} from "./transform"
 
 interface CompletePath {
     path: [number, number][]
@@ -31,21 +37,14 @@ ${movement.pos.zy}
 
     for (const el of completedPaths) {
         cv.ctx.lineWidth = el.lw
-        cv.ctx.stroke(getPath(detx(tx(el.path, el.tx))))
+        const tx = compose(el.tx, inverse(movement.getTransform()))
+        cv.ctx.stroke(getPath(apply(tx, el.path)))
     }
 
     cv.ctx.lineWidth = 4
     for (const key in paths.active) {
         cv.ctx.stroke(getPath(getPathRaw(paths.active[key]!.points, 4, false)))
     }
-}
-
-function tx(points: [number, number][], by: Transform): [number, number][] {
-    return points.map((p) => [p[0] * by.zx + by.tx, p[1] * by.zy + by.ty])
-}
-
-function detx(points: [number, number][]) {
-    return apply(inverse(movement.getTransform()), points)
 }
 
 paths.onEnd = ({ points }, ev) => {
