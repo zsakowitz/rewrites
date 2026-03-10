@@ -1,13 +1,8 @@
 import { Canvas } from "./canvas"
 import { di } from "./debug"
 import { getPath, getPathRaw, PathCapturer } from "./stylus"
-import {
-    apply,
-    compose,
-    inverse,
-    MovementTarget,
-    type Transform,
-} from "./transform"
+import { apply, compose, inverse, type Transform } from "./transform"
+import { TransformTarget } from "./transform-target"
 
 interface CompletePath {
     path: [number, number][]
@@ -18,14 +13,14 @@ interface CompletePath {
 const cv = new Canvas()
 const paths = new PathCapturer(cv.el)
 const completedPaths: CompletePath[] = []
-const movement = new MovementTarget(cv.el)
+const txTarget = new TransformTarget(cv.el)
 
 function write() {
     di.write`
-${movement.pos.tx}
-${movement.pos.ty}
-${movement.pos.zx}
-${movement.pos.zy}
+${txTarget.pos.tx}
+${txTarget.pos.ty}
+${txTarget.pos.zx}
+${txTarget.pos.zy}
     `
 
     cv.el.width = cv.el.width
@@ -37,7 +32,7 @@ ${movement.pos.zy}
 
     for (const el of completedPaths) {
         cv.ctx.lineWidth = el.lw
-        const tx = compose(el.tx, inverse(movement.getTransform()))
+        const tx = compose(el.tx, inverse(txTarget.getTransform()))
         cv.ctx.stroke(getPath(apply(tx, el.path)))
     }
 
@@ -60,15 +55,15 @@ paths.onEnd = ({ points }, ev) => {
             Math.round(x),
             Math.round(y),
         ]),
-        tx: movement.getTransform(),
-        lw: movement.toLocalDelta(4),
+        tx: txTarget.getTransform(),
+        lw: txTarget.toLocalDelta(4),
     })
 
     write()
 }
 
 paths.onChange = write
-movement.onUpdate = write
+txTarget.onUpdate = write
 cv.onResize = write
 
 setInterval(() => {
