@@ -41,7 +41,7 @@ class DebugInfo {
         const next = new DebugItem(document.createElement("textarea"))
         this.el.appendChild(next.el)
         this.els.set(text, next)
-        next.el.style.pointerEvents = "auto"
+        next.el.style = `margin:0;min-height:100px;min-width:300px;pointer-events:auto`
         return next
     }
 }

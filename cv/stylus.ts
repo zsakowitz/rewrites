@@ -1,5 +1,10 @@
-import { getStrokePoints } from "perfect-freehand"
-import type { Point } from "./transform"
+import {
+    getStrokePoints,
+    type StrokeOptions,
+    type Vec2,
+} from "perfect-freehand"
+import { di } from "./debug"
+import { flat, type Point, type PointList } from "./transform"
 
 interface Path {
     id: number
@@ -77,8 +82,20 @@ export class PathCapturer {
         for (const ev of predicted) {
             active.points.push([ev.offsetX, ev.offsetY])
         }
-
         active.predicted = predicted.length
+
+        const item = di.div``
+        if (
+            predicted.length == 0
+            && Math.hypot(ev.movementX, ev.movementY) > 2
+        ) {
+            active.points.push([
+                ev.offsetX + ev.movementX,
+                ev.offsetY + ev.movementY,
+            ])
+            active.predicted = 1
+        }
+        item.value = `${active.predicted}`
 
         this.onChange?.(this.active[ev.pointerId]!, ev)
     }
@@ -100,36 +117,47 @@ export class PathCapturer {
 
 const average = (a: number, b: number) => (a + b) / 2
 
-export function getPath(points: Point[]) {
-    const len = points.length
+export function getPath(p: PointList) {
+    const len = p.length
 
-    if (len < 4) {
-        return new Path2D()
+    if (len == 0) return new Path2D()
+
+    if (len == 2) {
+        const pt = new Path2D()
+        pt.moveTo(p[0]!, p[1]!)
+        return pt
     }
 
-    let a = points[0]!
-    let b = points[1]!
-    const c = points[2]!
+    if (len == 4) {
+        const pt = new Path2D()
+        pt.moveTo(p[0]!, p[1]!)
+        pt.lineTo(p[2]!, p[3]!)
+        return pt
+    }
 
-    let result = `M${a[0]},${a[1]} Q${b[0]},${b[1]} ${average(b[0], c[0])},${average(
-        b[1],
-        c[1],
+    let result = `M${p[0]!},${p[1]!} Q${p[2]!},${p[3]!} ${average(p[2]!, p[4]!)},${average(
+        p[3]!,
+        p[5]!,
     )} T`
 
-    for (let i = 2, max = len - 1; i < max; i++) {
-        a = points[i]!
-        b = points[i + 1]!
-        result += `${average(a[0], b[0])},${average(a[1], b[1])} `
+    for (let i = 4, max = len - 1; i < max; i += 2) {
+        result += `${average(p[i]!, p[i + 2]!)},${average(p[i + 1]!, p[i + 3]!)} `
     }
 
     return new Path2D(result)
 }
 
-export function getPathRaw(
-    points: Point[],
-    size: number,
-    last: boolean,
-): Point[] {
-    const stroke = getStrokePoints(points, { last, size }).map((x) => x.point)
-    return stroke
+const options: StrokeOptions = {
+    thinning: 0,
+    smoothing: 0.5,
+    streamline: 0.5,
+    easing: (t) => Math.sin((t * Math.PI) / 2), // https://easings.net/#easeOutSine
+    last: true,
+    size: 2,
+}
+
+export function getPathRaw(points: Point[], last: boolean): PointList {
+    const path = points
+    const stroke = getStrokePoints(path as Vec2[], options)
+    return flat(stroke.map((x) => x.point))
 }

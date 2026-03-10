@@ -202,6 +202,10 @@ export class TransformTarget {
         return (y / this.el.clientHeight / 2) * this.pos.zy
     }
 
+    toScreenDelta(y: number): number {
+        return (y / this.pos.zy) * 2 * this.el.clientHeight
+    }
+
     getTransform(): Transform {
         const { tx, ty, zx, zy } = this.pos
         const { clientWidth: cw, clientHeight: ch } = this.el
