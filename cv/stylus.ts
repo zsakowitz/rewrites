@@ -1,4 +1,4 @@
-import { getStroke } from "perfect-freehand"
+import { getStrokePoints } from "perfect-freehand"
 
 interface Path {
     id: number
@@ -6,10 +6,7 @@ interface Path {
     predicted: number
 }
 
-interface Point {
-    x: number
-    y: number
-}
+type Point = [number, number]
 
 export class PathCapturer {
     active: Record<number, Path> = Object.create(null)
@@ -49,7 +46,7 @@ export class PathCapturer {
 
         this.active[ev.pointerId] = {
             id: ev.pointerId,
-            points: [{ x: ev.offsetX, y: ev.offsetY }],
+            points: [[ev.offsetX, ev.offsetY]],
             predicted: 0,
         }
 
@@ -65,27 +62,21 @@ export class PathCapturer {
         }
 
         if (
-            ev.offsetX == active.points.at(-1)!.x
-            && ev.offsetY == active.points.at(-1)!.y
+            ev.offsetX == active.points.at(-1)![0]
+            && ev.offsetY == active.points.at(-1)![1]
         )
             return
 
         const coalesced = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev]
 
         for (const ev of coalesced) {
-            active.points.push({
-                x: ev.offsetX,
-                y: ev.offsetY,
-            })
+            active.points.push([ev.offsetX, ev.offsetY])
         }
 
         const predicted = ev.getPredictedEvents()
 
         for (const ev of predicted) {
-            active.points.push({
-                x: ev.offsetX,
-                y: ev.offsetY,
-            })
+            active.points.push([ev.offsetX, ev.offsetY])
         }
 
         active.predicted = predicted.length
@@ -101,7 +92,7 @@ export class PathCapturer {
             active.points.pop()
         }
 
-        active.points.push({ x: ev.offsetX, y: ev.offsetY })
+        active.points.push([ev.offsetX, ev.offsetY])
 
         delete this.active[ev.pointerId]
         this.onEnd?.(active, ev)
@@ -110,7 +101,7 @@ export class PathCapturer {
 
 const average = (a: number, b: number) => (a + b) / 2
 
-function getSvgPathFromStroke(points: [number, number][], closed = true) {
+export function getPath(points: [number, number][]) {
     const len = points.length
 
     if (len < 4) {
@@ -121,39 +112,25 @@ function getSvgPathFromStroke(points: [number, number][], closed = true) {
     let b = points[1]!
     const c = points[2]!
 
-    let result = `M${a[0].toFixed(2)},${a[1].toFixed(2)} Q${b[0].toFixed(
-        2,
-    )},${b[1].toFixed(2)} ${average(b[0], c[0]).toFixed(2)},${average(
+    let result = `M${a[0]},${a[1]} Q${b[0]},${b[1]} ${average(b[0], c[0])},${average(
         b[1],
         c[1],
-    ).toFixed(2)} T`
+    )} T`
 
     for (let i = 2, max = len - 1; i < max; i++) {
         a = points[i]!
         b = points[i + 1]!
-        result += `${average(a[0], b[0]).toFixed(2)},${average(
-            a[1],
-            b[1],
-        ).toFixed(2)} `
+        result += `${average(a[0], b[0])},${average(a[1], b[1])} `
     }
 
-    if (closed) {
-        result += "Z"
-    }
-
-    const path = new Path2D(result)
-
-    for (const [x, y] of points) {
-        path.moveTo(x + 8, y)
-        path.ellipse(x, y, 8, 8, 0, 0, 2 * Math.PI)
-    }
-
-    return path
+    return new Path2D(result)
 }
 
-export function asCanvasPath(points: (Point | [number, number])[]): Path2D {
-    return getSvgPathFromStroke(
-        getStroke(points, { size: 4, thinning: 0, last: true }),
-        false,
-    )
+export function getPathRaw(
+    points: [number, number][],
+    size: number,
+    last: boolean,
+): [number, number][] {
+    const stroke = getStrokePoints(points, { last, size }).map((x) => x.point)
+    return stroke
 }

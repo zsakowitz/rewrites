@@ -1,44 +1,51 @@
 import { Canvas } from "./canvas"
-import { MovementTarget } from "./position"
-import { asCanvasPath, PathCapturer } from "./stylus"
+import { di } from "./debug"
+import { MovementTarget, type Position } from "./position"
+import { getPath, getPathRaw, PathCapturer } from "./stylus"
+
+interface CompletePath {
+    path: [number, number][]
+    pos: Position
+    lw: number
+}
 
 const cv = new Canvas()
 const paths = new PathCapturer(cv.el)
-const completedPaths: Path2D[] = []
+const completedPaths: CompletePath[] = []
 const movement = new MovementTarget(cv.el)
 
 function write() {
-    cv.el.width = cv.el.width
-    movement.transformContext(cv.ctx)
+    di.write`
+${movement.pos.tx}
+${movement.pos.ty}
+${movement.pos.zx}
+${movement.pos.zy}
+    `
 
+    cv.el.width = cv.el.width
+    cv.ctx.resetTransform()
+    cv.ctx.scale(devicePixelRatio, devicePixelRatio)
     cv.ctx.strokeStyle = "white"
-    cv.ctx.lineWidth = 4
     cv.ctx.lineCap = "round"
     cv.ctx.lineJoin = "round"
 
-    cv.ctx.fillStyle = "white"
     for (const el of completedPaths) {
-        cv.ctx.fill(el)
+        cv.ctx.lineWidth = el.lw
+        cv.ctx.stroke(getPath(detx(tx(el.path, el.pos))))
     }
 
-    cv.ctx.save()
+    cv.ctx.lineWidth = 4
     for (const key in paths.active) {
-        cv.ctx.fill(asCanvasPath(tx(paths.active[key]!.points)))
+        cv.ctx.stroke(getPath(getPathRaw(paths.active[key]!.points, 4, false)))
     }
-    cv.ctx.restore()
 }
 
-function tx(points: { x: number; y: number }[]) {
-    return points.map(({ x, y }) => {
-        return movement.transformPoint({ x, y })
-        return cv.ctx
-            .getTransform()
-            .inverse()
-            .transformPoint({
-                x: x * devicePixelRatio,
-                y: y * devicePixelRatio,
-            })
-    })
+function tx(points: [number, number][], by: Position): [number, number][] {
+    return points.map((p) => [p[0] * by.zx + by.tx, p[1] * by.zy + by.ty])
+}
+
+function detx(points: [number, number][]) {
+    return points.map((p) => movement.localToScreen(p))
 }
 
 paths.onEnd = ({ points }, ev) => {
@@ -47,10 +54,16 @@ paths.onEnd = ({ points }, ev) => {
         return
     }
 
-    movement.transformContext(cv.ctx)
-    const path = tx(points)
+    const path = points
 
-    completedPaths.push(asCanvasPath(path))
+    completedPaths.push({
+        path: getPathRaw(path, 4, true).map(([x, y]): [number, number] => [
+            Math.round(x),
+            Math.round(y),
+        ]),
+        pos: movement.frozenPos(),
+        lw: movement.screenDeltaToLocal(96),
+    })
 
     write()
 }
@@ -58,3 +71,7 @@ paths.onEnd = ({ points }, ev) => {
 paths.onChange = write
 movement.onUpdate = write
 cv.onResize = write
+
+setInterval(() => {
+    di.textarea``.value = JSON.stringify(completedPaths)
+})

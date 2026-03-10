@@ -206,29 +206,49 @@ export class MovementTarget {
         ctx.translate(-pos.tx, -pos.ty)
     }
 
-    transformPoint({ x, y }: { x: number; y: number }): [number, number] {
+    screenToLocal([x, y]: [number, number]): [number, number] {
         const pos = this.pos
+        const { clientWidth: cw, clientHeight: ch } = this.el
 
         return [
-            devicePixelRatio
-                * (x / this.el.clientHeight
-                    - this.el.clientWidth / this.el.clientHeight / 2)
-                * pos.zx
-                + pos.tx,
-            devicePixelRatio * -(y / this.el.clientHeight - 0.5) * pos.zy
-                + pos.ty,
+            ((2 * x - cw) / ch) * pos.zx + pos.tx,
+            (1 - (2 * y) / ch) * pos.zy + pos.ty,
         ]
+    }
+
+    screenDeltaToLocal(y: number): number {
+        return (y / this.el.clientHeight / 2) * this.pos.zy
+    }
+
+    localToScreen([x, y]: [number, number]): [number, number] {
+        const pos = this.pos
+
+        const rx =
+            ((x - pos.tx) / pos.zx / 2
+                + this.el.clientWidth / this.el.clientHeight / 2)
+            * this.el.clientHeight
+
+        const ry = ((y - pos.ty) / pos.zy / -2 + 0.5) * this.el.clientHeight
+
+        return [rx, ry]
+    }
+
+    frozenPos(): Position {
+        const { tx, ty, zx, zy } = this.pos
+        const { clientWidth: cw, clientHeight: ch } = this.el
+
+        return {
+            tx: -(zx * cw) / ch - tx,
+            ty: zy + ty,
+            zx: (zx * (cw / ch)) / ch,
+            zy: (-2 * zy) / ch,
+        }
     }
 }
 
-// If an on-screen point is represented by considering top-left to be (-1,-1)
-// and bottom-right to be (1,1), then its mapped position is
-//
-// (x / zx + tx, y / zy + ty)
-interface Position {
-    tx: number // x-coordinate of center point
-    ty: number // y-coordinate of center point
-
-    zx: number
-    zy: number // zy is distance from center point to top-center point
+export interface Position {
+    tx: number // x-coordinate of center
+    ty: number // y-coordinate of center
+    zx: number // when |zx| > 1, streches screen horizontally; when |zx| < 1, shrinks
+    zy: number // y-distance from center to top edge
 }

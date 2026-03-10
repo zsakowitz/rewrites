@@ -1,6 +1,6 @@
 class DebugInfo {
     private readonly el = document.createElement("div")
-    private readonly p = new WeakMap<TemplateStringsArray, DebugItem>()
+    private readonly els = new WeakMap<TemplateStringsArray, DebugItem>()
 
     constructor() {
         this.el.style =
@@ -16,7 +16,7 @@ class DebugInfo {
     }
 
     write(text: TemplateStringsArray, ...args: (string | number)[]) {
-        this.by(text).el.textContent = String.raw(
+        this.div(text).el.textContent = String.raw(
             { raw: text },
             ...args.map((x) =>
                 typeof x == "string" ? x : (x < 0 ? "" : "+") + x.toFixed(4),
@@ -24,19 +24,30 @@ class DebugInfo {
         )
     }
 
-    by(text: TemplateStringsArray): DebugItem {
-        const item = this.p.get(text)
+    div(text: TemplateStringsArray): DebugItem {
+        const item = this.els.get(text)
         if (item) return item
 
-        const next = new DebugItem(document.createElement("p"))
+        const next = new DebugItem(document.createElement("div"))
         this.el.appendChild(next.el)
-        this.p.set(text, next)
+        this.els.set(text, next)
+        return next
+    }
+
+    textarea(text: TemplateStringsArray): DebugItem {
+        const item = this.els.get(text)
+        if (item) return item
+
+        const next = new DebugItem(document.createElement("textarea"))
+        this.el.appendChild(next.el)
+        this.els.set(text, next)
+        next.el.style.pointerEvents = "auto"
         return next
     }
 }
 
 class DebugItem {
-    constructor(readonly el: HTMLParagraphElement) {
+    constructor(readonly el: HTMLElement) {
         el.style = "margin:0"
     }
 
@@ -46,6 +57,16 @@ class DebugItem {
 
     set number(v) {
         this.el.textContent = v + ""
+    }
+
+    get value() {
+        return this.el.textContent
+    }
+
+    set value(v: string) {
+        if (this.el.textContent != v) {
+            this.el.textContent = v
+        }
     }
 }
 
