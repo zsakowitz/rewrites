@@ -1,11 +1,11 @@
 import { Canvas } from "./canvas"
 import { di } from "./debug"
-import { MovementTarget, type Position } from "./position"
+import { apply, inverse, MovementTarget, type Transform } from "./position"
 import { getPath, getPathRaw, PathCapturer } from "./stylus"
 
 interface CompletePath {
     path: [number, number][]
-    pos: Position
+    tx: Transform
     lw: number
 }
 
@@ -31,7 +31,7 @@ ${movement.pos.zy}
 
     for (const el of completedPaths) {
         cv.ctx.lineWidth = el.lw
-        cv.ctx.stroke(getPath(detx(tx(el.path, el.pos))))
+        cv.ctx.stroke(getPath(detx(tx(el.path, el.tx))))
     }
 
     cv.ctx.lineWidth = 4
@@ -40,12 +40,12 @@ ${movement.pos.zy}
     }
 }
 
-function tx(points: [number, number][], by: Position): [number, number][] {
+function tx(points: [number, number][], by: Transform): [number, number][] {
     return points.map((p) => [p[0] * by.zx + by.tx, p[1] * by.zy + by.ty])
 }
 
 function detx(points: [number, number][]) {
-    return points.map((p) => movement.localToScreen(p))
+    return apply(inverse(movement.getTransform()), points)
 }
 
 paths.onEnd = ({ points }, ev) => {
@@ -61,8 +61,8 @@ paths.onEnd = ({ points }, ev) => {
             Math.round(x),
             Math.round(y),
         ]),
-        pos: movement.frozenPos(),
-        lw: movement.screenDeltaToLocal(96),
+        tx: movement.getTransform(),
+        lw: movement.toLocalDelta(4),
     })
 
     write()

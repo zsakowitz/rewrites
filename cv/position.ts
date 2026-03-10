@@ -16,7 +16,7 @@ export class MovementTarget {
 
     constructor(
         readonly el: HTMLElement,
-        private _pos: Position = { tx: 0, ty: 0, zx: 1000, zy: 1000 },
+        private _pos: Transform = { tx: 0, ty: 0, zx: 1000, zy: 1000 },
     ) {
         const wheel = this.#onWheel.bind(this)
         const pointerdown = this.#onPointerDown.bind(this)
@@ -38,8 +38,8 @@ export class MovementTarget {
         }
     }
 
-    posCached: Position | undefined
-    get pos(): Position {
+    posCached: Transform | undefined
+    get pos(): Transform {
         if (this.posCached) return this.posCached
 
         const [a, b, c] = this.pointers.values()
@@ -68,7 +68,7 @@ export class MovementTarget {
         }
     }
 
-    #pos2(a: ActivePointer, b: ActivePointer): Position {
+    #pos2(a: ActivePointer, b: ActivePointer): Transform {
         const { tx, ty, zx, zy } = this._pos
         const { clientWidth: cw, clientHeight: ch } = this.el
 
@@ -196,59 +196,51 @@ export class MovementTarget {
         this.onUpdate?.()
     }
 
-    transformContext(ctx: CanvasRenderingContext2D, pos = this.pos) {
-        ctx.resetTransform()
-        ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2)
-        ctx.scale(
-            ctx.canvas.height / (2 * pos.zx),
-            -ctx.canvas.height / (2 * pos.zy),
-        )
-        ctx.translate(-pos.tx, -pos.ty)
-    }
-
-    screenToLocal([x, y]: [number, number]): [number, number] {
-        const pos = this.pos
-        const { clientWidth: cw, clientHeight: ch } = this.el
-
-        return [
-            ((2 * x - cw) / ch) * pos.zx + pos.tx,
-            (1 - (2 * y) / ch) * pos.zy + pos.ty,
-        ]
-    }
-
-    screenDeltaToLocal(y: number): number {
+    toLocalDelta(y: number): number {
         return (y / this.el.clientHeight / 2) * this.pos.zy
     }
 
-    localToScreen([x, y]: [number, number]): [number, number] {
-        const pos = this.pos
-
-        const rx =
-            ((x - pos.tx) / pos.zx / 2
-                + this.el.clientWidth / this.el.clientHeight / 2)
-            * this.el.clientHeight
-
-        const ry = ((y - pos.ty) / pos.zy / -2 + 0.5) * this.el.clientHeight
-
-        return [rx, ry]
-    }
-
-    frozenPos(): Position {
+    getTransform(): Transform {
         const { tx, ty, zx, zy } = this.pos
         const { clientWidth: cw, clientHeight: ch } = this.el
 
         return {
-            tx: -(zx * cw) / ch - tx,
-            ty: zy + ty,
-            zx: (zx * (cw / ch)) / ch,
-            zy: (-2 * zy) / ch,
+            tx: -(cw * zx) / ch + tx,
+            ty: ty + zy,
+            zx: (2 * zx) / ch,
+            zy: -(zy * 2) / ch,
         }
     }
 }
 
-export interface Position {
+export interface Transform {
     tx: number // x-coordinate of center
     ty: number // y-coordinate of center
     zx: number // when |zx| > 1, streches screen horizontally; when |zx| < 1, shrinks
     zy: number // y-distance from center to top edge
+}
+
+export function inverse(a: Transform): Transform {
+    return {
+        tx: -a.tx / a.zx,
+        ty: -a.ty / a.zy,
+        zx: 1 / a.zx,
+        zy: 1 / a.zy,
+    }
+}
+
+export function compose(a: Transform, b: Transform): Transform {
+    return {
+        tx: a.tx * b.zx + b.tx,
+        ty: a.ty * b.zy + b.ty,
+        zx: a.zx * b.zx,
+        zy: a.zy * b.zy,
+    }
+}
+
+export function apply(
+    a: Transform,
+    pt: [number, number][],
+): [number, number][] {
+    return pt.map(([x, y]) => [x * a.zx + a.tx, y * a.zy + a.ty])
 }
