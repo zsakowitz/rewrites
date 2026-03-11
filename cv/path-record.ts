@@ -17,6 +17,19 @@ const HAS_COALESCED_EVENTS =
 const HAS_PREDICTED_EVENTS =
     !!globalThis.PointerEvent?.prototype.getPredictedEvents
 
+/**
+ * Keeps track of freely drawn paths, handling coalesced and predicted pointer
+ * events efficiently.
+ *
+ * Event listeners are not automatically registered. Instead, call
+ * `.handleEvent()` on every `pointermove`, `pointerup`, and `pointercancel`
+ * event.
+ *
+ * The `.handleEvent()` method only returns `true` if the event was initiated by
+ * a pointer which has previously been passed to `.handleEvent()` as part of a
+ * `pointerdown` event. This makes it easy to keep track of which pointers have
+ * been dedicated to pen strokes.
+ */
 export class PathRecorder {
     private readonly active_ = new Map<number, ActivePathMut>()
 
@@ -27,7 +40,7 @@ export class PathRecorder {
         },
     ) {}
 
-    has(id: number) {
+    has(id: number): boolean {
         return this.active_.has(id)
     }
 
@@ -47,7 +60,7 @@ export class PathRecorder {
 
     #pointermove(ev: PointerEvent) {
         const path = this.active_.get(ev.pointerId)
-        if (!path) return
+        if (!path) return false
 
         for (let i = 0; i < path.predicted; i++) {
             path.offsets.pop()
@@ -69,11 +82,13 @@ export class PathRecorder {
         path.predicted = predicted.length
 
         this.events.onPathUpdate(this)
+
+        return true
     }
 
     #pointerfinish(ev: PointerEvent) {
         const path = this.active_.get(ev.pointerId)
-        if (!path) return
+        if (!path) return false
 
         this.active_.delete(ev.pointerId)
 
@@ -82,22 +97,26 @@ export class PathRecorder {
         }
 
         this.events.onPathUpdate(this)
+
+        return true
     }
 
-    handleEvent(ev: PointerEvent) {
+    /** Returns `true` if `PathRecorder` was able to handle the event. */
+    handleEvent(ev: PointerEvent): boolean {
         switch (ev.type) {
             case "pointerdown":
                 this.#pointerdown(ev)
-                break
+                return true
 
             case "pointermove":
-                this.#pointermove(ev)
-                break
+                return this.#pointermove(ev)
 
             case "pointerup":
             case "pointercancel":
-                this.#pointerfinish(ev)
-                break
+                return this.#pointerfinish(ev)
+
+            default:
+                return false
         }
     }
 }
