@@ -1,5 +1,6 @@
 import { Canvas } from "./canvas"
 import { di } from "./debug"
+import { Screen } from "./screen"
 import { getPath, getPathRaw, PathCapturer } from "./stylus"
 import {
     apply,
@@ -8,7 +9,6 @@ import {
     type PointList,
     type Transform,
 } from "./transform"
-import { Screen } from "./transform-target"
 
 interface CompletePath {
     points: PointList
@@ -39,22 +39,24 @@ ${screen.pos.zy}
     `
 
     cv.el.width = cv.el.width
-    cv.ctx.resetTransform()
-    cv.ctx.scale(devicePixelRatio, devicePixelRatio)
-    cv.ctx.strokeStyle = "white"
-    cv.ctx.lineCap = "round"
-    cv.ctx.lineJoin = "round"
-    cv.ctx.fillStyle = "white"
+
+    const { ctx } = cv
+    ctx.resetTransform()
+    ctx.scale(devicePixelRatio, devicePixelRatio)
+    ctx.strokeStyle = "white"
+    ctx.lineCap = "round"
+    ctx.lineJoin = "round"
+    ctx.fillStyle = "white"
 
     for (const el of completedPaths) {
-        cv.ctx.lineWidth = screen.toScreenDelta(el.lw)
+        ctx.lineWidth = screen.toScreenDelta(el.lw)
         const tx = compose(el.tx, screen.toScreen())
-        cv.ctx.stroke(getPath(apply(tx, el.points)))
+        ctx.stroke(getPath(apply(tx, el.points)))
     }
 
-    cv.ctx.lineWidth = 2
+    ctx.lineWidth = 2
     for (const key in paths.active) {
-        cv.ctx.stroke(getPath(getPathRaw(paths.active[key]!.points, false)))
+        ctx.stroke(getPath(getPathRaw(paths.active[key]!.points, false)))
     }
 }
 
