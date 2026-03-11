@@ -9,8 +9,8 @@ import { di } from "./debug"
 import { Screen } from "./screen"
 import { getPath, getPathRaw, PathCapturer } from "./stylus"
 import {
-    ap,
     apply,
+    applyList,
     compose,
     type Point,
     type PointList,
@@ -65,7 +65,7 @@ function writePaths() {
     for (const el of completedPaths) {
         ctx.lineWidth = screen.toScreenDelta(el.lw)
         const tx = compose(el.tx, screen.toScreen())
-        ctx.stroke(getPath(apply(tx, el.points)))
+        ctx.stroke(getPath(applyList(tx, el.points)))
     }
 
     ctx.lineWidth = 2
@@ -83,7 +83,7 @@ function writePoints() {
     ctx.beginPath()
     ctx.globalAlpha = OpacityPointHalo
     ctx.ellipse(
-        ...ap(tx, [3, 4]),
+        ...apply(tx, [3, 4]),
         SizePointHaloWide,
         SizePointHaloWide,
         0,
@@ -94,7 +94,7 @@ function writePoints() {
 
     ctx.beginPath()
     ctx.globalAlpha = 1
-    ctx.ellipse(...ap(tx, [3, 4]), SizePoint, SizePoint, 0, 0, 2 * Math.PI)
+    ctx.ellipse(...apply(tx, [3, 4]), SizePoint, SizePoint, 0, 0, 2 * Math.PI)
     ctx.fill()
 }
 

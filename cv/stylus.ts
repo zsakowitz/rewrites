@@ -1,6 +1,6 @@
 import { type StrokeOptions } from "perfect-freehand"
 import { di } from "./debug"
-import { simplifyRadialDist } from "./simplify"
+import { simplifyRadialDist } from "./path-simplify"
 import { flat, unflat, type Point, type PointList } from "./transform"
 
 interface Path {

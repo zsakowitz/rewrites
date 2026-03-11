@@ -1,5 +1,6 @@
 export type Point = readonly [x: number, y: number]
 export type PointList = readonly number[]
+export type PointListMut = number[]
 
 export function flat(ls: readonly Point[]): PointList {
     return ls.flat()
@@ -40,7 +41,11 @@ export function compose(a: Transform, b: Transform): Transform {
     }
 }
 
-export function apply(a: Transform, pt: PointList): PointList {
+export function apply(a: Transform, pt: Point): Point {
+    return [pt[0] * a.zx + a.tx, pt[0] * a.zy + a.ty]
+}
+
+export function applyList(a: Transform, pt: PointList): PointList {
     const ret = []
 
     for (let i = 0; i < pt.length; i += 2) {
@@ -49,8 +54,4 @@ export function apply(a: Transform, pt: PointList): PointList {
     }
 
     return ret
-}
-
-export function ap(a: Transform, pt: Point): Point {
-    return [pt[0] * a.zx + a.tx, pt[0] * a.zy + a.ty]
 }
