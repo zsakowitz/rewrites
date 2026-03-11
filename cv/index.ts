@@ -4,12 +4,11 @@ import { getPath, getPathRaw, PathCapturer } from "./stylus"
 import {
     apply,
     compose,
-    inverse,
     type Point,
     type PointList,
     type Transform,
 } from "./transform"
-import { TransformTarget } from "./transform-target"
+import { Screen } from "./transform-target"
 
 interface CompletePath {
     points: PointList
@@ -20,12 +19,12 @@ interface CompletePath {
 const cv = new Canvas()
 const paths = new PathCapturer(cv.el)
 const completedPaths: CompletePath[] = []
-const txTarget = new TransformTarget(cv.el)
+const screen = new Screen(cv.el)
 
 function complete(raw: Point[]) {
     const points = getPathRaw(raw, true).map((x) => Math.round(x * 100) / 100)
-    const tx = txTarget.getTransform()
-    const lw = txTarget.toLocalDelta(2)
+    const tx = screen.toLocal()
+    const lw = screen.toLocalDelta(2)
 
     const path: CompletePath = { points, tx, lw }
     completedPaths.push(path)
@@ -33,10 +32,10 @@ function complete(raw: Point[]) {
 
 function write() {
     di.write`
-${txTarget.pos.tx}
-${txTarget.pos.ty}
-${txTarget.pos.zx}
-${txTarget.pos.zy}
+${screen.pos.tx}
+${screen.pos.ty}
+${screen.pos.zx}
+${screen.pos.zy}
     `
 
     cv.el.width = cv.el.width
@@ -48,8 +47,8 @@ ${txTarget.pos.zy}
     cv.ctx.fillStyle = "white"
 
     for (const el of completedPaths) {
-        cv.ctx.lineWidth = txTarget.toScreenDelta(el.lw)
-        const tx = compose(el.tx, inverse(txTarget.getTransform()))
+        cv.ctx.lineWidth = screen.toScreenDelta(el.lw)
+        const tx = compose(el.tx, screen.toScreen())
         cv.ctx.stroke(getPath(apply(tx, el.points)))
     }
 
@@ -70,7 +69,7 @@ paths.onEnd = ({ points }, ev) => {
 }
 
 paths.onChange = write
-txTarget.onUpdate = write
+screen.onUpdate = write
 cv.onResize = write
 
 setInterval(() => {

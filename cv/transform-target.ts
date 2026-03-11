@@ -1,4 +1,4 @@
-import type { Transform } from "./transform"
+import { inverse, type Transform } from "./transform"
 
 interface ActivePointer {
     id: number
@@ -10,9 +10,9 @@ interface ActivePointer {
     moved: boolean
 }
 
-export class TransformTarget {
+export class Screen {
     destroy
-    onUpdate: ((this: TransformTarget) => void) | undefined
+    onUpdate: ((this: Screen) => void) | undefined
 
     private pointers = new Map<number, ActivePointer>()
 
@@ -206,7 +206,11 @@ export class TransformTarget {
         return (y / this.pos.zy) * 2 * this.el.clientHeight
     }
 
-    getTransform(): Transform {
+    /**
+     * Gets the transformation mapping from screen coordinates to local
+     * coordinates.
+     */
+    toLocal(): Transform {
         const { tx, ty, zx, zy } = this.pos
         const { clientWidth: cw, clientHeight: ch } = this.el
 
@@ -216,5 +220,13 @@ export class TransformTarget {
             zx: (2 * zx) / ch,
             zy: -(zy * 2) / ch,
         }
+    }
+
+    /**
+     * Gets the transformation mapping from local coordinates to screen
+     * coordinates.
+     */
+    toScreen(): Transform {
+        return inverse(this.toLocal())
     }
 }

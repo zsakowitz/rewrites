@@ -50,3 +50,7 @@ export function apply(a: Transform, pt: PointList): PointList {
 
     return ret
 }
+
+export function ap(a: Transform, pt: Point): Point {
+    return [pt[0] * a.zx + a.tx, pt[0] * a.zy + a.ty]
+}
