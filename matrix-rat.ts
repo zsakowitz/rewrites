@@ -3,7 +3,11 @@ export interface Rat {
     readonly d: bigint
 }
 
-export function int(a: number | bigint): Rat {
+export function int(a: number | bigint | Rat): Rat {
+    if (typeof a == "object") {
+        return a
+    }
+
     return {
         n: BigInt(a),
         d: 1n,
@@ -79,4 +83,14 @@ function gcd(a: bigint, b: bigint): bigint {
         b = c % b
     }
     return a
+}
+
+export function match(a: Rat[]): bigint[] {
+    let lcm = 1n
+
+    for (let i = 0; i < a.length; i++) {
+        lcm = (lcm * a[i]!.d) / gcd(lcm, a[i]!.d)
+    }
+
+    return a.map((x) => x.n * (lcm / x.d))
 }

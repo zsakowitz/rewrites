@@ -1,5 +1,19 @@
-import { ANSI } from "./ansi"
-import { add, int, inv, isZero, mul, neg, str, type Rat } from "./matrix-rat"
+const ANSI_green = "\x1b[32m"
+const ANSI_red = "\x1b[31m"
+const ANSI_reset = "\x1b[0m"
+const ANSI_dim = "\x1b[2m"
+
+import {
+    add,
+    int,
+    inv,
+    isZero,
+    match,
+    mul,
+    neg,
+    str,
+    type Rat,
+} from "./matrix-rat"
 
 export class Matrix {
     static from(raw: (number | bigint | Rat)[][]) {
@@ -22,9 +36,9 @@ export class Matrix {
     }
 
     constructor(
-        readonly cols: number,
-        readonly rows: number,
-        readonly data: Rat[] = Array(cols * rows).fill(int(0)),
+        public cols: number,
+        public rows: number,
+        public data: Rat[] = Array(cols * rows).fill(int(0)),
     ) {}
 
     get(row: number, col: number): Rat {
@@ -81,11 +95,11 @@ export class Matrix {
             .reduce(
                 (arr, el, i) =>
                     arr
-                    + (el.trim() == "0" ? ANSI.dim
-                    : el.trim()[0] == "-" ? ANSI.red
-                    : ANSI.green)
+                    + (el.trim() == "0" ? ANSI_dim
+                    : el.trim()[0] == "-" ? ANSI_red
+                    : ANSI_green)
                     + el.padEnd(len[i % this.cols]!)
-                    + ANSI.reset
+                    + ANSI_reset
                     + (i % this.cols == this.cols - 1 ? "\n" : " "),
                 "",
             )
@@ -129,9 +143,79 @@ export class Matrix {
             }
         }
     }
+
+    pivots() {
+        const clz = this.clz()
+        const pivots = []
+
+        for (let i = 0; i < clz.length; i++) {
+            if (clz[i]! == this.cols) break
+            pivots.push(clz[i]!)
+        }
+
+        return pivots
+    }
+
+    frees() {
+        return Array.from(
+            new Set(Array.from({ length: this.cols }, (_, i) => i)).difference(
+                new Set(this.pivots()),
+            ),
+        )
+    }
+
+    copy() {
+        return new Matrix(this.cols, this.rows, this.data.slice())
+    }
+
+    choose(vals?: (number | bigint | Rat)[]) {
+        const frees = this.frees()
+
+        if (frees.at(-1) == this.cols - 1) {
+            frees.pop()
+        }
+
+        if (vals && vals.length != frees.length) {
+            throw new Error(
+                `expected ${frees.length} chosen values, but got ${vals.length}`,
+            )
+        }
+
+        vals ??= frees.map(() => 1)
+
+        this.data = this.data.concat(
+            Array(frees.length * this.cols).fill(int(0)),
+        )
+
+        for (let i = 0; i < frees.length; i++) {
+            const col = frees[i]!
+            const val = vals[i]!
+
+            this.set(this.rows + i, col, int(1))
+            this.set(this.rows + i, this.cols - 1, int(val))
+        }
+
+        this.rows += frees.length
+    }
+
+    read() {
+        const ret = []
+        for (let i = 0; i < this.cols - 1; i++) {
+            ret.push(this.get(i, this.cols - 1))
+        }
+        return match(ret)
+    }
+
+    readGrid(cols: number, rows: number): string {
+        return new Matrix(cols, rows, this.read().map(int)).toString()
+    }
 }
 
-function grid(cols: number, rows: number): Matrix {
+function grid(
+    cols: number,
+    rows: number,
+    vals?: (number | bigint | Rat)[],
+): string {
     const m = new Matrix(cols * rows + 1, cols * rows)
 
     for (let c = 0; c < cols; c++) {
@@ -163,25 +247,12 @@ function grid(cols: number, rows: number): Matrix {
         }
     }
 
-    return m
+    m.rref()
+    m.choose(vals)
+    m.rref()
+
+    return m.readGrid(cols, rows)
 }
 
-function random(cols: number, rows: number): Matrix {
-    const m = new Matrix(cols, rows)
-    for (let i = 0; i < cols * rows; i++) {
-        m.data[i] = int(Math.floor(2 * Math.random()))
-    }
-    return m
-}
-
-const m = Matrix.from([
-    [1, 1, 1, 2, 0],
-    [0, 0, 1, 1, 0],
-    [0, 0, 0, 1, 0],
-])
-
-console.log(m.toString())
-
-m.rref()
-console.log()
+const m = grid(17, 17)
 console.log(m.toString())
