@@ -1,8 +1,15 @@
 import { Canvas } from "./canvas"
+import {
+    ColorPurple,
+    OpacityPointHalo,
+    SizePoint,
+    SizePointHaloWide,
+} from "./dcg"
 import { di } from "./debug"
 import { Screen } from "./screen"
 import { getPath, getPathRaw, PathCapturer } from "./stylus"
 import {
+    ap,
     apply,
     compose,
     type Point,
@@ -38,11 +45,18 @@ ${screen.pos.zx}
 ${screen.pos.zy}
     `
 
-    cv.el.width = cv.el.width
-
     const { ctx } = cv
+    cv.el.width = cv.el.width
     ctx.resetTransform()
     ctx.scale(devicePixelRatio, devicePixelRatio)
+
+    writePaths()
+    writePoints()
+}
+
+function writePaths() {
+    const { ctx } = cv
+
     ctx.strokeStyle = "white"
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
@@ -58,6 +72,30 @@ ${screen.pos.zy}
     for (const key in paths.active) {
         ctx.stroke(getPath(getPathRaw(paths.active[key]!.points, false)))
     }
+}
+
+function writePoints() {
+    const { ctx } = cv
+    const tx = screen.toScreen()
+
+    ctx.fillStyle = ColorPurple
+
+    ctx.beginPath()
+    ctx.globalAlpha = OpacityPointHalo
+    ctx.ellipse(
+        ...ap(tx, [3, 4]),
+        SizePointHaloWide,
+        SizePointHaloWide,
+        0,
+        0,
+        2 * Math.PI,
+    )
+    ctx.fill()
+
+    ctx.beginPath()
+    ctx.globalAlpha = 1
+    ctx.ellipse(...ap(tx, [3, 4]), SizePoint, SizePoint, 0, 0, 2 * Math.PI)
+    ctx.fill()
 }
 
 paths.onEnd = ({ points }, ev) => {
