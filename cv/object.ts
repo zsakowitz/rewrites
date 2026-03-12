@@ -1,6 +1,6 @@
 import type { Canvas } from "./canvas"
 import type { Circle, Line, Point } from "./geometry"
-import { TRAITS } from "./object-trait-def"
+import { TRAITS } from "./object-impl"
 import type { PointList, Transform } from "./transform"
 
 export type Object =

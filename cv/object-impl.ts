@@ -11,7 +11,7 @@ import {
 } from "./dcg"
 import { extendLine, type Point } from "./geometry"
 import type { Object } from "./object"
-import type { Traits } from "./object-trait-type"
+import type { Traits } from "./object-trait"
 import { getPath } from "./path-render"
 import { apply, applyList, compose, flat, inverse, unflat } from "./transform"
 
@@ -39,7 +39,6 @@ export const TRAITS: {
                 size: -self.lw * toScreen.zy,
                 simulatePressure: false,
             })
-
             ctx.fill(getPath(flat(p), true))
         },
     },

@@ -1,7 +1,7 @@
 import type { Controls } from "./controls"
 import type { Object } from "./object"
-import { TRAITS } from "./object-trait-def"
-import type { Traits } from "./object-trait-type"
+import { TRAITS } from "./object-impl"
+import type { Traits } from "./object-trait"
 import { apply } from "./transform"
 
 export interface EventsInteractor {

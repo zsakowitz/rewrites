@@ -59,6 +59,11 @@ export class PathRecorder {
         })
 
         this.#events.onPathUpdate()
+
+        document.body.setAttribute(
+            "data-cv-active-paths",
+            this.#active.size + "",
+        )
     }
 
     #pointermove(ev: PointerEvent): boolean {
@@ -114,6 +119,11 @@ export class PathRecorder {
         }
 
         this.#events.onPathUpdate()
+
+        document.body.setAttribute(
+            "data-cv-active-paths",
+            this.#active.size + "",
+        )
 
         return true
     }
