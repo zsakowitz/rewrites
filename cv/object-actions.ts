@@ -55,17 +55,6 @@ export const CAPABILITIES: {
 
     pathIncomplete: {
         render(self, { ctx }) {
-            // const p = unflat(self.path)
-            // for (let i = 0; i < p.length - 1; i++) {
-            //     ctx.beginPath()
-            //     ctx.moveTo(p[i]![0], p[i]![1])
-            //     ctx.lineTo(p[i + 1]![0], p[i + 1]![1])
-            //     ctx.strokeStyle = `oklch(0.3 0.2 ${(i / 40) * 360})`
-            //     ctx.lineWidth = 16 * Math.random()
-            //     ctx.stroke()
-            // }
-            // return
-
             ctx.strokeStyle = "white"
             ctx.lineCap = "round"
             ctx.lineJoin = "round"
