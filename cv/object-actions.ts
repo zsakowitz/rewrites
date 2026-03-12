@@ -41,7 +41,6 @@ export const CAPABILITIES: {
             const p = getStroke(unflat(path) as Vec2[], {
                 size: -self.lw * toScreen.zy,
                 simulatePressure: false,
-                smoothing: 0,
             })
 
             ctx.fill(getPath(flat(p), true))
@@ -50,12 +49,16 @@ export const CAPABILITIES: {
 
     pathIncomplete: {
         render(self, { ctx }) {
-            ctx.strokeStyle = "white"
-            ctx.lineCap = "round"
-            ctx.lineJoin = "round"
+            const path = self.path
+
             ctx.fillStyle = "white"
-            ctx.lineWidth = 2
-            ctx.stroke(getPath(self.path, false))
+
+            const p = getStroke(unflat(path) as Vec2[], {
+                size: 2,
+                simulatePressure: false,
+            })
+
+            ctx.fill(getPath(flat(p), true))
         },
     },
 
