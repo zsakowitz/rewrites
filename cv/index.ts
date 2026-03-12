@@ -1,20 +1,29 @@
 import { Canvas, type EventsCanvas } from "./canvas"
 import { di } from "./debug"
 import { render, type Object } from "./object"
+import type { EventsObjectInteractor } from "./object-interact"
 import { PathRecorder, type EventsPathRecorder } from "./path-recorder"
 import { simplifyPath } from "./path-render"
 import { TransformTarget, type EventsScreen } from "./transform-target"
 
-const events: EventsPathRecorder & EventsScreen & EventsCanvas = {
-    onCanvasResize() {},
+type Events = unknown
+    & EventsCanvas
+    & EventsPathRecorder
+    & EventsScreen
+    & EventsObjectInteractor
+
+const events: Events = {
+    onCanvasResize: update,
+    onPathUpdate: update,
+    onScreenUpdate: update,
+    onObjectInteraction: update,
+
     onPathFinish(raw) {
         const path = simplifyPath(raw.points)
         const tx = screen.toLocal()
         const lw = screen.toLocalDelta(2)
         objects.push({ type: "path", tx, lw, path })
     },
-    onPathUpdate: write,
-    onScreenUpdate: write,
 }
 
 const cv = new Canvas(events)
@@ -56,7 +65,7 @@ cv.el.addEventListener("pointercancel", handleDOMEvent, { passive: true })
 cv.el.addEventListener("pointerdown", handleDOMEvent, { passive: true })
 cv.el.addEventListener("wheel", handleDOMEvent, { passive: true })
 
-function write() {
+function update() {
     di.write`
 ${screen.pos.tx}
 ${screen.pos.ty}
