@@ -2,6 +2,7 @@ import type { Capabilities } from "./capabilities"
 import {
     ColorBlue,
     ColorPurple,
+    OpacityFill,
     OpacityPointHalo,
     SizeLine,
     SizePoint,
@@ -15,7 +16,8 @@ interface HitData {
     path: never
     pathIncomplete: never
     point: { self: Extract<Object, { type: "point" }>; origin: Point }
-    segment: never
+    line: never
+    polygon: never
 }
 
 export const CAPABILITIES: {
@@ -27,15 +29,16 @@ export const CAPABILITIES: {
     __proto__: null,
 
     path: {
-        render(self, { ctx }, screen) {
-            const tx = compose(self.tx, screen.toScreen())
+        render(self, { ctx }, toScreen) {
+            const tx = compose(self.tx, toScreen)
 
             ctx.strokeStyle = "white"
             ctx.lineCap = "round"
             ctx.lineJoin = "round"
             ctx.fillStyle = "white"
-            ctx.lineWidth = screen.toScreenDelta(self.lw)
-            ctx.stroke(getPath(applyList(tx, self.path)))
+            ctx.lineWidth = -self.lw * toScreen.zy
+
+            ctx.stroke(getPath(applyList(tx, self.path), false))
         },
     },
 
@@ -46,13 +49,12 @@ export const CAPABILITIES: {
             ctx.lineJoin = "round"
             ctx.fillStyle = "white"
             ctx.lineWidth = 2
-            ctx.stroke(getPath(self.path))
+            ctx.stroke(getPath(self.path, false))
         },
     },
 
     point: {
-        render(self, { ctx }, screen) {
-            const tx = screen.toScreen()
+        render(self, { ctx }, tx) {
             const [x, y] = apply(tx, self.at)
 
             ctx.fillStyle = ColorPurple
@@ -103,9 +105,8 @@ export const CAPABILITIES: {
         },
     },
 
-    segment: {
-        render(self, { ctx }, screen) {
-            const tx = screen.toScreen()
+    line: {
+        render(self, { ctx }, tx) {
             const [x0, y0] = apply(tx, self.p0)
             const [x1, y1] = apply(tx, self.p1)
 
@@ -116,6 +117,31 @@ export const CAPABILITIES: {
             ctx.beginPath()
             ctx.moveTo(x0, y0)
             ctx.lineTo(x1, y1)
+            ctx.stroke()
+        },
+    },
+
+    polygon: {
+        render(self, { ctx }, tx) {
+            const pt = applyList(tx, self.points)
+            if (pt.length <= 2) return
+
+            ctx.strokeStyle = ColorBlue
+            ctx.lineWidth = SizeLine
+            ctx.lineCap = "round"
+            ctx.lineJoin = "round"
+
+            ctx.fillStyle = ColorBlue
+
+            ctx.beginPath()
+            ctx.moveTo(pt[0]!, pt[1]!)
+            for (let i = 2; i < pt.length; i += 2) {
+                ctx.lineTo(pt[i]!, pt[i + 1]!)
+            }
+            ctx.closePath()
+            ctx.globalAlpha = OpacityFill
+            ctx.fill()
+            ctx.globalAlpha = 1
             ctx.stroke()
         },
     },

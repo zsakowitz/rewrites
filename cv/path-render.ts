@@ -3,7 +3,7 @@ import type { PointList } from "./transform"
 
 const average = (a: number, b: number) => (a + b) / 2
 
-export function getPath(p: PointList) {
+export function getPath(p: PointList, closed: boolean) {
     const len = p.length
 
     if (len == 0) return new Path2D()
@@ -28,6 +28,10 @@ export function getPath(p: PointList) {
     }
 
     result += `${p[p.length - 2]},${p[p.length - 1]} `
+
+    if (closed) {
+        result += "Z"
+    }
 
     return new Path2D(result)
 }

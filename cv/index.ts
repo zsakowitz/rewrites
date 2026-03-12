@@ -1,6 +1,7 @@
 import { Canvas, type EventsCanvas } from "./canvas"
 
 import { di } from "./debug"
+import { DEFAULT } from "./default"
 import { render, type Object } from "./object"
 import { Interactor, type EventsInteractor } from "./object-interactor"
 import { PathRecorder, type EventsPathRecorder } from "./path-recorder"
@@ -22,7 +23,7 @@ const events: Events = {
     onPathFinish(raw) {
         const path = simplifyPath(raw.points)
         const tx = screen.toLocal()
-        const lw = screen.toLocalDelta(2)
+        const lw = -tx.zy * 2
         objects.push({ type: "path", tx, lw, path })
     },
 }
@@ -32,21 +33,7 @@ const paths = new PathRecorder(events)
 const screen = new TransformTarget(events, cv.el)
 const itor = new Interactor(events)
 
-const A: Object = { type: "point", at: [2, 3] }
-
-const B: Object = { type: "point", at: [4, 5] }
-
-const C: Object = {
-    type: "segment",
-    get p0() {
-        return A.at
-    },
-    get p1() {
-        return B.at
-    },
-}
-
-const objects: Object[] = [C, A, B]
+const objects: Object[] = DEFAULT.slice()
 
 function getIncomplete(): Object[] {
     return paths
@@ -65,6 +52,10 @@ function handleDOMEvent(ev: PointerEvent | WheelEvent) {
     cv.el.setPointerCapture(ev.pointerId)
 
     if (itor.handleEvent(ev, objects, screen)) {
+        return
+    }
+
+    if (itor.isActive()) {
         return
     }
 
@@ -95,6 +86,6 @@ ${screen.pos.zy}
 
     cv.clear()
 
-    render(cv, screen, objects)
-    render(cv, screen, getIncomplete())
+    render(cv, screen.toScreen(), objects)
+    render(cv, screen.toScreen(), getIncomplete())
 }

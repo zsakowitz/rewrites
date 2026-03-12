@@ -25,6 +25,10 @@ export class Interactor {
         this.#events = events
     }
 
+    isActive() {
+        return this.#pointers.size != 0
+    }
+
     handleEvent(
         ev: PointerEvent,
         objects: Object[],

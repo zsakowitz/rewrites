@@ -1,9 +1,8 @@
 import type { Canvas } from "./canvas"
 import type { Point, Transform } from "./transform"
-import type { TransformTarget } from "./transform-target"
 
 export interface Capabilities<T, U extends {}> {
-    render?(self: T, cv: Canvas, screen: TransformTarget): void
+    render?(self: T, cv: Canvas, toScreen: Transform): void
 
     /** Enables hit testing, which gives the object a physical presence. */
     hit?: {

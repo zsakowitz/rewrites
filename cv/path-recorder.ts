@@ -67,6 +67,7 @@ export class PathRecorder {
 
         for (let i = 0; i < path.predicted; i++) {
             path.points.pop()
+            path.points.pop()
         }
 
         const coalesced = HAS_COALESCED_EVENTS ? ev.getCoalescedEvents() : [ev]
@@ -94,6 +95,7 @@ export class PathRecorder {
         if (!path) return false
 
         for (let i = 0; i < path.predicted; i++) {
+            path.points.pop()
             path.points.pop()
         }
 

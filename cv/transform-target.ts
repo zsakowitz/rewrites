@@ -207,14 +207,6 @@ export class TransformTarget {
         }
     }
 
-    toLocalDelta(y: number): number {
-        return (y / this.el.clientHeight / 2) * this.pos.zy
-    }
-
-    toScreenDelta(y: number): number {
-        return (y / this.pos.zy) * 2 * this.el.clientHeight
-    }
-
     /**
      * Gets the transformation mapping from screen coordinates to local
      * coordinates.
@@ -227,7 +219,7 @@ export class TransformTarget {
             tx: -(cw * zx) / ch + tx,
             ty: ty + zy,
             zx: (2 * zx) / ch,
-            zy: -(zy * 2) / ch,
+            zy: -((2 * zy) / ch),
         }
     }
 
