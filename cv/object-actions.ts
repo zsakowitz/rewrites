@@ -1,3 +1,4 @@
+import { getStroke, type Vec2 } from "perfect-freehand"
 import type { Capabilities } from "./capabilities"
 import {
     ColorBlue,
@@ -10,7 +11,14 @@ import {
 } from "./dcg"
 import type { Object } from "./object"
 import { getPath } from "./path-render"
-import { apply, applyList, compose, inverse, type Point } from "./transform"
+import {
+    apply,
+    applyList,
+    compose,
+    inverse,
+    unflat,
+    type Point,
+} from "./transform"
 
 interface HitData {
     path: never
@@ -30,20 +38,53 @@ export const CAPABILITIES: {
 
     path: {
         render(self, { ctx }, toScreen) {
-            const tx = compose(self.tx, toScreen)
+            const path = applyList(compose(self.tx, toScreen), self.path)
 
-            ctx.strokeStyle = "white"
-            ctx.lineCap = "round"
-            ctx.lineJoin = "round"
             ctx.fillStyle = "white"
-            ctx.lineWidth = -self.lw * toScreen.zy
 
-            ctx.stroke(getPath(applyList(tx, self.path), false))
+            const p = getStroke(unflat(path) as Vec2[], {
+                size: -self.lw * toScreen.zy,
+                simulatePressure: false,
+                smoothing: 0,
+            })
+
+            for (let i = 0; i < p.length - 1; i++) {
+                ctx.beginPath()
+                ctx.moveTo(p[i]![0], p[i]![1])
+                ctx.lineTo(p[i + 1]![0], p[i + 1]![1])
+                ctx.strokeStyle = `oklch(0.3 0.2 ${(i / p.length) * 360})`
+                ctx.lineWidth = 4
+                ctx.stroke()
+            }
+
+            let i = 0
+            for (const [x, y] of p) {
+                ctx.beginPath()
+                ctx.ellipse(x, y, 8, 8, 0, 0, 2 * Math.PI)
+                ctx.fillStyle = `oklch(0.7 0.2 ${(i++ / p.length) * 360})`
+                ctx.fill()
+                ctx.fillStyle = "white"
+                ctx.fillText("" + i, x, y)
+            }
+            //
+            // const n = Date.now()
+            // while (Date.now() < n + 100);
         },
     },
 
     pathIncomplete: {
         render(self, { ctx }) {
+            // const p = unflat(self.path)
+            // for (let i = 0; i < p.length - 1; i++) {
+            //     ctx.beginPath()
+            //     ctx.moveTo(p[i]![0], p[i]![1])
+            //     ctx.lineTo(p[i + 1]![0], p[i + 1]![1])
+            //     ctx.strokeStyle = `oklch(0.3 0.2 ${(i / 40) * 360})`
+            //     ctx.lineWidth = 16 * Math.random()
+            //     ctx.stroke()
+            // }
+            // return
+
             ctx.strokeStyle = "white"
             ctx.lineCap = "round"
             ctx.lineJoin = "round"

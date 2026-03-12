@@ -61,9 +61,16 @@ export class PathRecorder {
         this.#events.onPathUpdate()
     }
 
-    #pointermove(ev: PointerEvent) {
+    #pointermove(ev: PointerEvent): boolean {
         const path = this.#active.get(ev.pointerId)
         if (!path) return false
+
+        const lastX = path.points.at(-2 * path.predicted - 2)!
+        const lastY = path.points.at(-2 * path.predicted - 1)!
+
+        if (ev.offsetX == lastX && ev.offsetY == lastY) {
+            return true
+        }
 
         for (let i = 0; i < path.predicted; i++) {
             path.points.pop()
