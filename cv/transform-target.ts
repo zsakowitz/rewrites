@@ -23,7 +23,7 @@ export class TransformTarget {
     constructor(
         events: EventsScreen,
         readonly el: HTMLElement,
-        pos: Transform = { tx: 0, ty: 0, zx: 1000, zy: 1000 },
+        pos: Transform = { tx: 0, ty: 0, zx: 10, zy: 10 },
     ) {
         this.#events = events
         this.#pos = pos

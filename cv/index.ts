@@ -32,7 +32,21 @@ const paths = new PathRecorder(events)
 const screen = new TransformTarget(events, cv.el)
 const itor = new Interactor(events)
 
-const objects: Object[] = [{ type: "point", at: [2, 7] }]
+const A: Object = { type: "point", at: [2, 3] }
+
+const B: Object = { type: "point", at: [4, 5] }
+
+const C: Object = {
+    type: "segment",
+    get p0() {
+        return A.at
+    },
+    get p1() {
+        return B.at
+    },
+}
+
+const objects: Object[] = [C, A, B]
 
 function getIncomplete(): Object[] {
     return paths

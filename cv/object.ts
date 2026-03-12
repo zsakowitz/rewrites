@@ -7,6 +7,7 @@ export type Object =
     | { type: "path"; tx: Transform; lw: number; path: PointList }
     | { type: "pathIncomplete"; path: PointList }
     | { type: "point"; at: Point }
+    | { type: "segment"; p0: Point; p1: Point }
 
 export function render(cv: Canvas, screen: TransformTarget, objects: Object[]) {
     for (const el of objects) {
