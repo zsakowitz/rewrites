@@ -1,4 +1,4 @@
-import { Canvas } from "./canvas"
+import type { Capabilities } from "./capabilities"
 import {
     ColorPurple,
     OpacityPointHalo,
@@ -6,103 +6,97 @@ import {
     SizePointHaloWide,
 } from "./dcg"
 import type { Object } from "./object"
-import type { InteractionHandler } from "./object-interactor"
 import { getPath } from "./path-render"
-import { apply, applyList, compose, type Point } from "./transform"
-import type { TransformTarget } from "./transform-target"
+import { apply, applyList, compose, inverse, type Point } from "./transform"
 
-export const RENDER: {
-    [K in Object["type"]]: (
-        cv: Canvas,
-        screen: TransformTarget,
-        object: Extract<Object, { type: K }>,
-    ) => void
-} & { __proto__: null } = {
-    __proto__: null,
-
-    path({ ctx }, screen, object) {
-        const tx = compose(object.tx, screen.toScreen())
-
-        ctx.strokeStyle = "white"
-        ctx.lineCap = "round"
-        ctx.lineJoin = "round"
-        ctx.fillStyle = "white"
-        ctx.lineWidth = screen.toScreenDelta(object.lw)
-        ctx.stroke(getPath(applyList(tx, object.path)))
-    },
-
-    pathIncomplete({ ctx }, _screen, object) {
-        ctx.strokeStyle = "white"
-        ctx.lineCap = "round"
-        ctx.lineJoin = "round"
-        ctx.fillStyle = "white"
-        ctx.lineWidth = 2
-        ctx.stroke(getPath(object.path))
-    },
-
-    point({ ctx }, screen, object) {
-        const tx = screen.toScreen()
-        const [x, y] = apply(tx, [object.x, object.y])
-
-        ctx.fillStyle = ColorPurple
-        ctx.globalAlpha = OpacityPointHalo
-
-        ctx.beginPath()
-        ctx.ellipse(
-            x,
-            y,
-            SizePointHaloWide,
-            SizePointHaloWide,
-            0,
-            0,
-            2 * Math.PI,
-        )
-        ctx.fill()
-
-        ctx.globalAlpha = 1
-        ctx.beginPath()
-        ctx.ellipse(x, y, SizePoint, SizePoint, 0, 0, 2 * Math.PI)
-        ctx.fill()
-    },
+interface HitData {
+    path: never
+    pathIncomplete: never
+    point: { self: Extract<Object, { type: "point" }>; origin: Point }
 }
 
-interface InteractionData {
-    point: {
-        self: Extract<Object, { type: "point" }>
-        origin: Point
-    }
-}
-
-export const INTERACT: {
-    [K in keyof InteractionData]: InteractionHandler<
+export const CAPABILITIES: {
+    [K in Object["type"]]: Capabilities<
         Extract<Object, { type: K }>,
-        InteractionData[K]
+        HitData[K]
     >
 } & { __proto__: null } = {
     __proto__: null,
 
+    path: {
+        render(self, { ctx }, screen) {
+            const tx = compose(self.tx, screen.toScreen())
+
+            ctx.strokeStyle = "white"
+            ctx.lineCap = "round"
+            ctx.lineJoin = "round"
+            ctx.fillStyle = "white"
+            ctx.lineWidth = screen.toScreenDelta(self.lw)
+            ctx.stroke(getPath(applyList(tx, self.path)))
+        },
+    },
+
+    pathIncomplete: {
+        render(self, { ctx }) {
+            ctx.strokeStyle = "white"
+            ctx.lineCap = "round"
+            ctx.lineJoin = "round"
+            ctx.fillStyle = "white"
+            ctx.lineWidth = 2
+            ctx.stroke(getPath(self.path))
+        },
+    },
+
     point: {
-        test(screen, ev, self) {
-            const [x, y] = apply(screen.toScreen(), [self.x, self.y])
+        render(self, { ctx }, screen) {
+            const tx = screen.toScreen()
+            const [x, y] = apply(tx, self.at)
 
-            if (Math.hypot(x - ev.offsetX, y - ev.offsetY) > 12) {
-                return null
-            }
+            ctx.fillStyle = ColorPurple
+            ctx.globalAlpha = OpacityPointHalo
 
-            const origin = apply(screen.toLocal(), [ev.offsetX, ev.offsetY])
-            return { self, origin }
+            ctx.beginPath()
+            ctx.ellipse(
+                x,
+                y,
+                SizePointHaloWide,
+                SizePointHaloWide,
+                0,
+                0,
+                2 * Math.PI,
+            )
+            ctx.fill()
+
+            ctx.globalAlpha = 1
+            ctx.beginPath()
+            ctx.ellipse(x, y, SizePoint, SizePoint, 0, 0, 2 * Math.PI)
+            ctx.fill()
         },
-        drag(screen, ev, data) {
-            const [x, y] = apply(screen.toLocal(), [ev.offsetX, ev.offsetY])
-            data.self.x = x
-            data.self.y = y
-        },
 
-        finish(screen, ev, data, cancel) {
-            if (cancel) {
-                data.self.x = data.origin[0]
-                data.self.y = data.origin[1]
-            }
+        hit: {
+            test(self, toScreen, at) {
+                const pos = apply(toScreen, self.at)
+
+                if (Math.hypot(pos[0] - at[0], pos[1] - at[1]) > 12) {
+                    return
+                }
+
+                const origin = apply(inverse(toScreen), at)
+                return { self, origin }
+            },
+
+            drag: {
+                start(self) {
+                    return !!Object.getOwnPropertyDescriptor(self.self, "at")
+                        ?.value
+                },
+                move(self, to) {
+                    self.self.at = to
+                },
+                end(self, at, revert) {
+                    self.self.at = revert ? self.origin : at
+                },
+            },
         },
     },
 }

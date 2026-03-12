@@ -1,28 +1,19 @@
+import type { Capabilities } from "./capabilities"
 import type { Object } from "./object"
-import { INTERACT } from "./object-actions"
+import { CAPABILITIES } from "./object-actions"
+import { apply } from "./transform"
 import type { TransformTarget } from "./transform-target"
 
 export interface EventsInteractor {
     onObjectInteraction(): void
 }
 
-export interface InteractionHandler<T, U extends {}> {
-    test(screen: TransformTarget, ev: PointerEvent, self: T): U | null
-    drag(screen: TransformTarget, ev: PointerEvent, data: NoInfer<U>): void
-
-    finish(
-        screen: TransformTarget,
-        ev: PointerEvent,
-        data: NoInfer<U>,
-        cancel: boolean,
-    ): void
-}
-
 interface Item {
     pid: number
     object: Object
     data: {}
-    handler: InteractionHandler<unknown, {}>
+    isDragActive: boolean
+    hit: Capabilities<unknown, {}>["hit"]
 }
 
 export class Interactor {
@@ -40,24 +31,31 @@ export class Interactor {
         screen: TransformTarget,
     ): boolean {
         if (ev.type == "pointerdown") {
+            const toScreen = screen.toScreen()
+
             for (const el of objects) {
-                if (!(el.type in INTERACT)) continue
                 if (this.#objects.has(el)) continue
 
-                const handler = INTERACT[el.type as keyof typeof INTERACT]!
-                const data = handler.test(screen, ev, el as any)
+                const hit = (CAPABILITIES[el.type] as Capabilities<unknown, {}>)
+                    .hit
+
+                if (!hit?.drag) continue
+
+                const data = hit.test(el, toScreen, [ev.offsetX, ev.offsetY])
                 if (data == null) continue
 
                 const item: Item = {
                     pid: ev.pointerId,
                     object: el,
                     data,
-                    handler,
+                    isDragActive: hit.drag.start(data),
+                    hit,
                 }
 
                 this.#objects.set(el, item)
                 this.#pointers.set(ev.pointerId, item)
                 this.#events.onObjectInteraction()
+
                 return true
             }
 
@@ -67,8 +65,10 @@ export class Interactor {
         const el = this.#pointers.get(ev.pointerId)
         if (!el) return false
 
-        if (ev.type == "pointermove") {
-            el.handler.drag(screen, ev, el.data)
+        const pos = apply(screen.toLocal(), [ev.offsetX, ev.offsetY])
+
+        if (ev.type == "pointermove" && el.isDragActive) {
+            el.hit!.drag!.move(el.data, pos)
             this.#events.onObjectInteraction()
             return true
         }
@@ -76,8 +76,10 @@ export class Interactor {
         if (ev.type == "pointerup" || ev.type == "pointercancel") {
             this.#objects.delete(el.object)
             this.#pointers.delete(el.pid)
-            el.handler.finish(screen, ev, el.data, ev.type == "pointercancel")
-            this.#events.onObjectInteraction()
+            if (el.isDragActive) {
+                el.hit!.drag!.end(el.data, pos, ev.type == "pointercancel")
+                this.#events.onObjectInteraction()
+            }
             return true
         }
 

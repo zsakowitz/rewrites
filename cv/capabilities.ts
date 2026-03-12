@@ -29,7 +29,8 @@ export interface Capabilities<T, U extends {}> {
          * dragging it will remain locked to that element.
          */
         drag?: {
-            start(self: U): void
+            /** @returns `true` if the object accepts the drag event. */
+            start(self: U): boolean
 
             /** @param to A point in local-space coordinates. */
             move(self: U, to: Point): void
