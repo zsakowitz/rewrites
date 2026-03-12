@@ -15,14 +15,14 @@ export interface Capabilities<T, U extends {}> {
          */
         test(self: T, toScreen: Transform, at: Point): U | undefined
 
-        /**
-         * Enables hover events. The hitbox of this object should not shrink
-         * while hovering; this may lead to jittery behavior.
-         */
-        hover?: {
-            on(self: U): void
-            off(self: U): void
-        }
+        // /**
+        // * Enables hover events. The hitbox of this object should not shrink
+        // * while hovering; this may lead to jittery behavior.
+        // */
+        // hover?: {
+        // on(self: U): void
+        // off(self: U): void
+        // }
 
         /**
          * Enables drag events. Once an object is being dragged, the pointer
@@ -42,11 +42,11 @@ export interface Capabilities<T, U extends {}> {
             end(self: U, at: Point, revert: boolean): void
         }
 
-        /** Used for picking preexisting points and glider/intersection points. */
-        geo?(self: U): Geometry[]
+        // /** Used for picking preexisting points and glider/intersection points. */
+        // geo?(self: U): Geometry[]
     }
 }
 
-export type Geometry =
-    | { type: "point"; at: Point }
-    | { type: "line"; p0: Point; p1: Point; tmin: number; tmax: number }
+// export type Geometry =
+// | { type: "point"; at: Point }
+// | { type: "line"; p0: Point; p1: Point; tmin: number; tmax: number }
