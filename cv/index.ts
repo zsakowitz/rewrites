@@ -1,7 +1,7 @@
 import { Canvas, type EventsCanvas } from "./canvas"
 
 import { di } from "./debug"
-import { DEFAULT } from "./default"
+import { DEFAULT } from "./object-default"
 import { render, type Object } from "./object"
 import { Interactor, type EventsInteractor } from "./object-interactor"
 import { PathRecorder, type EventsPathRecorder } from "./path-recorder"
