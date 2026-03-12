@@ -1,5 +1,6 @@
 export type Point = readonly [x: number, y: number]
 export type Line = readonly [p0: Point, p1: Point]
+export type Circle = readonly [c: Point, r: number]
 
 export function extendLine(
     [x1, y1]: Point,

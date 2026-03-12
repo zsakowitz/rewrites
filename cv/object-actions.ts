@@ -2,6 +2,7 @@ import { getStroke, type Vec2 } from "perfect-freehand"
 import type { Capabilities } from "./capabilities"
 import {
     ColorBlue,
+    ColorGreen,
     ColorPurple,
     OpacityFill,
     OpacityPointHalo,
@@ -20,6 +21,7 @@ interface HitData {
     point: { self: Extract<Object, { type: "point" }>; origin: Point }
     line: never
     polygon: never
+    circle: never
 }
 
 export const CAPABILITIES: {
@@ -152,6 +154,22 @@ export const CAPABILITIES: {
             ctx.globalAlpha = OpacityFill
             ctx.fill()
             ctx.globalAlpha = 1
+            ctx.stroke()
+        },
+    },
+
+    circle: {
+        render(self, { ctx }, tx) {
+            const [cx, cy] = apply(tx, self.at[0])
+            const rx = self.at[1] * tx.zx
+            const ry = self.at[1] * tx.zy
+
+            ctx.strokeStyle = ColorGreen
+            ctx.lineWidth = SizeLine
+            ctx.lineCap = "round"
+
+            ctx.beginPath()
+            ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI)
             ctx.stroke()
         },
     },
