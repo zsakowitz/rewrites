@@ -33,8 +33,5 @@ export function getPath(p: PointList) {
 }
 
 export function simplifyPath(points: PointList): PointList {
-    return simplifyRadialDist(
-        points.map((x) => Math.round(x * 100) / 100),
-        1,
-    )
+    return simplifyRadialDist(points, 1)
 }

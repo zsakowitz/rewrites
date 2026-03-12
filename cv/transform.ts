@@ -42,7 +42,7 @@ export function compose(a: Transform, b: Transform): Transform {
 }
 
 export function apply(a: Transform, pt: Point): Point {
-    return [pt[0] * a.zx + a.tx, pt[0] * a.zy + a.ty]
+    return [pt[0] * a.zx + a.tx, pt[1] * a.zy + a.ty]
 }
 
 export function applyList(a: Transform, pt: PointList): PointList {

@@ -1,7 +1,8 @@
 import { Canvas, type EventsCanvas } from "./canvas"
+
 import { di } from "./debug"
 import { render, type Object } from "./object"
-import type { EventsObjectInteractor } from "./object-interact"
+import { Interactor, type EventsInteractor } from "./object-interactor"
 import { PathRecorder, type EventsPathRecorder } from "./path-recorder"
 import { simplifyPath } from "./path-render"
 import { TransformTarget, type EventsScreen } from "./transform-target"
@@ -10,7 +11,7 @@ type Events = unknown
     & EventsCanvas
     & EventsPathRecorder
     & EventsScreen
-    & EventsObjectInteractor
+    & EventsInteractor
 
 const events: Events = {
     onCanvasResize: update,
@@ -29,8 +30,9 @@ const events: Events = {
 const cv = new Canvas(events)
 const paths = new PathRecorder(events)
 const screen = new TransformTarget(events, cv.el)
+const itor = new Interactor(events)
 
-const objects: Object[] = []
+const objects: Object[] = [{ type: "point", x: 2, y: 7 }]
 
 function getIncomplete(): Object[] {
     return paths
@@ -47,6 +49,10 @@ function handleDOMEvent(ev: PointerEvent | WheelEvent) {
     ev = ev as PointerEvent
 
     cv.el.setPointerCapture(ev.pointerId)
+
+    if (itor.handleEvent(ev, objects, screen)) {
+        return
+    }
 
     if (ev.type == "pointerdown") {
         if (ev.pointerType == "touch") {
