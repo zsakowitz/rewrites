@@ -9,6 +9,7 @@ import {
     SizePoint,
     SizePointHaloWide,
 } from "./dcg"
+import { extendLine } from "./geometry"
 import type { Object } from "./object"
 import { getPath } from "./path-render"
 import {
@@ -118,8 +119,14 @@ export const CAPABILITIES: {
 
     line: {
         render(self, { ctx }, tx) {
-            const [x0, y0] = apply(tx, self.p0)
-            const [x1, y1] = apply(tx, self.p1)
+            const bp0 = apply(tx, self.p0)
+            const bp1 = apply(tx, self.p1)
+
+            const [x0, y0] =
+                self.tmin == 0 ? bp0 : extendLine(bp1, bp0, ctx.canvas)
+
+            const [x1, y1] =
+                self.tmax == 1 ? bp1 : extendLine(bp0, bp1, ctx.canvas)
 
             ctx.strokeStyle = ColorBlue
             ctx.lineWidth = SizeLine
