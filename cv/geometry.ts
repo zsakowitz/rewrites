@@ -20,3 +20,7 @@ export function extendLine(
 
     return [x, y]
 }
+
+export function perpendicular(l: Line, p: Point): Line {
+    return [p, [p[0] + l[1][1] - l[0][1], p[1] - l[1][0] + l[0][0]]]
+}

@@ -1,7 +1,7 @@
-import type { Line } from "./geometry"
+import { perpendicular, type Line } from "./geometry"
 import type { Object } from "./object"
 
-export function segment(a: Object, b: Object): Object {
+export function osegment(a: Object, b: Object): Object {
     if (a.type != "point") throw new Error()
     if (b.type != "point") throw new Error()
 
@@ -15,20 +15,14 @@ export function segment(a: Object, b: Object): Object {
     }
 }
 
-export function perpendicular(l: Object, p: Object): Object {
+export function operpendicular(l: Object, p: Object): Object {
     if (l.type != "line") throw new Error()
     if (p.type != "point") throw new Error()
 
     return {
         type: "line",
         get at(): Line {
-            return [
-                p.at,
-                [
-                    p.at[0] + l.at[1][1] - l.at[0][1],
-                    p.at[1] - l.at[1][0] + l.at[0][0],
-                ],
-            ]
+            return perpendicular(l.at, p.at)
         },
         tmin: -1e999,
         tmax: 1e999,
@@ -46,4 +40,4 @@ const P: Object = {
     },
 }
 
-export const DEFAULT = [P, perpendicular(segment(A, B), C), A, B, C]
+export const DEFAULT = [P, operpendicular(osegment(A, B), C), A, B, C]
