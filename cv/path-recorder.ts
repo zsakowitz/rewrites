@@ -65,6 +65,7 @@ export class PathRecorder {
         const path = this.#active.get(ev.pointerId)
         if (!path) return false
 
+        // apple pencil duplicates events, so we just ignore events which end at the last position
         const lastX = path.points.at(-2 * path.predicted - 2)!
         const lastY = path.points.at(-2 * path.predicted - 1)!
 

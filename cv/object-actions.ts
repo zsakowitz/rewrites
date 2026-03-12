@@ -15,6 +15,7 @@ import {
     apply,
     applyList,
     compose,
+    flat,
     inverse,
     unflat,
     type Point,
@@ -48,27 +49,7 @@ export const CAPABILITIES: {
                 smoothing: 0,
             })
 
-            for (let i = 0; i < p.length - 1; i++) {
-                ctx.beginPath()
-                ctx.moveTo(p[i]![0], p[i]![1])
-                ctx.lineTo(p[i + 1]![0], p[i + 1]![1])
-                ctx.strokeStyle = `oklch(0.3 0.2 ${(i / p.length) * 360})`
-                ctx.lineWidth = 4
-                ctx.stroke()
-            }
-
-            let i = 0
-            for (const [x, y] of p) {
-                ctx.beginPath()
-                ctx.ellipse(x, y, 8, 8, 0, 0, 2 * Math.PI)
-                ctx.fillStyle = `oklch(0.7 0.2 ${(i++ / p.length) * 360})`
-                ctx.fill()
-                ctx.fillStyle = "white"
-                ctx.fillText("" + i, x, y)
-            }
-            //
-            // const n = Date.now()
-            // while (Date.now() < n + 100);
+            ctx.fill(getPath(flat(p), true))
         },
     },
 
