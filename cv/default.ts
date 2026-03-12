@@ -1,4 +1,10 @@
-import { perpendicular, type Circle, type Line, type Point } from "./geometry"
+import {
+    isec,
+    perpendicular,
+    type Circle,
+    type Line,
+    type Point,
+} from "./geometry"
 import type { Object } from "./object"
 
 export function osegment(a: Object, b: Object): Object {
@@ -55,6 +61,18 @@ export function omidpoint(l: Object): Object {
     }
 }
 
+export function oisec(l1: Object, l2: Object): Object {
+    if (l1.type != "line") throw new Error()
+    if (l2.type != "line") throw new Error()
+
+    return {
+        type: "point",
+        get at(): Point {
+            return isec(l1.at, l2.at)
+        },
+    }
+}
+
 const A: Object = { type: "point", at: [2, 3] }
 const B: Object = { type: "point", at: [4, 5] }
 const C: Object = { type: "point", at: [6, -2] }
@@ -72,4 +90,6 @@ const mBC = omidpoint(osegment(B, C))
 const pAB = operpendicular(osegment(A, B), mAB)
 const pBC = operpendicular(osegment(B, C), mBC)
 
-export const DEFAULT = [P, A, B, C, mAB, mBC, pAB, pBC]
+const O = oisec(pAB, pBC)
+
+export const DEFAULT = [P, ocircle(O, A), pAB, pBC, A, B, C]

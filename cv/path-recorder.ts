@@ -126,6 +126,7 @@ export class PathRecorder {
                 return true
 
             case "pointermove":
+            case "pointerrawupdate":
                 return this.#pointermove(ev)
 
             case "pointerup":

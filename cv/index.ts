@@ -74,6 +74,7 @@ cv.el.addEventListener("pointermove", handleDOMEvent, { passive: true })
 cv.el.addEventListener("pointerup", handleDOMEvent, { passive: true })
 cv.el.addEventListener("pointercancel", handleDOMEvent, { passive: true })
 cv.el.addEventListener("pointerdown", handleDOMEvent, { passive: true })
+cv.el.addEventListener("wheel", (ev) => ev.preventDefault(), { passive: false })
 cv.el.addEventListener("wheel", handleDOMEvent, { passive: true })
 
 function update() {

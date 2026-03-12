@@ -71,7 +71,10 @@ export class Interactor {
 
         const pos = apply(screen.toLocal(), [ev.offsetX, ev.offsetY])
 
-        if (ev.type == "pointermove" && el.isDragActive) {
+        if (
+            (ev.type == "pointermove" || ev.type == "pointerrawupdate")
+            && el.isDragActive
+        ) {
             el.hit!.drag!.move(el.data, pos)
             this.#events.onObjectInteraction()
             return true

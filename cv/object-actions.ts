@@ -161,8 +161,8 @@ export const CAPABILITIES: {
     circle: {
         render(self, { ctx }, tx) {
             const [cx, cy] = apply(tx, self.at[0])
-            const rx = self.at[1] * tx.zx
-            const ry = self.at[1] * tx.zy
+            const rx = Math.abs(self.at[1] * tx.zx)
+            const ry = Math.abs(self.at[1] * tx.zy)
 
             ctx.strokeStyle = ColorGreen
             ctx.lineWidth = SizeLine

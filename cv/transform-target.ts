@@ -197,6 +197,7 @@ export class TransformTarget {
                 return
 
             case "pointermove":
+            case "pointerrawupdate":
                 this.#onpointermove(ev as PointerEvent)
                 return
 
