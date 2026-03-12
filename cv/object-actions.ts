@@ -9,18 +9,10 @@ import {
     SizePoint,
     SizePointHaloWide,
 } from "./dcg"
-import { extendLine } from "./geometry"
+import { extendLine, type Point } from "./geometry"
 import type { Object } from "./object"
 import { getPath } from "./path-render"
-import {
-    apply,
-    applyList,
-    compose,
-    flat,
-    inverse,
-    unflat,
-    type Point,
-} from "./transform"
+import { apply, applyList, compose, flat, inverse, unflat } from "./transform"
 
 interface HitData {
     path: never
@@ -119,8 +111,8 @@ export const CAPABILITIES: {
 
     line: {
         render(self, { ctx }, tx) {
-            const bp0 = apply(tx, self.p0)
-            const bp1 = apply(tx, self.p1)
+            const bp0 = apply(tx, self.at[0])
+            const bp1 = apply(tx, self.at[1])
 
             const [x0, y0] =
                 self.tmin == 0 ? bp0 : extendLine(bp1, bp0, ctx.canvas)

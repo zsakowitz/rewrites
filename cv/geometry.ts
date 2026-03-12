@@ -1,4 +1,5 @@
-import type { Point } from "./transform"
+export type Point = readonly [x: number, y: number]
+export type Line = readonly [p0: Point, p1: Point]
 
 export function extendLine(
     [x1, y1]: Point,

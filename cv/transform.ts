@@ -1,4 +1,5 @@
-export type Point = readonly [x: number, y: number]
+import type { Point } from "./geometry"
+
 export type PointList = readonly number[]
 export type PointListMut = number[]
 

@@ -1,12 +1,13 @@
 import type { Canvas } from "./canvas"
+import type { Line, Point } from "./geometry"
 import { CAPABILITIES } from "./object-actions"
-import { type Point, type PointList, type Transform } from "./transform"
+import type { PointList, Transform } from "./transform"
 
 export type Object =
     | { type: "path"; tx: Transform; lw: number; path: PointList }
     | { type: "pathIncomplete"; path: PointList }
     | { type: "point"; at: Point }
-    | { type: "line"; p0: Point; p1: Point; tmin: 0 | -1e999; tmax: 1 | 1e999 }
+    | { type: "line"; at: Line; tmin: 0 | -1e999; tmax: 1 | 1e999 }
     | { type: "polygon"; points: PointList }
 
 export function render(cv: Canvas, tx: Transform, objects: Object[]) {

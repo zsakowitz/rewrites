@@ -1,14 +1,14 @@
+import type { Line } from "./geometry"
 import type { Object } from "./object"
-import type { Point } from "./transform"
 
 export function segment(a: Object, b: Object): Object {
+    if (a.type != "point") throw new Error()
+    if (b.type != "point") throw new Error()
+
     return {
         type: "line",
-        get p0() {
-            return (a as any).at
-        },
-        get p1() {
-            return (b as any).at
+        get at(): Line {
+            return [a.at, b.at]
         },
         tmin: 0,
         tmax: 1,
@@ -21,11 +21,14 @@ export function perpendicular(l: Object, p: Object): Object {
 
     return {
         type: "line",
-        get p0() {
-            return p.at
-        },
-        get p1(): Point {
-            return [p.at[0] + l.p1[1] - l.p0[1], p.at[1] - l.p1[0] + l.p0[0]]
+        get at(): Line {
+            return [
+                p.at,
+                [
+                    p.at[0] + l.at[1][1] - l.at[0][1],
+                    p.at[1] - l.at[1][0] + l.at[0][0],
+                ],
+            ]
         },
         tmin: -1e999,
         tmax: 1e999,

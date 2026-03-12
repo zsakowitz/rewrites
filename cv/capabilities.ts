@@ -1,5 +1,6 @@
 import type { Canvas } from "./canvas"
-import type { Point, Transform } from "./transform"
+import type { Point } from "./geometry"
+import type { Transform } from "./transform"
 
 export interface Capabilities<T, U extends {}> {
     render?(self: T, cv: Canvas, toScreen: Transform): void
