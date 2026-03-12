@@ -1,5 +1,4 @@
 import { getStroke, type Vec2 } from "perfect-freehand"
-import type { Capabilities } from "./capabilities"
 import {
     ColorBlue,
     ColorGreen,
@@ -12,6 +11,7 @@ import {
 } from "./dcg"
 import { extendLine, type Point } from "./geometry"
 import type { Object } from "./object"
+import type { Traits } from "./object-trait-type"
 import { getPath } from "./path-render"
 import { apply, applyList, compose, flat, inverse, unflat } from "./transform"
 
@@ -24,11 +24,8 @@ interface HitData {
     circle: never
 }
 
-export const CAPABILITIES: {
-    [K in Object["type"]]: Capabilities<
-        Extract<Object, { type: K }>,
-        HitData[K]
-    >
+export const TRAITS: {
+    [K in Object["type"]]: Traits<Extract<Object, { type: K }>, HitData[K]>
 } & { __proto__: null } = {
     __proto__: null,
 

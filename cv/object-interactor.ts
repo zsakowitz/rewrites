@@ -1,8 +1,8 @@
-import type { Capabilities } from "./capabilities"
+import type { Controls } from "./controls"
 import type { Object } from "./object"
-import { CAPABILITIES } from "./object-actions"
+import { TRAITS } from "./object-trait-def"
+import type { Traits } from "./object-trait-type"
 import { apply } from "./transform"
-import type { TransformTarget } from "./transform-target"
 
 export interface EventsInteractor {
     onObjectInteraction(): void
@@ -13,7 +13,7 @@ interface Item {
     object: Object
     data: {}
     isDragActive: boolean
-    hit: Capabilities<unknown, {}>["hit"]
+    hit: Traits<unknown, {}>["hit"]
 }
 
 export class Interactor {
@@ -32,16 +32,15 @@ export class Interactor {
     handleEvent(
         ev: PointerEvent,
         objects: Object[],
-        screen: TransformTarget,
+        controls: Controls,
     ): boolean {
         if (ev.type == "pointerdown") {
-            const toScreen = screen.toScreen()
+            const toScreen = controls.toScreen()
 
             for (const el of objects) {
                 if (this.#objects.has(el)) continue
 
-                const hit = (CAPABILITIES[el.type] as Capabilities<unknown, {}>)
-                    .hit
+                const hit = (TRAITS[el.type] as Traits<unknown, {}>).hit
 
                 if (!hit?.drag) continue
 
@@ -69,7 +68,7 @@ export class Interactor {
         const el = this.#pointers.get(ev.pointerId)
         if (!el) return false
 
-        const pos = apply(screen.toLocal(), [ev.offsetX, ev.offsetY])
+        const pos = apply(controls.toLocal(), [ev.offsetX, ev.offsetY])
 
         if (
             (ev.type == "pointermove" || ev.type == "pointerrawupdate")

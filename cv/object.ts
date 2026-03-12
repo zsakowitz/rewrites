@@ -1,6 +1,6 @@
 import type { Canvas } from "./canvas"
 import type { Circle, Line, Point } from "./geometry"
-import { CAPABILITIES } from "./object-actions"
+import { TRAITS } from "./object-trait-def"
 import type { PointList, Transform } from "./transform"
 
 export type Object =
@@ -13,6 +13,6 @@ export type Object =
 
 export function render(cv: Canvas, tx: Transform, objects: Object[]) {
     for (const el of objects) {
-        CAPABILITIES[el.type].render?.(el as never, cv, tx)
+        TRAITS[el.type].render?.(el as never, cv, tx)
     }
 }

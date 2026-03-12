@@ -2,7 +2,7 @@ import type { Canvas } from "./canvas"
 import type { Point } from "./geometry"
 import type { Transform } from "./transform"
 
-export interface Capabilities<T, U extends {}> {
+export interface Traits<T, U extends {}> {
     render?(self: T, cv: Canvas, toScreen: Transform): void
 
     /** Enables hit testing, which gives the object a physical presence. */

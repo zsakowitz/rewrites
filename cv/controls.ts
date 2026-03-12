@@ -10,18 +10,18 @@ interface ActivePointer {
     moved: boolean
 }
 
-export interface EventsScreen {
-    onScreenUpdate(): void
+export interface EventsControls {
+    onControlsUpdate(): void
 }
 
-export class TransformTarget {
+export class Controls {
     #pointers = new Map<number, ActivePointer>()
     #actualPosCached: Transform | undefined
     #pos
     #events
 
     constructor(
-        events: EventsScreen,
+        events: EventsControls,
         readonly el: HTMLElement,
         pos: Transform = { tx: 0, ty: 0, zx: 10, zy: 10 },
     ) {
@@ -100,7 +100,7 @@ export class TransformTarget {
         })
 
         this.#actualPosCached = undefined
-        this.#events.onScreenUpdate()
+        this.#events.onControlsUpdate()
     }
 
     #onpointermove(ev: PointerEvent) {
@@ -115,7 +115,7 @@ export class TransformTarget {
         }
 
         this.#actualPosCached = undefined
-        this.#events.onScreenUpdate()
+        this.#events.onControlsUpdate()
     }
 
     #onpointerfinish(ev: PointerEvent) {
@@ -147,7 +147,7 @@ export class TransformTarget {
             this.#pointers.clear()
         }
 
-        this.#events.onScreenUpdate()
+        this.#events.onControlsUpdate()
     }
 
     #onwheel(ev: WheelEvent) {
@@ -166,7 +166,7 @@ export class TransformTarget {
                 zx,
                 zy,
             }
-            this.#events.onScreenUpdate()
+            this.#events.onControlsUpdate()
             return
         }
 
@@ -183,7 +183,7 @@ export class TransformTarget {
             zy: zy * zmc,
         }
 
-        this.#events.onScreenUpdate()
+        this.#events.onControlsUpdate()
     }
 
     handleEvent(ev: Event) {
