@@ -1,4 +1,4 @@
-import { Canvas } from "./canvas"
+import { Canvas, type EventsCanvas } from "./canvas"
 import {
     ColorPurple,
     OpacityPointHalo,
@@ -6,13 +6,13 @@ import {
     SizePointHaloWide,
 } from "./dcg"
 import { di } from "./debug"
-import { Screen } from "./screen"
-import { getPath, getPathRaw, PathCapturer } from "./stylus"
+import { Screen, type EventsScreen } from "./ev-screen"
+import { PathRecorder, type EventsPathRecorder } from "./path-record"
+import { getPath, getPathRaw } from "./path-render"
 import {
     apply,
     applyList,
     compose,
-    type Point,
     type PointList,
     type Transform,
 } from "./transform"
@@ -23,12 +23,39 @@ interface CompletePath {
     lw: number
 }
 
-const cv = new Canvas()
-const paths = new PathCapturer(cv.el)
-const completedPaths: CompletePath[] = []
-const screen = new Screen(cv.el)
+const events: EventsPathRecorder & EventsScreen & EventsCanvas = {
+    onCanvasResize() {
+        cv.el.width = cv.el.width
+        cv.ctx.resetTransform()
+        cv.ctx.scale(devicePixelRatio, devicePixelRatio)
+    },
+    onPathFinish(path) {
+        complete(path.points)
+    },
+    onPathUpdate: write,
+    onScreenUpdate: write,
+}
 
-function complete(raw: Point[]) {
+const cv = new Canvas(events)
+const paths = new PathRecorder(events)
+const screen = new Screen(events, cv.el)
+
+const completedPaths: CompletePath[] = []
+
+cv.el.addEventListener("pointermove", paths, { passive: true })
+cv.el.addEventListener("pointerup", paths, { passive: true })
+cv.el.addEventListener("pointercancel", paths, { passive: true })
+cv.el.addEventListener(
+    "pointerdown",
+    (ev) => {
+        if (ev.pointerType != "touch") {
+            paths.handleEvent(ev)
+        }
+    },
+    { passive: true },
+)
+
+function complete(raw: PointList) {
     const points = getPathRaw(raw, true).map((x) => Math.round(x * 100) / 100)
     const tx = screen.toLocal()
     const lw = screen.toLocalDelta(2)
@@ -69,8 +96,8 @@ function writePaths() {
     }
 
     ctx.lineWidth = 2
-    for (const key in paths.active) {
-        ctx.stroke(getPath(getPathRaw(paths.active[key]!.points, false)))
+    for (const path of paths.get()) {
+        ctx.stroke(getPath(getPathRaw(path.points, false)))
     }
 }
 
@@ -97,20 +124,6 @@ function writePoints() {
     ctx.ellipse(...apply(tx, [3, 4]), SizePoint, SizePoint, 0, 0, 2 * Math.PI)
     ctx.fill()
 }
-
-paths.onEnd = ({ points }, ev) => {
-    if (ev.type == "pointercancel") {
-        write()
-        return
-    }
-
-    complete(points)
-    write()
-}
-
-paths.onChange = write
-screen.onUpdate = write
-cv.onResize = write
 
 setInterval(() => {
     const sizes: string[] = []

@@ -10,53 +10,39 @@ interface ActivePointer {
     moved: boolean
 }
 
-export class Screen {
-    destroy
-    onUpdate: ((this: Screen) => void) | undefined
+export interface EventsScreen {
+    onScreenUpdate(): void
+}
 
-    private pointers = new Map<number, ActivePointer>()
+export class Screen {
+    #pointers = new Map<number, ActivePointer>()
+    #actualPosCached: Transform | undefined
+    #pos
 
     constructor(
+        readonly events: EventsScreen,
         readonly el: HTMLElement,
-        private _pos: Transform = { tx: 0, ty: 0, zx: 1000, zy: 1000 },
+        pos: Transform = { tx: 0, ty: 0, zx: 1000, zy: 1000 },
     ) {
-        const wheel = this.#onWheel.bind(this)
-        const pointerdown = this.#onPointerDown.bind(this)
-        const pointermove = this.#onPointerMove.bind(this)
-        const pointerup = this.#onPointerUp.bind(this)
-
-        el.addEventListener("wheel", wheel, { passive: false })
-        el.addEventListener("pointerdown", pointerdown, { passive: true })
-        el.addEventListener("pointermove", pointermove, { passive: true })
-        el.addEventListener("pointerup", pointerup, { passive: true })
-        el.addEventListener("pointercancel", pointerup, { passive: true })
-
-        this.destroy = () => {
-            el.removeEventListener("wheel", wheel)
-            el.removeEventListener("pointerdown", pointerdown)
-            el.removeEventListener("pointermove", pointermove)
-            el.removeEventListener("pointerup", pointerup)
-            el.removeEventListener("pointercancel", pointerup)
-        }
+        this.#pos = pos
     }
 
-    private posCached: Transform | undefined
     get pos(): Transform {
-        if (this.posCached) return this.posCached
+        if (this.#actualPosCached) return this.#actualPosCached
 
-        const [a, b, c] = this.pointers.values()
+        const [a, b, c] = this.#pointers.values()
 
         const pos =
-            !a || c ? this._pos
-            : !a.down || (b && !b.down) ? this._pos
+            !a || c ? this.#pos
+            : !a.down || (b && !b.down) ? this.#pos
             : b ? this.#pos2(a, b)
             : this.#pos1(a)
 
-        return (this.posCached = pos)
+        return (this.#actualPosCached = pos)
     }
 
     #pos1(a: ActivePointer) {
-        const { tx, ty, zx, zy } = this._pos
+        const { tx, ty, zx, zy } = this.#pos
 
         const dx =
             -((a.x - a.ox) * (zx / this.el.clientHeight)) * devicePixelRatio
@@ -71,7 +57,7 @@ export class Screen {
     }
 
     #pos2(a: ActivePointer, b: ActivePointer): Transform {
-        const { tx, ty, zx, zy } = this._pos
+        const { tx, ty, zx, zy } = this.#pos
         const { clientWidth: cw, clientHeight: ch } = this.el
 
         const scale =
@@ -92,16 +78,16 @@ export class Screen {
         }
     }
 
-    #onPointerDown(ev: PointerEvent) {
+    #onpointerdown(ev: PointerEvent) {
         if (ev.pointerType != "touch") return
-        if (this.pointers.size >= 2) return
+        if (this.#pointers.size >= 2) return
 
-        const [a] = this.pointers.values()
+        const [a] = this.#pointers.values()
         if (a?.moved) return
 
         this.el.setPointerCapture(ev.pointerId)
 
-        this.pointers.set(ev.pointerId, {
+        this.#pointers.set(ev.pointerId, {
             id: ev.pointerId,
             ox: ev.offsetX,
             oy: ev.offsetY,
@@ -111,12 +97,12 @@ export class Screen {
             moved: false,
         })
 
-        this.posCached = undefined
-        this.onUpdate?.()
+        this.#actualPosCached = undefined
+        this.events.onScreenUpdate()
     }
 
-    #onPointerMove(ev: PointerEvent) {
-        const ptr = this.pointers.get(ev.pointerId)
+    #onpointermove(ev: PointerEvent) {
+        const ptr = this.#pointers.get(ev.pointerId)
         if (!ptr) return
 
         ptr.x = ev.offsetX
@@ -126,16 +112,16 @@ export class Screen {
             ptr.moved = true
         }
 
-        this.posCached = undefined
-        this.onUpdate?.()
+        this.#actualPosCached = undefined
+        this.events.onScreenUpdate()
     }
 
-    #onPointerUp(ev: PointerEvent) {
-        const ptr = this.pointers.get(ev.pointerId)
+    #onpointerfinish(ev: PointerEvent) {
+        const ptr = this.#pointers.get(ev.pointerId)
         if (!ptr) return
 
         let didReturn = false
-        for (const el of this.pointers.values()) {
+        for (const el of this.#pointers.values()) {
             if (!el.down) {
                 didReturn = true
                 break
@@ -145,25 +131,25 @@ export class Screen {
         ptr.down = false
 
         if (ev.type == "pointerup" && !didReturn) {
-            this.posCached = this._pos = this.pos
+            this.#actualPosCached = this.#pos = this.pos
         }
 
         let done = true
-        for (const el of this.pointers.values()) {
+        for (const el of this.#pointers.values()) {
             if (el.down) {
                 done = false
             }
         }
 
         if (done) {
-            this.pointers.clear()
+            this.#pointers.clear()
         }
 
-        this.onUpdate?.()
+        this.events.onScreenUpdate()
     }
 
-    #onWheel(ev: WheelEvent) {
-        if (this.pointers.size) return
+    #onwheel(ev: WheelEvent) {
+        if (this.#pointers.size) return
 
         ev.preventDefault()
 
@@ -172,13 +158,13 @@ export class Screen {
         const { clientWidth: cw, clientHeight: ch } = this.el
 
         if (!(ev.ctrlKey || ev.metaKey)) {
-            this.posCached = this._pos = {
+            this.#actualPosCached = this.#pos = {
                 tx: tx + 2 * dx * (zx / ch),
                 ty: ty - 2 * dy * (zy / ch),
                 zx,
                 zy,
             }
-            this.onUpdate?.()
+            this.events.onScreenUpdate()
             return
         }
 
@@ -188,14 +174,35 @@ export class Screen {
         const px = (2 * ev.offsetX - cw) / ch
         const py = 1 - (2 * ev.offsetY) / ch
 
-        this.posCached = this._pos = {
+        this.#actualPosCached = this.#pos = {
             tx: tx + px * (1 - zmc) * zx,
             ty: ty + py * (1 - zmc) * zy,
             zx: zx * zmc,
             zy: zy * zmc,
         }
 
-        this.onUpdate?.()
+        this.events.onScreenUpdate()
+    }
+
+    handleEvent(ev: Event) {
+        switch (ev.type) {
+            case "wheel":
+                this.#onwheel(ev as WheelEvent)
+                return
+
+            case "pointerdown":
+                this.#onpointerdown(ev as PointerEvent)
+                return
+
+            case "pointermove":
+                this.#onpointermove(ev as PointerEvent)
+                return
+
+            case "pointerup":
+            case "pointercancel":
+                this.#onpointerfinish(ev as PointerEvent)
+                return
+        }
     }
 
     toLocalDelta(y: number): number {
