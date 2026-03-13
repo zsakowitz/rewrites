@@ -6,7 +6,7 @@ interface ActivePathMut {
     predicted: number
 }
 
-export interface ActivePath {
+export interface PathIncomplete {
     points: PointList
     predicted: number
 }
@@ -19,7 +19,7 @@ const HAS_PREDICTED_EVENTS =
 
 export interface EventsPathRecorder {
     onPathUpdate(): void
-    onPathFinish(path: ActivePath): void
+    onPathFinish(path: PathIncomplete): void
 }
 
 /**
@@ -36,30 +36,33 @@ export interface EventsPathRecorder {
  * been dedicated to pen strokes.
  */
 export class PathRecorder {
-    private readonly active_ = new Map<number, ActivePathMut>()
+    #active = new Map<number, ActivePathMut>()
+    #events
 
-    constructor(readonly events: EventsPathRecorder) {}
-
-    has(id: number): boolean {
-        return this.active_.has(id)
+    constructor(events: EventsPathRecorder) {
+        this.#events = events
     }
 
-    get(): ActivePath[] {
-        return Array.from(this.active_.values())
+    has(id: number): boolean {
+        return this.#active.has(id)
+    }
+
+    getIncomplete(): PathIncomplete[] {
+        return Array.from(this.#active.values())
     }
 
     #pointerdown(ev: PointerEvent) {
-        this.active_.set(ev.pointerId, {
+        this.#active.set(ev.pointerId, {
             pid: ev.pointerId,
             points: [ev.offsetX, ev.offsetY],
             predicted: 0,
         })
 
-        this.events.onPathUpdate()
+        this.#events.onPathUpdate()
     }
 
     #pointermove(ev: PointerEvent) {
-        const path = this.active_.get(ev.pointerId)
+        const path = this.#active.get(ev.pointerId)
         if (!path) return false
 
         for (let i = 0; i < path.predicted; i++) {
@@ -81,26 +84,26 @@ export class PathRecorder {
 
         path.predicted = predicted.length
 
-        this.events.onPathUpdate()
+        this.#events.onPathUpdate()
 
         return true
     }
 
     #pointerfinish(ev: PointerEvent) {
-        const path = this.active_.get(ev.pointerId)
+        const path = this.#active.get(ev.pointerId)
         if (!path) return false
 
         for (let i = 0; i < path.predicted; i++) {
             path.points.pop()
         }
 
-        this.active_.delete(ev.pointerId)
+        this.#active.delete(ev.pointerId)
 
         if (ev.type == "pointerup") {
-            this.events.onPathFinish(path)
+            this.#events.onPathFinish(path)
         }
 
-        this.events.onPathUpdate()
+        this.#events.onPathUpdate()
 
         return true
     }

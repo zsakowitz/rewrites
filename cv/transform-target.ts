@@ -14,16 +14,18 @@ export interface EventsScreen {
     onScreenUpdate(): void
 }
 
-export class Screen {
+export class TransformTarget {
     #pointers = new Map<number, ActivePointer>()
     #actualPosCached: Transform | undefined
     #pos
+    #events
 
     constructor(
-        readonly events: EventsScreen,
+        events: EventsScreen,
         readonly el: HTMLElement,
         pos: Transform = { tx: 0, ty: 0, zx: 1000, zy: 1000 },
     ) {
+        this.#events = events
         this.#pos = pos
     }
 
@@ -98,7 +100,7 @@ export class Screen {
         })
 
         this.#actualPosCached = undefined
-        this.events.onScreenUpdate()
+        this.#events.onScreenUpdate()
     }
 
     #onpointermove(ev: PointerEvent) {
@@ -113,7 +115,7 @@ export class Screen {
         }
 
         this.#actualPosCached = undefined
-        this.events.onScreenUpdate()
+        this.#events.onScreenUpdate()
     }
 
     #onpointerfinish(ev: PointerEvent) {
@@ -145,7 +147,7 @@ export class Screen {
             this.#pointers.clear()
         }
 
-        this.events.onScreenUpdate()
+        this.#events.onScreenUpdate()
     }
 
     #onwheel(ev: WheelEvent) {
@@ -164,7 +166,7 @@ export class Screen {
                 zx,
                 zy,
             }
-            this.events.onScreenUpdate()
+            this.#events.onScreenUpdate()
             return
         }
 
@@ -181,7 +183,7 @@ export class Screen {
             zy: zy * zmc,
         }
 
-        this.events.onScreenUpdate()
+        this.#events.onScreenUpdate()
     }
 
     handleEvent(ev: Event) {

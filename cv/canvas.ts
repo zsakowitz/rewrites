@@ -5,8 +5,10 @@ export interface EventsCanvas {
 export class Canvas {
     readonly el = document.createElement("canvas")
     readonly ctx = this.el.getContext("2d")!
+    #events
 
-    constructor(readonly events: EventsCanvas) {
+    constructor(events: EventsCanvas) {
+        this.#events = events
         this.el.style =
             "position:fixed;inset:0;touch-action:none;background:#081014;width:100vw;height:100vh;image-rendering:pixelated;user-select:none"
         document.body.appendChild(this.el)
@@ -19,10 +21,10 @@ export class Canvas {
         this.el.height = devicePixelRatio * this.el.clientHeight
         this.ctx.resetTransform()
         this.ctx.scale(devicePixelRatio, devicePixelRatio)
-        this.events.onCanvasResize()
+        this.#events.onCanvasResize()
     }
 
     clear() {
-        this.resize()
+        this.ctx.clearRect(0, 0, this.el.clientWidth, this.el.clientHeight)
     }
 }

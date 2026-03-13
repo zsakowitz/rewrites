@@ -6,8 +6,7 @@ import {
     SizePointHaloWide,
 } from "./dcg"
 import { di } from "./debug"
-import { Screen, type EventsScreen } from "./ev-screen"
-import { PathRecorder, type EventsPathRecorder } from "./path-record"
+import { PathRecorder, type EventsPathRecorder } from "./path-recorder"
 import { getPath, getPathRaw } from "./path-render"
 import {
     apply,
@@ -16,6 +15,7 @@ import {
     type PointList,
     type Transform,
 } from "./transform"
+import { TransformTarget, type EventsScreen } from "./transform-target"
 
 interface CompletePath {
     points: PointList
@@ -24,11 +24,7 @@ interface CompletePath {
 }
 
 const events: EventsPathRecorder & EventsScreen & EventsCanvas = {
-    onCanvasResize() {
-        cv.el.width = cv.el.width
-        cv.ctx.resetTransform()
-        cv.ctx.scale(devicePixelRatio, devicePixelRatio)
-    },
+    onCanvasResize() {},
     onPathFinish(path) {
         complete(path.points)
     },
@@ -38,7 +34,7 @@ const events: EventsPathRecorder & EventsScreen & EventsCanvas = {
 
 const cv = new Canvas(events)
 const paths = new PathRecorder(events)
-const screen = new Screen(events, cv.el)
+const screen = new TransformTarget(events, cv.el)
 
 const completedPaths: CompletePath[] = []
 
@@ -72,11 +68,7 @@ ${screen.pos.zx}
 ${screen.pos.zy}
     `
 
-    const { ctx } = cv
-    cv.el.width = cv.el.width
-    ctx.resetTransform()
-    ctx.scale(devicePixelRatio, devicePixelRatio)
-
+    cv.clear()
     writePaths()
     writePoints()
 }
@@ -96,7 +88,7 @@ function writePaths() {
     }
 
     ctx.lineWidth = 2
-    for (const path of paths.get()) {
+    for (const path of paths.getIncomplete()) {
         ctx.stroke(getPath(getPathRaw(path.points, false)))
     }
 }
@@ -124,33 +116,3 @@ function writePoints() {
     ctx.ellipse(...apply(tx, [3, 4]), SizePoint, SizePoint, 0, 0, 2 * Math.PI)
     ctx.fill()
 }
-
-setInterval(() => {
-    const sizes: string[] = []
-
-    const bytes = completedPaths.map((x) => {
-        const buf = new ArrayBuffer(40 + x.points.length * 2)
-        const view = new DataView(buf)
-
-        let i = 0
-        for (const el of [x.lw, x.tx.tx, x.tx.ty, x.tx.zx, x.tx.zy]) {
-            view.setFloat64(i * 8, el, true)
-            i++
-        }
-
-        for (let i = 0; i < x.points.length; i++) {
-            view.setFloat16(40 + i * 2, x.points[i]!, true)
-        }
-
-        const b64 = new Uint8Array(buf).toBase64()
-        const json = JSON.stringify(x)
-
-        sizes.push(
-            `${x.points.length}@${b64.length}(${Math.ceil((b64.length / json.length) * 100)}%)`,
-        )
-
-        return b64 + " // " + json
-    })
-
-    di.textarea``.value = sizes.join(" ") + "\n" + bytes.join("\n")
-})
