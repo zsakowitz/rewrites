@@ -2,8 +2,10 @@
 
 import type { PointList } from "./transform"
 
-// basic distance-based simplification
-function simplifyRadialDist(points: PointList, sqTolerance: number): PointList {
+export function simplifyRadialDist(
+    points: PointList,
+    sqTolerance: number,
+): PointList {
     if (points.length < 4) {
         return points
     }
@@ -34,8 +36,4 @@ function simplifyRadialDist(points: PointList, sqTolerance: number): PointList {
     }
 
     return ret
-}
-
-export function simplify(points: PointList, epsilon: number): PointList {
-    return simplifyRadialDist(points, epsilon * epsilon)
 }

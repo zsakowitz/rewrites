@@ -1,4 +1,4 @@
-import { simplify } from "./path-simplify"
+import { simplifyRadialDist } from "./path-simplify"
 import type { PointList } from "./transform"
 
 const average = (a: number, b: number) => (a + b) / 2
@@ -32,6 +32,9 @@ export function getPath(p: PointList) {
     return new Path2D(result)
 }
 
-export function getPathRaw(points: PointList, last: boolean): PointList {
-    return simplify(points, 1)
+export function simplifyPath(points: PointList): PointList {
+    return simplifyRadialDist(
+        points.map((x) => Math.round(x * 100) / 100),
+        1,
+    )
 }

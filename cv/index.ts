@@ -7,7 +7,7 @@ import {
 } from "./dcg"
 import { di } from "./debug"
 import { PathRecorder, type EventsPathRecorder } from "./path-recorder"
-import { getPath, getPathRaw } from "./path-render"
+import { getPath, simplifyPath } from "./path-render"
 import {
     apply,
     applyList,
@@ -52,7 +52,7 @@ cv.el.addEventListener(
 )
 
 function complete(raw: PointList) {
-    const points = getPathRaw(raw, true).map((x) => Math.round(x * 100) / 100)
+    const points = simplifyPath(raw)
     const tx = screen.toLocal()
     const lw = screen.toLocalDelta(2)
 
@@ -89,7 +89,7 @@ function writePaths() {
 
     ctx.lineWidth = 2
     for (const path of paths.getIncomplete()) {
-        ctx.stroke(getPath(getPathRaw(path.points, false)))
+        ctx.stroke(getPath(simplifyPath(path.points)))
     }
 }
 
