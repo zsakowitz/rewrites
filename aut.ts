@@ -111,4 +111,26 @@ function print(g: Group): void {
     console.log(ret)
 }
 
-print(pair(cyclic(2), cyclic(3)))
+function orders(g: Group): number[] {
+    const ret = []
+
+    for (let i = 0; i < g.size; i++) {
+        let cur = 0
+
+        for (let j = 0; ; j++) {
+            cur = g.op(cur, i)
+            if (cur == 0) {
+                ret.push(j)
+                break
+            }
+        }
+    }
+
+    return ret
+}
+
+const G = pair(cyclic(2), cyclic(3))
+
+print(G)
+
+console.log(orders(G))
