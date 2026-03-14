@@ -74,7 +74,7 @@ function cyclic(size: number): Group {
     return {
         size,
         inv(a) {
-            return size - a
+            return (size - a) % size
         },
         op(a, b) {
             return (a + b) % size
@@ -101,10 +101,13 @@ function nimberAdditive(pow: number): Group {
 }
 
 function pair(a: Group, b: Group): Group {
-    return {
+    const g: Group = {
         size: a.size * b.size,
         inv(x) {
-            return b.inv(x % b.size) + a.inv(Math.floor(x / b.size)) * b.size
+            const xa = Math.floor(x / b.size)
+            const xb = x % b.size
+
+            return a.inv(xa) * b.size + b.inv(xb)
         },
         op(x, y) {
             const xa = Math.floor(x / b.size)
@@ -117,6 +120,10 @@ function pair(a: Group, b: Group): Group {
         },
         name: a.name + " × " + b.name,
     }
+
+    check(g)
+
+    return g
 }
 
 function print(g: Group): void {
@@ -143,7 +150,8 @@ function orders(g: Group): number[] {
     for (let i = 0; i < g.size; i++) {
         let cur = 0
 
-        for (let j = 0; ; j++) {
+        for (let j = 0; ; ) {
+            j++
             cur = g.op(cur, i)
             if (cur == 0) {
                 ret.push(j)
@@ -266,5 +274,153 @@ function dihedral(n: number): Group {
     }
 }
 
-let G = pair(cyclic(3), cyclic(3))
-print(Aut(G))
+function expandNormalSubgroup(G: Group, N: Set<number>) {
+    if (!N.has(0)) {
+        N.add(0)
+    }
+
+    while (true) {
+        let done = true
+
+        for (const a of N) {
+            if (!N.has(G.inv(a))) {
+                done = false
+                N.add(G.inv(a))
+            }
+
+            for (const b of N) {
+                if (!N.has(G.op(a, b))) {
+                    done = false
+                    N.add(G.op(a, b))
+                }
+            }
+
+            for (let g = 0; g < G.size; g++) {
+                const conj = G.op(G.op(g, a), G.inv(g))
+                if (!N.has(conj)) {
+                    done = false
+                    N.add(conj)
+                }
+            }
+        }
+
+        if (done) break
+    }
+
+    assertNormalSubgroup(G, N)
+
+    return N
+}
+
+function assertSubgroup(G: Group, N: Set<number>): void {
+    if (!N.has(0)) {
+        throw new Error("not closed under identity")
+    }
+
+    // closure
+    for (const a of N) {
+        if (!N.has(G.inv(a))) {
+            throw new Error("not closed under inverse")
+        }
+
+        for (const b of N) {
+            if (!N.has(G.op(a, b))) {
+                throw new Error("not closed under group operation")
+            }
+        }
+    }
+}
+
+function assertNormalSubgroup(G: Group, N: Set<number>): void {
+    assertSubgroup(G, N)
+
+    // normality
+    for (const n of N) {
+        for (let g = 0; g < G.size; g++) {
+            const conj = G.op(G.op(g, n), G.inv(g))
+            if (!N.has(conj)) {
+                throw new Error(`not closed under conjugation`)
+            }
+        }
+    }
+}
+
+function quotient(g: Group, N: Set<number>): Group {
+    const n = Array.from(N)
+    assertNormalSubgroup(g, N)
+
+    // map from element of g to coset representative
+    const reps = new Map<number, number>()
+
+    for (let i = 0; i < g.size; i++) {
+        const coset = n.map((x) => g.op(x, i))
+        const rep = Math.min(...coset)
+        reps.set(i, rep)
+    }
+
+    const allReps = Array.from(new Set(reps.values()))
+
+    const quot: Group = {
+        size: allReps.length,
+        inv(a) {
+            const A = allReps[a]!
+            const el = g.inv(A)
+            return allReps.indexOf(reps.get(el)!)
+        },
+        op(a, b) {
+            const A = allReps[a]!
+            const B = allReps[b]!
+            const el = g.op(A, B)
+            return allReps.indexOf(reps.get(el)!)
+        },
+        name: `${g.name.includes(" ") ? `(${g.name})` : g.name}/{${Array.from(N).sort()}}`,
+    }
+
+    check(quot)
+
+    return quot
+}
+
+function subgroup(g: Group, N: Set<number>): Group {
+    assertSubgroup(g, N)
+
+    const els = Array.from(N).sort()
+
+    const G: Group = {
+        size: els.length,
+        inv(a) {
+            return els.indexOf(g.inv(els[a]!))
+        },
+        op(a, b) {
+            return els.indexOf(g.op(els[a]!, els[b]!))
+        },
+        name: `${g.name.includes(" ") ? `(${g.name})` : g.name}|[${Array.from(N).sort()}]`,
+    }
+
+    check(G)
+
+    return G
+}
+
+function factor(g: Group): Group[] {
+    for (let i = 1; i < g.size; i++) {
+        const n = new Set([i])
+        expandNormalSubgroup(g, n)
+        if (n.size != g.size) {
+            return [...factor(subgroup(g, n)), ...factor(quotient(g, n))]
+        }
+    }
+
+    return [
+        {
+            ...g,
+            name: g.size <= 3 ? "C" + g.size : g.name,
+        },
+    ]
+}
+
+const g = Aut(pair(cyclic(3), cyclic(3)))
+print(g)
+
+const f = factor(g)
+console.log(f.map((x) => x.name).join(" × "))
