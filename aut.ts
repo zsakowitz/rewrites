@@ -409,31 +409,21 @@ function subgroup(g: Group, N: Set<number>): Group {
     return G
 }
 
-function factor(g: Group): Group[] {
-    for (let i = 1; i < g.size; i++) {
-        const n = new Set([i])
-        expandNormalSubgroup(g, n)
-        if (n.size != g.size) {
-            return [...factor(subgroup(g, n)), ...factor(quotient(g, n))]
-        }
-    }
+// function factor(g: Group): Group[] {
+//     for (let i = 1; i < g.size; i++) {
+//         const n = new Set([i])
+//         expandNormalSubgroup(g, n)
+//         if (n.size != g.size) {
+//             return [...factor(subgroup(g, n)), ...factor(quotient(g, n))]
+//         }
+//     }
 
-    return [
-        {
-            ...g,
-            name: g.size <= 3 ? "C" + g.size : g.name,
-        },
-    ]
-}
+//     return [
+//         {
+//             ...g,
+//             name: g.size <= 3 ? "C" + g.size : g.name,
+//         },
+//     ]
+// }
 
-for (let i = 4; i <= 4; i++) {
-    for (let j = 4; j <= 4; j++) {
-        console.log()
-        const G = pair(cyclic(i), cyclic(j))
-        console.log(G.name)
-
-        const g = Aut(G)
-        const f = factor(g).sort((a, b) => a.size - b.size)
-        console.log(g.name + " ≅ " + f.map((x) => x.name).join(" × "))
-    }
-}
+console.log(dihedral(4))
