@@ -177,6 +177,7 @@ function byOrder(g: Group): Map<number, number[]> {
 
 function byOrderPerms(g: Group): { src: number; dst: number }[][][] {
     const b = byOrder(g)
+
     return b
         .values()
         .map((v) =>
@@ -188,14 +189,20 @@ function byOrderPerms(g: Group): { src: number; dst: number }[][][] {
 }
 
 function possibleAutomorphismMaps(g: Group): number[][] {
+    console.time("byOrderPerms")
     const o = byOrderPerms(g)
+    console.timeEnd("byOrderPerms")
     return o
         .reduce((acc, next) => acc.flatMap((x) => next.map((y) => x.concat(y))))
         .map((x) => x.sort((a, b) => a.src - b.src).map((x) => x.dst))
 }
 
 function Aut(g: Group) {
-    const maps = possibleAutomorphismMaps(g).filter((map) => {
+    console.time()
+    const possible = possibleAutomorphismMaps(g)
+    console.timeEnd()
+
+    const maps = possible.filter((map) => {
         for (let i = 0; i < g.size; i++) {
             for (let j = 0; j < g.size; j++) {
                 if (map[g.op(i, j)] != g.op(map[i]!, map[j]!)) {
@@ -419,8 +426,14 @@ function factor(g: Group): Group[] {
     ]
 }
 
-const g = Aut(pair(cyclic(3), cyclic(3)))
-print(g)
+for (let i = 4; i <= 4; i++) {
+    for (let j = 4; j <= 4; j++) {
+        console.log()
+        const G = pair(cyclic(i), cyclic(j))
+        console.log(G.name)
 
-const f = factor(g)
-console.log(f.map((x) => x.name).join(" × "))
+        const g = Aut(G)
+        const f = factor(g).sort((a, b) => a.size - b.size)
+        console.log(g.name + " ≅ " + f.map((x) => x.name).join(" × "))
+    }
+}
