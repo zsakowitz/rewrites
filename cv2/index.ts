@@ -1,5 +1,5 @@
 import { Movable } from "./2d/movable"
-import { apply2, inverse2 } from "./2d/tform"
+import { apply2 } from "./2d/tform"
 
 const el = document.createElement("div")
 el.style.backgroundColor = "#ffd0e0"
@@ -25,9 +25,6 @@ el.addEventListener("pointerdown", (ev) => {
 })
 
 el.addEventListener("pointermove", (ev) => {
-    const ol = inverse2(mv.toOffset())
-    const ol2 = mv.toLocal()
+    const ol = mv.toLocal()
     const [x, y] = apply2(ol, [ev.offsetX, ev.offsetY])
-    const [x2, y2] = apply2(ol2, [ev.offsetX, ev.offsetY])
-    console.log(x.toFixed(3), y.toFixed(3), x - x2, y - y2)
 })
