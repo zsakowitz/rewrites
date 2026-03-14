@@ -49,3 +49,23 @@ export function inverse2(tf: Tform2): Tform2 {
         ty: -tf.ty / tf.sy,
     }
 }
+
+/**
+ * Infers a transformation which maps `a1 |-> b1` and `a2 |-> b2`.
+ *
+ * Assumes `a1 != a2` and `b1 != b2`.
+ */
+export function infer2(
+    [a1x, a1y]: Vec2,
+    [b1x, b1y]: Vec2,
+    [a2x, a2y]: Vec2,
+    [b2x, b2y]: Vec2,
+): Tform2 {
+    const sx = (b2x - b1x) / (a2x - a1x)
+    const tx = b1x - a1x * sx
+
+    const sy = (b2y - b1y) / (a2y - a1y)
+    const ty = b1y - a1y * sy
+
+    return { sx, sy, tx, ty }
+}
