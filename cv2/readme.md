@@ -25,3 +25,7 @@ in.
 
 2D local space follows the mathematical convention that more positive
 Y-coordinates are further up the page.
+
+If a transformation is stored in a variable, we might name it `ul` if it
+converts from unit space to local space, or `lo` if it converts from local space
+to offset space.
