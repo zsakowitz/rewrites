@@ -15,6 +15,10 @@ element.
 Offset space and unit space follow the DOM convention that more positive
 Y-coordinates are further down the page.
 
+Offset space and unit space are both zoom-square spaces. That is, `(0, 0)` and
+`(1, 1)` lie on a 45-degree line heading towards the bottom-right of the screen.
+This is very convenient for scaling.
+
 **Local space.** Local space is like the coordinate space you normally interact
 with in Desmos or project nya -- it's the system that the user defines objects
 in.
