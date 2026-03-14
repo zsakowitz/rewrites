@@ -54,23 +54,11 @@ export class Movable {
         const oh = this.#oh
         const { sx, sy, tx, ty } = this.#tf
 
-        const SX = oh / sx / 2
-        const SY = oh / sy / 2
-
         return {
-            sx: 1 / SX,
-            sy: -1 / SY,
-            tx: -(ow / 2 - tx * SX) / SX,
-            ty: (oh / 2 + ty * SY) / SY,
-        }
-    }
-
-    rand() {
-        this.#tf0 = {
-            sx: Math.random(),
-            sy: Math.random(),
-            tx: Math.random(),
-            ty: Math.random(),
+            sx: (2 * sx) / oh,
+            sy: -(2 * sy) / oh,
+            tx: tx - (ow / oh) * sx,
+            ty: sy + ty,
         }
     }
 }

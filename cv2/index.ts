@@ -25,7 +25,6 @@ el.addEventListener("pointerdown", (ev) => {
 })
 
 el.addEventListener("pointermove", (ev) => {
-    mv.rand()
     const ol = inverse2(mv.toOffset())
     const ol2 = mv.toLocal()
     const [x, y] = apply2(ol, [ev.offsetX, ev.offsetY])
