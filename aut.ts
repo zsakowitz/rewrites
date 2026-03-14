@@ -249,17 +249,17 @@ function dihedral(n: number): Group {
     return {
         size: 2 * n,
         inv(a) {
-            return a & 1 ? a : 2 * n - a
+            return a >= n ? a : (n - a) % n
         },
         op(a, b) {
-            const an = a >> 1
-            const af = a & 1
-            const bn = b >> 1
-            const bf = b & 1
+            const an = a % n
+            const af = a >= n
+            const bn = b % n
+            const bf = b >= n
             const rn = (af ? an - bn + n : an + bn) % n
-            const rf = af ^ bf
+            const rf = af !== bf
 
-            return (rn << 1) | rf
+            return rn + +rf * n
         },
         name: "D" + n,
     }
@@ -271,9 +271,5 @@ check(dihedral(8))
 check(dihedral(17))
 check(dihedral(16))
 
-const G = pair(cyclic(2), cyclic(2))
+let G = dihedral(4)
 print(G)
-
-console.time()
-print(Aut(dihedral(3)))
-console.timeEnd()
