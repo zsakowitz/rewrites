@@ -1,4 +1,4 @@
-import type { Vec2, Vec2List } from "./vec2"
+import type { Vec2, Vec2List } from "./vec"
 
 /**
  * A non-rotating 2-dimensional linear transformation.
