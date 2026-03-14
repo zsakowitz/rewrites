@@ -1,26 +1,29 @@
 import { rename, utimes } from "node:fs/promises"
 
-const iter1 = await Promise.all(
-    process.argv.slice(2).map(async (rawName) => {
-        const file = Bun.file(rawName)
-        const stat = await file.stat()
-        let [, dir, , ext] = file.name!.match(
-            /^((?:[^/]+[/])*)([^/]+?)((?:\.\w+)?)$/,
-        ) ?? ["", file.name, ""]
-        // if (ext == "") {
-        //     ext =
-        //         "."
-        //         + (await Bun.$`file ${file.name!} --ext`.text())
-        //             .split(": ")[1]
-        //             ?.split("/")[0]!
-        //             .trim()
-        // }
-        const nextName = `${dir}photo-${crypto.randomUUID()}${ext}`
-        await rename(file.name!, nextName)
-        await utimes(nextName, stat.birthtime, stat.birthtime)
-        return { dir, ext, path: nextName, time: stat.birthtime }
-    }),
-)
+const iter1 = (
+    await Promise.all(
+        process.argv.slice(2).map(async (rawName) => {
+            const file = Bun.file(rawName)
+            const stat = await file.stat()
+            if (stat.isDirectory()) return
+            let [, dir, , ext] = file.name!.match(
+                /^((?:[^/]+[/])*)([^/.]+)(\.\w+)$/,
+            ) ?? ["", file.name, ""]
+            // if (ext == "") {
+            //     ext =
+            //         "."
+            //         + (await Bun.$`file ${file.name!} --ext`.text())
+            //             .split(": ")[1]
+            //             ?.split("/")[0]!
+            //             .trim()
+            // }
+            const nextName = `${dir}photo-${crypto.randomUUID()}${ext}`
+            await rename(file.name!, nextName)
+            await utimes(nextName, stat.birthtime, stat.birthtime)
+            return { dir, ext, path: nextName, time: stat.birthtime }
+        }),
+    )
+).filter((x) => x != null)
 
 iter1.sort((a, b) => +a.time - +b.time)
 
