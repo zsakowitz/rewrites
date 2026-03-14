@@ -1,4 +1,4 @@
-import { infer2, type Tform2 } from "./tform"
+import { type Tform2 } from "./tform"
 
 /**
  * `Movable` operates in three coordinate spaces:
@@ -39,11 +39,38 @@ export class Movable {
         const oh = this.#oh
         const { sx, sy, tx, ty } = this.#tf
 
-        return infer2(
-            [tx, ty],
-            [ow / 2, oh / 2],
-            [tx - sx, ty + sy],
-            [ow / 2 - oh / 2, 0],
-        )
+        const SX = oh / sx / 2
+        const TX = ow / 2 - tx * SX
+
+        const SY = -oh / 2 / sy
+        const TY = oh / 2 - ty * SY
+
+        return { sx: SX, sy: SY, tx: TX, ty: TY }
+    }
+
+    /** Converts from offset space to local space. */
+    toLocal(): Tform2 {
+        const ow = this.#ow
+        const oh = this.#oh
+        const { sx, sy, tx, ty } = this.#tf
+
+        const SX = oh / sx / 2
+        const SY = oh / sy / 2
+
+        return {
+            sx: 1 / SX,
+            sy: -1 / SY,
+            tx: -(ow / 2 - tx * SX) / SX,
+            ty: (oh / 2 + ty * SY) / SY,
+        }
+    }
+
+    rand() {
+        this.#tf0 = {
+            sx: Math.random(),
+            sy: Math.random(),
+            tx: Math.random(),
+            ty: Math.random(),
+        }
     }
 }
