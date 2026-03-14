@@ -7,16 +7,8 @@ const iter1 = (
             const stat = await file.stat()
             if (stat.isDirectory()) return
             let [, dir, , ext] = file.name!.match(
-                /^((?:[^/]+[/])*)([^/.]+)(\.\w+)$/,
+                /^((?:[^/]*[/])*)([^/]+?)(\.\w+)$/,
             ) ?? ["", file.name, ""]
-            // if (ext == "") {
-            //     ext =
-            //         "."
-            //         + (await Bun.$`file ${file.name!} --ext`.text())
-            //             .split(": ")[1]
-            //             ?.split("/")[0]!
-            //             .trim()
-            // }
             const nextName = `${dir}photo-${crypto.randomUUID()}${ext}`
             await rename(file.name!, nextName)
             await utimes(nextName, stat.birthtime, stat.birthtime)
@@ -29,7 +21,7 @@ iter1.sort((a, b) => +a.time - +b.time)
 
 const iter2 = await Promise.all(
     iter1.map(async ({ dir, ext, path, time }, i) => {
-        const name = `${dir}photo-${("" + i).padStart(5, "0")}${ext}`
+        const name = `${dir}photo-${(i + 1 + "").padStart(5, "0")}${ext}`
         await rename(path, name)
         await utimes(name, time, time)
     }),
