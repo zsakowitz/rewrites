@@ -1,4 +1,5 @@
 import { ANSI } from "./ansi"
+import { allPermutationsOf } from "./hurgschetax"
 
 /**
  * A group of finite order. Elements are represented by integers in
@@ -18,30 +19,51 @@ interface Group {
     size: number
     inv(a: number): number
     op(a: number, b: number): number
+    name: string
 }
 
-function check(g: Group): boolean {
-    if (!(g.size === (g.size | 0) && g.size >= 1 && g.size < 0x8000_0000))
-        return false
+function check(g: Group): void {
+    const n = `nag ${g.name}:`
+
+    if (!(g.size === (g.size | 0) && g.size >= 1 && g.size < 0x8000_0000)) {
+        throw new Error(`${n} invalid size`)
+    }
 
     for (let a = 0; a < g.size; a++) {
         for (let b = 0; b < g.size; b++) {
             const ab = g.op(a, b)
-            if (!(0 <= ab && ab < g.size)) return false
+            if (!(typeof ab == "number" && 0 <= ab && ab < g.size)) {
+                throw new Error(`${n} ${a}*${b} = ${ab} out-of-bounds`)
+            }
 
             for (let c = 0; c < g.size; c++) {
-                if (g.op(g.op(a, b), c) != g.op(a, g.op(b, c))) return false
+                if (g.op(g.op(a, b), c) != g.op(a, g.op(b, c))) {
+                    throw new Error(
+                        `(${a}*${b})*${c} == ${g.op(a, b)}*${c} != ${a}*${g.op(b, c)} == ${a}*(${b}*${c})`,
+                    )
+                }
             }
         }
 
-        if (g.op(a, 0) != a) return false
-        if (g.op(0, a) != a) return false
+        if (typeof g.inv(a) != "number") {
+            throw new Error(`${n} ${a} out-of-bounds`)
+        }
 
-        if (g.op(a, g.inv(a)) != 0) return false
-        if (g.op(g.inv(a), a) != 0) return false
+        if (g.op(a, 0) != a) {
+            throw new Error(`${n} ${a}*0 != ${a}`)
+        }
+        if (g.op(0, a) != a) {
+            throw new Error(`${n} 0*${a} != ${a}`)
+        }
+
+        if (g.op(a, g.inv(a)) != 0) {
+            throw new Error(`${n} ${a} * (inv(${a}) = ${g.inv(a)}) != 0`)
+        }
+
+        if (g.op(g.inv(a), a) != 0) {
+            throw new Error(`${n} (inv(${a}) = ${g.inv(a)}) * ${a} != 0`)
+        }
     }
-
-    return true
 }
 
 function cyclic(size: number): Group {
@@ -57,6 +79,7 @@ function cyclic(size: number): Group {
         op(a, b) {
             return (a + b) % size
         },
+        name: "C" + size,
     }
 }
 
@@ -73,6 +96,7 @@ function nimberAdditive(pow: number): Group {
         op(a, b) {
             return a ^ b
         },
+        name: "𝔹^" + pow,
     }
 }
 
@@ -91,14 +115,15 @@ function pair(a: Group, b: Group): Group {
 
             return a.op(xa, ya) * b.size + b.op(xb, yb)
         },
+        name: a.name + " × " + b.name,
     }
 }
 
 function print(g: Group): void {
-    let ret = ""
+    let ret = g.name
 
     for (let i = 0; i < g.size; i++) {
-        if (i != 0) ret += "\n"
+        ret += "\n"
         for (let j = 0; j < g.size; j++) {
             if (j != 0) ret += " "
             const val = g.op(i, j)
@@ -129,8 +154,126 @@ function orders(g: Group): number[] {
     return ret
 }
 
-const G = pair(cyclic(2), cyclic(3))
+function byOrder(g: Group): Map<number, number[]> {
+    const byOrder = new Map<number, number[]>()
+    const o = orders(g)
 
+    for (let i = 0; i < o.length; i++) {
+        if (!byOrder.has(o[i]!)) byOrder.set(o[i]!, [])
+        byOrder.get(o[i]!)!.push(i)
+    }
+
+    return byOrder
+}
+
+function byOrderPerms(g: Group): { src: number; dst: number }[][][] {
+    const b = byOrder(g)
+    return b
+        .values()
+        .map((v) =>
+            allPermutationsOf(v).map((x) =>
+                x.map((x, i) => ({ src: v[i]!, dst: x })),
+            ),
+        )
+        .toArray()
+}
+
+function possibleAutomorphismMaps(g: Group): number[][] {
+    const o = byOrderPerms(g)
+    return o
+        .reduce((acc, next) => acc.flatMap((x) => next.map((y) => x.concat(y))))
+        .map((x) => x.sort((a, b) => a.src - b.src).map((x) => x.dst))
+}
+
+function Aut(g: Group) {
+    const maps = possibleAutomorphismMaps(g).filter((map) => {
+        for (let i = 0; i < g.size; i++) {
+            for (let j = 0; j < g.size; j++) {
+                if (map[g.op(i, j)] != g.op(map[i]!, map[j]!)) {
+                    return false
+                }
+            }
+        }
+        return true
+    })
+
+    const id = maps.findIndex((x) => x.every((a, i) => a == i))
+    ;[maps[id], maps[0]] = [maps[0]!, maps[id]!]
+
+    const op: number[] = []
+
+    for (let a = 0; a < maps.length; a++) {
+        for (let b = 0; b < maps.length; b++) {
+            const comp: number[] = []
+            for (let i = 0; i < g.size; i++) {
+                comp.push(maps[a]![maps[b]![i]!]!)
+            }
+
+            op[a * maps.length + b] = maps.findIndex((map) =>
+                map.every((x, i) => x == comp[i]!),
+            )
+        }
+    }
+
+    const inv: number[] = []
+
+    for (let a = 0; a < maps.length; a++) {
+        for (let b = 0; b < maps.length; b++) {
+            if (op[a * maps.length + b]! == 0) {
+                inv.push(b)
+                break
+            }
+        }
+    }
+
+    const Aut: Group = {
+        size: maps.length,
+        op(a, b) {
+            return op[a * maps.length + b]!
+        },
+        inv(a) {
+            return inv[a]!
+        },
+        name: `Aut(${g.name})`,
+    }
+
+    check(Aut)
+
+    return Aut
+}
+
+function dihedral(n: number): Group {
+    // we say 0bxxx0 is a rotation
+    //        0bxxx1 is a flip
+
+    return {
+        size: 2 * n,
+        inv(a) {
+            return a & 1 ? a : 2 * n - a
+        },
+        op(a, b) {
+            const an = a >> 1
+            const af = a & 1
+            const bn = b >> 1
+            const bf = b & 1
+            const rn = (af ? an - bn + n : an + bn) % n
+            const rf = af ^ bf
+
+            return (rn << 1) | rf
+        },
+        name: "D" + n,
+    }
+}
+
+check(dihedral(2))
+check(dihedral(3))
+check(dihedral(8))
+check(dihedral(17))
+check(dihedral(16))
+
+const G = pair(cyclic(2), cyclic(2))
 print(G)
 
-console.log(orders(G))
+console.time()
+print(Aut(dihedral(3)))
+console.timeEnd()
