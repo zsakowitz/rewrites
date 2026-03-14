@@ -121,6 +121,7 @@ function pair(a: Group, b: Group): Group {
 
 function print(g: Group): void {
     let ret = g.name
+    const len = (g.size - 1 + "").length
 
     for (let i = 0; i < g.size; i++) {
         ret += "\n"
@@ -129,7 +130,7 @@ function print(g: Group): void {
             const val = g.op(i, j)
             const color = `hsl(${Math.round((val / g.size) * 360)}deg 100% 50%)`
             const ansi = Bun.color(color, "ansi-16m") ?? color
-            ret += ansi + val + ANSI.reset
+            ret += ansi + (val + "").padStart(len) + ANSI.reset
         }
     }
 
@@ -265,11 +266,5 @@ function dihedral(n: number): Group {
     }
 }
 
-check(dihedral(2))
-check(dihedral(3))
-check(dihedral(8))
-check(dihedral(17))
-check(dihedral(16))
-
-let G = dihedral(4)
-print(G)
+let G = pair(cyclic(3), cyclic(3))
+print(Aut(G))
