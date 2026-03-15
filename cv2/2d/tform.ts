@@ -1,16 +1,16 @@
 import type { Vec2, Vec2List } from "./vec"
 
 /**
- * A non-rotating 2-dimensional linear transformation.
+ * 2-dimensional non-rotating linear transformation.
  *
- * Must have sx≠0 and sy≠0.
+ * Must have finite, nonzero values for `sx` and `sy`.
  */
 export interface Tform2 {
-    // Scaling factors
+    // Scaling factors; applied before translation
     sx: number
     sy: number
 
-    // Offsets
+    // Translation offsets; applied after scaling
     tx: number
     ty: number
 }

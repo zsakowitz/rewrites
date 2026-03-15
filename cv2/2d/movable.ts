@@ -1,4 +1,4 @@
-import { type Tform2 } from "./tform"
+import type { Tform2 } from "./tform"
 
 export class Movable {
     #ow = 0 // offset width of reference element
