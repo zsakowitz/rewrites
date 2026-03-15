@@ -113,7 +113,7 @@ export class Movable {
         const ds =
             ev.deltaMode == 2 ? 2 ** ev.deltaY
             : ev.deltaMode == 1 ? 1.1 ** ev.deltaY
-            : 1.01 ** ev.deltaY // 1 + Math.sign(ev.deltaY) * Math.sqrt(Math.abs(ev.deltaY)) * 0.03
+            : 1.005 ** ev.deltaY // 1 + Math.sign(ev.deltaY) * Math.sqrt(Math.abs(ev.deltaY)) * 0.03
 
         // keep pointer in same position after zooming
         const px = (2 * ev.offsetX - this.#ow) / this.#oh
