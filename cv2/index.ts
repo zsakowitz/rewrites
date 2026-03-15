@@ -1,29 +1,31 @@
-import { Movable } from "./2d/movable"
+import { Canvas2, type EventsCanvas2 } from "./2d/canvas"
+import { Movable, type EventsMovable } from "./2d/movable"
 import { apply2 } from "./2d/tform"
 
-const el = document.createElement("div")
-el.style = "background:#ffd0e0;position:fixed;inset:0;touch-action:none"
+const events: EventsCanvas2 & EventsMovable = {
+    onMovement: draw,
+    onCanvasUpdate: draw,
+}
+
+const cv = new Canvas2(events)
+const { el, ctx } = cv
 document.body.appendChild(el)
+el.style = "position:fixed;inset:0;width:100vw;height:100vh;touch-action:none"
 
-const el2 = document.createElement("div")
-el.appendChild(el2)
-el2.style =
-    "width:4px;height:4px;pointer-events:none;position:absolute;top:50%;left:50%;translate:-50% -50%;background:linear-gradient(to right in oklch longer hue, oklch(0.7 0.2 0), oklch(0.7 0.2 360));touch-action:none"
-
-const mv = new Movable({ onMovement: draw }, el, {
-    sx: 10,
-    sy: 10,
-    tx: 0,
-    ty: 0,
-})
+const mv = new Movable(events, el, { sx: 10, sy: 10, tx: 0, ty: 0 })
 
 function draw() {
     const { lo } = mv
-    const [x, y] = apply2(lo, [0, 0])
-    el2.style.left = x + "px"
-    el2.style.top = y + "px"
-    el2.style.width = lo.sx + "px"
-    el2.style.height = -lo.sy + "px"
+
+    cv.reset()
+    for (let i = 0; i < 16; i++) {
+        for (let j = 0; j < 16; j++) {
+            ctx.fillStyle = `rgb(${(i ^ j) * 16}, ${(i & j) * 16}, ${(i | j) * 16})`
+
+            const [x, y] = apply2(lo, [i, j])
+            ctx.fillRect(x, y, lo.sx, -lo.sy)
+        }
+    }
 }
 
 el.addEventListener("wheel", mv, { passive: false })

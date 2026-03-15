@@ -13,7 +13,7 @@ interface Pointer {
     y: number
 }
 
-interface EventsMovable {
+export interface EventsMovable {
     onMovement(fromJs: boolean): void
 }
 
@@ -124,10 +124,12 @@ export class Movable {
     #onwheelZoom(ev: WheelEvent) {
         const { sx, sy, tx, ty } = this.#ul0
 
+        const dy = Math.sign(ev.deltaY) * Math.sqrt(Math.abs(ev.deltaY))
+
         const ds =
             ev.deltaMode == 2 ? 2 ** ev.deltaY
             : ev.deltaMode == 1 ? 1.1 ** ev.deltaY
-            : 1.005 ** ev.deltaY // 1 + Math.sign(ev.deltaY) * Math.sqrt(Math.abs(ev.deltaY)) * 0.03
+            : 1.03 ** dy // 1 + dy * 0.03
 
         // keep pointer in same position after zooming
         const px = (2 * ev.offsetX - this.#ow) / this.#oh
