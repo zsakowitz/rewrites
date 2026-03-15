@@ -17,18 +17,23 @@ export class Movable {
     #ow = 0 // offset width of reference element
     #oh = 0 // offset height of reference element
 
-    /**
-     * Transformation from unit space to local space, not including the effects
-     * of currently active touch pointers.
-     */
+    /** Excludes effects of active touches. */
     #ul0: Tform2
+
+    /** Includes effects of active touches. */
+    #ul: Tform2
 
     /**
      * Transformation from unit space to local space, including the effects of
      * currently active touch pointers.
      */
     get ul() {
-        return this.#ul0
+        return this.#ul
+    }
+
+    set ul(v: Tform2) {
+        this.#pointers.clear()
+        this.#ul0 = this.#ul = v
     }
 
     /** @param tf Transformation from unit space to local space. */
@@ -36,9 +41,9 @@ export class Movable {
         new ResizeObserver(([e]) => {
             this.#ow = e!.contentRect.width
             this.#oh = e!.contentRect.height
-        }).observe(el, { box: "device-pixel-content-box" })
+        }).observe(el)
 
-        this.#ul0 = tf
+        this.#ul = this.#ul0 = tf
     }
 
     /** Converts from local space to offset space. */
@@ -70,23 +75,36 @@ export class Movable {
         }
     }
 
-    /** Returns `true` if the event was handled. */
+    /** Returns `true` if this `Movable` handled the event. */
     handleEvent(ev: PointerEvent | WheelEvent): boolean {
-        if (ev.type == "mousemove" || ev.type == "wheel") {
-            if (ev.ctrlKey && ev.metaKey) {
+        switch (ev.type) {
+            case "wheel":
+                if (ev.ctrlKey && ev.metaKey) {
+                    return false
+                }
+
+                ev.preventDefault()
+                if (ev.ctrlKey || ev.metaKey) {
+                    this.#onwheelZoom(ev as WheelEvent)
+                } else {
+                    this.#onwheelMove(ev as WheelEvent)
+                }
+                return true
+
+            case "pointerdown":
+                this.#onpointerdown(ev as PointerEvent)
+                return true
+
+            case "pointermove":
+                return this.#onpointermove(ev as PointerEvent)
+
+            case "pointerup":
+            case "pointercancel":
+                return this.#onpointerfinish(ev as PointerEvent)
+
+            default:
                 return false
-            }
-
-            ev.preventDefault()
-            if (ev.ctrlKey || ev.metaKey) {
-                this.#onwheelZoom(ev as WheelEvent)
-            } else {
-                this.#onwheelMove(ev as WheelEvent)
-            }
-            return true
         }
-
-        return false
     }
 
     #onwheelZoom(ev: WheelEvent) {
@@ -101,7 +119,7 @@ export class Movable {
         const px = (2 * ev.offsetX - this.#ow) / this.#oh
         const py = 1 - (2 * ev.offsetY) / this.#oh
 
-        this.#ul0 = {
+        this.#ul = this.#ul0 = {
             sx: sx * ds,
             sy: sy * ds,
             tx: tx + px * sx * (1 - ds),
@@ -124,7 +142,7 @@ export class Movable {
         const dx = (wx / this.#oh) * 3 * tf.sx
         const dy = -(wy / this.#oh) * 3 * tf.sy
 
-        this.#ul0 = {
+        this.#ul = this.#ul0 = {
             sx: tf.sx,
             sy: tf.sy,
             tx: tf.tx + dx,
@@ -134,17 +152,26 @@ export class Movable {
 
     #pointers = new Map<number, Pointer>()
 
-    #onpointerdown(ev: PointerEvent): boolean {
+    #didReleaseSome() {
+        for (const v of this.#pointers.values()) {
+            if (!v.down) return true
+        }
+        return false
+    }
+
+    #didReleaseEvery() {
+        for (const v of this.#pointers.values()) {
+            if (v.down) return false
+        }
+        return true
+    }
+
+    #onpointerdown(ev: PointerEvent): void {
         const [a, b] = this.#pointers.values()
 
-        // We can only handle two pointers, so ignore any more.
-        if (b) return true
-
-        // If one finger moved significantly, ignore any further touches.
-        if (a?.moved) return true
-
-        // If a pointer is put down after being pulled up, ignore it.
-        if (this.#pointers.has(ev.pointerId)) return true
+        if (b) return // don't handle >2 pointers
+        if (a?.moved) return // block zoom gesture if we already moved significantly
+        if (this.#didReleaseSome()) return // don't allow new pointers while we're completing a gesture
 
         this.#pointers.set(ev.pointerId, {
             down: true,
@@ -155,9 +182,10 @@ export class Movable {
             y: ev.offsetY,
         })
 
-        return true
+        this.#ul = this.#calcUL()
     }
 
+    /** Returns `true` if this `Movable` handled the event. */
     #onpointermove(ev: PointerEvent): boolean {
         const ptr = this.#pointers.get(ev.pointerId)
         if (!ptr) return false
@@ -172,35 +200,87 @@ export class Movable {
             ptr.moved = true
         }
 
+        if (!this.#didReleaseSome()) {
+            this.#ul = this.#calcUL()
+        }
+
         return true
     }
 
+    /** Returns `true` if this `Movable` handled the event. */
     #onpointerfinish(ev: PointerEvent): boolean {
         const ptr = this.#pointers.get(ev.pointerId)
         if (!ptr) return false
 
-        // If any pointer is cancelled, stop tracking the rest.
+        // If the event is canceled, ignore touch-induced movement.
         if (ev.type == "pointercancel") {
-            this.#pointers.clear()
-            return true
+            this.#ul = this.#ul0
         }
 
-        ptr.x = ev.offsetX
-        ptr.y = ev.offsetY
+        // If we are the first pointer released, update the permanent position.
+        else if (!this.#didReleaseSome()) {
+            ptr.x = ev.offsetX
+            ptr.y = ev.offsetY
+            this.#ul = this.#ul0 = this.#calcUL()
+        }
+
         ptr.down = false
 
-        let areAllReleased = true
-        for (const v of this.#pointers.values()) {
-            if (v.down) {
-                areAllReleased = false
-                break
-            }
-        }
-        if (areAllReleased) {
-            this.#ul0 = this.ul // Set the new permanent position.
+        if (this.#didReleaseEvery()) {
             this.#pointers.clear()
         }
 
         return true
+    }
+
+    /** Returns `true` when touches are currently moving the screen. */
+    hasActivePointers(): boolean {
+        return this.#pointers.size > 0
+    }
+
+    #calcUL(): Tform2 {
+        const [a, b] = this.#pointers.values()
+
+        if (a && b) {
+            return this.#calcUL2(a, b)
+        } else if (a) {
+            return this.#calcUL1(a)
+        } else {
+            return this.#ul0
+        }
+    }
+
+    #calcUL2(a: Pointer, b: Pointer): Tform2 {
+        const { sx, sy, tx, ty } = this.#ul0
+        const ow = this.#ow
+        const oh = this.#oh
+
+        const scale =
+            Math.hypot(a.x - b.x, a.y - b.y)
+            / Math.hypot(a.ox - b.ox, a.oy - b.oy)
+
+        const x1 = (a.ox + b.ox - ow) / oh
+        const y1 = 1 - (a.oy + b.oy) / oh
+
+        const x2 = (a.x + b.x - ow) / oh
+        const y2 = 1 - (a.y + b.y) / oh
+
+        return {
+            sx: sx / scale,
+            sy: sy / scale,
+            tx: tx + x1 * sx - x2 * (sx / scale),
+            ty: ty + y1 * sy - y2 * (sy / scale),
+        }
+    }
+
+    #calcUL1(a: Pointer): Tform2 {
+        const { sx, sy, tx, ty } = this.#ul0
+
+        return {
+            sx,
+            sy,
+            tx: tx + (a.ox - a.x) * (2 / this.#oh) * sx,
+            ty: ty - (a.oy - a.y) * (2 / this.#oh) * sy,
+        }
     }
 }
