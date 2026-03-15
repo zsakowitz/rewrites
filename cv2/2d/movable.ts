@@ -1,26 +1,23 @@
 import { type Tform2 } from "./tform"
 
-/**
- * `Movable` operates in three coordinate spaces:
- *
- * - **Local space**
- */
 export class Movable {
     #ow = 0 // offset width of reference element
     #oh = 0 // offset height of reference element
+
+    #touches = new Map<number, Touch>()
 
     /**
      * Transformation from unit space to local space, not including the effects
      * of currently active touch pointers.
      */
-    #tf0: Tform2
+    #ul: Tform2
 
     /**
      * Transformation from unit space to local space, including the effects of
      * currently active touch pointers.
      */
-    get #tf() {
-        return this.#tf0
+    get ul() {
+        return this.#ul
     }
 
     /** @param tf Transformation from unit space to local space. */
@@ -30,14 +27,14 @@ export class Movable {
             this.#oh = e!.contentRect.height
         }).observe(el, { box: "device-pixel-content-box" })
 
-        this.#tf0 = tf
+        this.#ul = tf
     }
 
     /** Converts from local space to offset space. */
-    toOffset(): Tform2 {
+    get lo(): Tform2 {
         const ow = this.#ow
         const oh = this.#oh
-        const { sx, sy, tx, ty } = this.#tf
+        const { sx, sy, tx, ty } = this.ul
 
         const SX = oh / sx / 2
         const TX = ow / 2 - tx * SX
@@ -49,10 +46,10 @@ export class Movable {
     }
 
     /** Converts from offset space to local space. */
-    toLocal(): Tform2 {
+    get ol(): Tform2 {
         const ow = this.#ow
         const oh = this.#oh
-        const { sx, sy, tx, ty } = this.#tf
+        const { sx, sy, tx, ty } = this.ul
 
         return {
             sx: (2 * sx) / oh,
@@ -82,7 +79,7 @@ export class Movable {
     }
 
     #onwheel_zoom(ev: WheelEvent) {
-        const { sx, sy, tx, ty } = this.#tf0
+        const { sx, sy, tx, ty } = this.#ul
 
         const ds =
             ev.deltaMode == 2 ? 2 ** ev.deltaY
@@ -93,7 +90,7 @@ export class Movable {
         const px = (2 * ev.offsetX - this.#ow) / this.#oh
         const py = 1 - (2 * ev.offsetY) / this.#oh
 
-        this.#tf0 = {
+        this.#ul = {
             sx: sx * ds,
             sy: sy * ds,
             tx: tx + px * sx * (1 - ds),
@@ -112,11 +109,11 @@ export class Movable {
             : ev.deltaMode == 1 ? 16
             : 1) * ev.deltaY
 
-        const tf = this.#tf0
+        const tf = this.#ul
         const dx = (wx / this.#oh) * 3 * tf.sx
         const dy = -(wy / this.#oh) * 3 * tf.sy
 
-        this.#tf0 = {
+        this.#ul = {
             sx: tf.sx,
             sy: tf.sy,
             tx: tf.tx + dx,

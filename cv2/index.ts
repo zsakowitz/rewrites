@@ -18,7 +18,7 @@ const mv = new Movable(el, {
 })
 
 setInterval(() => {
-    const lo = mv.toOffset()
+    const { lo } = mv
     const [x, y] = apply2(lo, [3, 7])
     el2.style.left = x + "px"
     el2.style.top = y + "px"
