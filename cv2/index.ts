@@ -2,10 +2,7 @@ import { Movable } from "./2d/movable"
 import { apply2 } from "./2d/tform"
 
 const el = document.createElement("div")
-el.style.backgroundColor = "#ffd0e0"
-el.style.width = "320px"
-el.style.height = "320px"
-el.style.position = "relative"
+el.style = "background:#ffd0e0;position:fixed;inset:0"
 document.body.appendChild(el)
 
 const el2 = document.createElement("div")
@@ -14,17 +11,21 @@ el2.style =
     "width:4px;height:4px;pointer-events:none;position:absolute;top:50%;left:50%;translate:-50% -50%;background:blue"
 
 const mv = new Movable(el, {
-    sx: 5,
-    sy: 7,
-    tx: 5,
-    ty: 3,
+    sx: 2,
+    sy: 1,
+    tx: 3,
+    ty: 7,
 })
 
-el.addEventListener("pointerdown", (ev) => {
-    el.setPointerCapture(ev.pointerId)
+setInterval(() => {
+    const lo = mv.toOffset()
+    const [x, y] = apply2(lo, [3, 7])
+    el2.style.left = x + "px"
+    el2.style.top = y + "px"
+    el2.style.width = lo.sx + "px"
+    el2.style.height = -lo.sy + "px"
 })
 
-el.addEventListener("pointermove", (ev) => {
-    const ol = mv.toLocal()
-    const [x, y] = apply2(ol, [ev.offsetX, ev.offsetY])
+el.addEventListener("wheel", (ev) => {
+    mv.handleEvent(ev)
 })

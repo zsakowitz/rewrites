@@ -61,4 +61,66 @@ export class Movable {
             ty: sy + ty,
         }
     }
+
+    /** Returns `true` if the event was handled. */
+    handleEvent(ev: PointerEvent | WheelEvent): boolean {
+        if (ev.type == "mousemove" || ev.type == "wheel") {
+            if (ev.ctrlKey && ev.metaKey) {
+                return false
+            }
+
+            ev.preventDefault()
+            if (ev.ctrlKey || ev.metaKey) {
+                this.#onwheel_zoom(ev as WheelEvent)
+            } else {
+                this.#onwheel_move(ev as WheelEvent)
+            }
+            return true
+        }
+
+        return false
+    }
+
+    #onwheel_zoom(ev: WheelEvent) {
+        const { sx, sy, tx, ty } = this.#tf0
+
+        const ds =
+            ev.deltaMode == 2 ? 2 ** ev.deltaY
+            : ev.deltaMode == 1 ? 1.1 ** ev.deltaY
+            : 1.01 ** ev.deltaY // 1 + Math.sign(ev.deltaY) * Math.sqrt(Math.abs(ev.deltaY)) * 0.03
+
+        // keep pointer in same position after zooming
+        const px = (2 * ev.offsetX - this.#ow) / this.#oh
+        const py = 1 - (2 * ev.offsetY) / this.#oh
+
+        this.#tf0 = {
+            sx: sx * ds,
+            sy: sy * ds,
+            tx: tx + px * sx * (1 - ds),
+            ty: ty + py * sy * (1 - ds),
+        }
+    }
+
+    #onwheel_move(ev: WheelEvent) {
+        const wx =
+            (ev.deltaMode == 2 ? this.#ow
+            : ev.deltaMode == 1 ? 16
+            : 1) * ev.deltaX
+
+        const wy =
+            (ev.deltaMode == 2 ? this.#oh
+            : ev.deltaMode == 1 ? 16
+            : 1) * ev.deltaY
+
+        const tf = this.#tf0
+        const dx = (wx / this.#oh) * 3 * tf.sx
+        const dy = -(wy / this.#oh) * 3 * tf.sy
+
+        this.#tf0 = {
+            sx: tf.sx,
+            sy: tf.sy,
+            tx: tf.tx + dx,
+            ty: tf.ty + dy,
+        }
+    }
 }
