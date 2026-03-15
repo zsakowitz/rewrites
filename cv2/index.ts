@@ -8,7 +8,7 @@ document.body.appendChild(el)
 const el2 = document.createElement("div")
 el.appendChild(el2)
 el2.style =
-    "width:4px;height:4px;pointer-events:none;position:absolute;top:50%;left:50%;translate:-50% -50%;background:blue;touch-action:none"
+    "width:4px;height:4px;pointer-events:none;position:absolute;top:50%;left:50%;translate:-50% -50%;background:linear-gradient(to bottom, #fff0, #f80),linear-gradient(to right, red, orange);touch-action:none"
 
 const mv = new Movable(el, {
     sx: 10,
