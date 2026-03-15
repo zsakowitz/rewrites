@@ -13,7 +13,12 @@ interface Pointer {
     y: number
 }
 
+interface EventsMovable {
+    onMovement(fromJs: boolean): void
+}
+
 export class Movable {
+    #ev
     #ow = 0 // offset width of reference element
     #oh = 0 // offset height of reference element
 
@@ -34,13 +39,22 @@ export class Movable {
     set ul(v: Tform2) {
         this.#pointers.clear()
         this.#ul0 = this.#ul = v
+        this.#ev.onMovement(true)
     }
 
     /** @param tf Transformation from unit space to local space. */
-    constructor(el: HTMLElement, tf: Tform2) {
+    constructor(ev: EventsMovable, el: HTMLElement, tf: Tform2) {
+        this.#ev = ev
+
         new ResizeObserver(([e]) => {
+            if (this.#pointers.size) {
+                this.#ul0 = this.#ul = this.#calcUL()
+                this.#pointers.forEach((v) => (v.down = false))
+            }
+
             this.#ow = e!.contentRect.width
             this.#oh = e!.contentRect.height
+            this.#ev.onMovement(false)
         }).observe(el)
 
         this.#ul = this.#ul0 = tf
@@ -125,6 +139,8 @@ export class Movable {
             tx: tx + px * sx * (1 - ds),
             ty: ty + py * sy * (1 - ds),
         }
+
+        this.#ev.onMovement(false)
     }
 
     #onwheelMove(ev: WheelEvent) {
@@ -139,8 +155,8 @@ export class Movable {
             : 1) * ev.deltaY
 
         const tf = this.#ul0
-        const dx = (wx / this.#oh) * 3 * tf.sx
-        const dy = -(wy / this.#oh) * 3 * tf.sy
+        const dx = (wx / this.#oh) * 2 * tf.sx
+        const dy = -(wy / this.#oh) * 2 * tf.sy
 
         this.#ul = this.#ul0 = {
             sx: tf.sx,
@@ -148,6 +164,8 @@ export class Movable {
             tx: tf.tx + dx,
             ty: tf.ty + dy,
         }
+
+        this.#ev.onMovement(false)
     }
 
     #pointers = new Map<number, Pointer>()
@@ -183,6 +201,7 @@ export class Movable {
         })
 
         this.#ul = this.#calcUL()
+        this.#ev.onMovement(false)
     }
 
     /** Returns `true` if this `Movable` handled the event. */
@@ -202,6 +221,7 @@ export class Movable {
 
         if (!this.#didReleaseSome()) {
             this.#ul = this.#calcUL()
+            this.#ev.onMovement(false)
         }
 
         return true
@@ -215,6 +235,7 @@ export class Movable {
         // If the event is canceled, ignore touch-induced movement.
         if (ev.type == "pointercancel") {
             this.#ul = this.#ul0
+            this.#ev.onMovement(false)
         }
 
         // If we are the first pointer released, update the permanent position.
@@ -222,6 +243,7 @@ export class Movable {
             ptr.x = ev.offsetX
             ptr.y = ev.offsetY
             this.#ul = this.#ul0 = this.#calcUL()
+            this.#ev.onMovement(false)
         }
 
         ptr.down = false

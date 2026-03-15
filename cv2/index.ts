@@ -10,21 +10,21 @@ el.appendChild(el2)
 el2.style =
     "width:4px;height:4px;pointer-events:none;position:absolute;top:50%;left:50%;translate:-50% -50%;background:linear-gradient(to right in oklch longer hue, oklch(0.7 0.2 0), oklch(0.7 0.2 360));touch-action:none"
 
-const mv = new Movable(el, {
+const mv = new Movable({ onMovement: draw }, el, {
     sx: 10,
     sy: 10,
     tx: 0,
     ty: 0,
 })
 
-setInterval(() => {
+function draw() {
     const { lo } = mv
     const [x, y] = apply2(lo, [0, 0])
     el2.style.left = x + "px"
     el2.style.top = y + "px"
     el2.style.width = lo.sx + "px"
     el2.style.height = -lo.sy + "px"
-})
+}
 
 el.addEventListener("wheel", mv, { passive: false })
 el.addEventListener("pointerdown", mv, { passive: true })
