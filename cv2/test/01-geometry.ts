@@ -4,8 +4,8 @@ import {
     point,
     segment,
     type Object,
-} from "./tbd/geometry"
-import { Scene } from "./tbd/scene"
+} from "../tbd/geometry"
+import { Scene } from "../tbd/scene"
 
 const sc = new Scene<Object>()
 
