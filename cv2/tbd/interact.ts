@@ -1,4 +1,4 @@
-import type { Vec2 } from "./2d/vec"
+import type { Vec2 } from "../2d/vec"
 
 // prettier-ignore
 export interface Target<T> {
