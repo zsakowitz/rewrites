@@ -1,17 +1,18 @@
 import type { Vec2 } from "./2d/vec"
 
+// prettier-ignore
 export interface Target<T> {
-    onEnter(at: T): void
-    onDown(at: T): void
-    onMove(at: T): void
-    onUp(at: T): void
-    onCancel(at: T): void
-    onLeave(at: T): void
+    onEnter (at: T): void // started hovering on target
+    onDown  (at: T): void
+    onMove  (at: T): void
+    onUp    (at: T): void // released with intention to confirm current action
+    onCancel(at: T): void // will stop hovering soon, with intention to cancel current action
+    onLeave (at: T): void // stopped hovering on target
 }
 
 interface Pointer<T> {
-    last: Vec2 // last recorded offset-position of pointer
-    active: boolean // is the pointer active?
+    lastPos: Vec2
+    active: boolean
     target: Target<T>
 }
 
@@ -55,12 +56,12 @@ export class InteractionHandler<T> {
             return [false, null]
         }
 
-        const ptr: Pointer<T> = { last: offset, active: false, target: next }
+        const ptr: Pointer<T> = { lastPos: offset, active: false, target: next }
         this.#pointers.set(id, ptr)
         return [true, ptr]
     }
 
-    handleEventRaw(type: EventType, id: number, offset: Vec2): boolean {
+    handleEventRaw(type: PointerEventType, id: number, offset: Vec2): boolean {
         const local = this.#ev.toLocalSpace(offset)
         const [isNew, ptr] = this.#target(id, offset, local)
         if (!ptr) return false
@@ -109,7 +110,7 @@ export class InteractionHandler<T> {
     }
 }
 
-export type EventType =
+export type PointerEventType =
     | "pointerenter"
     | "pointerdown"
     | "pointermove"
