@@ -24,6 +24,7 @@ export interface EventsInteractionHandler<T> {
 /** @template T Coordinates in local space. */
 export class InteractionHandler<T> {
     #pointers = new Map<number, Pointer<T>>()
+    #targets = new Map<Target<T>, number>()
     #ev
     #el
 
@@ -56,8 +57,14 @@ export class InteractionHandler<T> {
             return [false, null]
         }
 
+        // for now, only allow one pointer per target
+        if (this.#targets.has(next)) {
+            return [false, null]
+        }
+
         const ptr: Pointer<T> = { lastPos: offset, active: false, target: next }
         this.#pointers.set(id, ptr)
+        this.#targets.set(next, id)
         return [true, ptr]
     }
 
@@ -96,6 +103,7 @@ export class InteractionHandler<T> {
                 // avoid sending onEnter and onLeave in the same tick
                 if (!isNew) ptr.target.onLeave(local)
                 this.#pointers.delete(id)
+                this.#targets.delete(ptr.target)
                 break
 
             default:
@@ -107,6 +115,22 @@ export class InteractionHandler<T> {
 
     handleEvent(ev: PointerEvent) {
         this.handleEventRaw(ev.type, ev.pointerId, [ev.offsetX, ev.offsetY])
+    }
+
+    removeTarget(target: Target<T>) {
+        const id = this.#targets.get(target)
+        if (id == null) return
+
+        const ptr = this.#pointers.get(id)
+        if (ptr == null) return
+
+        const local = this.#ev.toLocalSpace(ptr.lastPos)
+
+        if (ptr.active) {
+            target.onUp(local)
+        }
+
+        target.onLeave(local)
     }
 }
 
