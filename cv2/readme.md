@@ -43,7 +43,7 @@ fn vector(Point, Point) -> Vector
 fn circle(Point, num) -> Circle
 type Curve = Line | Vector | Circle;
 
-// More constructors
+// Multipoint constructors
 fn circle(Point, Point) -> Circle // center, point on edge
 fn circle(Point, Point, Point) -> Circle // circumcircle
 
@@ -60,6 +60,10 @@ fn center(Circle) -> Point
 fn radius(Circle) -> Circle
 ```
 
+Eventually, we will also want segments, rays, angles, bisectors of all kinds
+(midpoint of segment, perpendicular bisector as line, angle bisector as ray),
+transformations, and polygons (including area, perimeter, points, and angles).
+
 # 3D Geometry
 
 Here is a list of 3D geometric functions we hope to eventually support. For
@@ -74,9 +78,9 @@ type Circle; // no obvious default constructor
 fn sphere(Point, num) -> Sphere
 type Plane; // no obvious default constructor
 
-// More constructors
+// Multipoint constructors
 fn circle(Point, Point, Point) -> Circle
-fn sphere(Point, Point, Point, Point) -> Sphere // tbd: does this actually work?
+fn sphere(Point, Point, Point, Point) -> Sphere
 fn plane(Point, Point, Point) -> Circle
 
 // Intersections
@@ -92,9 +96,9 @@ fn parallel(Plane, Point) -> Plane
 
 // Perpendicular constructs
 fn circle(normal: Vector, center: Point, radius: num) -> Circle
-fn plane(normal: Vector, distance_from_origin: num) -> Plane
-fn plane(normal: Vector, member: Point) -> Plane
 fn normal(Circle|Plane) -> Vector
+fn perpendicular(Line|Vector, Point) -> Plane
+fn perpendicular(Plane, Point) -> Line
 
 // Measurements
 fn length(Vector) -> num
@@ -102,3 +106,8 @@ fn norm(Vector) -> Vector
 fn center(Circle|Sphere) -> Point
 fn radius(Circle|Sphere) -> num
 ```
+
+Eventually, we will also want segments, rays, angles, bisectors of all kinds
+(midpoint of segment, perpendicular bisector as plane, angle bisector as ray),
+transformations, and triangles (including area, perimeter, points, angles, and
+intersections).
