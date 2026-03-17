@@ -1,4 +1,5 @@
 import type { Tform2 } from "./tform"
+import type { Vec2 } from "./vec"
 
 interface Pointer {
     down: boolean
@@ -167,40 +168,33 @@ export class Position {
         return true
     }
 
-    onpointerdown(pointerId: number, offsetX: number, offsetY: number): void {
+    onstart(
+        pointerId: number,
+        [ox, oy]: Vec2,
+        [x, y]: Vec2,
+        moved: boolean,
+    ): void {
         const [a, b] = this.#pointers.values()
 
         if (b) return // don't handle >2 pointers
         if (a?.moved) return // block zoom gesture if we already moved significantly
         if (this.#didReleaseSome()) return // don't allow new pointers while we're completing a gesture
 
-        this.#pointers.set(pointerId, {
-            down: true,
-            moved: false,
-            ox: offsetX,
-            oy: offsetY,
-            x: offsetX,
-            y: offsetY,
-        })
-
+        this.#pointers.set(pointerId, { down: true, moved, ox, oy, x, y })
         this.#ul = this.#calcUL()
         this.#ev.onSceneMovement(false)
     }
 
     /** Returns `true` if this `Movable` handled the event. */
-    onpointermove(
-        pointerId: number,
-        offsetX: number,
-        offsetY: number,
-    ): boolean {
+    onmove(pointerId: number, [ox, oy]: Vec2): boolean {
         const ptr = this.#pointers.get(pointerId)
         if (!ptr) return false
 
         // If we released this pointer, ignore any further movement.
         if (!ptr.down) return true
 
-        ptr.x = offsetX
-        ptr.y = offsetY
+        ptr.x = ox
+        ptr.y = oy
 
         if (!ptr.moved && Math.hypot(ptr.x - ptr.ox, ptr.y - ptr.oy) > 8) {
             ptr.moved = true
@@ -215,12 +209,7 @@ export class Position {
     }
 
     /** Returns `true` if this `Movable` handled the event. */
-    onpointerfinish(
-        pointerId: number,
-        offsetX: number,
-        offsetY: number,
-        cancel: boolean,
-    ): boolean {
+    onend(pointerId: number, [ox, oy]: Vec2, cancel: boolean): boolean {
         const ptr = this.#pointers.get(pointerId)
         if (!ptr) return false
 
@@ -232,8 +221,8 @@ export class Position {
 
         // If we are the first pointer released, update the permanent position.
         else if (!this.#didReleaseSome()) {
-            ptr.x = offsetX
-            ptr.y = offsetY
+            ptr.x = ox
+            ptr.y = oy
             this.#ul = this.#ul0 = this.#calcUL()
             this.#ev.onSceneMovement(false)
         }
