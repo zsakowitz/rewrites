@@ -88,20 +88,14 @@ export class Canvas2 {
             // if zooming or panning the screen via touches, ignore wheel events to avoid conflicts
             if (this.#touches.size) return
 
-            const { sx, sy, tx, ty } = this.#ul0
-
             // plain pan gesture
-            if (!(ctrlKey || metaKey)) {
-                this.#ul = this.#ul0 = {
-                    sx,
-                    sy,
-                    tx: tx + 2 * (deltaX / this.#oh) * sx,
-                    ty: ty - 2 * (deltaY / this.#oh) * sy,
-                }
-                this.#redraw()
-                return
+            if (ctrlKey || metaKey) {
+                this.#handleWheelZoom(ev as WheelEvent)
+            } else {
+                this.#handleWheelMove(ev as WheelEvent)
             }
 
+            this.#redraw()
             return
         }
 
@@ -149,6 +143,39 @@ export class Canvas2 {
 
         this.#updateUl()
         this.#redraw()
+    }
+
+    #handleWheelMove(ev: WheelEvent) {
+        const { sx, sy, tx, ty } = this.#ul0
+
+        this.#ul = this.#ul0 = {
+            sx,
+            sy,
+            tx: tx + 2 * (ev.deltaX / this.#oh) * sx,
+            ty: ty - 2 * (ev.deltaY / this.#oh) * sy,
+        }
+    }
+
+    #handleWheelZoom(ev: WheelEvent) {
+        const { sx, sy, tx, ty } = this.#ul0
+
+        const dy = Math.sign(ev.deltaY) * Math.sqrt(Math.abs(ev.deltaY))
+
+        const ds =
+            ev.deltaMode == 2 ? 2 ** ev.deltaY
+            : ev.deltaMode == 1 ? 1.1 ** ev.deltaY
+            : 1.03 ** dy // 1 + dy * 0.03
+
+        // keep pointer in same position after zooming
+        const px = (2 * ev.offsetX - this.#ow) / this.#oh
+        const py = 1 - (2 * ev.offsetY) / this.#oh
+
+        this.#ul = this.#ul0 = {
+            sx: sx * ds,
+            sy: sy * ds,
+            tx: tx + px * sx * (1 - ds),
+            ty: ty + py * sy * (1 - ds),
+        }
     }
 
     // Transformations between various coordinate spaces.
@@ -200,7 +227,47 @@ export class Canvas2 {
         this.ctx.scale(devicePixelRatio, devicePixelRatio)
     }
 
-    #updateUl() {}
+    #updateUl() {
+        const [a, b] = this.#touches.values()
+
+        if (!a) {
+            this.#ul = this.#ul0
+            return
+        }
+
+        const { sx, sy, tx, ty } = this.#ul0
+
+        if (b) {
+            const ow = this.#ow
+            const oh = this.#oh
+
+            const scale =
+                Math.hypot(a.x - b.x, a.y - b.y)
+                / Math.hypot(a.ox - b.ox, a.oy - b.oy)
+
+            const x1 = (a.ox + b.ox - ow) / oh
+            const y1 = 1 - (a.oy + b.oy) / oh
+
+            const x2 = (a.x + b.x - ow) / oh
+            const y2 = 1 - (a.y + b.y) / oh
+
+            this.#ul = {
+                sx: sx / scale,
+                sy: sy / scale,
+                tx: tx + x1 * sx - x2 * (sx / scale),
+                ty: ty + y1 * sy - y2 * (sy / scale),
+            }
+
+            return
+        }
+
+        this.#ul = {
+            sx,
+            sy,
+            tx: tx - (a.x - a.ox) * sx,
+            ty: ty + (a.y - a.oy) * sy,
+        }
+    }
 
     #redraw() {
         this.reset()
