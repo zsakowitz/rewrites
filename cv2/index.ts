@@ -6,8 +6,8 @@ const events: CanvasArgs = {
 }
 
 const cv = new Canvas2(events, {
-    sx: 1,
-    sy: 1,
+    sx: 16,
+    sy: 16,
     tx: 0,
     ty: 0,
 })
@@ -17,15 +17,19 @@ document.body.appendChild(el)
 el.style = "position:fixed;inset:0;width:100vw;height:100vh;touch-action:none"
 
 function draw() {
-    const { lo } = cv
+    const { tlo: lo } = cv
     cv.reset()
 
-    for (let i = 0; i < 16; i++) {
-        for (let j = 0; j < 16; j++) {
-            ctx.fillStyle = `rgb(${(i ^ j) * 16}, ${(i & j) * 16}, ${(i | j) * 16})`
+    const [x, y] = apply2(lo, [0, 0])
+    ctx.font = `${-lo.sy}px sans-serif`
+    ctx.fillText("hello world!", x, y)
 
-            const [x, y] = apply2(lo, [i, j])
-            ctx.fillRect(x, y, lo.sx, -lo.sy)
-        }
-    }
+    // for (let i = 0; i < 16; i++) {
+    //     for (let j = 0; j < 16; j++) {
+    //         ctx.fillStyle = `rgb(${(i ^ j) * 16}, ${(i & j) * 16}, ${(i | j) * 16})`
+    //
+    //         const [x, y] = apply2(lo, [i, j])
+    //         ctx.fillRect(x, y, lo.sx, lo.sy)
+    //     }
+    // }
 }

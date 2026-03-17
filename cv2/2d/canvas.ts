@@ -1,4 +1,4 @@
-import type { Tform2 } from "./tform"
+import { apply2, inverse2, type Tform2 } from "./tform"
 
 export interface CanvasArgs {
     /**
@@ -40,11 +40,14 @@ export class Canvas2 {
     #ow = 0
     #oh = 0
     #ev
-    #ul0
+
+    #ul0: Tform2
+    #ul: Tform2
+    #touches = new Map<number, TouchPointer>()
 
     constructor(ev: CanvasArgs, ul: Tform2) {
         this.#ev = ev
-        this.#ul0 = ul
+        this.#ul = this.#ul0 = ul
 
         const { el, ctx } = this
 
@@ -69,42 +72,99 @@ export class Canvas2 {
     }
 
     handleEvent(ev: Event) {
-        switch (ev.type) {
-            case "contextrestored":
+        if (ev.type == "contextrestored") {
+            this.#redraw()
+            return
+        }
+
+        if (ev.type == "wheel") {
+            const { ctrlKey, metaKey, deltaX, deltaY } = ev as WheelEvent
+
+            // ambiguous how to handle, so we just drop it
+            if (ctrlKey && metaKey) return
+
+            ev.preventDefault()
+
+            // if zooming or panning the screen via touches, ignore wheel events to avoid conflicts
+            if (this.#touches.size) return
+
+            const { sx, sy, tx, ty } = this.#ul0
+
+            // plain pan gesture
+            if (!(ctrlKey || metaKey)) {
+                this.#ul = this.#ul0 = {
+                    sx,
+                    sy,
+                    tx: tx + 2 * (deltaX / this.#oh) * sx,
+                    ty: ty - 2 * (deltaY / this.#oh) * sy,
+                }
                 this.#redraw()
-                break
+                return
+            }
 
-            case "wheel":
-                break
+            return
+        }
 
+        const { pointerId, offsetX, offsetY } = ev as PointerEvent
+        const [x, y] = apply2(this.tou, [offsetX, offsetY])
+
+        switch (ev.type) {
             case "pointerenter":
                 break
 
-            case "pointerdown":
-                break
+            case "pointerdown": {
+                this.#touches.set(pointerId, {
+                    down: true,
+                    moved: false,
+                    ox: x,
+                    oy: y,
+                    x,
+                    y,
+                })
 
-            case "pointermove":
                 break
+            }
+
+            case "pointermove": {
+                const tp = this.#touches.get(pointerId)
+                if (!tp) return
+
+                tp.x = x
+                tp.y = y
+
+                break
+            }
 
             case "pointerup":
+                this.#touches.delete(pointerId)
                 break
 
             case "pointercancel":
+                this.#touches.delete(pointerId)
                 break
 
             case "pointerleave":
                 break
         }
+
+        this.#updateUl()
+        this.#redraw()
     }
 
-    get ul(): Tform2 {
-        return this.#ul0
+    // Transformations between various coordinate spaces.
+
+    get tul(): Tform2 {
+        return this.#ul
     }
 
-    get lo(): Tform2 {
+    get tlu(): Tform2 {
+        return inverse2(this.tul)
+    }
+
+    get tlo(): Tform2 {
         const ow = this.#ow
         const oh = this.#oh
-        const ul = this.ul
+        const ul = this.tul
 
         const sx = oh / ul.sx / 2
         const tx = ow / 2 - ul.tx * sx
@@ -115,10 +175,32 @@ export class Canvas2 {
         return { sx, sy, tx, ty }
     }
 
+    get tol(): Tform2 {
+        return inverse2(this.tlo)
+    }
+
+    get tuo(): Tform2 {
+        const ow = this.#ow
+        const oh = this.#oh
+
+        return {
+            sx: oh / 2,
+            sy: oh / 2,
+            tx: ow / 2,
+            ty: oh / 2,
+        }
+    }
+
+    get tou(): Tform2 {
+        return inverse2(this.tuo)
+    }
+
     reset() {
         this.ctx.reset()
         this.ctx.scale(devicePixelRatio, devicePixelRatio)
     }
+
+    #updateUl() {}
 
     #redraw() {
         this.reset()
