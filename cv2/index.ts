@@ -1,8 +1,8 @@
 import { Canvas2, type CanvasArgs } from "./2d/canvas"
-import { Scene, type SceneArgs } from "./2d/scene"
+import { Position, type PositionArgs } from "./2d/position"
 import { apply2 } from "./2d/tform"
 
-const events: CanvasArgs & SceneArgs = {
+const events: CanvasArgs & PositionArgs = {
     onSceneMovement: draw,
     onCanvasUpdate: draw,
 }
@@ -12,7 +12,7 @@ const { el, ctx } = cv
 document.body.appendChild(el)
 el.style = "position:fixed;inset:0;width:100vw;height:100vh;touch-action:none"
 
-const mv = new Scene(events, el, { sx: 10, sy: 10, tx: 0, ty: 0 })
+const mv = new Position(events, el, { sx: 10, sy: 10, tx: 0, ty: 0 })
 
 function draw() {
     const { lo } = mv

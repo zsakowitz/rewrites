@@ -13,11 +13,11 @@ interface Pointer {
     y: number
 }
 
-export interface SceneArgs {
+export interface PositionArgs {
     onSceneMovement(fromJs: boolean): void
 }
 
-export class Scene {
+export class Position {
     #ev
     #ow = 0 // offset width of reference element
     #oh = 0 // offset height of reference element
@@ -43,7 +43,7 @@ export class Scene {
     }
 
     /** @param tf Transformation from unit space to local space. */
-    constructor(ev: SceneArgs, el: HTMLElement, tf: Tform2) {
+    constructor(ev: PositionArgs, el: HTMLElement, tf: Tform2) {
         this.#ev = ev
 
         new ResizeObserver(([e]) => {
@@ -89,35 +89,16 @@ export class Scene {
         }
     }
 
-    /** Returns `true` if this `Movable` handled the event. */
-    handleEvent(ev: PointerEvent | WheelEvent): boolean {
-        switch (ev.type) {
-            case "wheel":
-                if (ev.ctrlKey && ev.metaKey) {
-                    return false
-                }
+    onwheel(ev: WheelEvent) {
+        if (ev.ctrlKey && ev.metaKey) {
+            return
+        }
 
-                ev.preventDefault()
-                if (ev.ctrlKey || ev.metaKey) {
-                    this.#onwheelZoom(ev as WheelEvent)
-                } else {
-                    this.#onwheelMove(ev as WheelEvent)
-                }
-                return true
-
-            case "pointerdown":
-                this.#onpointerdown(ev as PointerEvent)
-                return true
-
-            case "pointermove":
-                return this.#onpointermove(ev as PointerEvent)
-
-            case "pointerup":
-            case "pointercancel":
-                return this.#onpointerfinish(ev as PointerEvent)
-
-            default:
-                return false
+        ev.preventDefault()
+        if (ev.ctrlKey || ev.metaKey) {
+            this.#onwheelZoom(ev as WheelEvent)
+        } else {
+            this.#onwheelMove(ev as WheelEvent)
         }
     }
 
@@ -186,20 +167,20 @@ export class Scene {
         return true
     }
 
-    #onpointerdown(ev: PointerEvent): void {
+    onpointerdown(pointerId: number, offsetX: number, offsetY: number): void {
         const [a, b] = this.#pointers.values()
 
         if (b) return // don't handle >2 pointers
         if (a?.moved) return // block zoom gesture if we already moved significantly
         if (this.#didReleaseSome()) return // don't allow new pointers while we're completing a gesture
 
-        this.#pointers.set(ev.pointerId, {
+        this.#pointers.set(pointerId, {
             down: true,
             moved: false,
-            ox: ev.offsetX,
-            oy: ev.offsetY,
-            x: ev.offsetX,
-            y: ev.offsetY,
+            ox: offsetX,
+            oy: offsetY,
+            x: offsetX,
+            y: offsetY,
         })
 
         this.#ul = this.#calcUL()
@@ -207,15 +188,19 @@ export class Scene {
     }
 
     /** Returns `true` if this `Movable` handled the event. */
-    #onpointermove(ev: PointerEvent): boolean {
-        const ptr = this.#pointers.get(ev.pointerId)
+    onpointermove(
+        pointerId: number,
+        offsetX: number,
+        offsetY: number,
+    ): boolean {
+        const ptr = this.#pointers.get(pointerId)
         if (!ptr) return false
 
         // If we released this pointer, ignore any further movement.
         if (!ptr.down) return true
 
-        ptr.x = ev.offsetX
-        ptr.y = ev.offsetY
+        ptr.x = offsetX
+        ptr.y = offsetY
 
         if (!ptr.moved && Math.hypot(ptr.x - ptr.ox, ptr.y - ptr.oy) > 8) {
             ptr.moved = true
@@ -230,20 +215,25 @@ export class Scene {
     }
 
     /** Returns `true` if this `Movable` handled the event. */
-    #onpointerfinish(ev: PointerEvent): boolean {
-        const ptr = this.#pointers.get(ev.pointerId)
+    onpointerfinish(
+        pointerId: number,
+        offsetX: number,
+        offsetY: number,
+        cancel: boolean,
+    ): boolean {
+        const ptr = this.#pointers.get(pointerId)
         if (!ptr) return false
 
         // If the event is canceled, ignore touch-induced movement.
-        if (ev.type == "pointercancel") {
+        if (cancel) {
             this.#ul = this.#ul0
             this.#ev.onSceneMovement(false)
         }
 
         // If we are the first pointer released, update the permanent position.
         else if (!this.#didReleaseSome()) {
-            ptr.x = ev.offsetX
-            ptr.y = ev.offsetY
+            ptr.x = offsetX
+            ptr.y = offsetY
             this.#ul = this.#ul0 = this.#calcUL()
             this.#ev.onSceneMovement(false)
         }
