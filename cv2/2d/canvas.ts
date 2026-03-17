@@ -1,11 +1,8 @@
 import { apply2, inverse2, type Tform2 } from "./tform"
 
 export interface CanvasArgs {
-    /**
-     * Called when the canvas resizes, has its context restored, or becomes
-     * initialized.
-     */
-    onCanvasUpdate(): void
+    /** Called when the canvas's contents have been erased and must be redrawn. */
+    redraw(): void
 }
 
 interface TouchPointer {
@@ -263,6 +260,6 @@ export class Canvas2 {
 
     #redraw() {
         this.reset()
-        this.#ev.onCanvasUpdate()
+        this.#ev.redraw()
     }
 }

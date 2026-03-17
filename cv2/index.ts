@@ -1,7 +1,7 @@
 import { Canvas2, type CanvasArgs } from "./2d/canvas"
 import { apply2 } from "./2d/tform"
 
-const events: CanvasArgs = { onCanvasUpdate: draw }
+const events: CanvasArgs = { redraw: draw }
 
 const cv = new Canvas2(events, { sx: 16, sy: 16, tx: 0, ty: 0 })
 
