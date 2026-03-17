@@ -4,7 +4,7 @@ class DebugInfo {
 
     constructor() {
         this.el.style =
-            "z-index:10;position:fixed;top:1rem;left:1rem;font-size:0.8rem;user-select:none;pointer-events:none;color:white;margin:0;display:flex;gap:1lh;font-family:monospace;flex-direction:column"
+            "z-index:10;position:fixed;top:1rem;left:1rem;font-size:0.8rem;user-select:none;pointer-events:none;color:white;margin:0;display:flex;gap:1lh;font-family:monospace;flex-direction:column;background:#0004"
         document.body.appendChild(this.el)
     }
 

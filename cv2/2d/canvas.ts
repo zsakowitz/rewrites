@@ -9,9 +9,6 @@ export interface CanvasArgs {
 }
 
 interface TouchPointer {
-    down: boolean
-    moved: boolean
-
     // first known pointer location, in unit space
     readonly ox: number
     readonly oy: number
@@ -19,18 +16,6 @@ interface TouchPointer {
     // last known pointer location, in unit space
     x: number
     y: number
-}
-
-function adjust1(
-    { sx, sy, tx, ty }: Tform2,
-    { ox, oy, x, y }: TouchPointer,
-): Tform2 {
-    return {
-        sx,
-        sy,
-        tx: (x - ox) * sx + tx,
-        ty: (y - oy) * sy + ty,
-    }
 }
 
 export class Canvas2 {
@@ -44,6 +29,7 @@ export class Canvas2 {
     #ul0: Tform2
     #ul: Tform2
     #touches = new Map<number, TouchPointer>()
+    #touchesMoved = false
 
     constructor(ev: CanvasArgs, ul: Tform2) {
         this.#ev = ev
@@ -108,14 +94,13 @@ export class Canvas2 {
 
             case "pointerdown": {
                 this.#touches.set(pointerId, {
-                    down: true,
-                    moved: false,
                     ox: x,
                     oy: y,
                     x,
                     y,
                 })
 
+                this.#updateUl()
                 break
             }
 
@@ -126,22 +111,32 @@ export class Canvas2 {
                 tp.x = x
                 tp.y = y
 
+                if (
+                    !this.#touchesMoved
+                    && Math.hypot(x - tp.ox, y - tp.oy) > 16 / this.#oh
+                ) {
+                    this.#touchesMoved = true
+                }
+
+                this.#updateUl()
                 break
             }
 
             case "pointerup":
-                this.#touches.delete(pointerId)
-                break
-
             case "pointercancel":
-                this.#touches.delete(pointerId)
+                this.#updateUl()
+                if (ev.type == "pointerup") {
+                    this.#ul0 = this.#ul
+                } else {
+                    this.#ul = this.#ul0
+                }
+                this.#touches.clear()
                 break
 
             case "pointerleave":
                 break
         }
 
-        this.#updateUl()
         this.#redraw()
     }
 
