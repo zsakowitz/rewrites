@@ -1,9 +1,5 @@
+import { objectByDrawFn, type Object2 } from "./object"
 import { apply2, inverse2, type Tform2 } from "./tform"
-
-export interface CanvasArgs {
-    /** Called when the canvas's contents have been erased and must be redrawn. */
-    redraw(): void
-}
 
 interface TouchPointer {
     // first known pointer location, in unit space
@@ -21,15 +17,14 @@ export class Canvas2 {
 
     #ow = 0
     #oh = 0
-    #ev
 
     #ul0: Tform2
     #ul: Tform2
     #touches = new Map<number, TouchPointer>()
     #touchesMoved = false
+    #scene: Object2[] = []
 
-    constructor(ev: CanvasArgs, ul: Tform2) {
-        this.#ev = ev
+    constructor(ul: Tform2) {
         this.#ul = this.#ul0 = ul
 
         const { el: el, ctx } = this
@@ -41,7 +36,7 @@ export class Canvas2 {
         new ResizeObserver(([e]) => {
             el.width = (this.#ow = e!.contentRect.width) * devicePixelRatio
             el.height = (this.#oh = e!.contentRect.height) * devicePixelRatio
-            this.#redraw()
+            this.redraw()
         }).observe(el)
 
         el.addEventListener("contextrestored", this, { passive: true })
@@ -54,9 +49,19 @@ export class Canvas2 {
         el.addEventListener("pointerleave", this, { passive: true })
     }
 
+    push(object: Object2) {
+        this.#scene.push(object)
+    }
+
+    pushf(draw: Object2["draw"]): Object2 {
+        const object = objectByDrawFn(draw)
+        this.#scene.push(object)
+        return object
+    }
+
     handleEvent(ev: Event) {
         if (ev.type == "contextrestored") {
-            this.#redraw()
+            this.redraw()
             return
         }
 
@@ -78,7 +83,7 @@ export class Canvas2 {
                 this.#handleWheelMove(ev as WheelEvent)
             }
 
-            this.#redraw()
+            this.redraw()
             return
         }
 
@@ -138,7 +143,7 @@ export class Canvas2 {
                 break
         }
 
-        this.#redraw()
+        this.redraw()
     }
 
     #handleWheelMove(ev: WheelEvent) {
@@ -258,8 +263,16 @@ export class Canvas2 {
         }
     }
 
-    #redraw() {
+    redraw() {
         this.reset()
-        this.#ev.redraw()
+
+        const scene = this.#scene
+        for (let i = 0; i < scene.length; i++) {
+            const obj = scene[i]!
+
+            if (obj.visible) {
+                scene[i]!.draw(this)
+            }
+        }
     }
 }
