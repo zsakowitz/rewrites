@@ -93,6 +93,9 @@ export class Canvas2 {
                 break
 
             case "pointerdown": {
+                if (this.#touchesMoved) return
+                if (this.#touches.size >= 2) return
+
                 this.#touches.set(pointerId, {
                     ox: x,
                     oy: y,
@@ -130,6 +133,7 @@ export class Canvas2 {
                 } else {
                     this.#ul = this.#ul0
                 }
+                this.#touchesMoved = false
                 this.#touches.clear()
                 break
 
