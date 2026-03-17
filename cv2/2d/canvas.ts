@@ -40,9 +40,11 @@ export class Canvas2 {
     #ow = 0
     #oh = 0
     #ev
+    #ul0
 
-    constructor(ev: CanvasArgs) {
+    constructor(ev: CanvasArgs, ul: Tform2) {
         this.#ev = ev
+        this.#ul0 = ul
 
         const { el, ctx } = this
 
@@ -56,9 +58,61 @@ export class Canvas2 {
             this.#redraw()
         }).observe(el)
 
-        el.addEventListener("contextrestored", () => {
-            this.#redraw()
-        })
+        el.addEventListener("contextrestored", this, { passive: true })
+        el.addEventListener("wheel", this, { passive: false })
+        el.addEventListener("pointerenter", this, { passive: true })
+        el.addEventListener("pointerdown", this, { passive: true })
+        el.addEventListener("pointermove", this, { passive: true })
+        el.addEventListener("pointerup", this, { passive: true })
+        el.addEventListener("pointercancel", this, { passive: true })
+        el.addEventListener("pointerleave", this, { passive: true })
+    }
+
+    handleEvent(ev: Event) {
+        switch (ev.type) {
+            case "contextrestored":
+                this.#redraw()
+                break
+
+            case "wheel":
+                break
+
+            case "pointerenter":
+                break
+
+            case "pointerdown":
+                break
+
+            case "pointermove":
+                break
+
+            case "pointerup":
+                break
+
+            case "pointercancel":
+                break
+
+            case "pointerleave":
+                break
+        }
+    }
+
+    get ul(): Tform2 {
+        return this.#ul0
+    }
+
+    get lo(): Tform2 {
+        const ow = this.#ow
+        const oh = this.#oh
+        const ul = this.ul
+
+        const sx = oh / ul.sx / 2
+        const tx = ow / 2 - ul.tx * sx
+
+        const sy = -oh / 2 / ul.sy
+        const ty = oh / 2 - ul.ty * sy
+
+        return { sx, sy, tx, ty }
     }
 
     reset() {
