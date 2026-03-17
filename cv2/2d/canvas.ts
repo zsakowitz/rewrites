@@ -97,6 +97,7 @@ export class Canvas2 {
                 break
 
             case "pointerdown": {
+                this.el.setPointerCapture(pointerId)
                 if (this.#touchesMoved) return
                 if (this.#touches.size >= 2) return
 
@@ -154,8 +155,8 @@ export class Canvas2 {
         this.#ul = this.#ul0 = {
             sx,
             sy,
-            tx: tx + 2 * (ev.deltaX / this.#oh) * sx,
-            ty: ty - 2 * (ev.deltaY / this.#oh) * sy,
+            tx: tx + 2 * (ev.deltaX / this.#ow) * sx,
+            ty: ty - 2 * (ev.deltaY / this.#ow) * sy,
         }
     }
 
@@ -169,9 +170,10 @@ export class Canvas2 {
             : ev.deltaMode == 1 ? 1.1 ** ev.deltaY
             : 1.03 ** dy // 1 + dy * 0.03
 
+        // TODO:
         // keep pointer in same position after zooming
-        const px = (2 * ev.offsetX - this.#ow) / this.#oh
-        const py = 1 - (2 * ev.offsetY) / this.#oh
+        const px = ev.offsetX * (2 / this.#ow) - 1
+        const py = -(ev.offsetY - this.#oh / 2) * (2 / this.#ow)
 
         this.#ul = this.#ul0 = {
             sx: sx * ds,
@@ -196,10 +198,10 @@ export class Canvas2 {
         const oh = this.#oh
         const ul = this.tul
 
-        const sx = oh / ul.sx / 2
+        const sx = ow / ul.sx / 2
         const tx = ow / 2 - ul.tx * sx
 
-        const sy = -oh / 2 / ul.sy
+        const sy = -ow / 2 / ul.sy
         const ty = oh / 2 - ul.ty * sy
 
         return { sx, sy, tx, ty }
@@ -214,8 +216,8 @@ export class Canvas2 {
         const oh = this.#oh
 
         return {
-            sx: oh / 2,
-            sy: oh / 2,
+            sx: ow / 2,
+            sy: ow / 2,
             tx: ow / 2,
             ty: oh / 2,
         }

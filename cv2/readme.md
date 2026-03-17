@@ -9,7 +9,7 @@ padding box.
 
 **Unit space.** Unit space is defined relative to some HTML element `el`. It
 defines `(0, 0)` to be the center of the element, and
-`(-el.offsetWidth / el.offsetHeight, -1)` to be the top-left corner of the
+`(-1, -el.offsetHeight / el.offsetWidth)` to be the top-left corner of the
 element.
 
 Offset space and unit space follow the DOM convention that more positive

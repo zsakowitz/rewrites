@@ -20,8 +20,8 @@ const MAX_GRIDLINES_MINOR = MAX_GRIDLINES_MAJOR * 5
 export class Axes extends Object2 {
     draw({ ctx, tlo, width, height }: Canvas2): void {
         const ZERO = apply2(tlo, [0, 0])
-        const y = ZERO[1]
-        const x = ZERO[0]
+        const y = Math.round(ZERO[1] * devicePixelRatio) / devicePixelRatio
+        const x = Math.round(ZERO[0] * devicePixelRatio) / devicePixelRatio
 
         ctx.lineCap = "round"
         ctx.lineWidth = THEME_MAIN_AXIS_WIDTH
