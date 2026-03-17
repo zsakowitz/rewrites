@@ -224,6 +224,7 @@ export class Canvas2 {
 
     reset() {
         this.ctx.reset()
+        this.ctx.clearRect(0, 0, this.el.width, this.el.height)
         this.ctx.scale(devicePixelRatio, devicePixelRatio)
     }
 
@@ -238,24 +239,15 @@ export class Canvas2 {
         const { sx, sy, tx, ty } = this.#ul0
 
         if (b) {
-            const ow = this.#ow
-            const oh = this.#oh
-
             const scale =
-                Math.hypot(a.x - b.x, a.y - b.y)
-                / Math.hypot(a.ox - b.ox, a.oy - b.oy)
-
-            const x1 = (a.ox + b.ox - ow) / oh
-            const y1 = 1 - (a.oy + b.oy) / oh
-
-            const x2 = (a.x + b.x - ow) / oh
-            const y2 = 1 - (a.y + b.y) / oh
+                Math.hypot(a.ox - b.ox, a.oy - b.oy)
+                / Math.hypot(a.x - b.x, a.y - b.y)
 
             this.#ul = {
-                sx: sx / scale,
-                sy: sy / scale,
-                tx: tx + x1 * sx - x2 * (sx / scale),
-                ty: ty + y1 * sy - y2 * (sy / scale),
+                sx: sx * scale,
+                sy: sy * scale,
+                tx: tx + (sx * (a.ox + b.ox - (a.x + b.x) * scale)) / 2,
+                ty: ty - (sy * (a.oy + b.oy - (a.y + b.y) * scale)) / 2,
             }
 
             return
