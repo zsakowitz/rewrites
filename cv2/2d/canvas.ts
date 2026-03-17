@@ -35,7 +35,7 @@ export class Canvas2 {
         this.#ev = ev
         this.#ul = this.#ul0 = ul
 
-        const { el, ctx } = this
+        const { el: el, ctx } = this
 
         if (!ctx) {
             throw new Error("Failed to initialize canvas.")

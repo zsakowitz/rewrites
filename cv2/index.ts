@@ -12,9 +12,10 @@ const cv = new Canvas2(events, {
     ty: 0,
 })
 
-const { el, ctx } = cv
-document.body.appendChild(el)
-el.style = "position:fixed;inset:0;width:100vw;height:100vh;touch-action:none"
+const { ctx } = cv
+document.body.appendChild(cv.el)
+cv.el.style =
+    "position:fixed;inset:0;width:100vw;height:100vh;touch-action:none"
 
 function draw() {
     const { tlo: lo } = cv
