@@ -30,10 +30,26 @@ function draw() {
 
     for (let i = 0; i < 16; i++) {
         for (let j = 0; j < 16; j++) {
-            ctx.fillStyle = `rgb(${(i ^ j) * 16}, ${(i & j) * 16}, ${(i | j) * 16})`
+            ctx.fillStyle = rgb(i / 16, j / 16, 0)
+            console.log(ctx.fillStyle)
 
             const [x, y] = apply2(lo, [i, j])
             ctx.fillRect(x, y, lo.sx, lo.sy)
         }
     }
+}
+
+function rgb(r: number, g: number, b: number) {
+    return (
+        "#"
+        + Math.round(r * 255)
+            .toString(16)
+            .padStart(2, "0")
+        + Math.round(g * 255)
+            .toString(16)
+            .padStart(2, "0")
+        + Math.round(b * 255)
+            .toString(16)
+            .padStart(2, "0")
+    )
 }
