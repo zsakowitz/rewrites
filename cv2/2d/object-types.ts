@@ -34,8 +34,6 @@ export class XorPattern extends Object2 {
         this.#bitmap = cv.transferToImageBitmap()
     }
 
-    visible = true
-
     draw(cv: Canvas2): void {
         const [x, y] = apply2(cv.tlo, [this.x, this.y])
         cv.ctx.imageSmoothingEnabled = false
@@ -43,7 +41,7 @@ export class XorPattern extends Object2 {
     }
 }
 
-export class Oklch implements Object2 {
+export class Oklch extends Object2 {
     #bitmap
 
     constructor(
@@ -51,6 +49,8 @@ export class Oklch implements Object2 {
         readonly x = 0,
         readonly y = 0,
     ) {
+        super()
+
         const cv = new OffscreenCanvas(256, 256)
         const ctx = cv.getContext("2d")!
 
@@ -66,11 +66,27 @@ export class Oklch implements Object2 {
         this.#bitmap = cv.transferToImageBitmap()
     }
 
-    visible = true
-
     draw(cv: Canvas2): void {
         const [x, y] = apply2(cv.tlo, [this.x, this.y])
         cv.ctx.imageSmoothingEnabled = false
         cv.ctx.drawImage(this.#bitmap, x, y, cv.tlo.sx, -cv.tlo.sy)
+    }
+}
+
+export class Axes extends Object2 {
+    draw({ ctx, tlo, width, height }: Canvas2): void {
+        const ZERO = apply2(tlo, [0, 0])
+        const x = Math.round(ZERO[0])
+        const y = Math.round(ZERO[1])
+
+        ctx.lineCap = "round"
+        ctx.lineWidth = 1.6
+        ctx.strokeStyle = "black"
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.lineTo(width, y)
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, height)
+        ctx.stroke()
     }
 }

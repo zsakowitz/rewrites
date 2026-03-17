@@ -18,6 +18,14 @@ export class Canvas2 {
     #ow = 0
     #oh = 0
 
+    get width() {
+        return this.#ow
+    }
+
+    get height() {
+        return this.#oh
+    }
+
     #ul0: Tform2
     #ul: Tform2
     #touches = new Map<number, TouchPointer>()
