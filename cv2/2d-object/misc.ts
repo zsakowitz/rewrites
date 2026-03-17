@@ -1,6 +1,6 @@
-import type { Canvas2 } from "./canvas"
-import { Object2 } from "./object"
-import { apply2 } from "./tform"
+import type { Canvas2 } from "../2d/canvas"
+import { Object2 } from "../2d/object"
+import { apply2 } from "../2d/tform"
 
 export class ByDrawFn extends Object2 {
     constructor(readonly draw: (cv: Canvas2) => void) {
@@ -70,23 +70,5 @@ export class Oklch extends Object2 {
         const [x, y] = apply2(cv.tlo, [this.x, this.y])
         cv.ctx.imageSmoothingEnabled = false
         cv.ctx.drawImage(this.#bitmap, x, y, cv.tlo.sx, -cv.tlo.sy)
-    }
-}
-
-export class Axes extends Object2 {
-    draw({ ctx, tlo, width, height }: Canvas2): void {
-        const ZERO = apply2(tlo, [0, 0])
-        const x = Math.round(ZERO[0])
-        const y = Math.round(ZERO[1])
-
-        ctx.lineCap = "round"
-        ctx.lineWidth = 1.6
-        ctx.strokeStyle = "black"
-        ctx.beginPath()
-        ctx.moveTo(0, y)
-        ctx.lineTo(width, y)
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, height)
-        ctx.stroke()
     }
 }
