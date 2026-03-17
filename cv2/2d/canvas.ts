@@ -64,7 +64,7 @@ export class Canvas2 {
         }
 
         if (ev.type == "wheel") {
-            const { ctrlKey, metaKey, deltaX, deltaY } = ev as WheelEvent
+            const { ctrlKey, metaKey } = ev as WheelEvent
 
             // ambiguous how to handle, so we just drop it
             if (ctrlKey && metaKey) return
