@@ -1,4 +1,4 @@
-import { objectByDrawFn, type Object2 } from "./object"
+import type { Object2 } from "./object"
 import { apply2, inverse2, type Tform2 } from "./tform"
 
 interface TouchPointer {
@@ -51,12 +51,6 @@ export class Canvas2 {
 
     push(object: Object2) {
         this.#scene.push(object)
-    }
-
-    pushf(draw: Object2["draw"]): Object2 {
-        const object = objectByDrawFn(draw)
-        this.#scene.push(object)
-        return object
     }
 
     handleEvent(ev: Event) {

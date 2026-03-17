@@ -7,7 +7,7 @@
         "ytm-build": "esbuild ytm-playlist.ts --bundle --define:RUN_CLI=true --external:ffmpeg --platform=node > ./dist/ytm.cjs",
         "ytm": "node ./dist/ytm.cjs",
         "webauthn": "esbuild --servedir=. --outdir=dist *.tsx *.ts",
-        "cv": "tsc --noEmit cv/*.ts --target esnext --skipLibCheck --moduleResolution bundler"
+        "cv": "tsc --noEmit cv2/*.ts --target esnext --skipLibCheck --moduleResolution bundler"
     },
     "bin": {
         "sm": "./bin/sm"

@@ -1,5 +1,5 @@
 import { Canvas2 } from "./2d/canvas"
-import { Oklch, XorPattern } from "./2d/object"
+import { Oklch, XorPattern } from "./2d/object-types"
 
 const cv = new Canvas2({ sx: 1, sy: 1, tx: 0, ty: 0 })
 
