@@ -20,7 +20,7 @@ interface TouchPointer {
 
 export class Canvas2 {
     readonly el = document.createElement("canvas")
-    readonly ctx = this.el.getContext("2d")!
+    readonly ctx = this.el.getContext("2d", { alpha: false })!
 
     #ow = 0
     #oh = 0
@@ -223,7 +223,8 @@ export class Canvas2 {
 
     reset() {
         this.ctx.reset()
-        this.ctx.clearRect(0, 0, this.el.width, this.el.height)
+        this.ctx.fillStyle = "#ffffff"
+        this.ctx.fillRect(0, 0, this.el.width, this.el.height)
         this.ctx.scale(devicePixelRatio, devicePixelRatio)
     }
 
