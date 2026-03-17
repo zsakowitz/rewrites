@@ -13,11 +13,11 @@ interface Pointer {
     y: number
 }
 
-export interface EventsMovable {
-    onMovement(fromJs: boolean): void
+export interface SceneArgs {
+    onSceneMovement(fromJs: boolean): void
 }
 
-export class Movable {
+export class Scene {
     #ev
     #ow = 0 // offset width of reference element
     #oh = 0 // offset height of reference element
@@ -39,11 +39,11 @@ export class Movable {
     set ul(v: Tform2) {
         this.#pointers.clear()
         this.#ul0 = this.#ul = v
-        this.#ev.onMovement(true)
+        this.#ev.onSceneMovement(true)
     }
 
     /** @param tf Transformation from unit space to local space. */
-    constructor(ev: EventsMovable, el: HTMLElement, tf: Tform2) {
+    constructor(ev: SceneArgs, el: HTMLElement, tf: Tform2) {
         this.#ev = ev
 
         new ResizeObserver(([e]) => {
@@ -54,7 +54,7 @@ export class Movable {
 
             this.#ow = e!.contentRect.width
             this.#oh = e!.contentRect.height
-            this.#ev.onMovement(false)
+            this.#ev.onSceneMovement(false)
         }).observe(el)
 
         this.#ul = this.#ul0 = tf
@@ -142,7 +142,7 @@ export class Movable {
             ty: ty + py * sy * (1 - ds),
         }
 
-        this.#ev.onMovement(false)
+        this.#ev.onSceneMovement(false)
     }
 
     #onwheelMove(ev: WheelEvent) {
@@ -167,7 +167,7 @@ export class Movable {
             ty: tf.ty + dy,
         }
 
-        this.#ev.onMovement(false)
+        this.#ev.onSceneMovement(false)
     }
 
     #pointers = new Map<number, Pointer>()
@@ -203,7 +203,7 @@ export class Movable {
         })
 
         this.#ul = this.#calcUL()
-        this.#ev.onMovement(false)
+        this.#ev.onSceneMovement(false)
     }
 
     /** Returns `true` if this `Movable` handled the event. */
@@ -223,7 +223,7 @@ export class Movable {
 
         if (!this.#didReleaseSome()) {
             this.#ul = this.#calcUL()
-            this.#ev.onMovement(false)
+            this.#ev.onSceneMovement(false)
         }
 
         return true
@@ -237,7 +237,7 @@ export class Movable {
         // If the event is canceled, ignore touch-induced movement.
         if (ev.type == "pointercancel") {
             this.#ul = this.#ul0
-            this.#ev.onMovement(false)
+            this.#ev.onSceneMovement(false)
         }
 
         // If we are the first pointer released, update the permanent position.
@@ -245,7 +245,7 @@ export class Movable {
             ptr.x = ev.offsetX
             ptr.y = ev.offsetY
             this.#ul = this.#ul0 = this.#calcUL()
-            this.#ev.onMovement(false)
+            this.#ev.onSceneMovement(false)
         }
 
         ptr.down = false

@@ -1,9 +1,9 @@
-import { Canvas2, type EventsCanvas2 } from "./2d/canvas"
-import { Movable, type EventsMovable } from "./2d/movable"
+import { Canvas2, type CanvasArgs } from "./2d/canvas"
+import { Scene, type SceneArgs } from "./2d/scene"
 import { apply2 } from "./2d/tform"
 
-const events: EventsCanvas2 & EventsMovable = {
-    onMovement: draw,
+const events: CanvasArgs & SceneArgs = {
+    onSceneMovement: draw,
     onCanvasUpdate: draw,
 }
 
@@ -12,7 +12,7 @@ const { el, ctx } = cv
 document.body.appendChild(el)
 el.style = "position:fixed;inset:0;width:100vw;height:100vh;touch-action:none"
 
-const mv = new Movable(events, el, { sx: 10, sy: 10, tx: 0, ty: 0 })
+const mv = new Scene(events, el, { sx: 10, sy: 10, tx: 0, ty: 0 })
 
 function draw() {
     const { lo } = mv

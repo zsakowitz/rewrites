@@ -1,4 +1,4 @@
-export interface EventsCanvas2 {
+export interface CanvasArgs {
     /**
      * Called when the canvas resizes, has its context restored, or becomes
      * initialized.
@@ -10,7 +10,7 @@ export class Canvas2 {
     readonly ctx
 
     constructor(
-        ev: EventsCanvas2,
+        ev: CanvasArgs,
         readonly el = document.createElement("canvas"),
     ) {
         new ResizeObserver(([e]) => {
