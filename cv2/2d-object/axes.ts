@@ -34,3 +34,40 @@ export class Axes extends Object2 {
         ctx.stroke()
     }
 }
+
+export class AxisLabels extends Object2 {
+    draw({ ctx, tlo }: Canvas2): void {
+        ctx.fillStyle = THEME_AXIS_NUMBER_ONSCREEN
+        ctx.font = `${THEME_AXIS_NUMBER_SIZE * 16}px sans-serif`
+        ctx.strokeStyle = THEME_AXIS_NUMBER_STROKE_COLOR
+        ctx.lineWidth = THEME_AXIS_NUMBER_STROKE_WIDTH
+
+        ctx.textAlign = "center"
+        ctx.textBaseline = "top"
+        for (let x = -10; x <= 10; x += 2) {
+            if (x == 0) continue
+
+            const [ox, oy] = apply2(tlo, [x, 0])
+
+            const label = x < 0 ? "−" + -x : "" + x
+
+            ctx.strokeText(label, ox, oy + 4)
+            ctx.fillText(label, ox, oy + 4)
+        }
+
+        ctx.textAlign = "right"
+        ctx.textBaseline = "middle"
+        for (let y = -10; y <= 10; y += 2) {
+            if (y == 0) continue
+
+            const [ox, oy] = apply2(tlo, [0, y])
+
+            const label = y < 0 ? "−" + -y : "" + y
+
+            ctx.strokeText(label, ox - 4, oy)
+            ctx.fillText(label, ox - 4, oy)
+        }
+    }
+}
+
+export class Gridlines extends Object2 {}

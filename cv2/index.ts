@@ -1,4 +1,4 @@
-import { Axes } from "./2d-object/axes"
+import { Axes, AxisLabels } from "./2d-object/axes"
 import { XorPattern } from "./2d-object/misc"
 import { Canvas2 } from "./2d/canvas"
 
@@ -7,3 +7,4 @@ document.getElementById("main")!.appendChild(cv.el)
 
 cv.push(new XorPattern())
 cv.push(new Axes())
+cv.push(new AxisLabels())
