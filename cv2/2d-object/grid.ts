@@ -161,7 +161,7 @@ function spacing(
     ]
 
     return diff < 1 / 2 ?
-            [pow, pow * 5, exp + 1, FST]
+            [pow, diff < 1 / 4 ? pow * 5 : pow * 10, exp + 1, FST]
         :   [pow * 5, diff < 3 / 4 ? pow * 10 : pow * 50, exp + 2, SND]
 }
 
