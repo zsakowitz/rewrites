@@ -59,7 +59,7 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
 
         for (const [multiplier, alpha] of mx) {
             if (x % multiplier == 0) {
-                ctx.globalAlpha = alpha
+                ctx.globalAlpha = x == 0 ? 1 : alpha
                 ctx.fillRect(ox, 0, 1, Math.ceil(height))
                 break
             }
@@ -97,7 +97,7 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
 
         for (const [multiplier, alpha] of my) {
             if (y % multiplier == 0) {
-                ctx.globalAlpha = alpha
+                ctx.globalAlpha = y == 0 ? 1 : alpha
                 ctx.fillRect(0, oy, Math.ceil(width), 1)
                 break
             }
@@ -118,9 +118,10 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
 
         const label = toFixed(ly, tr)
         const { width } = ctx.measureText(label)
-        ctx.strokeText(label, ox, oy)
-        ctx.globalAlpha = 1
-        ctx.fillText(label, ox, oy)
+        const oxActual = ox - width < 4 ? 4 + width : ox
+
+        ctx.strokeText(label, oxActual, oy)
+        ctx.fillText(label, oxActual, oy)
     }
 }
 
