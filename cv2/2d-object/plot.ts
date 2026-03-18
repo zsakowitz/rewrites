@@ -19,7 +19,7 @@ export class Plot extends Object2 {
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
 
-        const dox = 1
+        const dox = 0.25
         ctx.beginPath()
         ctx.moveTo(0, apply2y(tlo, fn(apply2x(tol, 0))))
         for (let ox1 = 0; ox1 < width; ox1 += dox) {
