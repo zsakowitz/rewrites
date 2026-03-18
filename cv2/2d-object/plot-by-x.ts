@@ -3,7 +3,7 @@ import { Object2 } from "../2d/object"
 import { apply2x, apply2y } from "../2d/tform"
 import type { Vec2 } from "../2d/vec"
 
-export class Plot extends Object2 {
+export class PlotByX extends Object2 {
     #fn
 
     constructor(f: (x: number) => number) {
