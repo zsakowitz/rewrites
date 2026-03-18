@@ -47,9 +47,8 @@ export class AxisLabels extends Object2 {
 
         const hMax = Math.ceil(height / 10)
         for (let h = 0; h <= hMax; h++) {
-            const [dx, xMajorsEvery, xMaxorsEvery, minorOpacity] = gridlineSize(
-                cv.pixelWidth * 1.1 ** (h - hMax / 2),
-            )
+            const [dx, xMajorsEvery, xMaxorsEvery, minorOpacity, maxorOpacity] =
+                gridlineSize(cv.pixelWidth * 1.1 ** (h - hMax / 2))
             const xmin = Math.floor(apply2x(tol, 0) / dx)
             const xmax = Math.ceil(apply2x(tol, width) / dx)
 
@@ -59,14 +58,14 @@ export class AxisLabels extends Object2 {
 
             for (let i = xmin; i <= xmax; i++) {
                 const x = i * dx
-                let [ox, oy] = apply2(tlo, [x, 0])
+                const ox = apply2x(tlo, x)
 
-                if (i % xMaxorsEvery == 0) {
-                    pathMaxor.moveTo(ox, h * 10)
-                    pathMaxor.lineTo(ox, (h + 1) * 10)
-                } else if (i % xMajorsEvery == 0) {
+                if (i % xMajorsEvery == 0) {
                     pathMajor.moveTo(ox, h * 10)
                     pathMajor.lineTo(ox, (h + 1) * 10)
+                } else if (i % xMaxorsEvery == 0) {
+                    pathMaxor.moveTo(ox, h * 10)
+                    pathMaxor.lineTo(ox, (h + 1) * 10)
                 } else {
                     pathMinor.moveTo(ox, h * 10)
                     pathMinor.lineTo(ox, (h + 1) * 10)
@@ -82,7 +81,7 @@ export class AxisLabels extends Object2 {
             ctx.globalAlpha = THEME_MAJOR_LINE_ALPHA
             ctx.stroke(pathMajor)
 
-            ctx.globalAlpha = THEME_MAJOR_LINE_ALPHA
+            ctx.globalAlpha = THEME_MAJOR_LINE_ALPHA * maxorOpacity
             ctx.stroke(pathMaxor)
         }
 
@@ -104,6 +103,7 @@ function gridlineSize(
     majorsEvery: number,
     maxorsEvery: number,
     minorOpacity: number,
+    maxorOpacity: number,
 ] {
     const inchWidth = pixelWidth * 96
 
@@ -111,10 +111,10 @@ function gridlineSize(
     const ratio = inchWidth / pow10
 
     return (
-        // ratio < 2 ? [pow10 / 2, 2, 4, lerp(ratio, 1, 2, 1, 0)]
-        ratio < 5 ?
-                [pow10, 2, 10, lerp(ratio, 1, 5, 1, 0)]
-            :   [pow10 * 2, 0, 5, lerp(ratio, 5, 10, 1, 0)]
+        ratio < 2 ?
+            [pow10 / 2, 2, 5, lerp(ratio, 1, 2, 1, 0), lerp(ratio, 1, 2, 0, 1)]
+        : ratio < 5 ? [pow10, 2, 10, lerp(ratio, 1, 5, 1, 0), 1]
+        : [pow10 * 2, 0, 5, lerp(ratio, 5, 10, 1, 0), 1]
     )
 }
 
