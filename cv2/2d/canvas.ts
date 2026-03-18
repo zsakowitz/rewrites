@@ -227,6 +227,11 @@ export class Canvas2 {
         return inverse2(this.tuo)
     }
 
+    /** Width of one offset space pixel, measured in local space. */
+    get pixelWidth(): number {
+        return this.tol.sx
+    }
+
     reset() {
         this.ctx.reset()
         this.ctx.fillStyle = "#ffffff"

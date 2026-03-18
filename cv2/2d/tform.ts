@@ -15,6 +15,14 @@ export interface Tform2 {
     ty: number
 }
 
+export function apply2x(tf: Tform2, px: number): number {
+    return px * tf.sx + tf.tx
+}
+
+export function apply2y(tf: Tform2, py: number): number {
+    return py * tf.sy + tf.ty
+}
+
 export function apply2(tf: Tform2, pt: Vec2): Vec2 {
     return [pt[0] * tf.sx + tf.tx, pt[1] * tf.sy + tf.ty]
 }
