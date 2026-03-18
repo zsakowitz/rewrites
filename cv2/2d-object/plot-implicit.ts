@@ -61,7 +61,7 @@ function draw(
         return
     }
 
-    if (xr - xl > 8) {
+    if (xr - xl > 16) {
         draw(ctx, valueAt, xl, xm, yt, ym)
         draw(ctx, valueAt, xl, xm, ym, yb)
         draw(ctx, valueAt, xm, xr, yt, ym)
@@ -84,8 +84,8 @@ function draw(
             if (RB) {
                 // + -
                 // + +
-                ctx.moveTo(xm, yt)
-                ctx.lineTo(xr, ym)
+                ctx.moveTo(map(lt / (lt - rt), xr, xl), yt)
+                ctx.lineTo(xr, map(rt / (rt - rb), yb, yt))
             } else {
                 // + -
                 // + -
@@ -98,8 +98,8 @@ function draw(
             if (RB) {
                 // + +
                 // - +
-                ctx.moveTo(xl, ym)
-                ctx.lineTo(xm, yb)
+                ctx.moveTo(xl, map(lt / (lt - lb), yb, yt))
+                ctx.lineTo(map(lb / (lb - rb), xr, xl), yb)
             } else {
                 // + +
                 // - -
