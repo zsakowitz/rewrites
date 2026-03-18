@@ -11,10 +11,10 @@ export class Axes2 extends Object2 {
         tol,
         tlo,
     }: Canvas2): void {
-        const dh = 40
+        const dh = 2
 
         ctx.fillStyle = "black"
-        ctx.font = "12px sans-serif"
+        ctx.font = "2px sans-serif"
         ctx.textAlign = "left"
         ctx.textBaseline = "middle"
         ctx.strokeStyle = "black"
@@ -23,16 +23,17 @@ export class Axes2 extends Object2 {
         for (let h = 0; h < height / dh; h++) {
             const scale = 2 ** apply2y(tol, h * dh)
             const pixelWidth = pixelWidthBase * scale
-            const ms = spacing(pixelWidth)
+            const [diff, ms] = spacing(pixelWidth)
 
             ctx.fillText(
-                `${pixelWidth.toFixed(4)} ${ms.major}`,
+                `${pixelWidth.toFixed(4)} ${diff}`,
                 width / 2,
                 (h + 0.5) * dh,
             )
 
-            lines(h, ms.minor * tlo.sx, 0.3)
-            lines(h, ms.major * tlo.sx, 1)
+            for (const el of ms) {
+                lines(h, (el[0] * tlo.sx) / scale, el[1])
+            }
         }
 
         function lines(h: number, ox: number, alpha: number) {
@@ -47,26 +48,53 @@ export class Axes2 extends Object2 {
                 i < width;
                 i += ox
             ) {
-                path.moveTo(i, hmin)
-                path.lineTo(i, hmax)
+                path.moveTo(Math.round(i), Math.round(hmin))
+                path.lineTo(Math.round(i), Math.round(hmax))
             }
 
-            ctx.globalAlpha = alpha
+            // ctx.strokeStyle = `hsl(${Math.round(alpha * 360)}deg 100% 50%)`
+            ctx.strokeStyle = `rgb(${255 * (1 - alpha)} ${255 * (1 - alpha)} ${255 * (1 - alpha)})`
             ctx.stroke(path)
         }
     }
 }
 
-function spacing(pixelSize: number) {
-    const log = Math.log10(pixelSize)
+function spacing(
+    pixelSize: number,
+): [diff: number, [size: number, alpha: number][]] {
+    const log = Math.log10(pixelSize * 4)
     const exp = Math.floor(log)
     const pow = 10 ** (exp + 2)
     const diff = log - exp
 
-    return (
-        diff < 0.15 ? { major: pow, minor: pow / 5 / 2 }
-        : diff < 0.5 ? { major: pow * 2, minor: pow / 2 }
-        : diff < 0.8 ? { major: pow * 5, minor: pow }
-        : { major: pow * 10, minor: (pow * 2) / 2 }
-    )
+    return [
+        diff,
+        diff < 0.333 ?
+            [
+                [pow / 10, lerp(diff, 0, 0.333, 0.2, 0)],
+                [pow / 2, lerp3(diff, 0, 0.333, 1, 0.2)],
+                [pow, 1],
+            ]
+        : diff < 0.666 ?
+            [
+                [pow / 2, lerp(diff, 0.333, 0.666, 0.2, 0)],
+                [pow, 1],
+            ]
+        :   [
+                [pow, lerp2(diff, 0.666, 1, 1, 0.2)],
+                [pow * 5, 1],
+            ],
+    ]
+}
+
+function lerp(x: number, x0: number, x1: number, y0: number, y1: number) {
+    return ((x - x0) / (x1 - x0)) * (y1 - y0) + y0
+}
+
+function lerp2(x: number, x0: number, x1: number, y0: number, y1: number) {
+    return ((x - x0) / (x1 - x0)) ** 0.5 * (y1 - y0) + y0
+}
+
+function lerp3(x: number, x0: number, x1: number, y0: number, y1: number) {
+    return ((x - x0) / (x1 - x0)) ** 0.001 * (y1 - y0) + y0
 }
