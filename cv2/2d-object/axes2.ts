@@ -1,6 +1,6 @@
 import type { Canvas2 } from "../2d/canvas"
 import { Object2 } from "../2d/object"
-import { apply2x, apply2y } from "../2d/tform"
+import { apply2y } from "../2d/tform"
 
 export class Axes2 extends Object2 {
     draw({
@@ -11,64 +11,62 @@ export class Axes2 extends Object2 {
         tol,
         tlo,
     }: Canvas2): void {
-        const dh = 5
+        const dh = 40
 
         ctx.fillStyle = "black"
-        ctx.font = "5px sans-serif"
-        ctx.textAlign = "center"
+        ctx.font = "12px sans-serif"
+        ctx.textAlign = "left"
         ctx.textBaseline = "middle"
         ctx.strokeStyle = "black"
+        ctx.lineWidth = 1
 
         for (let h = 0; h < height / dh; h++) {
-            const inchWidth = 96 * pixelWidthBase * 2 ** apply2y(tol, h * dh)
-            const logInchWidth = Math.floor(Math.log10(inchWidth))
-            const floorInchWidth = 10 ** logInchWidth
-            const logRatio = Math.log10(inchWidth) - logInchWidth
+            const scale = 2 ** apply2y(tol, h * dh)
+            const pixelWidth = pixelWidthBase * scale
+            const ms = spacing(pixelWidth)
 
-            if (logRatio <= 0.1) {
-                lines(h, 5 * floorInchWidth, "red")
-            } else if (logRatio <= 0.2) {
-                lines(h, 5 * floorInchWidth, "blue")
-            } else if (logRatio <= 0.3) {
-                lines(h, 5 * floorInchWidth, "green")
-            } else if (logRatio <= 0.4) {
-                lines(h, 5 * floorInchWidth, "yellow")
-            } else if (logRatio <= 0.5) {
-                lines(h, 5 * floorInchWidth, "purple")
-            } else if (logRatio <= 0.6) {
-                lines(h, 5 * floorInchWidth, "lime")
-            } else if (logRatio <= 0.7) {
-                lines(h, 5 * floorInchWidth, "orange")
-            } else if (logRatio <= 0.8) {
-                lines(h, 5 * floorInchWidth, "magenta")
-            } else if (logRatio <= 0.9) {
-                lines(h, 5 * floorInchWidth, "pink")
-            } else {
-                lines(h, 5 * floorInchWidth, "teal")
-            }
+            ctx.fillText(
+                `${pixelWidth.toFixed(4)} ${ms.major}`,
+                width / 2,
+                (h + 0.5) * dh,
+            )
 
-            const label = `${logRatio.toFixed(4)} ${apply2y(tol, h * dh)}`
-            ctx.fillText(label, width / 2, (h + 0.5) * dh)
+            lines(h, ms.minor * tlo.sx, 0.3)
+            lines(h, ms.major * tlo.sx, 1)
         }
 
-        function lines(h: number, dx: number, color: string) {
+        function lines(h: number, ox: number, alpha: number) {
             const path = new Path2D()
+            const hmin = h * dh
+            const hmax = (h + 1) * dh
 
-            const xmin = Math.floor(apply2x(tol, 0) / dx)
-            const xmax = Math.ceil(apply2x(tol, width) / dx)
+            if (width / ox > 1000) return
 
-            for (let i = xmin; i <= xmax; i++) {
-                const x = apply2x(tlo, i * dx)
-                path.moveTo(x, h * dh)
-                path.lineTo(x, (h + 1) * dh)
+            for (
+                let i = width / 2 - Math.ceil(width / ox) * ox;
+                i < width;
+                i += ox
+            ) {
+                path.moveTo(i, hmin)
+                path.lineTo(i, hmax)
             }
 
-            ctx.strokeStyle = color
+            ctx.globalAlpha = alpha
             ctx.stroke(path)
         }
     }
 }
 
-function pow10Exponent(n: number): number {
-    return Math.floor(Math.log10(n))
+function spacing(pixelSize: number) {
+    const log = Math.log10(pixelSize)
+    const exp = Math.floor(log)
+    const pow = 10 ** (exp + 2)
+    const diff = log - exp
+
+    return (
+        diff < 0.15 ? { major: pow, minor: pow / 5 / 2 }
+        : diff < 0.5 ? { major: pow * 2, minor: pow / 2 }
+        : diff < 0.8 ? { major: pow * 5, minor: pow }
+        : { major: pow * 10, minor: (pow * 2) / 2 }
+    )
 }

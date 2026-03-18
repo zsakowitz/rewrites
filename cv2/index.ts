@@ -3,7 +3,7 @@ import { Axes2 } from "./2d-object/axes2"
 import { XorPattern } from "./2d-object/misc"
 import { Canvas2 } from "./2d/canvas"
 
-const cv = new Canvas2({ sx: 10, sy: 10, tx: 0, ty: 0 })
+const cv = new Canvas2({ sx: 5, sy: 5, tx: 0, ty: 2 })
 document.body.appendChild(cv.el)
 
 cv.push(new XorPattern())
