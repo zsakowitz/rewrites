@@ -45,10 +45,10 @@ export class AxisLabels extends Object2 {
         ctx.textAlign = "center"
         ctx.textBaseline = "top"
 
-        const hMax = Math.ceil(height / 10)
+        const hMax = Math.ceil(height / 50)
         for (let h = 0; h <= hMax; h++) {
             const [dx, xMajorsEvery, xMaxorsEvery, minorOpacity, maxorOpacity] =
-                gridlineSize(cv.pixelWidth * 1.1 ** (h - hMax / 2))
+                gridlineSize(cv.pixelWidth) //* 1.1 ** (h - hMax / 2))
             const xmin = Math.floor(apply2x(tol, 0) / dx)
             const xmax = Math.ceil(apply2x(tol, width) / dx)
 
@@ -61,14 +61,14 @@ export class AxisLabels extends Object2 {
                 const ox = apply2x(tlo, x)
 
                 if (i % xMajorsEvery == 0) {
-                    pathMajor.moveTo(ox, h * 10)
-                    pathMajor.lineTo(ox, (h + 1) * 10)
+                    pathMajor.moveTo(ox, h * 50)
+                    pathMajor.lineTo(ox, (h + 1) * 50)
                 } else if (i % xMaxorsEvery == 0) {
-                    pathMaxor.moveTo(ox, h * 10)
-                    pathMaxor.lineTo(ox, (h + 1) * 10)
+                    pathMaxor.moveTo(ox, h * 50)
+                    pathMaxor.lineTo(ox, (h + 1) * 50)
                 } else {
-                    pathMinor.moveTo(ox, h * 10)
-                    pathMinor.lineTo(ox, (h + 1) * 10)
+                    pathMinor.moveTo(ox, h * 50)
+                    pathMinor.lineTo(ox, (h + 1) * 50)
                 }
             }
 
@@ -89,9 +89,6 @@ export class AxisLabels extends Object2 {
     }
 }
 
-const LOG2 = Math.log10(2)
-const LOG5 = Math.log10(5)
-
 function roundDownToNearestPowerOfTen(x: number): number {
     return 10 ** Math.floor(Math.log10(x))
 }
@@ -105,14 +102,20 @@ function gridlineSize(
     minorOpacity: number,
     maxorOpacity: number,
 ] {
-    const inchWidth = pixelWidth * 96
+    const inchWidth = pixelWidth * 96 * 1.5
 
     const pow10 = roundDownToNearestPowerOfTen(inchWidth)
     const ratio = inchWidth / pow10
 
     return (
         ratio < 2 ?
-            [pow10 / 2, 2, 5, lerp(ratio, 1, 2, 1, 0), lerp(ratio, 1, 2, 0, 1)]
+            [
+                pow10 / 2,
+                2,
+                0,
+                lerp((2 * Math.abs(ratio - 1.5)) ** 2, 0, 1, 1, 0),
+                0,
+            ]
         : ratio < 5 ? [pow10, 2, 10, lerp(ratio, 1, 5, 1, 0), 1]
         : [pow10 * 2, 0, 5, lerp(ratio, 5, 10, 1, 0), 1]
     )
