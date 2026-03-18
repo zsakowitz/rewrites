@@ -21,7 +21,6 @@ export class Axes extends Object2 {
     draw({ ctx, tlo, width, height }: Canvas2): void {
         const ZERO = apply2(tlo, [0, 0])
         const y = ZERO[1]
-        const x = ZERO[0]
 
         ctx.lineCap = "round"
         ctx.lineWidth = THEME_MAIN_AXIS_WIDTH
@@ -29,8 +28,6 @@ export class Axes extends Object2 {
         ctx.beginPath()
         ctx.moveTo(0, y)
         ctx.lineTo(width, y)
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, height)
         ctx.stroke()
     }
 }
