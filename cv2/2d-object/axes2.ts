@@ -11,7 +11,7 @@ export class Axes2 extends Object2 {
         tol,
         tlo,
     }: Canvas2): void {
-        const dh = 2
+        const dh = 1
 
         ctx.fillStyle = "black"
         ctx.font = "2px sans-serif"
@@ -25,6 +25,10 @@ export class Axes2 extends Object2 {
             const pixelWidth = pixelWidthBase * scale
             const [diff, ms] = spacing(pixelWidth)
 
+            ctx.fillStyle =
+                diff < 0.333 ? "red"
+                : diff < 0.666 ? "green"
+                : "blue"
             ctx.fillText(
                 `${pixelWidth.toFixed(4)} ${diff}`,
                 width / 2,
@@ -52,8 +56,14 @@ export class Axes2 extends Object2 {
                 path.lineTo(Math.round(i), Math.round(hmax))
             }
 
-            // ctx.strokeStyle = `hsl(${Math.round(alpha * 360)}deg 100% 50%)`
-            ctx.strokeStyle = `rgb(${255 * (1 - alpha)} ${255 * (1 - alpha)} ${255 * (1 - alpha)})`
+            if (alpha == 1) {
+                ctx.strokeStyle = "black"
+            } else {
+                ctx.strokeStyle = `hsl(${Math.round(alpha * 360)}deg ${
+                    alpha > 0.5 ? 100 - (alpha - 0.5) * 200 : 100
+                }% 50%)`
+            }
+            // ctx.strokeStyle = `rgb(${255 * (1 - alpha)} ${255 * (1 - alpha)} ${255 * (1 - alpha)})`
             ctx.stroke(path)
         }
     }
@@ -62,39 +72,38 @@ export class Axes2 extends Object2 {
 function spacing(
     pixelSize: number,
 ): [diff: number, [size: number, alpha: number][]] {
-    const log = Math.log10(pixelSize * 4)
+    const log = Math.log10(pixelSize * 3)
     const exp = Math.floor(log)
     const pow = 10 ** (exp + 2)
     const diff = log - exp
 
+    const RED: [number, number][] = [
+        [pow / 10, lerp(diff, 0, 0.2)],
+        [pow / 2, 0.5],
+        [pow, 1],
+    ]
+
+    const GREEN: [number, number][] = [
+        [pow / 2, lerp(diff, 0, 0.5)],
+        [pow, lerp(diff, 0.2, 1)],
+        [pow * 5, lerp(diff, 0.5, 1)],
+        [pow * 10, 1],
+    ]
+
+    const BLUE: [number, number][] = [
+        [pow, 0.2],
+        [5 * pow, 0.5],
+        [10 * pow, 1],
+    ]
+
     return [
         diff,
-        diff < 0.333 ?
-            [
-                [pow / 10, lerp(diff, 0, 0.333, 0.2, 0)],
-                [pow / 2, lerp3(diff, 0, 0.333, 1, 0.2)],
-                [pow, 1],
-            ]
-        : diff < 0.666 ?
-            [
-                [pow / 2, lerp(diff, 0.333, 0.666, 0.2, 0)],
-                [pow, 1],
-            ]
-        :   [
-                [pow, lerp2(diff, 0.666, 1, 1, 0.2)],
-                [pow * 5, 1],
-            ],
+        diff < 1 / 3 ? RED
+        : diff < 2 / 3 ? GREEN
+        : BLUE,
     ]
 }
 
-function lerp(x: number, x0: number, x1: number, y0: number, y1: number) {
-    return ((x - x0) / (x1 - x0)) * (y1 - y0) + y0
-}
-
-function lerp2(x: number, x0: number, x1: number, y0: number, y1: number) {
-    return ((x - x0) / (x1 - x0)) ** 0.5 * (y1 - y0) + y0
-}
-
-function lerp3(x: number, x0: number, x1: number, y0: number, y1: number) {
-    return ((x - x0) / (x1 - x0)) ** 0.001 * (y1 - y0) + y0
+function lerp(x: number, y0: number, y1: number) {
+    return ((x % 0.33333333333) / 0.33333333) * (y0 - y1) + y1
 }
