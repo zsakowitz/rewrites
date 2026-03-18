@@ -9,6 +9,4 @@ document.body.appendChild(cv.el)
 
 cv.push(new Grid())
 cv.push(new XorPattern())
-// cv.push(new Plot((x) => 1 / (x - 2.347)))
-// cv.push(new Plot((x) => Math.sin(x * x) - 5))
 cv.push(new Plot((x) => -Math.tan(x)))

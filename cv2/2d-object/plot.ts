@@ -24,7 +24,8 @@ export class Plot extends Object2 {
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
         ctx.beginPath()
-        draw(ctx, pointAt, pointAt(-3), pointAt(width + 3), height, 0)
+
+        draw(ctx, pointAt, pointAt(0), pointAt(width), height, 0)
         ctx.stroke()
     }
 }
@@ -62,14 +63,14 @@ function draw(
     const dself = Math.abs(or[1] - ol[1])
     const dnext = Math.abs(or[1] - pointAt(2 * or[1] - ol[1])[1])
 
-    if (or[1] - ol[1] < -10 && dself > dprev && dself > dnext) {
+    if (or[1] - ol[1] < -500 && dself > dprev && dself > dnext) {
         ctx.lineTo(ol[0], ymin)
         ctx.moveTo(or[0], ymax)
         ctx.lineTo(or[0], or[1])
         return
     }
 
-    if (or[1] - ol[1] > 10 && dself > dprev && dself > dnext) {
+    if (or[1] - ol[1] > 500 && dself > dprev && dself > dnext) {
         ctx.lineTo(ol[0], ymax)
         ctx.moveTo(or[0], ymin)
         ctx.lineTo(or[0], or[1])
