@@ -66,8 +66,8 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
         }
     }
 
-    const tmin = Math.floor(apply2x(tol, 0) / tx) - 1
-    const tmax = Math.ceil(apply2x(tol, width) / tx) + 1
+    const tmin = Math.ceil(apply2x(tol, 0) / tx - 0.05)
+    const tmax = Math.floor(apply2x(tol, width) / tx + 0.05)
     const oyRaw = apply2y(tlo, 0)
     const oy =
         oyRaw < 0 ? 4
@@ -78,12 +78,19 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
     ctx.globalAlpha = 0.9
 
     for (let x = tmin; x <= tmax; x++) {
+        if (x == 0) continue
+
         const lx = x * tx
         const label = toFixed(lx, tr)
         const ox = apply2x(tlo, x * tx) + (label.startsWith("−") ? -3.5 : 0)
+        const w = ctx.measureText(label).width / 2
+        const oxActual =
+            ox + w + 4 > width ? width - 4 - w
+            : ox - w < 4 ? 4 + w
+            : ox
 
-        ctx.strokeText(label, ox, oy)
-        ctx.fillText(label, ox, oy)
+        ctx.strokeText(label, oxActual, oy)
+        ctx.fillText(label, oxActual, oy)
     }
 }
 
@@ -113,6 +120,8 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
     ctx.globalAlpha = 0.9
 
     for (let y = tmin; y <= tmax; y++) {
+        if (y == 0) continue
+
         const ly = y * ty
         const oy = apply2y(tlo, y * ty)
 
