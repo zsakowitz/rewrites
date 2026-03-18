@@ -1,5 +1,6 @@
 import type { Object2 } from "./object"
 import { apply2, inverse2, type Tform2 } from "./tform"
+import type { Vec2 } from "./vec"
 
 interface TouchPointer {
     // first known pointer location, in unit space
@@ -160,20 +161,12 @@ export class Canvas2 {
         }
     }
 
-    #handleWheelZoom(ev: WheelEvent) {
+    zoom(l: Vec2, ds: number) {
         const { sx, sy, tx, ty } = this.#ul0
-
-        const dy = Math.sign(ev.deltaY) * Math.sqrt(Math.abs(ev.deltaY))
-
-        const ds =
-            ev.deltaMode == 2 ? 2 ** ev.deltaY
-            : ev.deltaMode == 1 ? 1.1 ** ev.deltaY
-            : 1.03 ** dy // 1 + dy * 0.03
 
         // TODO:
         // keep pointer in same position after zooming
-        const px = ev.offsetX * (2 / this.#ow) - 1
-        const py = -(ev.offsetY - this.#oh / 2) * (2 / this.#ow)
+        const [px, py] = apply2(this.tlu, l)
 
         this.#ul = this.#ul0 = {
             sx: sx * ds,
@@ -181,6 +174,17 @@ export class Canvas2 {
             tx: tx + px * sx * (1 - ds),
             ty: ty + py * sy * (1 - ds),
         }
+    }
+
+    #handleWheelZoom(ev: WheelEvent) {
+        const dy = Math.sign(ev.deltaY) * Math.sqrt(Math.abs(ev.deltaY))
+
+        const ds =
+            ev.deltaMode == 2 ? 2 ** ev.deltaY
+            : ev.deltaMode == 1 ? 1.1 ** ev.deltaY
+            : 1.03 ** dy // 1 + dy * 0.03
+
+        this.zoom(apply2(this.tol, [ev.offsetX, ev.offsetY]), ds)
     }
 
     // Transformations between various coordinate spaces.
