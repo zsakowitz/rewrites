@@ -12,7 +12,7 @@ export class Axes2 extends Object2 {
         tol,
         tlo,
     }: Canvas2): void {
-        ctx.lineWidth = 1
+        ctx.lineWidth = 0.8
 
         const [dx, mx] = spacing(pixelWidth)
         const imin = Math.floor(apply2x(tol, 0) / dx)
