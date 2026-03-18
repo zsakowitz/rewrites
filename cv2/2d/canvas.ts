@@ -48,6 +48,7 @@ export class Canvas2 {
             this.redraw()
         }).observe(el)
 
+        el.addEventListener("contextmenu", this, { passive: false })
         el.addEventListener("contextrestored", this, { passive: true })
         el.addEventListener("wheel", this, { passive: false })
         el.addEventListener("pointerenter", this, { passive: true })
@@ -63,6 +64,11 @@ export class Canvas2 {
     }
 
     handleEvent(ev: Event) {
+        if (ev.type == "contextmenu") {
+            ev.preventDefault()
+            return
+        }
+
         if (ev.type == "contextrestored") {
             this.redraw()
             return
