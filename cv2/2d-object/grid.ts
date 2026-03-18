@@ -2,8 +2,7 @@ import type { Canvas2 } from "../2d/canvas"
 import { Object2 } from "../2d/object"
 import { apply2x, apply2y } from "../2d/tform"
 
-// #8e8e8e for offscreen numbers,
-// -2.5 as offset for negative coords
+// TODO: 4 doesn't render. 4.0 and -4 are fine though
 
 const FONT = 12
 
