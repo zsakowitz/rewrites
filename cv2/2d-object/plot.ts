@@ -11,47 +11,74 @@ export class Plot extends Object2 {
         this.#fn = f
     }
 
-    draw({ ctx, tlo, tol, width }: Canvas2): void {
+    draw({ ctx, tlo, tol, width, height }: Canvas2): void {
         const fn = this.#fn
 
-        const at: (ox: number) => Vec2 = (ox) => [
-            ox,
-            apply2y(tlo, fn(apply2x(tol, ox))),
-        ]
+        const pointAt = (ox: number): Vec2 => {
+            const oy = apply2y(tlo, fn(apply2x(tol, ox)))
+            return [ox, oy]
+        }
 
-        ctx.strokeStyle = "#2d70b3"
+        ctx.strokeStyle = "black"
         ctx.lineWidth = 2.5
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
-        ctx.globalAlpha = 0.8
-
-        const path = new Path2D()
-        path.moveTo(-3, apply2y(tlo, fn(apply2x(tol, -3))))
-        drawCurve(path, at, at(-3), at(width + 3), 1)
-        ctx.stroke(path)
+        ctx.beginPath()
+        draw(ctx, pointAt, pointAt(-3), pointAt(width + 3), height, 0)
+        ctx.stroke()
     }
 }
 
-function drawCurve(
-    path: Path2D,
+function draw(
+    ctx: CanvasRenderingContext2D,
     pointAt: (ox: number) => Vec2,
     ol: Vec2,
     or: Vec2,
-    oxMinDiff: number,
+    ymin: number,
+    ymax: number,
 ) {
-    const odiff = Math.hypot(ol[0] - or[0], ol[1] - or[1])
-
-    if (odiff <= Math.min(1, or[0] - ol[0])) {
-        path.lineTo(or[0], or[1])
+    if (
+        or[0] - ol[0] < 1
+        && Math.abs(or[1] - ol[1]) < 2 / Math.sqrt(or[0] - ol[0])
+    ) {
+        ctx.lineTo(or[0], or[1])
         return
     }
 
-    if (or[0] - ol[0] < oxMinDiff) {
-        path.lineTo(or[0], or[1])
+    if (or[0] - ol[0] > 0.1) {
+        const om = pointAt((ol[0] + or[0]) / 2)
+        draw(ctx, pointAt, ol, om, ymin, ymax)
+        draw(ctx, pointAt, om, or, ymin, ymax)
         return
     }
 
-    const om = pointAt((ol[0] + or[0]) / 2)
-    drawCurve(path, pointAt, ol, om, oxMinDiff)
-    drawCurve(path, pointAt, om, or, oxMinDiff)
+    if (!isFinite(or[1])) {
+        ctx.stroke()
+        ctx.beginPath()
+        return
+    }
+
+    const dprev = Math.abs(ol[1] - pointAt(2 * ol[1] - or[1])[1])
+    const dself = Math.abs(or[1] - ol[1])
+    const dnext = Math.abs(or[1] - pointAt(2 * or[1] - ol[1])[1])
+
+    if (or[1] - ol[1] < -10 && dself > dprev && dself > dnext) {
+        ctx.lineTo(ol[0], ymin)
+        ctx.moveTo(or[0], ymax)
+        ctx.lineTo(or[0], or[1])
+        return
+    }
+
+    if (or[1] - ol[1] > 10 && dself > dprev && dself > dnext) {
+        ctx.lineTo(ol[0], ymax)
+        ctx.moveTo(or[0], ymin)
+        ctx.lineTo(or[0], or[1])
+        return
+    }
+
+    // if (dself < 1) {
+    ctx.lineTo(or[0], or[1])
+    // } else {
+    // ctx.moveTo(or[0], or[1])
+    // }
 }
