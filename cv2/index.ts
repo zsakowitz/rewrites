@@ -1,4 +1,4 @@
-import { Axes2 } from "./2d-object/axes2"
+import { Grid } from "./2d-object/grid"
 import { XorPattern } from "./2d-object/misc"
 import { Canvas2 } from "./2d/canvas"
 
@@ -9,7 +9,7 @@ document.body.appendChild(cv1.el)
 // document.body.appendChild(cv2.el)
 
 cv1.push(new XorPattern())
-cv1.push(new Axes2())
+cv1.push(new Grid())
 
 // cv2.push(new XorPattern())
 // cv2.push(new Axes2())

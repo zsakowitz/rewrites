@@ -2,7 +2,10 @@ import type { Canvas2 } from "../2d/canvas"
 import { Object2 } from "../2d/object"
 import { apply2x, apply2y } from "../2d/tform"
 
-export class Axes2 extends Object2 {
+// #8e8e8e for offscreen numbers,
+// -2.5 as offset for negative coords
+
+export class Grid extends Object2 {
     draw(cv: Canvas2): void {
         cv.ctx.fillStyle = "black"
         cv.ctx.strokeStyle = "white"
@@ -14,8 +17,36 @@ export class Axes2 extends Object2 {
     }
 }
 
+function toFixed(n: number, digits: number): string {
+    const sign = n < 0 ? "−" : ""
+    n = Math.abs(n)
+
+    if (digits < 0) {
+        return sign + n.toFixed(-digits)
+    }
+
+    if (n < 1e6) {
+        return sign + Math.round(n)
+    }
+
+    n = Math.round(n)
+
+    // TODO: 5e+18 next to 1.0e+19 is weird
+    const str = n.toExponential()
+    const expIndex = str.indexOf("e")
+    if (expIndex == -1) return str
+
+    return (
+        (+str.slice(0, expIndex)).toFixed(
+            Math.max(0, Math.floor(Math.log10(n)) - digits),
+        )
+        + "×10"
+        + str.slice(expIndex + 2).replace(/\d/g, (x) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+x]!)
+    )
+}
+
 function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
-    const [dx, tx, mx] = spacing(pixelWidth)
+    const [dx, tx, tr, mx] = spacing(pixelWidth)
     const xmin = Math.floor(apply2x(tol, 0) / dx)
     const xmax = Math.ceil(apply2x(tol, width) / dx)
 
@@ -38,9 +69,9 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
     ctx.textBaseline = "top"
     for (let x = tmin; x <= tmax; x++) {
         const lx = x * tx
-        const ox = apply2x(tlo, x * tx)
+        const label = toFixed(lx, tr)
+        const ox = apply2x(tlo, x * tx) + (label.startsWith("−") ? -3.5 : 0)
 
-        const label = (lx < 0 ? "−" : "") + Math.abs(lx).toFixed(2)
         ctx.globalAlpha = 0.9
         ctx.strokeText(label, ox, oy + 4)
         ctx.globalAlpha = 1
@@ -49,7 +80,7 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
 }
 
 function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
-    const [dy, ty, my] = spacing(-pixelHeight)
+    const [dy, ty, tr, my] = spacing(-pixelHeight)
     const ymin = Math.floor(apply2y(tol, height) / dy)
     const ymax = Math.ceil(apply2y(tol, 0) / dy)
 
@@ -74,7 +105,7 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
         const ly = y * ty
         const oy = apply2y(tlo, y * ty)
 
-        const label = (ly < 0 ? "−" : "") + Math.abs(ly).toFixed(2)
+        const label = toFixed(ly, tr)
         ctx.globalAlpha = 0.9
         ctx.strokeText(label, ox - 4, oy)
         ctx.globalAlpha = 1
@@ -84,28 +115,33 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
 
 function spacing(
     pixelSize: number,
-): [space: number, text: number, [multiplier: number, alpha: number][]] {
+): [
+    space: number,
+    text: number,
+    textRound: number,
+    [multiplier: number, alpha: number][],
+] {
     const log = Math.log10(pixelSize * 4)
     const exp = Math.floor(log)
     const pow = 10 ** (exp + 1)
     const diff = log - exp
 
     const FST: [number, number][] = [
-        [50, 1],
-        [25, lerp(diff, 0, 0.5, 0.1, 1)],
-        [5, lerp(diff, 0, 0.5, 0.1, 1)],
+        [50, 0.3],
+        [25, lerp(diff, 0, 0.5, 0.1, 0.3)],
+        [5, lerp(diff, 0, 0.5, 0.1, 0.3)],
         [1, lerp(diff, 0, 0.5, 0, 0.1)],
     ]
 
     const SND: [number, number][] = [
-        [10, 1],
+        [10, 0.3],
         [2, lerp(diff, 0.5, 1, 0.1, 0.1)],
         [1, lerp(diff, 0.5, 1, 0, 0.05)],
     ]
 
     return diff < 1 / 2 ?
-            [pow, pow * 5, FST]
-        :   [pow * 5, diff < 3 / 4 ? pow * 10 : pow * 20, SND]
+            [pow, pow * 5, exp + 1, FST]
+        :   [pow * 5, diff < 3 / 4 ? pow * 10 : pow * 20, exp + 2, SND]
 }
 
 function lerp(x: number, x0: number, x1: number, y0: number, y1: number) {
