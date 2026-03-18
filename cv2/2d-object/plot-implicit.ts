@@ -61,7 +61,7 @@ function draw(
         return
     }
 
-    if (xr - xl > 16) {
+    if (xr - xl > 32) {
         draw(ctx, valueAt, xl, xm, yt, ym)
         draw(ctx, valueAt, xl, xm, ym, yb)
         draw(ctx, valueAt, xm, xr, yt, ym)
@@ -77,8 +77,8 @@ function draw(
             } else {
                 // + +
                 // + -
-                ctx.moveTo(xm, yb)
-                ctx.lineTo(xr, ym)
+                ctx.moveTo(map(lb / (lb - rb), xr, xl), yb)
+                ctx.lineTo(xr, map(rt / (rt - rb), yb, yt))
             }
         } else {
             if (RB) {
@@ -110,14 +110,25 @@ function draw(
             if (RB) {
                 // + -
                 // - +
+                if (valueAt(xm, ym) * (ltRaw > 0 ? 1 : -1) > 0) {
+                    ctx.moveTo(xl, map(lt / (lt - lb), yb, yt))
+                    ctx.lineTo(map(lb / (lb - rb), xr, xl), yb)
+                    ctx.moveTo(map(lt / (lt - rt), xr, xl), yt)
+                    ctx.lineTo(xr, map(rt / (rt - rb), yb, yt))
+                } else {
+                    ctx.moveTo(map(lb / (lb - rb), xr, xl), yb)
+                    ctx.lineTo(xr, map(rt / (rt - rb), yb, yt))
+                    ctx.moveTo(xl, map(lt / (lt - lb), yb, yt))
+                    ctx.lineTo(map(lt / (lt - rt), xr, xl), yt)
+                }
                 // ctx.moveTo()
                 // ctx.lineTo()
                 // TODO: saddle point
             } else {
                 // + -
                 // - -
-                ctx.moveTo(xl, ym)
-                ctx.lineTo(xm, yt)
+                ctx.moveTo(xl, map(lt / (lt - lb), yb, yt))
+                ctx.lineTo(map(lt / (lt - rt), xr, xl), yt)
             }
         }
     }
