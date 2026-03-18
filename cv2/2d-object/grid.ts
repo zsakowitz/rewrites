@@ -4,7 +4,7 @@ import { apply2x, apply2y } from "../2d/tform"
 
 // TODO: 4 doesn't render. 4.0 and -4 are fine though
 
-const FONT = 12
+const FONT = 14
 
 export class Grid extends Object2 {
     draw(cv: Canvas2): void {
@@ -43,8 +43,10 @@ function toFixed(n: number, digits: number): string {
         (+str.slice(0, expIndex)).toFixed(
             Math.max(0, Math.floor(Math.log10(n)) - digits),
         )
-        + "×10"
-        + str.slice(expIndex + 2).replace(/\d/g, (x) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+x]!)
+        + "ᴇ"
+        + str.slice(expIndex + 2)
+        //+ "×10"
+        //+ str.slice(expIndex + 2).replace(/\d/g, (x) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+x]!)
     )
 }
 
@@ -74,7 +76,7 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
         : oyRaw + 4
     ctx.textAlign = "center"
     ctx.textBaseline = "top"
-    ctx.globalAlpha = 0.9
+    ctx.globalAlpha = 1
 
     for (let x = tmin; x <= tmax; x++) {
         if (x == 0) continue
@@ -116,7 +118,7 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
     const ox = oxRaw > width ? width - 4 : oxRaw - 4
     ctx.textAlign = "right"
     ctx.textBaseline = "middle"
-    ctx.globalAlpha = 0.9
+    ctx.globalAlpha = 1
 
     for (let y = tmin; y <= tmax; y++) {
         if (y == 0) continue
@@ -160,7 +162,7 @@ function spacing(
 
     return diff < 1 / 2 ?
             [pow, pow * 5, exp + 1, FST]
-        :   [pow * 5, diff < 3 / 4 ? pow * 10 : pow * 20, exp + 2, SND]
+        :   [pow * 5, diff < 3 / 4 ? pow * 10 : pow * 50, exp + 2, SND]
 }
 
 function lerp(x: number, x0: number, x1: number, y0: number, y1: number) {
