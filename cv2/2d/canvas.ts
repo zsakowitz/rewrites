@@ -232,6 +232,11 @@ export class Canvas2 {
         return this.tol.sx
     }
 
+    /** Height of one offset space pixel, measured in local space. */
+    get pixelHeight(): number {
+        return this.tol.sy
+    }
+
     reset() {
         this.ctx.reset()
         this.ctx.fillStyle = "#ffffff"
