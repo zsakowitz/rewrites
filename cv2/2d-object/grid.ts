@@ -5,15 +5,19 @@ import { apply2x, apply2y } from "../2d/tform"
 // #8e8e8e for offscreen numbers,
 // -2.5 as offset for negative coords
 
+const FONT = 12
+
 export class Grid extends Object2 {
     draw(cv: Canvas2): void {
         cv.ctx.fillStyle = "black"
         cv.ctx.strokeStyle = "white"
-        cv.ctx.font = "12px Symbola"
+        cv.ctx.font = `${FONT}px Symbola`
         cv.ctx.lineWidth = 4
 
         drawXLines(cv)
         drawYLines(cv)
+
+        cv.ctx.globalAlpha = 1
     }
 }
 
@@ -62,20 +66,24 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
         }
     }
 
-    const tmin = Math.floor(apply2x(tol, 0) / tx)
-    const tmax = Math.ceil(apply2x(tol, width) / tx)
-    const oy = apply2y(tlo, 0)
+    const tmin = Math.floor(apply2x(tol, 0) / tx) - 1
+    const tmax = Math.ceil(apply2x(tol, width) / tx) + 1
+    const oyRaw = apply2y(tlo, 0)
+    const oy =
+        oyRaw < 0 ? 4
+        : oyRaw + FONT + 8 > height ? height - FONT - 4
+        : oyRaw + 4
     ctx.textAlign = "center"
     ctx.textBaseline = "top"
+    ctx.globalAlpha = 0.9
+
     for (let x = tmin; x <= tmax; x++) {
         const lx = x * tx
         const label = toFixed(lx, tr)
         const ox = apply2x(tlo, x * tx) + (label.startsWith("−") ? -3.5 : 0)
 
-        ctx.globalAlpha = 0.9
-        ctx.strokeText(label, ox, oy + 4)
-        ctx.globalAlpha = 1
-        ctx.fillText(label, ox, oy + 4)
+        ctx.strokeText(label, ox, oy)
+        ctx.fillText(label, ox, oy)
     }
 }
 
@@ -96,20 +104,23 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
         }
     }
 
-    const tmin = Math.floor(apply2y(tol, height) / ty)
-    const tmax = Math.ceil(apply2y(tol, 0) / ty)
-    const ox = apply2x(tlo, 0)
+    const tmin = Math.floor(apply2y(tol, height) / ty) - 1
+    const tmax = Math.ceil(apply2y(tol, 0) / ty) + 1
+    const oxRaw = apply2x(tlo, 0)
+    const ox = oxRaw > width ? width - 4 : oxRaw - 4
     ctx.textAlign = "right"
     ctx.textBaseline = "middle"
+    ctx.globalAlpha = 0.9
+
     for (let y = tmin; y <= tmax; y++) {
         const ly = y * ty
         const oy = apply2y(tlo, y * ty)
 
         const label = toFixed(ly, tr)
-        ctx.globalAlpha = 0.9
-        ctx.strokeText(label, ox - 4, oy)
+        const { width } = ctx.measureText(label)
+        ctx.strokeText(label, ox, oy)
         ctx.globalAlpha = 1
-        ctx.fillText(label, ox - 4, oy)
+        ctx.fillText(label, ox, oy)
     }
 }
 
