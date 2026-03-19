@@ -9,14 +9,14 @@ document.body.appendChild(cv.el)
 
 cv.push(new Grid())
 
-const g = createGraph(11)
+const g = createGraph(12)
 cv.push(g)
 
 let time = Date.now()
 
 requestAnimationFrame(function f() {
     requestAnimationFrame(f)
-    g.update(Math.min(1, (Date.now() - time) / 1000))
+    g.update(Math.min(0.1, (Date.now() - time) / 1000))
     time = Date.now()
     cv.redraw()
 })

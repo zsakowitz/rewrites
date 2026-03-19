@@ -58,7 +58,7 @@ interface T {
 export function createGraph(size: number): ForceGraph<T, void> {
     const fdg = new ForceGraph<T, void>()
 
-    const positions = states(size, size).map((x) => x.join(""))
+    const positions = states(size, size).map((x) => x.join(","))
     for (let i = 0; i < positions.length; i++) {
         fdg.nodes.push({
             pos: [
@@ -75,9 +75,9 @@ export function createGraph(size: number): ForceGraph<T, void> {
 
     const moves: number[][] = positions.map((src) =>
         movesFrom(
-            src.split("").map((x) => +x),
+            src.split(",").map((x) => +x),
             size,
-        ).map((dst) => positions.indexOf(dst.join(""))),
+        ).map((dst) => positions.indexOf(dst.join(","))),
     )
 
     for (let gen = 0; gen < positions.length; gen++) {
@@ -110,8 +110,13 @@ export function createGraph(size: number): ForceGraph<T, void> {
     })
 
     for (let a = 0; a < moves.length; a++) {
+        if (fdg.nodes[a]!.data.state != "win") continue
+
         for (const b of moves[a]!) {
-            if (fdg.nodes[a]!.data.gen > fdg.nodes[b]!.data.gen) {
+            if (
+                fdg.nodes[a]!.data.gen > fdg.nodes[b]!.data.gen
+                && fdg.nodes[b]!.data.state == "loss"
+            ) {
                 fdg.edges.push({ src: a, dst: b, data: void 0 })
             }
         }
