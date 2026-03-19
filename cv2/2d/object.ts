@@ -1,7 +1,19 @@
 import type { Canvas2 } from "./canvas"
+import type { Vec2 } from "./vec"
 
 export class Object2 {
     visible = true
 
     draw(cv: Canvas2): void {}
+
+    // Related to pointer events.
+    includes?(ev: PEvent): boolean
+    onPointerEnter?(ev: PEvent): void
+    onPointerLeave?(ev: PEvent): void
+}
+
+export interface PEvent {
+    cv: Canvas2
+    po: Vec2 // offset coords
+    pid: number // pointer id
 }

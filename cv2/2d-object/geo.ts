@@ -11,9 +11,13 @@ import type { Canvas2 } from "../2d/canvas"
 import { apply2 } from "../2d/tform"
 import type { Vec2 } from "../2d/vec"
 
-export function drawPoint({ ctx, tlo }: Canvas2, lpos: Vec2) {
+export function drawPoint(
+    { ctx, tlo }: Canvas2,
+    lpos: Vec2,
+    fillStyle = ColorPurple,
+) {
     const [ox, oy] = apply2(tlo, lpos)
-    ctx.fillStyle = ColorPurple
+    ctx.fillStyle = fillStyle
 
     ctx.beginPath()
     ctx.ellipse(ox, oy, SizePoint, SizePoint, 0, 0, 2 * Math.PI)
