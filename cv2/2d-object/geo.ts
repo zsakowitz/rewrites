@@ -4,7 +4,6 @@ import {
     ColorPurple,
     OpacityPointHalo,
     SizeLine,
-    SizePointHaloWide,
 } from "../../cv/dcg"
 import type { Canvas2 } from "../2d/canvas"
 import { apply2 } from "../2d/tform"
@@ -14,6 +13,7 @@ export function drawPoint(
     { ctx, tlo }: Canvas2,
     lpos: Vec2,
     innerSize: number,
+    outerSize: number,
 ) {
     const [ox, oy] = apply2(tlo, lpos)
     ctx.fillStyle = ColorPurple
@@ -24,7 +24,7 @@ export function drawPoint(
 
     ctx.beginPath()
     ctx.globalAlpha = OpacityPointHalo
-    ctx.ellipse(ox, oy, SizePointHaloWide, SizePointHaloWide, 0, 0, 2 * Math.PI)
+    ctx.ellipse(ox, oy, outerSize, outerSize, 0, 0, 2 * Math.PI)
     ctx.fill()
     ctx.globalAlpha = 1
 }
@@ -53,8 +53,7 @@ export function drawCircle(
 
 export function drawLine(
     { ctx, tlo, height, width }: Canvas2,
-    p1: Vec2,
-    p2: Vec2,
+    [p1, p2]: [Vec2, Vec2],
 ): void {
     const [x1, y1] = apply2(tlo, p1)
     const [x2, y2] = apply2(tlo, p2)

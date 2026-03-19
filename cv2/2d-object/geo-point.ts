@@ -11,7 +11,12 @@ export class GeoPoint extends Object2 {
     hovered = false
 
     draw(cv: Canvas2): void {
-        drawPoint(cv, this.pos, this.hovered ? SizePointHaloWide : SizePoint)
+        drawPoint(
+            cv,
+            this.pos,
+            this.hovered ? SizePointHaloWide : SizePoint,
+            SizePointHaloWide,
+        )
     }
 
     includes({ cv, offset: po }: PEvent): boolean {

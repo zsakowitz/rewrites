@@ -125,6 +125,7 @@ export class Canvas2 {
     }
 
     // return `true` if we want this to be handled as a touch event
+    // TODO: if two fingers on screen pan, we want to pan/zoom screen instead of handling objects
     #handlePointerEvent(raw: PointerEvent): void {
         const { pointerId, offsetX, offsetY } = raw
 
@@ -204,7 +205,7 @@ export class Canvas2 {
         this.redraw()
     }
 
-    // returns `true` if some pointer state changed
+    // returns `true` if any state changed
     #handleMovement(ev: PointerEvent): boolean {
         const { pointerId, offsetX, offsetY } = ev
         const [x, y] = apply2(this.tou, [offsetX, offsetY])
