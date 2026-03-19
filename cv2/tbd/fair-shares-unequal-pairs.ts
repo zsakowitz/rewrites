@@ -1,4 +1,4 @@
-import { ColorBlue } from "../../cv/dcg"
+import { ColorBlue, ColorGreen } from "../../cv/dcg"
 import { ForceGraph } from "../2d-object/force-graph"
 import { ColorPurple } from "./dcg"
 
@@ -103,8 +103,10 @@ export function createGraph(size: number): ForceGraph<T, void> {
     }
 
     fdg.nodes.forEach((node) => {
-        node.label = node.label
-        node.fill = node.data.state == "loss" ? ColorPurple : ColorBlue
+        node.fill =
+            node.data.state == "loss" ? ColorPurple
+            : node.data.state == "win" ? ColorGreen
+            : ColorBlue
     })
 
     for (let a = 0; a < moves.length; a++) {

@@ -9,7 +9,7 @@ document.body.appendChild(cv.el)
 
 cv.push(new Grid())
 
-const g = createGraph(6)
+const g = createGraph(11)
 cv.push(g)
 
 let time = Date.now()

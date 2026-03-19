@@ -2,7 +2,7 @@ import type { Canvas2 } from "../2d/canvas"
 import { Object2 } from "../2d/object"
 import { apply2 } from "../2d/tform"
 import { addInto, norm, rotate, type Vec2, type Vec2Mut } from "../2d/vec"
-import { ColorGreen } from "../tbd/dcg"
+import { ColorBlue } from "../tbd/dcg"
 
 export class ForceGraph<T, E> extends Object2 {
     readonly nodes: { pos: Vec2; label: string; fill: string; data: T }[] = []
@@ -39,7 +39,7 @@ export class ForceGraph<T, E> extends Object2 {
             ctx.lineTo(x2 - xd + xc, y2 - yd + yc)
             ctx.lineTo(x2 - xd + xe, y2 - yd + ye)
             ctx.closePath()
-            ctx.strokeStyle = ctx.fillStyle = ColorGreen
+            ctx.strokeStyle = ctx.fillStyle = ColorBlue
             ctx.lineWidth = 2.5
             ctx.stroke()
             ctx.fill()
