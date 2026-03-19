@@ -9,18 +9,17 @@ export class ForceGraph extends Object2 {
     readonly edges: [src: number, dst: number][] = []
 
     draw({ ctx, tlo }: Canvas2): void {
+        const nodeSize = 16
+
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
 
         for (const [src, dst] of this.edges) {
             const [x1, y1] = apply2(tlo, this.nodes[src]!.pos)
             const [x2, y2] = apply2(tlo, this.nodes[dst]!.pos)
-            if (Math.hypot(x1 - x2, y1 - y2) <= 32) {
-                continue
-            }
 
             const norm5 = norm([x2 - x1, y2 - y1], 10)
-            const [xd, yd] = norm([x2 - x1, y2 - y1], 20)
+            const [xd, yd] = norm([x2 - x1, y2 - y1], nodeSize + 4)
             const [xc, yc] = rotate(
                 norm5,
                 Math.sin(0.85 * Math.PI),
@@ -50,7 +49,7 @@ export class ForceGraph extends Object2 {
             const [ox, oy] = apply2(tlo, node.pos)
             ctx.beginPath()
             ctx.fillStyle = ColorBlue
-            ctx.ellipse(ox, oy, 16, 16, 0, 0, 2 * Math.PI)
+            ctx.ellipse(ox, oy, nodeSize, nodeSize, 0, 0, 2 * Math.PI)
             ctx.globalAlpha = 0.3
             ctx.fill()
             ctx.globalAlpha = 1
