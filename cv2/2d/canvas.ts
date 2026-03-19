@@ -175,6 +175,15 @@ export class Canvas2 {
     zoom(l: Vec2, ds: number) {
         const { sx, sy, tx, ty } = this.#ul0
 
+        if (
+            sy * ds < 1e-8 * ty
+            || sx * ds < 1e-8 * tx
+            || sy * ds > 1e300
+            || sx * ds > 1e300
+        ) {
+            return
+        }
+
         // TODO:
         // keep pointer in same position after zooming
         const [px, py] = apply2(this.tlu, l)

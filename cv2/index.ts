@@ -2,7 +2,6 @@ import { drawCircle, drawLine, drawPoint } from "./2d-object/geo"
 import { Grid } from "./2d-object/grid"
 import { XorPattern } from "./2d-object/misc"
 import { Canvas2 } from "./2d/canvas"
-import { apply2 } from "./2d/tform"
 import type { Vec2 } from "./2d/vec"
 
 const cv = new Canvas2({ sx: 10, sy: 10, tx: 0, ty: 0 })
@@ -19,12 +18,3 @@ cv.pushFn(() => {
     drawCircle(cv, [4, 5], 2)
     drawLine(cv, p1, [4, 5])
 })
-
-cv.el.addEventListener(
-    "pointermove",
-    (ev) => {
-        p1 = apply2(cv.tol, [ev.offsetX, ev.offsetY])
-        cv.redraw()
-    },
-    { passive: true },
-)
