@@ -16,3 +16,12 @@ export function vec2unflat(x: Vec2List): Vec2[] {
 
     return ret
 }
+
+export function norm(x: Vec2, len: number): Vec2 {
+    const scale = len / Math.hypot(x[0], x[1])
+    return [x[0] * scale, x[1] * scale]
+}
+
+export function rotate([x, y]: Vec2, sin: number, cos: number): Vec2 {
+    return [x * cos - y * sin, x * sin + y * cos]
+}
