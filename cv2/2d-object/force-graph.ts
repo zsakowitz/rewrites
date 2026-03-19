@@ -9,7 +9,7 @@ export class ForceGraph extends Object2 {
     readonly edges: [src: number, dst: number][] = []
 
     draw({ ctx, tlo }: Canvas2): void {
-        const nodeSize = 16
+        const nodeSize = 20
 
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
@@ -59,6 +59,11 @@ export class ForceGraph extends Object2 {
             ctx.textAlign = "center"
             ctx.textBaseline = "middle"
             ctx.font = "14px Symbola"
+            ctx.strokeStyle = "#fff"
+            ctx.globalAlpha = 0.3
+            ctx.lineWidth = 3
+            ctx.strokeText("" + node.label, ox, oy + 1)
+            ctx.globalAlpha = 1
             ctx.fillText("" + node.label, ox, oy + 1)
         }
     }
