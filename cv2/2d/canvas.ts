@@ -14,13 +14,8 @@ interface TouchPointer {
 }
 
 interface ObjectPointer {
-    // first known pointer location, in unit space
-    readonly ox: number
-    readonly oy: number
-
-    // last known pointer location, in unit space
-    x: number
-    y: number
+    p0: Vec2 // first known pointer location, in unit space
+    p1: Vec2 // last known pointer location, in unit space
 
     target: Object2
     active: boolean
@@ -87,7 +82,7 @@ export class Canvas2 {
     ):
         | [isNew: boolean, didAnyChange: boolean, target: ObjectPointer]
         | [isNew: false, didAnyChange: boolean, target: undefined] {
-        const { pointerId, offset } = event
+        const { pointerId } = event
 
         const prev = this.#objects.get(pointerId)
         if (prev?.active) return [false, false, prev]
@@ -105,10 +100,8 @@ export class Canvas2 {
         }
 
         const target: ObjectPointer = {
-            ox: prev?.ox ?? event.unit[0],
-            oy: prev?.oy ?? event.unit[1],
-            x: event.unit[0],
-            y: event.unit[1],
+            p0: prev?.p0 ?? event.unit,
+            p1: event.unit,
             target: next,
             active: false,
         }
@@ -143,8 +136,7 @@ export class Canvas2 {
             return
         }
 
-        target.x = event.unit[0]
-        target.y = event.unit[1]
+        target.p1 = event.unit
 
         switch (raw.type) {
             case "pointerenter":
@@ -297,14 +289,14 @@ export class Canvas2 {
     }
 
     #simulatePointerMove() {
-        for (const [id, el] of Array.from(this.#objects)) {
-            const offset = apply2(this.tuo, [el.x, el.y])
+        for (const [pointerId, el] of Array.from(this.#objects)) {
+            const offset = apply2(this.tuo, el.p1)
 
             const event: PEvent = {
                 cv: this,
-                pointerId: id,
+                pointerId,
                 offset,
-                unit: [el.x, el.y],
+                unit: el.p1,
             }
 
             const [isNew, , target] = this.#target(event)
