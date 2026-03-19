@@ -19,9 +19,9 @@ export class GeoPoint extends Object2 {
         )
     }
 
-    includes({ cv, offset: po }: PEvent): boolean {
+    includes({ cv, offset: po, size }: PEvent): boolean {
         const [ox, oy] = apply2(cv.tlo, this.pos)
-        return Math.hypot(ox - po[0], oy - po[1]) <= SizePointHaloWide
+        return Math.hypot(ox - po[0], oy - po[1]) <= SizePointHaloWide * size
     }
 
     onPointerEnter(ev: PEvent): void {

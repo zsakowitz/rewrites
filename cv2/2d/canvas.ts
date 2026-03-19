@@ -19,6 +19,7 @@ interface ObjectPointer {
 
     target: Object2
     active: boolean
+    size: 1 | 2
 }
 
 export class Canvas2 {
@@ -104,6 +105,7 @@ export class Canvas2 {
             p1: event.unit,
             target: next,
             active: false,
+            size: event.size,
         }
         this.#objects.set(pointerId, target)
         return [true, true, target]
@@ -126,6 +128,7 @@ export class Canvas2 {
             pointerId,
             offset: [offsetX, offsetY],
             unit: apply2(this.tou, [offsetX, offsetY]),
+            size: raw.pointerType == "touch" ? 2 : 1,
         }
 
         const [isNew, didAnyChange, target] = this.#target(event)
@@ -298,6 +301,7 @@ export class Canvas2 {
                 pointerId,
                 offset,
                 unit: el.p1,
+                size: el.size,
             }
 
             const [isNew, , target] = this.#target(event)
@@ -325,8 +329,8 @@ export class Canvas2 {
         const { sx, sy, tx, ty } = this.#ul0
 
         if (
-            sy * ds < 1e-8 * ty
-            || sx * ds < 1e-8 * tx
+            sy * ds < 1e-5 * Math.max(1e-200, Math.abs(ty))
+            || sx * ds < 1e-5 * Math.max(1e-200, Math.abs(tx))
             || sy * ds > 1e300
             || sx * ds > 1e300
         ) {

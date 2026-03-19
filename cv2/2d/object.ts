@@ -21,4 +21,5 @@ export interface PEvent {
     pointerId: number // pointer id
     offset: Vec2 // offset coords
     unit: Vec2 // unit coords
+    size: 1 | 2 // 1 for mouse/stylus, 2 for touch
 }
