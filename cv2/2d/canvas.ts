@@ -159,6 +159,7 @@ export class Canvas2 {
                 break
 
             case "pointerdown":
+                this.el.setPointerCapture(pointerId)
                 if (isNew) target.target.onPointerEnter?.(event)
                 target.active = true
                 target.target.onPointerDown?.(event)
@@ -192,6 +193,9 @@ export class Canvas2 {
             }
 
             case "pointerleave":
+                // Firefox dispatches `pointerleave` even for captured pointers; we ignore those here.
+                if (target.active) return
+
                 this.#objects.delete(pointerId)
                 if (!isNew) target.target.onPointerLeave?.(event)
                 break

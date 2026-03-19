@@ -2,15 +2,16 @@ import type { Canvas2 } from "../2d/canvas"
 import { Object2, type PEvent } from "../2d/object"
 import { apply2 } from "../2d/tform"
 import type { Vec2 } from "../2d/vec"
-import { SizePointHaloWide } from "../tbd/dcg"
+import { SizePoint, SizePointHaloWide } from "../tbd/dcg"
 import { drawPoint } from "./geo"
 
 export class GeoPoint extends Object2 {
     pos: Vec2 = [0, 0]
-    color = "blue"
+    active = false
+    hovered = false
 
     draw(cv: Canvas2): void {
-        drawPoint(cv, this.pos, this.color)
+        drawPoint(cv, this.pos, this.hovered ? SizePointHaloWide : SizePoint)
     }
 
     includes({ cv, offset: po }: PEvent): boolean {
@@ -19,10 +20,28 @@ export class GeoPoint extends Object2 {
     }
 
     onPointerEnter(ev: PEvent): void {
-        this.color = "red"
+        this.hovered = true
+    }
+
+    onPointerDown(ev: PEvent): void {
+        this.active = true
+    }
+
+    onPointerMove(ev: PEvent): void {
+        if (this.active) {
+            this.pos = apply2(ev.cv.tol, ev.offset)
+        }
+    }
+
+    onPointerUp(ev: PEvent): void {
+        this.active = false
+    }
+
+    onPointerCancel(ev: PEvent): void {
+        this.active = false
     }
 
     onPointerLeave(ev: PEvent): void {
-        this.color = "green"
+        this.hovered = false
     }
 }

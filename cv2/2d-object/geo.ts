@@ -4,7 +4,6 @@ import {
     ColorPurple,
     OpacityPointHalo,
     SizeLine,
-    SizePoint,
     SizePointHaloWide,
 } from "../../cv/dcg"
 import type { Canvas2 } from "../2d/canvas"
@@ -14,13 +13,13 @@ import type { Vec2 } from "../2d/vec"
 export function drawPoint(
     { ctx, tlo }: Canvas2,
     lpos: Vec2,
-    fillStyle = ColorPurple,
+    innerSize: number,
 ) {
     const [ox, oy] = apply2(tlo, lpos)
-    ctx.fillStyle = fillStyle
+    ctx.fillStyle = ColorPurple
 
     ctx.beginPath()
-    ctx.ellipse(ox, oy, SizePoint, SizePoint, 0, 0, 2 * Math.PI)
+    ctx.ellipse(ox, oy, innerSize, innerSize, 0, 0, 2 * Math.PI)
     ctx.fill()
 
     ctx.beginPath()
