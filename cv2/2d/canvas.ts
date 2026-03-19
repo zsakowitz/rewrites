@@ -1,3 +1,4 @@
+import { FromFn } from "../2d-object/from-fn"
 import type { Object2 } from "./object"
 import { apply2, inverse2, type Tform2 } from "./tform"
 import type { Vec2 } from "./vec"
@@ -61,6 +62,10 @@ export class Canvas2 {
 
     push(object: Object2) {
         this.#scene.push(object)
+    }
+
+    pushFn(draw: (cv: Canvas2) => void) {
+        this.push(new FromFn(draw))
     }
 
     handleEvent(ev: Event) {
@@ -295,6 +300,7 @@ export class Canvas2 {
             const obj = scene[i]!
 
             if (obj.visible) {
+                this.ctx.globalAlpha = 1
                 scene[i]!.draw(this)
             }
         }

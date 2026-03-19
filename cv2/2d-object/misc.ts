@@ -2,14 +2,6 @@ import type { Canvas2 } from "../2d/canvas"
 import { Object2 } from "../2d/object"
 import { apply2 } from "../2d/tform"
 
-export class ByDrawFn extends Object2 {
-    constructor(readonly draw: (cv: Canvas2) => void) {
-        super()
-    }
-
-    visible = true
-}
-
 export class XorPattern extends Object2 {
     #bitmap
 
