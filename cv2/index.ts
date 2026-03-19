@@ -8,4 +8,20 @@ const cv = new Canvas2({ sx: 10, sy: 10, tx: 0, ty: 0 })
 document.body.appendChild(cv.el)
 
 cv.push(new Grid())
-cv.push(createGraph(6))
+
+const g = createGraph(6)
+cv.push(g)
+
+let time = Date.now()
+
+requestAnimationFrame(function f() {
+    requestAnimationFrame(f)
+    g.update(Math.min(1, (Date.now() - time) / 1000))
+    time = Date.now()
+    cv.redraw()
+})
+
+// cv.el.addEventListener("click", () => {
+//     g.update(0.1)
+//     cv.redraw()
+// })

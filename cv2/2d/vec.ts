@@ -1,4 +1,5 @@
-export type Vec2 = [x: number, y: number]
+export type Vec2Mut = [x: number, y: number]
+export type Vec2 = readonly [x: number, y: number]
 
 /** Length must be even. */
 export type Vec2List = readonly number[]
@@ -24,4 +25,9 @@ export function norm(x: Vec2, len: number): Vec2 {
 
 export function rotate([x, y]: Vec2, sin: number, cos: number): Vec2 {
     return [x * cos - y * sin, x * sin + y * cos]
+}
+
+export function addInto(base: Vec2Mut, [x2, y2]: Vec2) {
+    base[0] += x2
+    base[1] += y2
 }
