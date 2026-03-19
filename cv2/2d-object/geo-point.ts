@@ -13,7 +13,7 @@ export class GeoPoint extends Object2 {
         drawPoint(cv, this.pos, this.color)
     }
 
-    includes({ cv, po }: PEvent): boolean {
+    includes({ cv, offset: po }: PEvent): boolean {
         const [ox, oy] = apply2(cv.tlo, this.pos)
         return Math.hypot(ox - po[0], oy - po[1]) <= SizePointHaloWide
     }

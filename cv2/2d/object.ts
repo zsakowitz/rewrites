@@ -9,11 +9,15 @@ export class Object2 {
     // Related to pointer events.
     includes?(ev: PEvent): boolean
     onPointerEnter?(ev: PEvent): void
+    onPointerDown?(ev: PEvent): void
+    onPointerMove?(ev: PEvent): void
+    onPointerUp?(ev: PEvent): void
+    onPointerCancel?(ev: PEvent): void
     onPointerLeave?(ev: PEvent): void
 }
 
 export interface PEvent {
     cv: Canvas2
-    po: Vec2 // offset coords
-    pid: number // pointer id
+    pointerId: number // pointer id
+    offset: Vec2 // offset coords
 }

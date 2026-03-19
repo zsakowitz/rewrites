@@ -1,5 +1,5 @@
 import { FromFn } from "../2d-object/from-fn"
-import type { Object2 } from "./object"
+import type { Object2, PEvent } from "./object"
 import { apply2, inverse2, type Tform2 } from "./tform"
 import type { Vec2 } from "./vec"
 
@@ -11,6 +11,19 @@ interface TouchPointer {
     // last known pointer location, in unit space
     x: number
     y: number
+}
+
+interface ObjectPointer {
+    // first known pointer location, in unit space
+    readonly ox: number
+    readonly oy: number
+
+    // last known pointer location, in unit space
+    x: number
+    y: number
+
+    target: Object2
+    active: boolean
 }
 
 export class Canvas2 {
@@ -32,6 +45,7 @@ export class Canvas2 {
     #ul: Tform2
     #touches = new Map<number, TouchPointer>()
     #touchesMoved = false
+    #objects = new Map<number, ObjectPointer>()
     #scene: Object2[] = []
 
     constructor(ul: Tform2) {
@@ -68,6 +82,186 @@ export class Canvas2 {
         this.push(new FromFn(draw))
     }
 
+    #target(
+        raw: PointerEvent,
+    ):
+        | [isNew: boolean, didAnyChange: boolean, target: ObjectPointer]
+        | [isNew: false, didAnyChange: boolean, target: undefined] {
+        const { pointerId, offsetX, offsetY } = raw
+
+        const prev = this.#objects.get(pointerId)
+        if (prev?.active) return [false, false, prev]
+
+        const event: PEvent = {
+            cv: this,
+            pointerId,
+            offset: [offsetX, offsetY],
+        }
+
+        const next = this.#scene.findLast((obj) => obj.includes?.(event))
+        if (prev?.target == next) return [false, false, prev]
+
+        if (prev) {
+            this.#objects.delete(pointerId)
+            prev.target.onPointerLeave?.(event)
+        }
+
+        if (!next) {
+            return [false, true, void 0]
+        }
+
+        const [x, y] = apply2(this.tou, [offsetX, offsetY])
+
+        const target: ObjectPointer = {
+            ox: prev?.ox ?? x,
+            oy: prev?.oy ?? y,
+            x,
+            y,
+            target: next,
+            active: false,
+        }
+        this.#objects.set(pointerId, target)
+        return [true, true, target]
+    }
+
+    // return `true` if we want this to be handled as a touch event
+    #handlePointerEvent(raw: PointerEvent): void {
+        const { pointerId, offsetX, offsetY } = raw
+
+        if (this.#touches.has(pointerId)) {
+            if (this.#handleMovement(raw)) {
+                this.redraw()
+            }
+            return
+        }
+
+        const [isNew, didAnyChange, target] = this.#target(raw)
+        if (target == null) {
+            if (this.#handleMovement(raw) || didAnyChange) {
+                this.redraw()
+            }
+            return
+        }
+
+        const [x, y] = apply2(this.tou, [offsetX, offsetY])
+        target.x = x
+        target.y = y
+
+        const event: PEvent = {
+            cv: this,
+            pointerId,
+            offset: [offsetX, offsetY],
+        }
+
+        switch (raw.type) {
+            case "pointerenter":
+                if (isNew) target.target.onPointerEnter?.(event)
+                break
+
+            case "pointerdown":
+                if (isNew) target.target.onPointerEnter?.(event)
+                target.active = true
+                target.target.onPointerDown?.(event)
+                break
+
+            case "pointermove":
+                if (isNew) target.target.onPointerEnter?.(event)
+                else target.target.onPointerMove?.(event)
+                break
+
+            case "pointerup":
+            case "pointercancel": {
+                if (isNew) {
+                    target.target.onPointerEnter?.(event)
+                } else if (raw.type == "pointerup") {
+                    target.target.onPointerUp?.(event)
+                } else {
+                    target.target.onPointerCancel?.(event)
+                }
+
+                target.active = false
+
+                if (raw.type == "pointerup") {
+                    const [isNew, , target] = this.#target(raw)
+                    if (isNew) {
+                        target.target.onPointerEnter?.(event)
+                    }
+                }
+
+                break
+            }
+
+            case "pointerleave":
+                this.#objects.delete(pointerId)
+                if (!isNew) target.target.onPointerLeave?.(event)
+                break
+        }
+
+        this.redraw()
+    }
+
+    // returns `true` if some pointer state changed
+    #handleMovement(ev: PointerEvent): boolean {
+        const { pointerId, offsetX, offsetY } = ev
+        const [x, y] = apply2(this.tou, [offsetX, offsetY])
+
+        switch (ev.type) {
+            case "pointerenter":
+                break
+
+            case "pointerdown": {
+                this.el.setPointerCapture(pointerId)
+                if (this.#touchesMoved) return false
+                if (this.#touches.size >= 2) return false
+
+                this.#touches.set(pointerId, {
+                    ox: x,
+                    oy: y,
+                    x,
+                    y,
+                })
+
+                this.#updateUl()
+                break
+            }
+
+            case "pointermove": {
+                const tp = this.#touches.get(pointerId)
+                if (!tp) return false
+
+                tp.x = x
+                tp.y = y
+
+                if (
+                    !this.#touchesMoved
+                    && Math.hypot(x - tp.ox, y - tp.oy) > 16 / this.#oh
+                ) {
+                    this.#touchesMoved = true
+                }
+
+                this.#updateUl()
+                break
+            }
+
+            case "pointerup":
+            case "pointercancel":
+                this.#updateUl()
+                if (ev.type == "pointerup") {
+                    this.#ul0 = this.#ul
+                } else {
+                    this.#ul = this.#ul0
+                }
+                this.#touchesMoved = false
+                this.#touches.clear()
+                break
+
+            case "pointerleave":
+                break
+        }
+
+        return true
+    }
+
     handleEvent(ev: Event) {
         if (ev.type == "contextmenu") {
             ev.preventDefault()
@@ -101,64 +295,7 @@ export class Canvas2 {
             return
         }
 
-        const { pointerId, offsetX, offsetY } = ev as PointerEvent
-        const [x, y] = apply2(this.tou, [offsetX, offsetY])
-
-        switch (ev.type) {
-            case "pointerenter":
-                break
-
-            case "pointerdown": {
-                this.el.setPointerCapture(pointerId)
-                if (this.#touchesMoved) return
-                if (this.#touches.size >= 2) return
-
-                this.#touches.set(pointerId, {
-                    ox: x,
-                    oy: y,
-                    x,
-                    y,
-                })
-
-                this.#updateUl()
-                break
-            }
-
-            case "pointermove": {
-                const tp = this.#touches.get(pointerId)
-                if (!tp) return
-
-                tp.x = x
-                tp.y = y
-
-                if (
-                    !this.#touchesMoved
-                    && Math.hypot(x - tp.ox, y - tp.oy) > 16 / this.#oh
-                ) {
-                    this.#touchesMoved = true
-                }
-
-                this.#updateUl()
-                break
-            }
-
-            case "pointerup":
-            case "pointercancel":
-                this.#updateUl()
-                if (ev.type == "pointerup") {
-                    this.#ul0 = this.#ul
-                } else {
-                    this.#ul = this.#ul0
-                }
-                this.#touchesMoved = false
-                this.#touches.clear()
-                break
-
-            case "pointerleave":
-                break
-        }
-
-        this.redraw()
+        this.#handlePointerEvent(ev as PointerEvent)
     }
 
     #handleWheelMove(ev: WheelEvent) {
