@@ -248,7 +248,7 @@ export class Canvas2 {
                 break
         }
 
-        this.#simulatePointerMove()
+        this.#updatePointers()
         return true
     }
 
@@ -281,6 +281,7 @@ export class Canvas2 {
                 this.#handleWheelMove(ev as WheelEvent)
             }
 
+            this.#updatePointers()
             this.redraw()
             return
         }
@@ -288,7 +289,7 @@ export class Canvas2 {
         this.#handlePointerEvent(ev as PointerEvent)
     }
 
-    #simulatePointerMove() {
+    #updatePointers() {
         for (const [pointerId, el] of Array.from(this.#objects)) {
             const offset = apply2(this.tuo, el.p1)
 
