@@ -20,4 +20,5 @@ export interface PEvent {
     cv: Canvas2
     pointerId: number // pointer id
     offset: Vec2 // offset coords
+    unit: Vec2 // unit coords
 }

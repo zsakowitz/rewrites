@@ -83,20 +83,14 @@ export class Canvas2 {
     }
 
     #target(
-        raw: PointerEvent,
+        event: PEvent,
     ):
         | [isNew: boolean, didAnyChange: boolean, target: ObjectPointer]
         | [isNew: false, didAnyChange: boolean, target: undefined] {
-        const { pointerId, offsetX, offsetY } = raw
+        const { pointerId, offset } = event
 
         const prev = this.#objects.get(pointerId)
         if (prev?.active) return [false, false, prev]
-
-        const event: PEvent = {
-            cv: this,
-            pointerId,
-            offset: [offsetX, offsetY],
-        }
 
         const next = this.#scene.findLast((obj) => obj.includes?.(event))
         if (prev?.target == next) return [false, false, prev]
@@ -110,13 +104,11 @@ export class Canvas2 {
             return [false, true, void 0]
         }
 
-        const [x, y] = apply2(this.tou, [offsetX, offsetY])
-
         const target: ObjectPointer = {
-            ox: prev?.ox ?? x,
-            oy: prev?.oy ?? y,
-            x,
-            y,
+            ox: prev?.ox ?? event.unit[0],
+            oy: prev?.oy ?? event.unit[1],
+            x: event.unit[0],
+            y: event.unit[1],
             target: next,
             active: false,
         }
@@ -136,7 +128,14 @@ export class Canvas2 {
             return
         }
 
-        const [isNew, didAnyChange, target] = this.#target(raw)
+        const event: PEvent = {
+            cv: this,
+            pointerId,
+            offset: [offsetX, offsetY],
+            unit: apply2(this.tou, [offsetX, offsetY]),
+        }
+
+        const [isNew, didAnyChange, target] = this.#target(event)
         if (target == null) {
             if (this.#handleMovement(raw) || didAnyChange) {
                 this.redraw()
@@ -144,15 +143,8 @@ export class Canvas2 {
             return
         }
 
-        const [x, y] = apply2(this.tou, [offsetX, offsetY])
-        target.x = x
-        target.y = y
-
-        const event: PEvent = {
-            cv: this,
-            pointerId,
-            offset: [offsetX, offsetY],
-        }
+        target.x = event.unit[0]
+        target.y = event.unit[1]
 
         switch (raw.type) {
             case "pointerenter":
@@ -184,7 +176,7 @@ export class Canvas2 {
                 target.active = false
 
                 if (raw.type == "pointerup") {
-                    const [isNew, , target] = this.#target(raw)
+                    const [isNew, , target] = this.#target(event)
                     if (isNew) {
                         target.target.onPointerEnter?.(event)
                     }
@@ -264,6 +256,7 @@ export class Canvas2 {
                 break
         }
 
+        this.#simulatePointerMove()
         return true
     }
 
@@ -301,6 +294,27 @@ export class Canvas2 {
         }
 
         this.#handlePointerEvent(ev as PointerEvent)
+    }
+
+    #simulatePointerMove() {
+        for (const [id, el] of Array.from(this.#objects)) {
+            const offset = apply2(this.tuo, [el.x, el.y])
+
+            const event: PEvent = {
+                cv: this,
+                pointerId: id,
+                offset,
+                unit: [el.x, el.y],
+            }
+
+            const [isNew, , target] = this.#target(event)
+
+            if (isNew) {
+                target.target.onPointerEnter?.(event)
+            } else {
+                target?.target.onPointerMove?.(event)
+            }
+        }
     }
 
     #handleWheelMove(ev: WheelEvent) {
