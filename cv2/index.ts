@@ -1,22 +1,26 @@
+import { ForceGraph } from "./2d-object/force-graph"
+import { ForceGraphLib } from "./2d-object/force-graph-2"
 import { Grid } from "./2d-object/grid"
 import { Canvas2 } from "./2d/canvas"
 import "./tbd/fair-shares-unequal-pairs"
 import { createGraph } from "./tbd/fair-shares-unequal-pairs"
 
-const cv = new Canvas2({ sx: 10, sy: 10, tx: 0, ty: 0 })
+const cv = new Canvas2({ sx: 20, sy: 20, tx: 0, ty: 0 })
 
 document.body.appendChild(cv.el)
 
 cv.push(new Grid())
 
-const g = createGraph(10)
-cv.push(g)
+// const g = new ForceGraph(createGraph(6))
+// cv.push(g)
+cv.push(new ForceGraphLib(createGraph(9)))
 
-let time = Date.now()
+// let time = performance.now()
 
-requestAnimationFrame(function f() {
+requestAnimationFrame(function f(d) {
     requestAnimationFrame(f)
-    g.update(Math.min(0.1, (Date.now() - time) / 1000))
-    time = Date.now()
+    // g.update((Date.now() - time) / 1000)
+    // g.update((d - time) / 500)
+    // time = d
     cv.redraw()
 })

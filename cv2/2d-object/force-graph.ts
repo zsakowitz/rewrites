@@ -4,19 +4,24 @@ import { apply2 } from "../2d/tform"
 import { addInto, norm, rotate, type Vec2, type Vec2Mut } from "../2d/vec"
 import { Graph } from "../tbd/graph"
 
-interface FGT {
+export interface FGT {
     pos: Vec2
     label: string
     color: string
 }
 
-interface FGE {
+export interface FGE {
     stroke: string
     fill: string
 }
 
-export class ForceGraph<T extends FGT, E extends FGE> extends Object2 {
-    readonly graph = new Graph<T, E>()
+export class ForceGraph<
+    T extends FGT = FGT,
+    E extends FGE = FGE,
+> extends Object2 {
+    constructor(readonly graph = new Graph<T, E>()) {
+        super()
+    }
 
     draw({ ctx, tlo }: Canvas2): void {
         const nodeSize = 20

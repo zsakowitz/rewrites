@@ -1,7 +1,7 @@
 import { ColorBlue, ColorGreen } from "../../cv/dcg"
-import { ForceGraph } from "../2d-object/force-graph"
 import type { Vec2 } from "../2d/vec"
 import { ColorPurple } from "./dcg"
+import { Graph } from "./graph"
 
 type Pile = readonly number[]
 
@@ -64,14 +64,13 @@ interface E {
     stroke: string
 }
 
-export function createGraph(size: number): ForceGraph<T, E> {
-    const fdg = new ForceGraph<T, E>()
-
-    const { nodes, edges } = fdg.graph
+export function createGraph(size: number): Graph<T, E> {
+    const graph = new Graph<T, E>()
+    const { nodes } = graph
 
     const positions = states(size, size).map((x) => x.join(","))
     for (let i = 0; i < positions.length; i++) {
-        fdg.graph.node({
+        graph.node({
             pos: [
                 positions.length
                     * Math.cos(i * ((2 * Math.PI) / positions.length)),
@@ -117,20 +116,26 @@ export function createGraph(size: number): ForceGraph<T, E> {
             : ColorBlue
     })
 
-    for (let a = 0; a < moves.length; a++) {
-        if (nodes[a]!.data.state != "win") continue
+    for (const a of nodes) {
+        for (const bi of moves[a.id]!) {
+            const b = nodes[bi]!
 
-        for (const b of moves[a]!) {
-            const short =
-                nodes[a]!.data.gen > nodes[b]!.data.gen
-                && nodes[b]!.data.state == "loss"
+            const join =
+                a.data.state == null ?
+                    b.data.state == null
+                :   a.data.state != b.data.state
+                    && (a.data.state == "loss" ?
+                        a.data.gen == 1 + b.data.gen
+                    :   a.data.gen > b.data.gen)
 
-            fdg.graph.edge(nodes[a]!, nodes[b]!, {
-                stroke: short ? ColorBlue : ColorBlue + "40",
-                fill: short ? ColorBlue : "#fff",
+            if (!join) continue
+
+            graph.edge(a!, b, {
+                stroke: ColorBlue,
+                fill: ColorBlue,
             })
         }
     }
 
-    return fdg
+    return graph
 }
