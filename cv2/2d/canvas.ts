@@ -3,6 +3,8 @@ import type { Object2, PEvent } from "./object"
 import { apply2, inverse2, type Tform2 } from "./tform"
 import type { Vec2 } from "./vec"
 
+export const FONT_SIZE = 14
+
 interface TouchPointer {
     // first known pointer location, in unit space
     readonly ox: number
@@ -56,6 +58,8 @@ export class Canvas2 {
         new ResizeObserver(([e]) => {
             el.width = (this.#ow = e!.contentRect.width) * devicePixelRatio
             el.height = (this.#oh = e!.contentRect.height) * devicePixelRatio
+            this.ctx.scale(devicePixelRatio, devicePixelRatio)
+            this.ctx.font = `${FONT_SIZE}px Symbola`
             this.redraw()
         }).observe(el)
 
@@ -415,10 +419,8 @@ export class Canvas2 {
     }
 
     reset() {
-        this.ctx.reset()
         this.ctx.fillStyle = "#ffffff"
-        this.ctx.fillRect(0, 0, this.el.width, this.el.height)
-        this.ctx.scale(devicePixelRatio, devicePixelRatio)
+        this.ctx.fillRect(0, 0, this.width, this.height)
     }
 
     #updateUl() {
@@ -454,7 +456,19 @@ export class Canvas2 {
         }
     }
 
+    #isRedrawQueued = false
     redraw() {
+        if (this.#isRedrawQueued) return
+
+        requestAnimationFrame(() => {
+            this.#isRedrawQueued = false
+            this.#redraw()
+        })
+
+        this.#isRedrawQueued = true
+    }
+
+    #redraw() {
         this.reset()
 
         const scene = this.#scene

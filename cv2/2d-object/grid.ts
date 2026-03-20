@@ -1,16 +1,13 @@
-import type { Canvas2 } from "../2d/canvas"
+import { FONT_SIZE, type Canvas2 } from "../2d/canvas"
 import { Object2 } from "../2d/object"
 import { apply2x, apply2y } from "../2d/tform"
 
 // TODO: 4 doesn't render. 4.0 and -4 are fine though
 
-const FONT = 14
-
 export class Grid extends Object2 {
     draw(cv: Canvas2): void {
         cv.ctx.fillStyle = "black"
         cv.ctx.strokeStyle = "white"
-        cv.ctx.font = `${FONT}px Symbola`
         cv.ctx.lineWidth = 4
 
         drawXLines(cv)
@@ -72,7 +69,7 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
     const oyRaw = apply2y(tlo, 0)
     const oy =
         oyRaw < 0 ? 4
-        : oyRaw + FONT + 8 > height ? height - FONT - 4
+        : oyRaw + FONT_SIZE + 8 > height ? height - FONT_SIZE - 4
         : oyRaw + 4
     ctx.textAlign = "center"
     ctx.textBaseline = "top"

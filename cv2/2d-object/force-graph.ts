@@ -7,7 +7,8 @@ import { Graph } from "../tbd/graph"
 export interface FGT {
     pos: Vec2
     label: string
-    color: string
+    stroke: string
+    fill: string
 }
 
 export interface FGE {
@@ -61,25 +62,28 @@ export class ForceGraph<
             ctx.fill()
         }
 
+        ctx.lineWidth = 2.5
         for (const { data: node } of this.graph.nodes) {
             const [ox, oy] = apply2(tlo, node.pos)
+
             ctx.beginPath()
-            ctx.fillStyle = node.color
+            ctx.globalAlpha = 0.3
+            ctx.fillStyle = node.fill
+            ctx.strokeStyle = node.stroke
             ctx.ellipse(ox, oy, nodeSize, nodeSize, 0, 0, 2 * Math.PI)
-            ctx.globalAlpha = 0.3
             ctx.fill()
+
             ctx.globalAlpha = 1
-            ctx.strokeStyle = node.color
-            ctx.lineWidth = 2.5
             ctx.stroke()
-            ctx.textAlign = "center"
-            ctx.textBaseline = "middle"
-            ctx.font = "14px Symbola"
-            ctx.strokeStyle = "#fff"
-            ctx.globalAlpha = 0.3
-            ctx.lineWidth = 3
-            ctx.strokeText("" + node.label, ox, oy + 1)
-            ctx.globalAlpha = 1
+        }
+        ctx.globalAlpha = 1
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+
+        for (const { data: node } of this.graph.nodes) {
+            const [ox, oy] = apply2(tlo, node.pos)
+
+            ctx.fillStyle = node.fill
             ctx.fillText("" + node.label, ox, oy + 1)
         }
     }

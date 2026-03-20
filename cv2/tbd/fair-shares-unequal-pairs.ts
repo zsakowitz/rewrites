@@ -1,6 +1,6 @@
-import { ColorBlue, ColorGreen } from "../../cv/dcg"
+import { ColorBlue } from "../../cv/dcg"
 import type { Vec2 } from "../2d/vec"
-import { ColorPurple } from "./dcg"
+import { ColorGreen, ColorPurple } from "./dcg"
 import { Graph } from "./graph"
 
 type Pile = readonly number[]
@@ -54,7 +54,8 @@ function movesFrom(x: Pile, total: number): Pile[] {
 interface T {
     pos: Vec2
     label: string
-    color: string
+    fill: string
+    stroke: string
     gen: number
     state: "win" | "loss" | null
 }
@@ -71,14 +72,10 @@ export function createGraph(size: number): Graph<T, E> {
     const positions = states(size, size).map((x) => x.join(","))
     for (let i = 0; i < positions.length; i++) {
         graph.node({
-            pos: [
-                positions.length
-                    * Math.cos(i * ((2 * Math.PI) / positions.length)),
-                positions.length
-                    * Math.sin(i * ((2 * Math.PI) / positions.length)),
-            ],
+            pos: [200 * Math.random(), 200 * Math.random()],
             label: positions[i]!,
-            color: "#f80",
+            fill: "#f80",
+            stroke: "#f80",
             gen: Infinity,
             state: null,
         })
@@ -110,23 +107,27 @@ export function createGraph(size: number): Graph<T, E> {
     }
 
     nodes.forEach((node) => {
-        node.data.color =
-            node.data.state == "loss" ? ColorPurple
-            : node.data.state == "win" ? ColorGreen
-            : ColorBlue
+        if (node.data.state == "loss") {
+            node.data.fill = ColorPurple
+            node.data.stroke = ColorPurple
+        } else if (node.data.state == "win") {
+            node.data.fill = ColorGreen
+            node.data.stroke = ColorGreen
+        } else {
+            node.data.fill = ColorBlue
+            node.data.stroke = ColorBlue
+        }
     })
 
     for (const a of nodes) {
+        if (a.data.state == null) continue
+
         for (const bi of moves[a.id]!) {
             const b = nodes[bi]!
 
             const join =
-                a.data.state == null ?
-                    b.data.state == null
-                :   a.data.state != b.data.state
-                    && (a.data.state == "loss" ?
-                        a.data.gen == 1 + b.data.gen
-                    :   a.data.gen > b.data.gen)
+                (a.data.state == "win" ? b.data.state == "loss" : true)
+                && a.data.gen > b.data.gen
 
             if (!join) continue
 

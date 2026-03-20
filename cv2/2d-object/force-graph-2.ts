@@ -7,7 +7,8 @@ import { ForceGraph, type FGE, type FGT } from "./force-graph"
 
 interface C {
     label: string
-    color: string
+    fill: string
+    stroke: string
 }
 
 export class ForceGraphLib extends Object2 {
@@ -29,6 +30,7 @@ export class ForceGraphLib extends Object2 {
                 })),
             })
             .nodeLabel((n) => n.label)
+            .linkCurvature(0)
     }
 
     draw(cv: Canvas2): void {
@@ -36,9 +38,10 @@ export class ForceGraphLib extends Object2 {
         const data = this.fdg.graphData()
         for (const node of data.nodes) {
             graph.node({
-                pos: [(node.x ?? 0) / 10, (node.y ?? 0) / 10],
-                color: node.color,
+                pos: [(node.x ?? 0) / 20, (node.y ?? 0) / 20],
                 label: node.label,
+                fill: node.fill,
+                stroke: node.stroke,
             })
         }
         for (const link of data.links) {
