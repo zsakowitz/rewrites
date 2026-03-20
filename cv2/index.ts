@@ -12,22 +12,3 @@ cv.push(new Grid())
 const g = new ForceGraphLib(createGraph(9))
 cv.push(g)
 g.fdg.onEngineTick(() => cv.redraw())
-
-let fpsElement = document.getElementById("fps")!
-
-let then = Date.now() / 1000 // get time in seconds
-
-let render = function () {
-    let now = Date.now() / 1000 // get time in seconds
-
-    // compute time since last frame
-    let elapsedTime = now - then
-    then = now
-
-    // compute fps
-    let fps = 1 / elapsedTime
-    fpsElement.innerText = fps.toFixed(2)
-
-    requestAnimationFrame(render)
-}
-render()

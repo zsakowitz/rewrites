@@ -66,10 +66,12 @@ interface E {
 }
 
 export function createGraph(size: number): Graph<T, E> {
+    const join = size >= 10 ? "," : ""
+
     const graph = new Graph<T, E>()
     const { nodes } = graph
 
-    const positions = states(size, size).map((x) => x.join(","))
+    const positions = states(size, size).map((x) => x.join(join))
     for (let i = 0; i < positions.length; i++) {
         graph.node({
             pos: [200 * Math.random(), 200 * Math.random()],
@@ -83,9 +85,9 @@ export function createGraph(size: number): Graph<T, E> {
 
     const moves: number[][] = positions.map((src) =>
         movesFrom(
-            src.split(",").map((x) => +x),
+            src.split(join).map((x) => +x),
             size,
-        ).map((dst) => positions.indexOf(dst.join(","))),
+        ).map((dst) => positions.indexOf(dst.join(join))),
     )
 
     for (let gen = 0; gen < positions.length; gen++) {
@@ -126,8 +128,9 @@ export function createGraph(size: number): Graph<T, E> {
             const b = nodes[bi]!
 
             const join =
-                (a.data.state == "win" ? b.data.state == "loss" : true)
-                && a.data.gen > b.data.gen
+                a.data.state == "win" ?
+                    b.data.state == "loss" && a.data.gen > b.data.gen
+                :   a.data.gen == 1 + b.data.gen
 
             if (!join) continue
 

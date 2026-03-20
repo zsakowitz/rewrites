@@ -31,6 +31,8 @@ export class ForceGraphLib extends Object2 {
             })
             .nodeLabel((n) => n.label)
             .linkCurvature(0)
+            .d3AlphaDecay(0.015)
+            .d3AlphaMin(0.1)
     }
 
     draw(cv: Canvas2): void {

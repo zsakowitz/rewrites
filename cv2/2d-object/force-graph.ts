@@ -25,7 +25,7 @@ export class ForceGraph<
     }
 
     draw({ ctx, tlo }: Canvas2): void {
-        const nodeSize = 20
+        const nodeSize = tlo.sx * 0.5
 
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
@@ -74,7 +74,7 @@ export class ForceGraph<
             ctx.fill()
 
             ctx.globalAlpha = 1
-            ctx.stroke()
+            // ctx.stroke()
         }
         ctx.globalAlpha = 1
         ctx.textAlign = "center"
@@ -83,8 +83,11 @@ export class ForceGraph<
         for (const { data: node } of this.graph.nodes) {
             const [ox, oy] = apply2(tlo, node.pos)
 
+            ctx.font = `1px Symbola`
+            const { width } = ctx.measureText(node.label)
+            ctx.font = `${tlo.sx / (1 + width)}px Symbola`
             ctx.fillStyle = node.fill
-            ctx.fillText("" + node.label, ox, oy + 1)
+            ctx.fillText(node.label, ox, oy + 1)
         }
     }
 

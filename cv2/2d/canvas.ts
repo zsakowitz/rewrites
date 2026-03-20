@@ -3,8 +3,6 @@ import type { Object2, PEvent } from "./object"
 import { apply2, inverse2, type Tform2 } from "./tform"
 import type { Vec2 } from "./vec"
 
-export const FONT_SIZE = 14
-
 interface TouchPointer {
     // first known pointer location, in unit space
     readonly ox: number
@@ -59,7 +57,6 @@ export class Canvas2 {
             el.width = (this.#ow = e!.contentRect.width) * devicePixelRatio
             el.height = (this.#oh = e!.contentRect.height) * devicePixelRatio
             this.ctx.scale(devicePixelRatio, devicePixelRatio)
-            this.ctx.font = `${FONT_SIZE}px Symbola`
             this.redraw()
         }).observe(el)
 

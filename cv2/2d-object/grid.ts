@@ -1,6 +1,8 @@
-import { FONT_SIZE, type Canvas2 } from "../2d/canvas"
+import type { Canvas2 } from "../2d/canvas"
 import { Object2 } from "../2d/object"
 import { apply2x, apply2y } from "../2d/tform"
+
+const FONT_SIZE = 16
 
 // TODO: 4 doesn't render. 4.0 and -4 are fine though
 
@@ -9,6 +11,7 @@ export class Grid extends Object2 {
         cv.ctx.fillStyle = "black"
         cv.ctx.strokeStyle = "white"
         cv.ctx.lineWidth = 4
+        cv.ctx.font = `${FONT_SIZE}px Symbola`
 
         drawXLines(cv)
         drawYLines(cv)
@@ -80,7 +83,7 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
 
         const lx = x * tx
         const label = toFixed(lx, tr)
-        const ox = apply2x(tlo, x * tx) + (label.startsWith("−") ? -3.5 : 0)
+        const ox = apply2x(tlo, x * tx) + (label.startsWith("−") ? -5.5 : 0)
         const w = ctx.measureText(label).width / 2
         const oxActual =
             ox + w + 4 > width ? width - 4 - w
@@ -121,7 +124,7 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
         if (y == 0) continue
 
         const ly = y * ty
-        const oy = apply2y(tlo, y * ty)
+        const oy = apply2y(tlo, y * ty) + 1
 
         const label = toFixed(ly, tr)
         const { width } = ctx.measureText(label)
