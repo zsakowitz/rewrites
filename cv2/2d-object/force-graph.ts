@@ -2,11 +2,21 @@ import type { Canvas2 } from "../2d/canvas"
 import { Object2 } from "../2d/object"
 import { apply2 } from "../2d/tform"
 import { addInto, norm, rotate, type Vec2, type Vec2Mut } from "../2d/vec"
-import { ColorBlue } from "../tbd/dcg"
+import { Graph } from "../tbd/graph"
 
-export class ForceGraph<T, E> extends Object2 {
-    readonly nodes: { pos: Vec2; label: string; fill: string; data: T }[] = []
-    readonly edges: { src: number; dst: number; data: E }[] = []
+interface FGT {
+    pos: Vec2
+    label: string
+    color: string
+}
+
+interface FGE {
+    stroke: string
+    fill: string
+}
+
+export class ForceGraph<T extends FGT, E extends FGE> extends Object2 {
+    readonly graph = new Graph<T, E>()
 
     draw({ ctx, tlo }: Canvas2): void {
         const nodeSize = 20
@@ -14,9 +24,9 @@ export class ForceGraph<T, E> extends Object2 {
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
 
-        for (const { src, dst } of this.edges) {
-            const [x1, y1] = apply2(tlo, this.nodes[src]!.pos)
-            const [x2, y2] = apply2(tlo, this.nodes[dst]!.pos)
+        for (const { from, into, data } of this.graph.edges) {
+            const [x1, y1] = apply2(tlo, this.graph.nodes[from]!.data.pos)
+            const [x2, y2] = apply2(tlo, this.graph.nodes[into]!.data.pos)
 
             const norm5 = norm([x2 - x1, y2 - y1], 10)
             const [xd, yd] = norm([x2 - x1, y2 - y1], nodeSize + 4)
@@ -39,21 +49,22 @@ export class ForceGraph<T, E> extends Object2 {
             ctx.lineTo(x2 - xd + xc, y2 - yd + yc)
             ctx.lineTo(x2 - xd + xe, y2 - yd + ye)
             ctx.closePath()
-            ctx.strokeStyle = ctx.fillStyle = ColorBlue
+            ctx.strokeStyle = data.stroke
+            ctx.fillStyle = data.fill
             ctx.lineWidth = 2.5
             ctx.stroke()
             ctx.fill()
         }
 
-        for (const node of this.nodes) {
+        for (const { data: node } of this.graph.nodes) {
             const [ox, oy] = apply2(tlo, node.pos)
             ctx.beginPath()
-            ctx.fillStyle = node.fill
+            ctx.fillStyle = node.color
             ctx.ellipse(ox, oy, nodeSize, nodeSize, 0, 0, 2 * Math.PI)
             ctx.globalAlpha = 0.3
             ctx.fill()
             ctx.globalAlpha = 1
-            ctx.strokeStyle = node.fill
+            ctx.strokeStyle = node.color
             ctx.lineWidth = 2.5
             ctx.stroke()
             ctx.textAlign = "center"
@@ -73,16 +84,21 @@ export class ForceGraph<T, E> extends Object2 {
         const F_REPULSE = -50
         const F_ATTRACT = 1
 
-        const forces = this.nodes.map(
-            ({ pos }): Vec2Mut => [F_GRAVITY * pos[0], F_GRAVITY * pos[1]],
+        const { nodes, edges } = this.graph
+
+        const forces = nodes.map(
+            ({ data: { pos } }): Vec2Mut => [
+                F_GRAVITY * pos[0],
+                F_GRAVITY * pos[1],
+            ],
         )
 
-        for (let a = 0; a < this.nodes.length; a++) {
-            for (let b = 0; b < this.nodes.length; b++) {
+        for (let a = 0; a < nodes.length; a++) {
+            for (let b = 0; b < nodes.length; b++) {
                 if (a == b) continue
 
-                const [xa, ya] = this.nodes[a]!.pos
-                const [xb, yb] = this.nodes[b]!.pos
+                const [xa, ya] = nodes[a]!.data.pos
+                const [xb, yb] = nodes[b]!.data.pos
                 addInto(
                     forces[a]!,
                     norm(
@@ -94,9 +110,9 @@ export class ForceGraph<T, E> extends Object2 {
             }
         }
 
-        for (const { src: a, dst: b } of this.edges) {
-            const [xa, ya] = this.nodes[a]!.pos
-            const [xb, yb] = this.nodes[b]!.pos
+        for (const { from: a, into: b } of edges) {
+            const [xa, ya] = nodes[a]!.data.pos
+            const [xb, yb] = nodes[b]!.data.pos
 
             addInto(
                 forces[a]!,
@@ -115,10 +131,10 @@ export class ForceGraph<T, E> extends Object2 {
             )
         }
 
-        for (let i = 0; i < this.nodes.length; i++) {
-            const [x0, y0] = this.nodes[i]!.pos
+        for (let i = 0; i < nodes.length; i++) {
+            const [x0, y0] = nodes[i]!.data.pos
             const [dx, dy] = forces[i]!
-            this.nodes[i]!.pos = [x0 + dx * dt, y0 + dy * dt]
+            nodes[i]!.data.pos = [x0 + dx * dt, y0 + dy * dt]
         }
     }
 }

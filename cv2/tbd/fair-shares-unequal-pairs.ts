@@ -1,5 +1,6 @@
 import { ColorBlue, ColorGreen } from "../../cv/dcg"
 import { ForceGraph } from "../2d-object/force-graph"
+import type { Vec2 } from "../2d/vec"
 import { ColorPurple } from "./dcg"
 
 type Pile = readonly number[]
@@ -51,16 +52,26 @@ function movesFrom(x: Pile, total: number): Pile[] {
 }
 
 interface T {
+    pos: Vec2
+    label: string
+    color: string
     gen: number
     state: "win" | "loss" | null
 }
 
-export function createGraph(size: number): ForceGraph<T, void> {
-    const fdg = new ForceGraph<T, void>()
+interface E {
+    fill: string
+    stroke: string
+}
+
+export function createGraph(size: number): ForceGraph<T, E> {
+    const fdg = new ForceGraph<T, E>()
+
+    const { nodes, edges } = fdg.graph
 
     const positions = states(size, size).map((x) => x.join(","))
     for (let i = 0; i < positions.length; i++) {
-        fdg.nodes.push({
+        fdg.graph.node({
             pos: [
                 positions.length
                     * Math.cos(i * ((2 * Math.PI) / positions.length)),
@@ -68,8 +79,9 @@ export function createGraph(size: number): ForceGraph<T, void> {
                     * Math.sin(i * ((2 * Math.PI) / positions.length)),
             ],
             label: positions[i]!,
-            data: { gen: Infinity, state: null },
-            fill: "#f80",
+            color: "#f80",
+            gen: Infinity,
+            state: null,
         })
     }
 
@@ -82,43 +94,41 @@ export function createGraph(size: number): ForceGraph<T, void> {
 
     for (let gen = 0; gen < positions.length; gen++) {
         for (let a = 0; a < positions.length; a++) {
-            if (fdg.nodes[a]!.data.state != null) continue
+            if (nodes[a]!.data.state != null) continue
 
-            const data = moves[a]!.map((b) => fdg.nodes[b]!.data)
+            const data = moves[a]!.map((b) => nodes[b]!.data)
 
             if (data.every((x) => x.gen < gen && x.state == "win")) {
-                fdg.nodes[a]!.data = {
-                    gen,
-                    state: "loss",
-                }
+                nodes[a]!.data.gen = gen
+                nodes[a]!.data.state = "loss"
             }
 
             if (data.some((x) => x.gen < gen && x.state == "loss")) {
-                fdg.nodes[a]!.data = {
-                    gen,
-                    state: "win",
-                }
+                nodes[a]!.data.gen = gen
+                nodes[a]!.data.state = "win"
             }
         }
     }
 
-    fdg.nodes.forEach((node) => {
-        node.fill =
+    nodes.forEach((node) => {
+        node.data.color =
             node.data.state == "loss" ? ColorPurple
             : node.data.state == "win" ? ColorGreen
             : ColorBlue
     })
 
     for (let a = 0; a < moves.length; a++) {
-        if (fdg.nodes[a]!.data.state != "win") continue
+        if (nodes[a]!.data.state != "win") continue
 
         for (const b of moves[a]!) {
-            if (
-                fdg.nodes[a]!.data.gen > fdg.nodes[b]!.data.gen
-                && fdg.nodes[b]!.data.state == "loss"
-            ) {
-                fdg.edges.push({ src: a, dst: b, data: void 0 })
-            }
+            const short =
+                nodes[a]!.data.gen > nodes[b]!.data.gen
+                && nodes[b]!.data.state == "loss"
+
+            fdg.graph.edge(nodes[a]!, nodes[b]!, {
+                stroke: short ? ColorBlue : ColorBlue + "40",
+                fill: short ? ColorBlue : "#fff",
+            })
         }
     }
 

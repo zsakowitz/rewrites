@@ -9,7 +9,7 @@ document.body.appendChild(cv.el)
 
 cv.push(new Grid())
 
-const g = createGraph(12)
+const g = createGraph(10)
 cv.push(g)
 
 let time = Date.now()
@@ -20,8 +20,3 @@ requestAnimationFrame(function f() {
     time = Date.now()
     cv.redraw()
 })
-
-// cv.el.addEventListener("click", () => {
-//     g.update(0.1)
-//     cv.redraw()
-// })
