@@ -1,5 +1,29 @@
 //! Integration method borrowed from Desmos
 
+var kX = 3.154019550531224,
+    KB = Math.pow(2, -13),
+    Zp = KB * KB,
+    eV = Zp * Zp,
+    JD = Zp,
+    e1 = 32,
+    gc: number[] = [],
+    jp: number[] = []
+
+function zX(e: number[], t: number[]) {
+    for (let n = e1; n > 0; n--) {
+        let r = (kX / e1) * n,
+            o = Math.sinh(r),
+            i = Math.cosh((Math.PI / 2) * o),
+            s = 1 / (Math.exp((Math.PI / 2) * o) * i),
+            a = Math.cosh(r) / (i * i)
+        ;(e.push(s), t.push(a))
+    }
+}
+zX(gc, jp)
+var rV = 0
+for (let e = 0; e < jp.length; e++) rV += jp[e]!
+var nP = 1 / (1 + 2 * rV)
+
 function zB(
     e: number,
     t: number,
@@ -56,30 +80,6 @@ function tP(
             :   ((e = i), (t = s))
         }
 }
-
-var kX = 3.154019550531224,
-    KB = Math.pow(2, -13),
-    Zp = KB * KB,
-    eV = Zp * Zp,
-    JD = Zp,
-    e1 = 32,
-    gc: number[] = [],
-    jp: number[] = []
-
-function zX(e: number[], t: number[]) {
-    for (let n = e1; n > 0; n--) {
-        let r = (kX / e1) * n,
-            o = Math.sinh(r),
-            i = Math.cosh((Math.PI / 2) * o),
-            s = 1 / (Math.exp((Math.PI / 2) * o) * i),
-            a = Math.cosh(r) / (i * i)
-        ;(e.push(s), t.push(a))
-    }
-}
-zX(gc, jp)
-var rV = 0
-for (let e = 0; e < jp.length; e++) rV += jp[e]!
-var nP = 1 / (1 + 2 * rV)
 
 function UX(
     e: number,
