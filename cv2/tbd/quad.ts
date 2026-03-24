@@ -134,49 +134,53 @@ function UX(
 function Fs(e: number, t: number, n: number) {
     return 0.5 * (t * (2 - n) + e * n)
 }
+
 function HX(e: (n: number) => number, t: number, n: number) {
     let r = 0.5 * (t + n),
         o = UX(t, e(t), r, e(r), n, e(n), e)
     return o ? 0.5 * (o[0] + o[1]) : r
 }
+
 function Rb(e: any, t: any, n: number, r: number, o: number) {
     return { x1: e, x2: t, value: n, error: r, minerror: o }
 }
+
 function tV(e: (arg0: number) => number, t: number, n: number) {
     let r = Math.abs(e(Fs(t, n, Zp))),
         o = Math.abs(e(Fs(t, n, 2 * Zp))),
         i = Math.abs(e(Fs(t, n, 4 * Zp)))
     return r < Zp || o < Zp ? !1 : r > 1.95 * o && o > 1.95 * i
 }
-function KD(e: (arg0: number) => number, t: number, n: number) {
-    let r = Fs(n, t, gc[0]!),
-        o = Fs(t, n, gc[0]!),
+
+function KD(e: (arg0: number) => number, min: number, max: number) {
+    let r = Fs(max, min, gc[0]!),
+        o = Fs(min, max, gc[0]!),
         i = e(r),
         s = e(o),
-        a = Fs(t, n, 1),
+        a = Fs(min, max, 1),
         u = e(a),
         c: number | undefined,
         l: number | undefined
     if (isFinite(u) && !isFinite(i)) {
-        if (((c = tP(r, i, a, u, e)!), Math.abs((c - t) / (n - t)) > Zp))
-            return Rb(t, n, NaN, NaN, NaN)
-        ;((t = c), (i = e(t)))
+        if (((c = tP(r, i, a, u, e)!), Math.abs((c - min) / (max - min)) > Zp))
+            return Rb(min, max, NaN, NaN, NaN)
+        ;((min = c), (i = e(min)))
     }
     if (isFinite(u) && !isFinite(s)) {
-        if (((l = tP(a, u, o, s, e)!), Math.abs((l - n) / (n - t)) > Zp))
-            return Rb(t, n, NaN, NaN, NaN)
-        ;((n = l), (s = e(n)))
+        if (((l = tP(a, u, o, s, e)!), Math.abs((l - max) / (max - min)) > Zp))
+            return Rb(min, max, NaN, NaN, NaN)
+        ;((max = l), (s = e(max)))
     }
     if (isFinite(i) && isFinite(s) && !isFinite(u)) {
         if (
             ((c = tP(r, i, a, u, e)!),
             (l = tP(a, u, o, s, e)!),
-            Math.abs((l - c) / (n - t)) > Zp)
+            Math.abs((l - c) / (max - min)) > Zp)
         )
-            return Rb(t, n, NaN, NaN, NaN)
+            return Rb(min, max, NaN, NaN, NaN)
         u = 0.5 * (c + l)
     }
-    if (tV(e, t, n) || tV(e, n, t)) return Rb(t, n, NaN, NaN, NaN)
+    if (tV(e, min, max) || tV(e, max, min)) return Rb(min, max, NaN, NaN, NaN)
     let p = u,
         m = 0,
         d = 0,
@@ -185,20 +189,20 @@ function KD(e: (arg0: number) => number, t: number, n: number) {
         y = 0,
         g = 0
     for (let _ = 0; _ < e1; _ += 4)
-        ((y = e(Fs(t, n, gc[_]!))),
-            (g = e(Fs(n, t, gc[_]!))),
+        ((y = e(Fs(min, max, gc[_]!))),
+            (g = e(Fs(max, min, gc[_]!))),
             (h = Math.max(h, Math.abs(y), Math.abs(g))),
             (m += jp[_]! * (y + g)),
-            (y = e(Fs(t, n, gc[_ + 1]!))),
-            (g = e(Fs(n, t, gc[_ + 1]!))),
+            (y = e(Fs(min, max, gc[_ + 1]!))),
+            (g = e(Fs(max, min, gc[_ + 1]!))),
             (h = Math.max(h, Math.abs(y), Math.abs(g))),
             (f += jp[_ + 1]! * (y + g)),
-            (y = e(Fs(t, n, gc[_ + 2]!))),
-            (g = e(Fs(n, t, gc[_ + 2]!))),
+            (y = e(Fs(min, max, gc[_ + 2]!))),
+            (g = e(Fs(max, min, gc[_ + 2]!))),
             (h = Math.max(h, Math.abs(y), Math.abs(g))),
             (d += jp[_ + 2]! * (y + g)),
-            (y = e(Fs(t, n, gc[_ + 3]!))),
-            (g = e(Fs(n, t, gc[_ + 3]!))),
+            (y = e(Fs(min, max, gc[_ + 3]!))),
+            (g = e(Fs(max, min, gc[_ + 3]!))),
             (h = Math.max(h, Math.abs(y), Math.abs(g))),
             (f += jp[_ + 3]! * (y + g)))
     let b = p + m,
@@ -206,17 +210,18 @@ function KD(e: (arg0: number) => number, t: number, n: number) {
         T = x + f,
         E = Math.abs(d - b),
         S = Math.abs(f - x),
-        P = nP * (n - t) * T,
-        C = nP * Math.abs(n - t) * h * jp[0]!,
+        P = nP * (max - min) * T,
+        C = nP * Math.abs(max - min) * h * jp[0]!,
         M
     return (
         E === 0 ?
-            (M = nP * Math.abs(n - t) * S)
-        :   (M = nP * Math.abs(n - t) * S * (S / E) * (S / E)),
+            (M = nP * Math.abs(max - min) * S)
+        :   (M = nP * Math.abs(max - min) * S * (S / E) * (S / E)),
         (M = Math.max(M, C)),
-        Rb(t, n, P, M, C)
+        Rb(min, max, P, M, C)
     )
 }
+
 function nV(e: { value: number; error: number; minerror: number }[]) {
     let t = -1 / 0,
         n = -1 / 0,
@@ -230,57 +235,74 @@ function nV(e: { value: number; error: number; minerror: number }[]) {
     }
     return { maxerror: t, maxminerror: n, maxindex: r, totalvalue: o }
 }
+
 export function quad(
     f: (x: number) => number,
     min: number,
     max: number,
-    r = 32,
+    precision = 32,
 ): number {
+    // Propogate NaN endpoint
     if (isNaN(min) || isNaN(max)) return NaN
-    let o = 1
+
+    let signFlip = 1
     if (min > max) {
         let a = min
-        ;((min = max), (max = a), (o = -1))
+        ;((min = max), (max = a), (signFlip = -1))
     }
+
+    // If both endpoints are the same infinity, exit with NaN
     if (min === 1 / 0 && max === 1 / 0) return NaN
     if (min === -1 / 0 && max === -1 / 0) return NaN
-    if (min === -1 / 0 && max === 1 / 0)
+
+    // f(x) dx =>
+    // f(a/(1-a²)) * (1+a²) / (1+a)²(1-a)² da
+    if (min === -1 / 0 && max === 1 / 0) {
         return (
-            o
+            signFlip
             * quad(
                 (a: number) =>
                     (f(a / ((1 + a) * (1 - a))) * (1 + a * a))
                     / ((1 + a) * (1 + a) * (1 - a) * (1 - a)),
                 -1,
                 1,
-                r,
+                precision,
             )
         )
+    }
+
+    // f(x) dx
+    // => -f(max - a/(1-a)) / (1-a²)
     if (min === -1 / 0)
         return (
-            o
+            signFlip
             * quad(
                 (a: number) => -f(max - a / (1 - a)) / ((1 - a) * (1 - a)),
                 1,
                 0,
-                r,
+                precision,
             )
         )
+
+    // f(x) dx
+    // => f(min + a/(1-a)) / (1-a²)
     if (max === 1 / 0)
         return (
-            o
+            signFlip
             * quad(
                 (a: number) => f(min + a / (1 - a)) / ((1 - a) * (1 - a)),
                 0,
                 1,
-                r,
+                precision,
             )
         )
+
     let i = [KD(f, min, max)],
         s = nV(i)
+
     for (
         let a = 1;
-        a < r
+        a < precision
         && !(
             Math.abs(s.maxerror / s.totalvalue) <= 32 * eV
             || s.maxerror <= 32 * eV
@@ -299,7 +321,7 @@ export function quad(
     return (
         !isFinite(s.maxerror) || !isFinite(s.maxminerror) ? NaN
         : Math.abs(s.totalvalue) <= 10 * s.maxminerror ? 0
-        : o * s.totalvalue
+        : signFlip * s.totalvalue
     )
 }
 
