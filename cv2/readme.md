@@ -111,3 +111,10 @@ Eventually, we will also want segments, rays, angles, bisectors of all kinds
 (midpoint of segment, perpendicular bisector as plane, angle bisector as ray),
 transformations, and triangles (including area, perimeter, points, angles, and
 intersections).
+
+# Automatic Differentiation
+
+```
+d/dx int(f(x) dx | a(x)..b(x))
+==> b'(x) f(b(x)) - a'(x) f(a(x))
+```

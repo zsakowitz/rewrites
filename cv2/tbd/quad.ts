@@ -318,6 +318,7 @@ export function quad(
             l = HX(f, Fs(c.x2, c.x1, 0.125), Fs(c.x1, c.x2, 0.125))
         ;(i.push(KD(f, c.x1, l)), i.push(KD(f, l, c.x2)), (s = nV(i)))
     }
+    meow = i
     return (
         !isFinite(s.maxerror) || !isFinite(s.maxminerror) ? NaN
         : Math.abs(s.totalvalue) <= 10 * s.maxminerror ? 0
@@ -325,4 +326,17 @@ export function quad(
     )
 }
 
-console.log(quad((x) => 1 / (x * x), 0.1, Infinity))
+let meow
+let w = 0
+
+console.log(
+    quad(
+        (x) => {
+            w++
+            return 1 / (x * x)
+        },
+        1,
+        2,
+    ),
+)
+console.log(w, meow)
