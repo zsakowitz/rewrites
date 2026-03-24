@@ -1,10 +1,9 @@
 //! Integration method borrowed from Desmos
 
-var kX = 3.154019550531224,
+const kX = 3.154019550531224,
     KB = Math.pow(2, -13),
     Zp = KB * KB,
     eV = Zp * Zp,
-    JD = Zp,
     e1 = 32,
     gc: number[] = [],
     jp: number[] = []
@@ -159,12 +158,12 @@ function KD(e: (arg0: number) => number, t: number, n: number) {
         c: number | undefined,
         l: number | undefined
     if (isFinite(u) && !isFinite(i)) {
-        if (((c = tP(r, i, a, u, e)!), Math.abs((c - t) / (n - t)) > JD))
+        if (((c = tP(r, i, a, u, e)!), Math.abs((c - t) / (n - t)) > Zp))
             return Rb(t, n, NaN, NaN, NaN)
         ;((t = c), (i = e(t)))
     }
     if (isFinite(u) && !isFinite(s)) {
-        if (((l = tP(a, u, o, s, e)!), Math.abs((l - n) / (n - t)) > JD))
+        if (((l = tP(a, u, o, s, e)!), Math.abs((l - n) / (n - t)) > Zp))
             return Rb(t, n, NaN, NaN, NaN)
         ;((n = l), (s = e(n)))
     }
@@ -172,7 +171,7 @@ function KD(e: (arg0: number) => number, t: number, n: number) {
         if (
             ((c = tP(r, i, a, u, e)!),
             (l = tP(a, u, o, s, e)!),
-            Math.abs((l - c) / (n - t)) > JD)
+            Math.abs((l - c) / (n - t)) > Zp)
         )
             return Rb(t, n, NaN, NaN, NaN)
         u = 0.5 * (c + l)
