@@ -1,6 +1,6 @@
 //! Integration method borrowed from Desmos
 
-const kX = 3.154019550531224,
+let kX = 3.154019550531224,
     KB = Math.pow(2, -13),
     Zp = KB * KB,
     eV = Zp * Zp,
