@@ -16,7 +16,7 @@
         "strictFunctionTypes": true,
         "target": "ES2022",
         "verbatimModuleSyntax": true,
-        "moduleDetection": "force"
+        "moduleDetection": "force",
     },
-    "exclude": ["node_modules/**/*.ts", "node_modules/**/*.tsx", "dist"]
+    "exclude": ["node_modules/**/*.ts", "node_modules/**/*.tsx", "dist"],
 }
