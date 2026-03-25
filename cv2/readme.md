@@ -115,6 +115,15 @@ intersections).
 # Automatic Differentiation
 
 ```
-d/dx int(f(x) dx | a(x)..b(x))
-==> b'(x) f(b(x)) - a'(x) f(a(x))
+d/dx int(f(t) dt | a(t)..b(t))
+===> b'(x) f(b(x)) - a'(x) f(a(x))
+
+d/dx int(f(x,t) dt | a(x)..b(x))
+===> b'(x) f(x,b(x)) - a'(x) f(x,a(x)) + int(d/dx f(x,t) dt, a(x)..b(x))
+
+d/dx f g
+===> f' g + f g'
+
+d/dx f^g
+===> f^(g-1) (g f' + f (ln∘f) g')
 ```
