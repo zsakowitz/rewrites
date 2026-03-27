@@ -333,10 +333,10 @@ console.log(
     quad(
         (x) => {
             w++
-            return 1 / (x * x)
+            return Math.sin(x * x * x)
         },
-        1,
-        2,
+        -13,
+        27,
     ),
 )
 console.log(w, meow)
