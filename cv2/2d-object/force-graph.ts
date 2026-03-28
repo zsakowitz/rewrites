@@ -85,7 +85,7 @@ export class ForceGraph<
 
             ctx.font = `1px Symbola`
             const { width } = ctx.measureText(node.label)
-            ctx.font = `${tlo.sx / (1 + width)}px Symbola`
+            ctx.font = `${nodeSize / width}px Symbola`
             ctx.fillStyle = node.fill
             ctx.fillText(node.label, ox, oy + 1)
         }

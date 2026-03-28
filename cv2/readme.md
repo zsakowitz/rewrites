@@ -114,6 +114,8 @@ intersections).
 
 # Automatic Differentiation
 
+Some symbols derivatives for reference:
+
 ```
 d/dx int(f(t) dt | a(t)..b(t))
 ===> b'(x) f(b(x)) - a'(x) f(a(x))
@@ -126,4 +128,110 @@ d/dx f g
 
 d/dx f^g
 ===> f^(g-1) (g f' + f (ln∘f) g')
+```
+
+How do we do multiple derivatives? In theory, we can just take the derivative of
+a program, then do it again. Does this work in practice? There's no reason why
+it wouldn't...
+
+Say we have this base program.
+
+```
+01 Var x
+02 Pow 01 <const 4>
+```
+
+Now we differentiate it.
+
+```
+01 Var x
+02 Const 1
+03 Const 4
+04 Pow 01 <const 3>
+05 Mul 03 04
+06 Mul 02 05
+```
+
+And simplify.
+
+```
+01 Var x
+02 Const 4
+03 Pow 01 <const 3>
+04 Mul 02 03
+```
+
+# Language Operations
+
+Somewhat expansive list of standard operations.
+
+```
+i32.const <i32> :: -> i32
+i32.{neg,not} :: i32 -> i32
+i32.{add,sub,mul,div,rem,mod,and,or,xor} :: i32 i32 -> i32
+i32.{le,lt,ge,gt,eq,ne} :: i32 i32 -> bool
+i32.from_num :: num -> i32
+i32.from_bool :: bool -> i32
+
+num.const <rat/f64/inf/nan> :: -> num
+num.{add,sub,mul,div,rem,mod,pow} :: num num -> num
+num.{sin,sinh,asin,asinh,cos,cosh} :: num -> num
+num.{acos,acosh,tan,tanh,atan,atanh} :: num -> num
+num.{exp,log,exp10,log10,exp2,log2} :: num -> num
+num.{inv,isqrt,sqrt,square} :: num -> num
+num.{floor,ceil,trunc,round,fract,abs,sign} :: num -> num
+num.{le,lt,ge,gt,eq,ne} :: num num -> bool
+num.from_i32 :: i32 -> num
+num.from_bool :: bool -> num
+
+bool.const <bool> :: -> bool
+bool.{eq,ne,and,or,xor} :: bool bool -> bool
+bool.not :: bool -> bool
+
+local.get $x :: -> T
+local.set $x :: T ->
+
+struct.new $x :: T* -> U
+struct.get $x <n> :: U -> T
+
+select <T*> :: T* T* bool -> T*
+```
+
+Most of these are simple functions, so we should consider unifying them into a
+single represntation, like Desmos's NativeFunction.
+
+```
+i32.const <i32>
+num.const <num>
+bool.const <bool>
+
+call.native $name :: T* -> U*
+
+tuple.new $x :: T* -> U
+tuple.get $x <n> :: U -> T
+
+select <T*> :: T* T* bool -> T*
+```
+
+Native functions:
+
+```
+i32.{neg,not} :: i32 -> i32
+i32.{add,sub,mul,div,rem,mod,and,or,xor} :: i32 i32 -> i32
+i32.{le,lt,ge,gt,eq,ne} :: i32 i32 -> bool
+i32.from_num :: num -> i32
+i32.from_bool :: bool -> i32
+
+num.{add,sub,mul,div,rem,mod,pow} :: num num -> num
+num.{sin,sinh,asin,asinh,cos,cosh} :: num -> num
+num.{acos,acosh,tan,tanh,atan,atanh} :: num -> num
+num.{exp,log,exp10,log10,exp2,log2} :: num -> num
+num.{inv,isqrt,sqrt,square} :: num -> num
+num.{floor,ceil,trunc,round,fract,abs,sign} :: num -> num
+num.{le,lt,ge,gt,eq,ne} :: num num -> bool
+num.from_i32 :: i32 -> num
+num.from_bool :: bool -> num
+
+bool.{eq,ne,and,or,xor} :: bool bool -> bool
+bool.not :: bool -> bool
 ```
