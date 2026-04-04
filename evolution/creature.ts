@@ -9,6 +9,10 @@ export interface Creature {
     dx: number
     dy: number
 
+    // current random values
+    r1: number
+    r2: number
+
     genome: Genome
     brain: Brain
 }

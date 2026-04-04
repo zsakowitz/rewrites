@@ -1,17 +1,18 @@
-import { brainToString, type Props } from "./genome"
+import { brainToDigraph, type Props } from "./genome"
 import { SCALE, World } from "./world"
 
 const props: Props = {
     creatureCount: 1024,
-    genomeSize: 16,
+    genomeSize: 6,
     gen: 0,
     age: 0,
+    ageMax: 300,
     mutationChancePerGene: 0.01,
 
     sx: 128,
     sy: 128,
 
-    ncInternal: 4,
+    ncInternal: 1,
 }
 
 interface RestrictedCreature {
@@ -63,8 +64,6 @@ const CRITERIA: Record<string, (creature: RestrictedCreature) => number> = {
 let activeKey = Object.keys(CRITERIA)[0]!
 let activeVal = Object.values(CRITERIA)[0]!
 
-const MAX_AGE = 300
-
 const world = new World(props)
 world.cv = document.getElementById("world-cv") as HTMLCanvasElement
 world.label = document.getElementById("world-label")!
@@ -94,7 +93,7 @@ document.getElementById("btn-next")!.onclick = () => {
 }
 
 document.getElementById("btn-start")!.onclick = async () => {
-    for (let i = 0; i < MAX_AGE; i++) {
+    for (let i = 0; i < props.ageMax; i++) {
         world.step()
         world.render()
         await wait(1000 / 30)
@@ -105,11 +104,18 @@ document.getElementById("btn-run-1")!.onclick = async () => {
     world.preserve(activeVal)
     world.regenerate()
 
-    for (let i = 0; i < MAX_AGE; i++) {
+    for (let i = 0; i < props.ageMax; i++) {
         world.step()
         world.render()
         await wait(0)
     }
+}
+
+document.getElementById("btn-instant-100")!.onclick = () => {
+    console.time()
+    for (let i = 0; i < 100; i++) run()
+    console.timeEnd()
+    world.render()
 }
 
 document.getElementById("btn-kill")!.onclick = () => {
@@ -130,7 +136,7 @@ function run() {
     world.preserve(activeVal)
     world.regenerate()
 
-    for (let i = 0; i < MAX_AGE; i++) {
+    for (let i = 0; i < props.ageMax; i++) {
         world.step()
     }
 }
@@ -156,7 +162,7 @@ document.getElementById("btn-cycle-100")!.onclick = async () => {
 
 const brain = document.getElementById("creature-brain")!
 
-world.cv!.onpointermove = (ev) => {
+world.cv!.onpointermove = async (ev) => {
     const px = Math.floor((ev.offsetX / world.cv!.clientWidth) * world.props.sx)
     const py = Math.floor(
         (ev.offsetY / world.cv!.clientHeight) * world.props.sy,
@@ -167,15 +173,17 @@ world.cv!.onpointermove = (ev) => {
             undefined
         :   world.map[py * world.props.sx + px]!
 
-    if (world.highlightedCreature == undefined) {
+    if (world.highlightedCreature == null) {
         brain.textContent = "no selection"
     } else {
-        brain.textContent = brainToString(
+        const el = await brainToDigraph(
             world.creatures[world.highlightedCreature]!.brain,
         )
-    }
 
-    world.render()
+        while (brain.firstChild) brain.firstChild.remove()
+
+        brain.appendChild(el)
+    }
 }
 
 const s = document.getElementById("select-criterion") as HTMLSelectElement

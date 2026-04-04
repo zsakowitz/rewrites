@@ -64,6 +64,8 @@ export class World {
             dy: 0,
             genome,
             brain: brainFromGenome(genome, this.props),
+            r1: 0,
+            r2: 0,
         })
 
         this.map[py * this.props.sx + px] = this.creatures.length - 1
@@ -121,7 +123,10 @@ export class World {
     getSensor(creature: Creature, sensorIndex: number): number {
         switch (sensorIndex) {
             case 0:
-                return Math.random() * 2 - 1
+                return creature.r1
+
+            case 1:
+                return creature.r2
 
             case 1:
                 return (creature.px / this.props.sx) * 2 - 1
@@ -132,40 +137,45 @@ export class World {
             case 3:
                 return 1
 
+            case 4:
+                return (this.props.age / this.props.ageMax) * 2 - 1
+
             default:
                 return 0
         }
     }
 
     simulateCreature(self: Creature, index: number) {
+        self.r1 = Math.random() * 2 - 1
+        self.r2 = Math.random() * 2 - 1
+
         const nn = this.neurons
         nn.fill(0)
 
-        for (const {
-            srcIsSensor,
-            src,
-            dstIsAction,
-            dst,
-            weight,
-        } of self.brain) {
+        for (let i = 0; i < self.brain.length; i++) {
+            const { srcIsSensor, src, dstIsAction, dst, weight } =
+                self.brain[i]!
+
             const sourceValue =
                 srcIsSensor ?
                     this.getSensor(self, src)
-                :   Math.tanh(nn[NC_ACTION + src]!)
+                :   tanh(nn[NC_ACTION + src]!)
 
             const targetIndex = dstIsAction ? dst : dst + NC_ACTION
 
             nn[targetIndex]! += weight * sourceValue
         }
 
-        const actionMoveX = Math.tanh(nn[0]!)
-        const actionMoveY = Math.tanh(nn[1]!)
+        const actionMoveX = tanh(Math.max(0, nn[2]!) - Math.max(0, nn[0]!))
+        const actionMoveY = tanh(Math.max(0, nn[3]!) - Math.max(0, nn[1]!))
 
         const mx =
-            +(Math.random() < Math.abs(actionMoveX)) * Math.sign(actionMoveX)
+            actionMoveX
+            && +(Math.random() < Math.abs(actionMoveX)) * Math.sign(actionMoveX)
 
         const my =
-            +(Math.random() < Math.abs(actionMoveY)) * Math.sign(actionMoveY)
+            actionMoveY
+            && +(Math.random() < Math.abs(actionMoveY)) * Math.sign(actionMoveY)
 
         self.dx = mx
         self.dy = my
@@ -223,4 +233,10 @@ export class World {
             this.addCreature(childGenome)
         }
     }
+}
+
+function tanh(x: number): number {
+    if (x < -3) return -1
+    else if (x > 3) return 1
+    else return (x * (27 + x * x)) / (27 + 9 * x * x)
 }

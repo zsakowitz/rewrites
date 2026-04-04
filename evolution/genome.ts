@@ -1,19 +1,23 @@
 //! Based on https://www.youtube.com/watch?v=N3tRFayqVtk
 
-export const SENSORS = ["Rand", "Px  ", "Py  ", "1   "]
+import { instance, type Viz } from "@viz-js/viz"
+
+export const SENSORS = ["RndA", "RndB", "Px  ", "Py  ", "1   ", "Age ", "Nil "]
 const NC_SENSOR = SENSORS.length
+const NC_SENSOR_NOP = SENSORS.indexOf("Nil ")
 
 export const ACTIONS = [
-    "MvX ",
-    "MvY ",
-    "Nop ",
-    "Nop ",
+    "MvW ",
+    "MvN ",
+    "MvE ",
+    "MvS ",
     "Nop ",
     "Nop ",
     "Nop ",
     "Nop ",
 ]
 export const NC_ACTION = ACTIONS.length
+const NC_ACTION_NOP = ACTIONS.indexOf("Nop ")
 
 /**
  * A raw uninterpreted genome.
@@ -122,6 +126,7 @@ export interface Props {
     genomeSize: number
     gen: number
     age: number
+    ageMax: number
     mutationChancePerGene: number
 
     // world map size
@@ -140,25 +145,60 @@ export function brainFromGenome(genome: Genome, count: Props): Brain {
         const srcIsSensor = (el & 0x8000_0000) != 0
         const dstIsAction = (el & 0x0080_0000) != 0
 
+        const src =
+            ((el & 0x7f00_0000) >> 24)
+            % (srcIsSensor ? NC_SENSOR : count.ncInternal)
+
+        const dst =
+            ((el & 0x007f_0000) >> 16)
+            % (dstIsAction ? NC_ACTION : count.ncInternal)
+
+        const weight = (4 / 0x8000) * ((el & 0x0000_ffff) - 0x8000)
+
+        if (
+            weight == 0
+            || (srcIsSensor && src >= NC_SENSOR_NOP)
+            || (dstIsAction && dst >= NC_ACTION_NOP)
+        ) {
+            continue
+        }
+
         brain.push({
             srcIsSensor,
-            src:
-                ((el & 0x7f00_0000) >> 24)
-                % (srcIsSensor ? NC_SENSOR : count.ncInternal),
+            src,
             dstIsAction,
-            dst:
-                ((el & 0x007f_0000) >> 16)
-                % (dstIsAction ? NC_ACTION : count.ncInternal),
-            weight: (4 / 0x8000) * ((el & 0x0000_ffff) - 0x8000),
+            dst,
+            weight,
         })
     }
 
-    brain.sort((a, b) => +a.dstIsAction - +b.dstIsAction)
-    brain.sort((a, b) => +b.srcIsSensor - +a.srcIsSensor)
+    brain.sort(
+        (a, b) => (a.dstIsAction ? -1 : a.src) - (b.dstIsAction ? -1 : b.src),
+    )
+    brain.sort(
+        (a, b) => (a.srcIsSensor ? -1 : a.src) - (b.srcIsSensor ? -1 : b.src),
+    )
 
     return brain
 }
 
 export function brainToString(brain: Brain): string {
     return brain.map(brainInstToString).join("\n")
+}
+
+let i: Viz
+
+export async function brainToDigraph(brain: Brain) {
+    i ??= await instance()
+
+    return i.renderSVGElement(
+        "digraph {"
+            + brain
+                .map(
+                    (entry) =>
+                        `\n${entry.srcIsSensor ? SENSORS[entry.src] : "N" + entry.src} -> ${entry.dstIsAction ? ACTIONS[entry.dst] : "N" + entry.dst} [color="${entry.weight < 0 ? "red" : "green"}", penwidth="${Math.abs(entry.weight)}"]`,
+                )
+                .join("")
+            + "\n}",
+    )
 }
