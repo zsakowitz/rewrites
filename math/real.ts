@@ -80,5 +80,23 @@ export class Rat {
 }
 
 export class Real {
-    constructor(readonly f: (p: number) => Rat) {}
+    static of(x: bigint | Rat) {
+        if (x instanceof Rat) {
+            return new Real(() => x)
+        }
+
+        return new Real(() => new Rat(x, 1n))
+    }
+
+    constructor(
+        /**
+         * For all integer-valued `p >= 0`, `f(p) - 1/2^p <= this <= f(p) +
+         * 1/2^p`.
+         */
+        readonly f: (p: number) => Rat,
+    ) {}
+
+    toString() {
+        return this.f(20)
+    }
 }
