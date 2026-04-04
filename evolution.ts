@@ -1,13 +1,36 @@
-interface Creature {
-    px: number
-    py: number
-    genome: Genome
-    brain: Brain
+//! Based on https://www.youtube.com/watch?v=N3tRFayqVtk
+
+/**
+ * A raw uninterpreted genome.
+ *
+ * Each `u32` represents a source, target, and weight, as follows:
+ *
+ * - `u01` source kind (0 internal, 1 sensory)
+ * - `u07` source index (modulo number of sources)
+ * - `u01` target kind (0 internal, 1 action)
+ * - `u07` target index (modulo number of actions)
+ * - `u16` connection weight, interpreted as `[-4..4)`
+ */
+type Genome = Uint32Array
+
+function genomeRandom(size: number): Genome {
+    const genome = new Uint32Array(size)
+    crypto.getRandomValues(genome)
+    return genome
 }
 
-type Genome = Uint32Array // each u32 represents source(u8) target(u8) weight(u16)
+function genomeMutateInPlace(genome: Genome, mutationChancePerGene: number) {
+    for (let i = 0; i < genome.length; i++) {
+        if (Math.random() > mutationChancePerGene) {
+            continue
+        }
 
-interface Inst {
+        genome[i]! ^= 1 << Math.floor(Math.random() * 32)
+    }
+}
+
+/** An interpreted form of `Genome`, with all fields decomposed. */
+interface BrainInst {
     srcIsSensor: boolean
     src: number
 
@@ -17,7 +40,20 @@ interface Inst {
     weight: number
 }
 
-type Brain = Inst[]
+function brainInstToString(inst: BrainInst): string {
+    return (
+        (inst.srcIsSensor ? "S-" : "N-")
+        + inst.src.toString(16).padStart(2, "0")
+        + " "
+        + ((inst.dstIsAction ? "A-" : "N-")
+            + inst.dst.toString(16).padStart(2, "0"))
+        + " "
+        + (inst.weight > 0 ? "+" : "")
+        + inst.weight.toFixed(4)
+    )
+}
+
+type Brain = BrainInst[]
 
 interface NeuronCount {
     sensor: number
@@ -25,13 +61,7 @@ interface NeuronCount {
     action: number
 }
 
-function randomGenome(size: number): Genome {
-    const genome = new Uint32Array(size)
-    crypto.getRandomValues(genome)
-    return genome
-}
-
-function toBrain(genome: Genome, count: NeuronCount): Brain {
+function brainFromGenome(genome: Genome, count: NeuronCount): Brain {
     const brain: Brain = []
 
     for (let i = 0; i < genome.length; i++) {
@@ -58,29 +88,13 @@ function toBrain(genome: Genome, count: NeuronCount): Brain {
     return brain
 }
 
-function instToString(inst: Inst): string {
-    return (
-        (inst.srcIsSensor ? "S-" : "N-")
-        + inst.src.toString(16).padStart(2, "0")
-        + " "
-        + ((inst.dstIsAction ? "A-" : "N-")
-            + inst.dst.toString(16).padStart(2, "0"))
-        + " "
-        + (inst.weight > 0 ? "+" : "")
-        + inst.weight.toFixed(4)
-    )
-}
-
 function brainToString(brain: Brain): string {
-    return brain.map(instToString).join("\n")
+    return brain.map(brainInstToString).join("\n")
 }
 
-function mutate(genome: Genome, mutationChancePerGene: number) {
-    for (let i = 0; i < genome.length; i++) {
-        if (Math.random() > mutationChancePerGene) {
-            continue
-        }
-
-        genome[i]! ^= 1 << Math.floor(Math.random() * 32)
-    }
+interface Creature {
+    px: number
+    py: number
+    genome: Genome
+    brain: Brain
 }
