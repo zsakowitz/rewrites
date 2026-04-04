@@ -3,16 +3,16 @@ import { SCALE, World } from "./world"
 
 const props: Props = {
     creatureCount: 1024,
-    genomeSize: 6,
+    genomeSize: 16,
     gen: 0,
     age: 0,
     ageMax: 300,
-    mutationChancePerGene: 0.01,
+    mutationChancePerGene: 0.001,
 
     sx: 128,
     sy: 128,
 
-    ncInternal: 1,
+    ncInternal: 4,
 }
 
 interface RestrictedCreature {
@@ -184,6 +184,8 @@ world.cv!.onpointermove = async (ev) => {
 
         brain.appendChild(el)
     }
+
+    world.render()
 }
 
 const s = document.getElementById("select-criterion") as HTMLSelectElement

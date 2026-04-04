@@ -128,17 +128,17 @@ export class World {
             case 1:
                 return creature.r2
 
-            case 1:
-                return (creature.px / this.props.sx) * 2 - 1
-
             case 2:
-                return (creature.py / this.props.sy) * 2 - 1
+                return creature.px / this.props.sx
 
             case 3:
-                return 1
+                return creature.py / this.props.sy
 
             case 4:
-                return (this.props.age / this.props.ageMax) * 2 - 1
+                return this.props.age / this.props.ageMax
+
+            case 5:
+                return 1
 
             default:
                 return 0
@@ -146,11 +146,12 @@ export class World {
     }
 
     simulateCreature(self: Creature, index: number) {
-        self.r1 = Math.random() * 2 - 1
-        self.r2 = Math.random() * 2 - 1
+        self.r1 = Math.random()
+        self.r2 = Math.random()
 
         const nn = this.neurons
         nn.fill(0)
+        nn.fill(0.5, NC_ACTION)
 
         for (let i = 0; i < self.brain.length; i++) {
             const { srcIsSensor, src, dstIsAction, dst, weight } =
@@ -225,7 +226,10 @@ export class World {
         this.props.age = 0
 
         for (let i = 0; i < this.props.creatureCount; i++) {
-            const parentIndex = Math.floor(Math.random() * parents.length)
+            const parentIndex =
+                i < parents.length ?
+                    i
+                :   Math.floor(Math.random() * parents.length)
 
             const childGenome = parents[parentIndex]!.genome.slice()
             genomeMutateInPlace(childGenome, this.props.mutationChancePerGene)

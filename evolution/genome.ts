@@ -2,9 +2,18 @@
 
 import { instance, type Viz } from "@viz-js/viz"
 
-export const SENSORS = ["RndA", "RndB", "Px  ", "Py  ", "1   ", "Age ", "Nil "]
+export const SENSORS = [
+    "RndA",
+    "RndB",
+    "Px  ",
+    "Py  ",
+    "Age ",
+    "Uni1 ",
+    "Nop ",
+    "Nop ",
+]
 const NC_SENSOR = SENSORS.length
-const NC_SENSOR_NOP = SENSORS.indexOf("Nil ")
+const NC_SENSOR_NOP = SENSORS.indexOf("Nop ")
 
 export const ACTIONS = [
     "MvW ",
@@ -43,11 +52,9 @@ export function genomeMutateInPlace(
     mutationChancePerGene: number,
 ) {
     for (let i = 0; i < genome.length; i++) {
-        if (Math.random() > mutationChancePerGene) {
-            continue
+        if (Math.random() < mutationChancePerGene) {
+            genome[i]! ^= 1 << Math.floor(Math.random() * 32)
         }
-
-        genome[i]! ^= 1 << Math.floor(Math.random() * 32)
     }
 }
 
@@ -179,6 +186,10 @@ export function brainFromGenome(genome: Genome, count: Props): Brain {
         (a, b) => (a.srcIsSensor ? -1 : a.src) - (b.srcIsSensor ? -1 : b.src),
     )
 
+    while (brain.length && !brain.at(-1)!.dstIsAction) {
+        brain.pop()
+    }
+
     return brain
 }
 
@@ -195,8 +206,8 @@ export async function brainToDigraph(brain: Brain) {
         "digraph {"
             + brain
                 .map(
-                    (entry) =>
-                        `\n${entry.srcIsSensor ? SENSORS[entry.src] : "N" + entry.src} -> ${entry.dstIsAction ? ACTIONS[entry.dst] : "N" + entry.dst} [color="${entry.weight < 0 ? "red" : "green"}", penwidth="${Math.abs(entry.weight)}"]`,
+                    (entry, i) =>
+                        `\n${entry.srcIsSensor ? SENSORS[entry.src] : "N" + entry.src} -> ${entry.dstIsAction ? ACTIONS[entry.dst] : "N" + entry.dst} [color="${entry.weight < 0 ? "red" : "green"}", penwidth="${Math.abs(entry.weight)}", label="${i}"]`,
                 )
                 .join("")
             + "\n}",
