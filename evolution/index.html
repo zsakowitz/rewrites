@@ -4,13 +4,16 @@
 <div id="main">
     <canvas id="world-cv"></canvas>
     <div id="main-btn">
-        <p id="world-label"></p>
+        <pre id="world-label"></pre>
         <button id="btn-next">step</button>
         <button id="btn-start">start</button>
         <button id="btn-start-quick">start (fast)</button>
-        <button id="btn-kill-left">kill left side</button>
-        <button id="btn-kill-right">kill right side</button>
+        <button id="btn-kill">execute survival criterion</button>
         <button id="btn-reproduce">reproduce</button>
+        <button id="btn-cycle-1">skip 1</button>
+        <button id="btn-cycle-10">skip 10x</button>
+        <button id="btn-cycle-100">skip 100x</button>
+        <pre id="creature-brain"></pre>
     </div>
 </div>
 
@@ -46,17 +49,16 @@
         gap: 1rem;
     }
 
-    #world-label {
-        margin: 0;
-        color: white;
-        font-family: monospace;
-        margin-bottom: 0.5rem;
-    }
-
     #main-btn {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+
+        pre {
+            margin: 0;
+            color: white;
+            font-family: monospace;
+        }
 
         button {
             padding: 0.5rem 0.75rem;

@@ -4,6 +4,7 @@ import {
     genomeColor,
     genomeMutateInPlace,
     genomeRandom,
+    NC_ACTION,
     type Genome,
     type Props,
 } from "./genome"
@@ -26,9 +27,7 @@ export class World {
             this.addCreature(genomeRandom(props.genomeSize))
         }
 
-        this.neurons = new Float64Array(
-            this.props.ncInternal + this.props.ncAction,
-        )
+        this.neurons = new Float64Array(this.props.ncInternal + NC_ACTION)
     }
 
     readonly map: Uint16Array
@@ -38,6 +37,7 @@ export class World {
     cv: HTMLCanvasElement | undefined
     ctx: CanvasRenderingContext2D | undefined
     label: HTMLElement | undefined
+    highlightedCreature: number | undefined
 
     getEmptyPos(): [number, number] {
         for (let i = 0; i < 100; i++) {
@@ -94,6 +94,24 @@ export class World {
         const label = (this.label ??= document.createElement("p"))
 
         label.textContent = `gen ${this.props.gen} / age ${(this.props.age + "").padStart(4, "0")}`
+
+        if (this.highlightedCreature != undefined) {
+            const el = this.creatures[this.highlightedCreature]
+            if (!el) return
+
+            ctx.fillStyle = genomeColor(el.genome)
+            ctx.beginPath()
+            ctx.ellipse(
+                el.px * SCALE + SCALE / 2,
+                el.py * SCALE + SCALE / 2,
+                SCALE,
+                SCALE,
+                0,
+                0,
+                2 * Math.PI,
+            )
+            ctx.fill()
+        }
     }
 
     getSensor(creature: Creature, sensorIndex: number): number {
@@ -102,13 +120,13 @@ export class World {
                 return Math.random() * 2 - 1
 
             case 1:
-                return -1
+                return (creature.px / this.props.sx) * 2 - 1
 
             case 2:
-                return +1
+                return (creature.py / this.props.sy) * 2 - 1
 
             case 3:
-                return 0
+                return 1
 
             default:
                 return 0
@@ -129,9 +147,9 @@ export class World {
             const sourceValue =
                 srcIsSensor ?
                     this.getSensor(self, src)
-                :   Math.tanh(nn[this.props.ncAction + src]!)
+                :   Math.tanh(nn[NC_ACTION + src]!)
 
-            const targetIndex = dstIsAction ? dst : dst + this.props.ncAction
+            const targetIndex = dstIsAction ? dst : dst + NC_ACTION
 
             nn[targetIndex]! += weight * sourceValue
         }
@@ -169,11 +187,11 @@ export class World {
         this.props.age++
     }
 
-    preserve(f: (creature: Creature) => boolean) {
+    preserve(f: (creature: Creature) => boolean | number) {
         const next: Creature[] = []
 
         this.creatures.forEach((creature) => {
-            if (f(creature)) {
+            if (Math.random() < +f(creature)) {
                 next.push(creature)
                 return
             }

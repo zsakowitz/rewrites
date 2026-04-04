@@ -1,5 +1,11 @@
 //! Based on https://www.youtube.com/watch?v=N3tRFayqVtk
 
+export const SENSORS = ["Rand", "Px  ", "Py  ", "1   "]
+const NC_SENSOR = SENSORS.length
+
+export const ACTIONS = ["MvX ", "MvY ", "Nop ", "Nop "]
+export const NC_ACTION = ACTIONS.length
+
 /**
  * A raw uninterpreted genome.
  *
@@ -87,11 +93,13 @@ export interface BrainInst {
 
 export function brainInstToString(inst: BrainInst): string {
     return (
-        (inst.srcIsSensor ? "S-" : "N-")
-        + inst.src.toString(16).padStart(2, "0")
+        (inst.srcIsSensor ?
+            SENSORS[inst.src]
+        :   "N-" + inst.src.toString(16).padStart(2, "0"))
         + " "
-        + ((inst.dstIsAction ? "A-" : "N-")
-            + inst.dst.toString(16).padStart(2, "0"))
+        + (inst.dstIsAction ?
+            ACTIONS[inst.dst]
+        :   "N-" + inst.dst.toString(16).padStart(2, "0"))
         + " "
         + (inst.weight > 0 ? "+" : "")
         + inst.weight.toFixed(4)
@@ -111,10 +119,8 @@ export interface Props {
     sx: number
     sy: number
 
-    // number of each neuron available
-    ncSensor: 4
+    // number of available internal neurons
     ncInternal: number
-    ncAction: 4
 }
 
 export function brainFromGenome(genome: Genome, count: Props): Brain {
@@ -129,11 +135,11 @@ export function brainFromGenome(genome: Genome, count: Props): Brain {
             srcIsSensor,
             src:
                 ((el & 0x7f00_0000) >> 24)
-                % (srcIsSensor ? count.ncSensor : count.ncInternal),
+                % (srcIsSensor ? NC_SENSOR : count.ncInternal),
             dstIsAction,
             dst:
                 ((el & 0x007f_0000) >> 16)
-                % (dstIsAction ? count.ncAction : count.ncInternal),
+                % (dstIsAction ? NC_ACTION : count.ncInternal),
             weight: (4 / 0x8000) * ((el & 0x0000_ffff) - 0x8000),
         })
     }
