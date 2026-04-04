@@ -3,7 +3,16 @@
 export const SENSORS = ["Rand", "Px  ", "Py  ", "1   "]
 const NC_SENSOR = SENSORS.length
 
-export const ACTIONS = ["MvX ", "MvY ", "Nop ", "Nop "]
+export const ACTIONS = [
+    "MvX ",
+    "MvY ",
+    "Nop ",
+    "Nop ",
+    "Nop ",
+    "Nop ",
+    "Nop ",
+    "Nop ",
+]
 export const NC_ACTION = ACTIONS.length
 
 /**

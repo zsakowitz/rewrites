@@ -1,13 +1,12 @@
-import type { Creature } from "./creature"
 import { brainToString, type Props } from "./genome"
-import { World } from "./world"
+import { SCALE, World } from "./world"
 
 const props: Props = {
     creatureCount: 1024,
-    genomeSize: 8,
+    genomeSize: 16,
     gen: 0,
     age: 0,
-    mutationChancePerGene: 0.001,
+    mutationChancePerGene: 0.01,
 
     sx: 128,
     sy: 128,
@@ -15,9 +14,78 @@ const props: Props = {
     ncInternal: 4,
 }
 
+interface RestrictedCreature {
+    px: number
+    py: number
+}
+
+const CRITERIA: Record<string, (creature: RestrictedCreature) => number> = {
+    __proto__: null!,
+    corners(c) {
+        return (
+                Math.hypot(c.px, c.py) < 20
+                    || Math.hypot(props.sx - c.px, c.py) < 20
+                    || Math.hypot(c.px, props.sy - c.py) < 20
+                    || Math.hypot(props.sx - c.px, props.sy - c.py) < 20
+            ) ?
+                1
+            :   0
+    },
+    "right half survives"(c) {
+        return c.px > world.props.sx / 2 ? 1 : 0
+    },
+    "right half preferred"(c) {
+        return c.px / world.props.sx
+    },
+    "circle of radius 30 at center"(c) {
+        return (
+                Math.hypot(c.px - world.props.sx / 2, c.py - world.props.sy / 2)
+                    < 30
+            ) ?
+                1
+            :   0
+    },
+    "circle of radius 30 at slight left"(c) {
+        return (
+                Math.hypot(
+                    c.px - world.props.sx / 2 - 20,
+                    c.py - world.props.sy / 2,
+                ) < 30
+            ) ?
+                1
+            :   0
+    },
+    "sine wave"(c) {
+        return Math.sin(c.px / 20) * Math.cos(c.py / 20)
+    },
+}
+
+let activeKey = Object.keys(CRITERIA)[0]!
+let activeVal = Object.values(CRITERIA)[0]!
+
+const MAX_AGE = 300
+
 const world = new World(props)
 world.cv = document.getElementById("world-cv") as HTMLCanvasElement
 world.label = document.getElementById("world-label")!
+world.prerender = () => {
+    const SIZE = 1
+    for (let px = 0; px < world.props.sx; px += SIZE) {
+        for (let py = 0; py < world.props.sy; py += SIZE) {
+            const rc: RestrictedCreature = { px, py }
+            const pc =
+                255 - Math.round(Math.min(1, Math.max(0, activeVal(rc))) * 64)
+            const red = pc.toString(16).padStart(2, "0")
+            world.ctx!.fillStyle = "#" + "ffff" + red
+            world.ctx!.fillRect(
+                px * SCALE,
+                py * SCALE,
+                SIZE * SCALE,
+                SIZE * SCALE,
+            )
+        }
+    }
+}
 world.render()
 
 document.getElementById("btn-next")!.onclick = () => {
@@ -33,7 +101,10 @@ document.getElementById("btn-start")!.onclick = async () => {
     }
 }
 
-document.getElementById("btn-start-quick")!.onclick = async () => {
+document.getElementById("btn-run-1")!.onclick = async () => {
+    world.preserve(activeVal)
+    world.regenerate()
+
     for (let i = 0; i < MAX_AGE; i++) {
         world.step()
         world.render()
@@ -42,7 +113,7 @@ document.getElementById("btn-start-quick")!.onclick = async () => {
 }
 
 document.getElementById("btn-kill")!.onclick = () => {
-    world.preserve(survivalProbability)
+    world.preserve(activeVal)
     world.render()
 }
 
@@ -56,7 +127,7 @@ export function wait(n: number) {
 }
 
 function run() {
-    world.preserve(survivalProbability)
+    world.preserve(activeVal)
     world.regenerate()
 
     for (let i = 0; i < MAX_AGE; i++) {
@@ -78,7 +149,7 @@ document.getElementById("btn-cycle-100")!.onclick = async () => {
     for (let i = 0; i < 100; i++) {
         run()
         world.render()
-        await wait(0)
+        await wait(1000 / 10)
     }
     world.render()
 }
@@ -107,8 +178,13 @@ world.cv!.onpointermove = (ev) => {
     world.render()
 }
 
-function survivalProbability(creature: Creature): number {
-    return creature.px / world.props.sx
+const s = document.getElementById("select-criterion") as HTMLSelectElement
+
+for (const k of Object.keys(CRITERIA)) {
+    s.appendChild(new Option(k, k, k == activeKey))
 }
 
-const MAX_AGE = 300
+s.oninput = s.onchange = () => {
+    activeVal = CRITERIA[s.value]!
+    world.render()
+}

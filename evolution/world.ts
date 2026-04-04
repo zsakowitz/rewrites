@@ -11,6 +11,8 @@ import {
 
 const MAX = 0xffff
 
+export const SCALE = 12
+
 export class World {
     constructor(readonly props: Props) {
         const { sx, sy, creatureCount } = props
@@ -67,14 +69,16 @@ export class World {
         this.map[py * this.props.sx + px] = this.creatures.length - 1
     }
 
-    render() {
-        const SCALE = 12
+    prerender?(): void
 
+    render() {
         const cv = (this.cv ??= document.createElement("canvas"))
         const ctx = (this.ctx ??= this.cv.getContext("2d")!)
 
         cv.width = this.props.sx * SCALE
         cv.height = this.props.sy * SCALE
+
+        this.prerender?.()
 
         for (const el of this.creatures) {
             ctx.fillStyle = genomeColor(el.genome)
