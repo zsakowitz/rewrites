@@ -1,0 +1,78 @@
+<!doctype html>
+<script src="./index.ts" type="module"></script>
+
+<div id="main">
+    <canvas id="world-cv"></canvas>
+    <div id="main-btn">
+        <p id="world-label"></p>
+        <button id="btn-next">step</button>
+        <button id="btn-start">start</button>
+        <button id="btn-start-quick">start (fast)</button>
+        <button id="btn-kill-left">kill left side</button>
+        <button id="btn-kill-right">kill right side</button>
+        <button id="btn-reproduce">reproduce</button>
+    </div>
+</div>
+
+<style>
+    html {
+        background-color: #234;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+    }
+
+    body {
+        flex: 1;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+    }
+
+    #world-cv {
+        width: 768px;
+        height: 768px;
+        background-color: white;
+        filter: invert(1);
+        border-radius: 8px;
+    }
+
+    #main {
+        display: grid;
+        grid-template-columns: 768px 16rem;
+        height: 768px;
+        margin: auto;
+        gap: 1rem;
+    }
+
+    #world-label {
+        margin: 0;
+        color: white;
+        font-family: monospace;
+        margin-bottom: 0.5rem;
+    }
+
+    #main-btn {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        button {
+            padding: 0.5rem 0.75rem;
+            font-size: 100%;
+            background-color: black;
+            border: 0;
+            color: white;
+            border-radius: 8px;
+
+            &:hover {
+                background-color: #111;
+            }
+
+            &:active {
+                background-color: #222;
+            }
+        }
+    }
+</style>
