@@ -236,7 +236,7 @@ function nV(e: { value: number; error: number; minerror: number }[]) {
     return { maxerror: t, maxminerror: n, maxindex: r, totalvalue: o }
 }
 
-export function quad(
+export function quadDcg(
     f: (x: number) => number,
     min: number,
     max: number,
@@ -260,7 +260,7 @@ export function quad(
     if (min === -1 / 0 && max === 1 / 0) {
         return (
             signFlip
-            * quad(
+            * quadDcg(
                 (a: number) =>
                     (f(a / ((1 + a) * (1 - a))) * (1 + a * a))
                     / ((1 + a) * (1 + a) * (1 - a) * (1 - a)),
@@ -276,7 +276,7 @@ export function quad(
     if (min === -1 / 0)
         return (
             signFlip
-            * quad(
+            * quadDcg(
                 (a: number) => -f(max - a / (1 - a)) / ((1 - a) * (1 - a)),
                 1,
                 0,
@@ -289,7 +289,7 @@ export function quad(
     if (max === 1 / 0)
         return (
             signFlip
-            * quad(
+            * quadDcg(
                 (a: number) => f(min + a / (1 - a)) / ((1 - a) * (1 - a)),
                 0,
                 1,
@@ -330,7 +330,7 @@ let meow
 let w = 0
 
 console.log(
-    quad(
+    quadDcg(
         (x) => {
             w++
             return Math.sin(x * x * x)
