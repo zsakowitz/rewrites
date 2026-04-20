@@ -11,10 +11,15 @@ const iter1 = (
             let [, dir, , ext] = file.name!.match(
                 /^((?:[^/]*[/])*)([^/]+?)(\.\w+)$/,
             ) ?? ["", file.name, ""]
-            const nextName = `${dir}p${id}-${crypto.randomUUID()}${ext}`
+            const nextName = `${dir}p${id}-${crypto.randomUUID()}${ext?.toLowerCase()}`
             await rename(file.name!, nextName)
             await utimes(nextName, stat.birthtime, stat.birthtime)
-            return { dir, ext, path: nextName, time: stat.birthtime }
+            return {
+                dir,
+                ext: ext?.toLowerCase(),
+                path: nextName,
+                time: stat.birthtime,
+            }
         }),
     )
 ).filter((x) => x != null)
