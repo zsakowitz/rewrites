@@ -13,7 +13,7 @@ async function get(
 
     if (entries.every((x) => x.isFile())) {
         return [
-            `\n    <li><span>${entries.length}</span> <span>${encode(self)}</span></li>`,
+            `\n    <li data-count='${entries.length}'><span>${entries.length}</span> <span>${encode(self)}</span></li>`,
             entries.length,
         ]
     }
@@ -85,6 +85,10 @@ const body = `
         > :nth-child(3) {
             padding-left: 4rem;
         }
+
+        span span {
+            filter: blur(4px);
+        }
     }
 
     ul ul {
@@ -93,6 +97,24 @@ const body = `
 </style>
 <ul id="main">${items[0]}
 </ul>
+<script>
+    let [count, blurred] = location.hash.slice(1).split(",")
+    if (!blurred) blurred = count, count = ""
+
+    if (count) {
+        Array.from(main.getElementsByTagName("li"))
+            .filter(x => x.dataset.count && +x.dataset.count <= +count)
+            .forEach(x => x.remove())
+    }
+
+    if (blurred) {
+        const regex = new RegExp(blurred, "g")
+        console.log(regex)
+        const html =
+            main.innerHTML.replaceAll(regex, "<span class='blur'>%%%</span>")
+        main.setHTML(html)
+    }
+</script>
 `
 
 console.log(body)
