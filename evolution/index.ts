@@ -3,7 +3,7 @@ import { SCALE, World } from "./world"
 
 const props: Props = {
     creatureCount: 1024,
-    genomeSize: 16,
+    genomeSize: 6,
     gen: 0,
     age: 0,
     ageMax: 300,
