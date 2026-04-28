@@ -39,7 +39,6 @@ export type Score = number & { __type: "score" }
 
 const SCORE_FILTER = 0x3
 const SCORE_WIDTH = 2 // bit-width of a single score-letter
-const SCORE_YELLOW = 0b01
 const SCORE_GREEN = 0b10
 
 // Adding a cache made this function significantly slower, so we won't add one.

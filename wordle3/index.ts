@@ -56,7 +56,12 @@ function logGuessesPerWord(possible: Set, max = 6) {
     }
 }
 
-function bestGuessFor(possible: Set): [guess: Word, maxDepth: number] {
+const now = Date.now()
+
+function bestGuessFor(
+    possible: Set,
+    level: number,
+): [guess: Word, maxDepth: number] {
     if (possible.length == 1) {
         return [possible[0]!, 0]
     }
@@ -66,6 +71,20 @@ function bestGuessFor(possible: Set): [guess: Word, maxDepth: number] {
 
     outer: for (let i = 0; i < possible.length; i++) {
         const guess = possible[i]!
+
+        if (level == 0) {
+            console.log(
+                "    ".repeat(level)
+                    + wordToString(guess)
+                    + " "
+                    + wordToString(minGuess)
+                    + " "
+                    + minMaxDepth
+                    + " "
+                    + (Date.now() - now),
+            )
+        }
+
         let maxDepth = 0
 
         for (let j = 0; j < possible.length; j++) {
@@ -82,7 +101,7 @@ function bestGuessFor(possible: Set): [guess: Word, maxDepth: number] {
             // redundant guess; don't check it
             if (remaining.length == possible.length) continue
 
-            const depth = 1 + bestGuessFor(remaining)[1]
+            const depth = 1 + bestGuessFor(remaining, level + 1)[1]
             if (depth >= minMaxDepth) continue outer
             if (depth > maxDepth) maxDepth = depth
         }
@@ -95,11 +114,17 @@ function bestGuessFor(possible: Set): [guess: Word, maxDepth: number] {
 }
 
 function strat(possible: Set): Word {
-    return bestGuessFor(possible)[0]
+    return bestGuessFor(possible, 0)[0]
 }
 
-for (let i = 0; i < 400; i++) {
-    const now = performance.now()
-    strat(SOLUTIONS.slice(0, i))
-    console.log(`${i}\t${performance.now() - now}`)
-}
+// for (let i = 720; i < 2300; i += 20) {
+//     const now = performance.now()
+//     const word = strat(SOLUTIONS.slice(0, i))
+//     console.log(`${i}\t${performance.now() - now}`)
+//     console.error(wordToString(word))
+// }
+
+console.time()
+bestGuessFor(SOLUTIONS, 0)
+console.timeEnd()
+// (400,1.8),(500,4.76),(600,11.79),(700,36.91),(800,65.03),(900,110),(1100,)
