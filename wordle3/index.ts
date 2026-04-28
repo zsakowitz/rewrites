@@ -28,23 +28,20 @@ SOLUTIONS.forEach((guess1, i) => {
     const works = SOLUTIONS.every((answer) => {
         const score1 = check(answer, guess1)
         const works1 = SOLUTIONS.filter((word) => check(word, guess1) == score1)
-        return (
-            works1.some((guess2) => {
-                const score2 = check(answer, guess2)
-                return (
-                    works1.filter((word) => check(word, guess2) == score2)
-                        .length <= 1
-                )
-            })
-            || SOLUTIONS.some((guess2) => {
-                if (works1.includes(guess2)) return false
-                const score2 = check(answer, guess2)
-                return (
-                    works1.filter((word) => check(word, guess2) == score2)
-                        .length <= 1
-                )
-            })
-        )
+
+        return works1.some((guess2) => {
+            const score2 = check(answer, guess2)
+
+            let total = 0
+            for (let i = 0; i < works1.length; i++) {
+                if (check(works1[i]!, guess2) == score2) {
+                    total++
+                    if (total == 2) return false
+                }
+            }
+
+            return true
+        })
     })
 
     const elapsed = Date.now() - now
