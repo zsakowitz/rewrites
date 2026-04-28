@@ -13,9 +13,10 @@ const SOLUTIONS: Set = shuffle(solutions).map(wordFromString)
 // can see progress in real-time. Also outputs the estimated time to completion,
 // in seconds, for each line.
 function logGuessesPerWord(possible: Set, max = 6) {
+    const start = Date.now()
     const firstGuess = strat(possible)
     console.log(
-        `/* decided ${JSON.stringify(wordToString(firstGuess))} as first guess */`,
+        `/* decided ${JSON.stringify(wordToString(firstGuess))} as first guess (${Date.now() - start}ms) */`,
     )
 
     const initial = Date.now()
@@ -60,35 +61,45 @@ function bestGuessFor(possible: Set): [guess: Word, maxDepth: number] {
         return [possible[0]!, 0]
     }
 
-    return possible
-        .map((guess): [Word, number] => {
-            const maxDepth = possible
-                .map((solution): number => {
-                    const score = check(solution, guess)
-                    const remaining = possible.filter(
-                        (x) => check(x, guess) == score,
-                    )
-                    if (remaining.length == possible.length) {
-                        return 0
-                    }
-                    return 1 + bestGuessFor(remaining)[1]
-                })
-                .reduce((a, b) => Math.max(a, b), 0)
+    let minGuess = possible[0]!
+    let minMaxDepth = Infinity
 
-            return [guess, maxDepth]
-        })
-        .reduce((a, b) => (a[1] < b[1] ? a : b))
+    for (const guess of possible) {
+        const maxDepth = possible
+            .map((solution): number => {
+                const score = check(solution, guess)
+                const remaining = possible.filter(
+                    (x) => check(x, guess) == score,
+                )
+                if (remaining.length == possible.length) {
+                    return 0
+                }
+                return 1 + bestGuessFor(remaining)[1]
+            })
+            .reduce((a, b) => Math.max(a, b), 0)
+
+        if (maxDepth < minMaxDepth) {
+            minGuess = guess
+            minMaxDepth = maxDepth
+        }
+    }
+
+    return [minGuess, minMaxDepth]
 }
 
 function strat(possible: Set): Word {
     return bestGuessFor(possible)[0]
 }
 
-while (true) {
-    const n = Math.random() * 120 + 10 + ""
-    console.time(n)
-    logGuessesPerWord(SOLUTIONS.slice(0, +n))
-    console.timeEnd(n)
-}
+// while (true) {
+// const n = Math.random() * 120 + 10 + ""
+// console.time(n)
+// logGuessesPerWord(SOLUTIONS.slice(0, +n))
+// console.timeEnd(n)
+// }
 
 // (20,12),(50,370),(70,3090),(70,2190),(70,1067),(100,18340),(100,13110),(100,13390),(20,7),(20,7),(20,7),(50,239),(50,118),(120,36240),(125,32140),(95,19630),(118,87700),(66,1159),(25,4),(55,253),(67,1299),(13,0),(38,32),(60,499),(13,0),(92,21160),(123,139180),(56,329),(80,13640),(73,2880),(15,0),(97,28060),(122,119040),(29,10)
+
+console.time()
+logGuessesPerWord(SOLUTIONS.slice(0, 30))
+console.timeEnd()
