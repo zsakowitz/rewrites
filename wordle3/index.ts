@@ -1,3 +1,17 @@
+// We write our problem in terms of dependent type theory.
+//
+// Let `Word` be the type of words.
+//
+// Let `Score` be the type of scores.
+//
+// Let `S : List Word` be the list of all possible words.
+//
+// Let `check : (guess : Word) -> (answer : Word) -> Score` return the score
+// when the first word is a guess and the second word is the correct option.
+//
+// Let `filter : (possible : List Word) -> (guess : Word) -> (answer : Word)
+// -> List Word` return the largest subset of `possible` where
+
 import "../lib"
 import { solutions } from "./data"
 import { check, wordFromString, type Score, type Word } from "./score"
