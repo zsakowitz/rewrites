@@ -5,19 +5,27 @@ export type Word = number & { __type: "word" }
 
 const LETTER_FILTER = 0x3f
 const LETTER_WIDTH = 6 // bit-width of a single letter
-const WORD_LENGTH = 5
+export const WORD_LENGTH = 5
 const LOWERCASE_A = 97
 
-export function asWord(word: string): Word {
+export function wordFromString(word: string): Word {
     let ret = 0
 
-    ret |= (word.charCodeAt(0) - LOWERCASE_A) << (LETTER_WIDTH * 0)
-    ret |= (word.charCodeAt(1) - LOWERCASE_A) << (LETTER_WIDTH * 1)
-    ret |= (word.charCodeAt(2) - LOWERCASE_A) << (LETTER_WIDTH * 2)
-    ret |= (word.charCodeAt(3) - LOWERCASE_A) << (LETTER_WIDTH * 3)
-    ret |= (word.charCodeAt(4) - LOWERCASE_A) << (LETTER_WIDTH * 4)
+    for (let i = 0; i < WORD_LENGTH; i++) {
+        ret |= (word.charCodeAt(i) - LOWERCASE_A) << (LETTER_WIDTH * i)
+    }
 
     return ret as Word
+}
+
+export function wordToString(word: Word): string {
+    let ret = ""
+
+    for (let i = 0; i < WORD_LENGTH; i++) {
+        ret += String.fromCharCode(LOWERCASE_A + letterAt(word, i))
+    }
+
+    return ret
 }
 
 // Expects `0 <= index < WORD_LENGTH`.
@@ -34,15 +42,15 @@ const SCORE_WIDTH = 2 // bit-width of a single score-letter
 const SCORE_YELLOW = 0b01
 const SCORE_GREEN = 0b10
 
+// Adding a cache made this function significantly slower, so we won't add one.
 export function check(solution: Word, guess: Word): Score {
     let usedGuess = 0 // 5-bit word; a bit is set once its corresponding letter in the guess is used
     let usedWord = 0 // 5-bit word; a bit is set once its corresponding letter in the word is matched
-
     let score = 0
 
     // filter green letters first
     for (let i = 0; i < WORD_LENGTH; i++) {
-        if (letterAt(solution, i) == letterAt(guess, i)) {
+        if (letterAt(solution, i) === letterAt(guess, i)) {
             score |= SCORE_GREEN << (SCORE_WIDTH * i)
             usedGuess |= 1 << i
             usedWord |= 1 << i
@@ -51,18 +59,15 @@ export function check(solution: Word, guess: Word): Score {
 
     // find yellow letters
     for (let g = 0; g < WORD_LENGTH; g++) {
-        // if this guess letter was already used for a green, skip it
-        if (usedGuess & (1 << g)) {
-            continue
-        }
+        if (usedGuess & (1 << g)) continue
 
         for (let s = 0; s < WORD_LENGTH; s++) {
-            if (usedWord & (1 << s)) {
-                continue
-            }
+            const works =
+                (usedWord & (1 << s)) === 0
+                && letterAt(solution, s) === letterAt(guess, g)
 
-            if (letterAt(solution, s) == letterAt(guess, g)) {
-                score |= SCORE_YELLOW << (SCORE_WIDTH * g)
+            if (works) {
+                score |= 1 << (SCORE_WIDTH * g)
                 usedGuess |= 1 << g
                 usedWord |= 1 << s
             }
@@ -106,7 +111,9 @@ const failed = tests
     .filter((x) => x)
     .map((x) => {
         const [solution, guess, expected] = x.split(" ")
-        const actual = scoreToString(check(asWord(solution!), asWord(guess!)))
+        const actual = scoreToString(
+            check(wordFromString(solution!), wordFromString(guess!)),
+        )
         if (expected != actual) {
             console.log("❌ " + x + " (returned " + actual + ")")
         }
