@@ -34,6 +34,12 @@ export function letterAt(word: Word, index: number): number {
     return (word >> (LETTER_WIDTH * index)) & LETTER_FILTER
 }
 
+// Expects `0 <= index < WORD_LENGTH`.
+// Returns `0 <= value <= SCORE_FILTER`.
+export function scoreAt(score: Score, index: number): number {
+    return (score >> (SCORE_WIDTH * index)) & SCORE_FILTER
+}
+
 // 10-bit number where each 2 bits are a score (00 grey, 01 yellow, 02 green)
 export type Score = number & { __type: "score" }
 
