@@ -1,4 +1,3 @@
-import { shuffle } from "../shuffle"
 import { solutions } from "./data"
 import { check, wordFromString, wordToString, type Word } from "./score"
 
@@ -65,25 +64,31 @@ function bestGuessFor(possible: Set): [guess: Word, maxDepth: number] {
     let minGuess = possible[0]!
     let minMaxDepth = Infinity
 
-    for (const guess of possible) {
+    outer: for (let i = 0; i < possible.length; i++) {
+        const guess = possible[i]!
         let maxDepth = 0
 
-        for (const solution of possible) {
+        for (let j = 0; j < possible.length; j++) {
+            const solution = possible[j]!
             const score = check(solution, guess)
-            const remaining = possible.filter((x) => check(x, guess) == score)
+
+            const remaining: Word[] = []
+            for (const el of possible) {
+                if (check(el, guess) == score) {
+                    remaining.push(el)
+                }
+            }
 
             // redundant guess; don't check it
             if (remaining.length == possible.length) continue
 
-            const depth = 1 + Math.max(bestGuessFor(remaining)[1])
+            const depth = 1 + bestGuessFor(remaining)[1]
+            if (depth >= minMaxDepth) continue outer
             if (depth > maxDepth) maxDepth = depth
-            if (maxDepth >= minMaxDepth) break
         }
 
-        if (maxDepth < minMaxDepth) {
-            minGuess = guess
-            minMaxDepth = maxDepth
-        }
+        minGuess = guess
+        minMaxDepth = maxDepth
     }
 
     return [minGuess, minMaxDepth]
@@ -93,11 +98,8 @@ function strat(possible: Set): Word {
     return bestGuessFor(possible)[0]
 }
 
-let ret = ""
-for (let i = 0; i < 200; i++) {
+for (let i = 0; i < 400; i++) {
     const now = performance.now()
-    strat(shuffle(SOLUTIONS).slice(0, i))
-    ret += `(${i},${performance.now() - now}),`
+    strat(SOLUTIONS.slice(0, i))
+    console.log(`${i}\t${performance.now() - now}`)
 }
-
-console.write(ret.slice(0, -1))
