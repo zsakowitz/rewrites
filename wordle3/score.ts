@@ -44,7 +44,6 @@ const SCORE_GREEN = 0b10
 
 // Adding a cache made this function significantly slower, so we won't add one.
 export function check(solution: Word, guess: Word): Score {
-    let usedGuess = 0 // 5-bit word; a bit is set once its corresponding letter in the guess is used
     let usedWord = 0 // 5-bit word; a bit is set once its corresponding letter in the word is matched
     let score = 0
 
@@ -52,14 +51,13 @@ export function check(solution: Word, guess: Word): Score {
     for (let i = 0; i < WORD_LENGTH; i++) {
         if (letterAt(solution, i) === letterAt(guess, i)) {
             score |= SCORE_GREEN << (SCORE_WIDTH * i)
-            usedGuess |= 1 << i
             usedWord |= 1 << i
         }
     }
 
     // find yellow letters
     for (let g = 0; g < WORD_LENGTH; g++) {
-        if (usedGuess & (1 << g)) continue
+        if (usedWord & (1 << g)) continue
 
         for (let s = 0; s < WORD_LENGTH; s++) {
             const works =
@@ -68,7 +66,6 @@ export function check(solution: Word, guess: Word): Score {
 
             if (works) {
                 score |= 1 << (SCORE_WIDTH * g)
-                usedGuess |= 1 << g
                 usedWord |= 1 << s
             }
         }
