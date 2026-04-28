@@ -14,7 +14,13 @@
 
 import "../lib"
 import { solutions } from "./data"
-import { check, wordFromString, wordToString, type Word } from "./score"
+import {
+    check,
+    wordFromString,
+    wordToString,
+    type Score,
+    type Word,
+} from "./score"
 
 // We use `Set` to refer to an inhabited (nonempty) array of words. They must not
 // contain duplicates.
@@ -22,14 +28,12 @@ type Set = readonly Word[]
 
 const SOLUTIONS: Set = solutions.map(wordFromString)
 
-const now = Date.now()
-
-SOLUTIONS.forEach((guess1, i) => {
-    const works = SOLUTIONS.every((answer) => {
+function test(guess1: Word): Word[] | null {
+    const works = SOLUTIONS.map((answer) => {
         const score1 = check(answer, guess1)
         const works1 = SOLUTIONS.filter((word) => check(word, guess1) == score1)
 
-        return works1.some((guess2) => {
+        return works1.find((guess2) => {
             const score2 = check(answer, guess2)
 
             let total = 0
@@ -44,8 +48,32 @@ SOLUTIONS.forEach((guess1, i) => {
         })
     })
 
-    const elapsed = Date.now() - now
-    console.log(
-        `${wordToString(guess1)} ${works ? "Y" : "N"} ${elapsed} ${(elapsed / (i + 1)) * (SOLUTIONS.length - (i + 1))}`,
-    )
+    if (!works.every((x) => x != null)) {
+        return null
+    }
+
+    return works
+}
+
+function guess2(guess1: Word, score1: Score): Word {}
+
+// SOLUTIONS.forEach((guess1, i) => {
+//     const works = test(guess1)
+
+//     const elapsed = Date.now() - now
+//     console.log(
+//         `${wordToString(guess1)} ${works ? "Y" : "N"} ${elapsed} ${(elapsed / (i + 1)) * (SOLUTIONS.length - (i + 1))}`,
+//     )
+// })
+
+const answerIndex = Math.floor(SOLUTIONS.length * Math.random())
+const answer = SOLUTIONS[answerIndex]!
+
+const guess1 = wordFromString("trove")
+const guess2 = test(guess1)![answerIndex]!
+
+console.log({
+    answer: wordToString(answer),
+    guess1: wordToString(guess1),
+    guess2: wordToString(guess2),
 })
