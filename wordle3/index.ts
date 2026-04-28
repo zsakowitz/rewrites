@@ -21,7 +21,7 @@ function sqsum(x: number[]): number {
     return x.reduce((a, b) => a + b * b, 0)
 }
 
-function min1(possible: Set): Word {
+function min1(possible: Set): readonly [Word, number] {
     return possible
         .map(
             (guess) =>
@@ -30,33 +30,26 @@ function min1(possible: Set): Word {
                     sqsum(partition(possible, guess).map((x) => x.length)),
                 ] as const,
         )
-        .reduce((a, b) => (a[1] < b[1] ? a : b))[0]
+        .reduce((a, b) => (a[1] < b[1] ? a : b))
+}
+
+function min2(possible: Set): readonly [Word, number] {
+    return possible
+        .map(
+            (guess) =>
+                [
+                    guess,
+                    partition(possible, guess)
+                        .map((p) => min1(p))
+                        .reduce((a, b) => (a[1] > b[1] ? a : b))[1],
+                ] as const,
+        )
+        .reduce((a, b) => (a[1] < b[1] ? a : b))
 }
 
 function strat(possible: Set): Word {
-    return min1(possible)
+    return min2(possible)[0]
 }
-
-const sols = SOLUTIONS.map(
-    (guess) =>
-        [
-            guess,
-            sqsum(partition(SOLUTIONS, guess).map((x) => x.length)),
-        ] as const,
-).sort((a, b) => a[1] - b[1] || +(b[0] < a[0]))
-
-const min = sols[0]![1]
-const max = sols[sols.length - 1]![1] + 1
-
-sols.forEach((x) =>
-    console.log(
-        wordToString(x[0])
-            + " "
-            + (Math.floor(((x[1] - min) / (max - min)) * 10000) / 100)
-                .toFixed(2)
-                .padStart(5, "0"),
-    ),
-)
 
 function filter(possible: Set, answer: Word, guess: Word): Set {
     const ret: Word[] = []
@@ -94,11 +87,28 @@ function guessesPerWord(possible: Set, initialGuess: Word): number[] {
 
 function logStats(possible: Set, initialGuess: Word) {
     const guesses = guessesPerWord(possible, initialGuess)
-    guesses.sort((a, b) => a - b)
+    const sorted = guesses.toSorted((a, b) => a - b)
 
     const avg = guesses.reduce((a, b) => a + b, 0) / guesses.length
     const max = guesses.reduce((a, b) => Math.max(a, b), 0)
-    const med = guesses[Math.floor(guesses.length / 2)]
 
-    console.log({ avg, max, med })
+    console.log({
+        avg,
+        p25: sorted[Math.floor(sorted.length / 4)],
+        p50: sorted[Math.floor(sorted.length / 2)],
+        p75: sorted[Math.floor(sorted.length * 0.75)],
+        max,
+        tooLong: guesses
+            .map((x, i) => [x, i] as const)
+            .filter((x) => x[0] == 99)
+            .map((x) => wordToString(possible[x[1]]!)),
+    })
 }
+
+// const parts = partition(SOLUTIONS, strat(SOLUTIONS))
+//
+// console.log(parts.map((x) => x.length).sort((a, b) => a - b))
+
+console.time()
+console.log(strat(SOLUTIONS))
+console.timeEnd()
