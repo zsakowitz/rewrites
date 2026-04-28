@@ -7,55 +7,6 @@ type Set = readonly Word[]
 
 const SOLUTIONS: Set = solutions.map(wordFromString)
 
-// Uses `strat` to determine how many guesses the strategy takes for each
-// possible answer. Logs each answer as its result is computed, so that you
-// can see progress in real-time. Also outputs the estimated time to completion,
-// in seconds, for each line.
-function logGuessesPerWord(possible: Set, max = 6) {
-    const start = performance.now()
-    const firstGuess = strat(possible)
-    console.log(
-        `/* decided ${JSON.stringify(wordToString(firstGuess))} as first guess (${performance.now() - start}ms) */`,
-    )
-
-    const initial = performance.now()
-
-    for (let i = 0; i < possible.length; i++) {
-        const answer = possible[i]!
-
-        let remaining = possible.filter(
-            (x) => check(x, firstGuess) == check(answer, firstGuess),
-        )
-        const guesses: string[] = [wordToString(firstGuess)]
-
-        while (remaining.length > 1 && guesses.length < max) {
-            const guess = strat(remaining)
-            guesses.push(wordToString(guess))
-            const score = check(answer, guess)
-
-            remaining = remaining.filter(
-                (solution) => check(solution, guess) === score,
-            )
-        }
-
-        if (remaining.length > 1) {
-            guesses.push("...")
-        }
-
-        const estLeft = Math.round(
-            ((performance.now() - initial)
-                * ((possible.length - i) / Math.max(1, i)))
-                / 1000,
-        )
-            .toString()
-            .padStart(4, "0")
-
-        console.log(
-            `/* ${estLeft} */ ${wordToString(answer)}: ${JSON.stringify(guesses.join(" "))},`,
-        )
-    }
-}
-
 function partition(possible: Set, guess: Word): Set[] {
     const partitions: Record<number, Word[]> = Object.create(null)
 
@@ -106,3 +57,48 @@ sols.forEach((x) =>
                 .padStart(5, "0"),
     ),
 )
+
+function filter(possible: Set, answer: Word, guess: Word): Set {
+    const ret: Word[] = []
+    const score = check(answer, guess)
+
+    for (let i = 0; i < possible.length; i++) {
+        const el = possible[i]!
+        if (check(el, guess) === score) {
+            ret.push(el)
+        }
+    }
+
+    return ret
+}
+
+const MAX_GUESSES = 6
+
+function guessesPerWord(possible: Set, initialGuess: Word): number[] {
+    return possible.map((answer): number => {
+        let rounds = 1
+        let remaining = filter(possible, answer, initialGuess)
+
+        while (remaining.length > 1 && rounds < MAX_GUESSES) {
+            remaining = filter(remaining, answer, strat(remaining))
+            rounds++
+        }
+
+        if (remaining.length > 1) {
+            return 99
+        }
+
+        return rounds
+    })
+}
+
+function logStats(possible: Set, initialGuess: Word) {
+    const guesses = guessesPerWord(possible, initialGuess)
+    guesses.sort((a, b) => a - b)
+
+    const avg = guesses.reduce((a, b) => a + b, 0) / guesses.length
+    const max = guesses.reduce((a, b) => Math.max(a, b), 0)
+    const med = guesses[Math.floor(guesses.length / 2)]
+
+    console.log({ avg, max, med })
+}
