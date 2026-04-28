@@ -14,7 +14,7 @@
 
 import "../lib"
 import { solutions } from "./data"
-import { check, wordFromString, type Score, type Word } from "./score"
+import { check, wordFromString, wordToString, type Word } from "./score"
 
 // We use `Set` to refer to an inhabited (nonempty) array of words. They must not
 // contain duplicates.
@@ -22,31 +22,33 @@ type Set = readonly Word[]
 
 const SOLUTIONS: Set = solutions.map(wordFromString)
 
-function partition(possible: Set, guess: Word): Map<Score, Set> {
-    const partitions = new Map<Score, Word[]>()
+const now = Date.now()
 
-    for (const solution of possible) {
-        const score = check(solution, guess)
-        if (partitions.has(score)) {
-            partitions.get(score)!.push(solution)
-        } else {
-            partitions.set(score, [solution])
-        }
-    }
+SOLUTIONS.forEach((guess1, i) => {
+    const works = SOLUTIONS.every((answer) => {
+        const score1 = check(answer, guess1)
+        const works1 = SOLUTIONS.filter((word) => check(word, guess1) == score1)
+        return (
+            works1.some((guess2) => {
+                const score2 = check(answer, guess2)
+                return (
+                    works1.filter((word) => check(word, guess2) == score2)
+                        .length <= 1
+                )
+            })
+            || SOLUTIONS.some((guess2) => {
+                if (works1.includes(guess2)) return false
+                const score2 = check(answer, guess2)
+                return (
+                    works1.filter((word) => check(word, guess2) == score2)
+                        .length <= 1
+                )
+            })
+        )
+    })
 
-    return partitions
-}
-
-function filter(possible: Set, answer: Word, guess: Word): Set {
-    const ret: Word[] = []
-    const score = check(answer, guess)
-
-    for (let i = 0; i < possible.length; i++) {
-        const el = possible[i]!
-        if (check(el, guess) === score) {
-            ret.push(el)
-        }
-    }
-
-    return ret
-}
+    const elapsed = Date.now() - now
+    console.log(
+        `${wordToString(guess1)} ${works ? "Y" : "N"} ${elapsed} ${(elapsed / (i + 1)) * (SOLUTIONS.length - (i + 1))}`,
+    )
+})
