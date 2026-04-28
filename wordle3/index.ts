@@ -1,105 +1,93 @@
-import { init } from "../parsers/parser-3"
 import { shuffle } from "../shuffle"
 import { solutions } from "./data"
-import {
-    check,
-    WORD_LENGTH,
-    wordFromString,
-    wordToString,
-    type Word,
-} from "./score"
-
-function pick(words: Set, max: number): Set {
-    return shuffle(words).slice(0, max)
-}
+import { check, wordFromString, wordToString, type Word } from "./score"
 
 // We use `Set` to refer to an inhabited (nonempty) array of words. They must not
 // contain duplicates.
 type Set = readonly Word[]
 
-// A strategy picks the next word to guess given a list of possible solutions.
-//
-// Instead of providing strategies with a list of past scores and past guesses,
-// we just provide the list of remaining possibilities. No reasonable strategy
-// relies on the actual list of guesses, so this is sufficient.
-type Strategy = (possible: Set) => Word
-
 const SOLUTIONS: Set = shuffle(solutions).map(wordFromString)
 
-const PARTITIONS = Array<number>(4 ** WORD_LENGTH).fill(0)
+// Uses `strat` to determine how many guesses the strategy takes for each
+// possible answer. Logs each answer as its result is computed, so that you
+// can see progress in real-time. Also outputs the estimated time to completion,
+// in seconds, for each line.
+function logGuessesPerWord(possible: Set, max = 6) {
+    const firstGuess = strat(possible)
+    console.log(
+        `/* decided ${JSON.stringify(wordToString(firstGuess))} as first guess */`,
+    )
 
-function variance(x: number[]): number {
-    const avg = x.reduce((a, b) => a + b, 0) / x.length
-    return x.reduce((a, b) => a + (b - avg) * (b - avg), 0) / x.length
-}
-
-// Let `P` be a set and `G` be a word. Partition `P` by the score when each word
-// is checked against the guess `G`. This function returns the variance
-// of the sizes of the partitions.
-function varPartitionSize(possible: Set, guess: Word): number {
-    PARTITIONS.fill(0)
-
-    for (let i = 0; i < possible.length; i++) {
-        const solution = possible[i]!
-        const score = check(solution, guess)
-        PARTITIONS[score] ??= 0
-        PARTITIONS[score]!++
-    }
-
-    return variance(PARTITIONS.filter((x) => x != 0))
-}
-
-// Statistic which counts how many guesses it takes to get every word. If a
-// strategy takes more than `max` guesses, it is replaced with `Infinity`.
-function statGuesses(possible: Set, strat: Strategy, max = 6) {
     const initial = Date.now()
 
     for (let i = 0; i < possible.length; i++) {
         const answer = possible[i]!
 
-        let remaining = possible
-        let rounds = 0
+        let remaining = possible.filter(
+            (x) => check(x, firstGuess) == check(answer, firstGuess),
+        )
+        const guesses: string[] = [wordToString(firstGuess)]
 
-        while (remaining.length > 1 && rounds < max) {
+        while (remaining.length > 1 && guesses.length < max) {
             const guess = strat(remaining)
+            guesses.push(wordToString(guess))
             const score = check(answer, guess)
 
             remaining = remaining.filter(
                 (solution) => check(solution, guess) === score,
             )
-
-            rounds++
         }
 
-        if (rounds > max) {
-            rounds = Infinity
+        if (remaining.length > 1) {
+            guesses.push("...")
         }
+
+        const estLeft = Math.round(
+            ((Date.now() - initial) * ((possible.length - i) / Math.max(1, i)))
+                / 1000,
+        )
+            .toString()
+            .padStart(4, "0")
 
         console.log(
-            `${wordToString(answer)}: ${rounds}, // ${Date.now() - initial} est. ${Math.round(((Date.now() - initial) * ((possible.length - i) / i)) / 1000)}`,
+            `/* ${estLeft} */ ${wordToString(answer)}: ${JSON.stringify(guesses.join(" "))},`,
         )
     }
 }
 
-// Strategy which minimizes the variance of the partition sizes.
-//
-// Takes `O(|possible|²)` time.
-function stratMinimizeVarPartitionSize(possible: Set): Word {
-    let min = varPartitionSize(possible, possible[0]!)
-    let ret = possible[0]!
-
-    for (let i = 1; i < possible.length; i++) {
-        const guess = possible[i]!
-        const size = varPartitionSize(possible, guess)
-        if (size < min) {
-            min = size
-            ret = guess
-        }
+function bestGuessFor(possible: Set): [guess: Word, maxDepth: number] {
+    if (possible.length == 1) {
+        return [possible[0]!, 0]
     }
 
-    return ret
+    return possible
+        .map((guess): [Word, number] => {
+            const maxDepth = possible
+                .map((solution): number => {
+                    const score = check(solution, guess)
+                    const remaining = possible.filter(
+                        (x) => check(x, guess) == score,
+                    )
+                    if (remaining.length == possible.length) {
+                        return 0
+                    }
+                    return 1 + bestGuessFor(remaining)[1]
+                })
+                .reduce((a, b) => Math.max(a, b), 0)
+
+            return [guess, maxDepth]
+        })
+        .reduce((a, b) => (a[1] < b[1] ? a : b))
 }
 
+function strat(possible: Set): Word {
+    return bestGuessFor(possible)[0]
+}
+
+console.log("const x={")
 console.time()
-statGuesses(SOLUTIONS, stratMinimizeVarPartitionSize)
+logGuessesPerWord(SOLUTIONS.slice(0, 100))
 console.timeEnd()
+console.log("}")
+
+// (20,12),(50,370),(70,3090),(70,2190),(70,1067),(100,18340),(100,13110),(100,)
