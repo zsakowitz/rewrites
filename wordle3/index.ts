@@ -56,75 +56,53 @@ function logGuessesPerWord(possible: Set, max = 6) {
     }
 }
 
-const now = Date.now()
+function partition(possible: Set, guess: Word): Set[] {
+    const partitions: Record<number, Word[]> = Object.create(null)
 
-function bestGuessFor(
-    possible: Set,
-    level: number,
-): [guess: Word, maxDepth: number] {
-    if (possible.length == 1) {
-        return [possible[0]!, 0]
+    for (const solution of possible) {
+        ;(partitions[check(solution, guess)] ??= []).push(solution)
     }
 
-    let minGuess = possible[0]!
-    let minMaxDepth = Infinity
+    return Object.values(partitions)
+}
 
-    outer: for (let i = 0; i < possible.length; i++) {
-        const guess = possible[i]!
+function sqsum(x: number[]): number {
+    return x.reduce((a, b) => a + b * b, 0)
+}
 
-        if (level == 0) {
-            console.log(
-                "    ".repeat(level)
-                    + wordToString(guess)
-                    + " "
-                    + wordToString(minGuess)
-                    + " "
-                    + minMaxDepth
-                    + " "
-                    + (Date.now() - now),
-            )
-        }
-
-        let maxDepth = 0
-
-        for (let j = 0; j < possible.length; j++) {
-            const solution = possible[j]!
-            const score = check(solution, guess)
-
-            const remaining: Word[] = []
-            for (const el of possible) {
-                if (check(el, guess) == score) {
-                    remaining.push(el)
-                }
-            }
-
-            // redundant guess; don't check it
-            if (remaining.length == possible.length) continue
-
-            const depth = 1 + bestGuessFor(remaining, level + 1)[1]
-            if (depth >= minMaxDepth) continue outer
-            if (depth > maxDepth) maxDepth = depth
-        }
-
-        minGuess = guess
-        minMaxDepth = maxDepth
-    }
-
-    return [minGuess, minMaxDepth]
+function min1(possible: Set): Word {
+    return possible
+        .map(
+            (guess) =>
+                [
+                    guess,
+                    sqsum(partition(possible, guess).map((x) => x.length)),
+                ] as const,
+        )
+        .reduce((a, b) => (a[1] < b[1] ? a : b))[0]
 }
 
 function strat(possible: Set): Word {
-    return bestGuessFor(possible, 0)[0]
+    return min1(possible)
 }
 
-// for (let i = 720; i < 2300; i += 20) {
-//     const now = performance.now()
-//     const word = strat(SOLUTIONS.slice(0, i))
-//     console.log(`${i}\t${performance.now() - now}`)
-//     console.error(wordToString(word))
-// }
+const sols = SOLUTIONS.map(
+    (guess) =>
+        [
+            guess,
+            sqsum(partition(SOLUTIONS, guess).map((x) => x.length)),
+        ] as const,
+).sort((a, b) => a[1] - b[1] || +(b[0] < a[0]))
 
-console.time()
-bestGuessFor(SOLUTIONS, 0)
-console.timeEnd()
-// (400,1.8),(500,4.76),(600,11.79),(700,36.91),(800,65.03),(900,110),(1100,)
+const min = sols[0]![1]
+const max = sols[sols.length - 1]![1] + 1
+
+sols.forEach((x) =>
+    console.log(
+        wordToString(x[0])
+            + " "
+            + (Math.floor(((x[1] - min) / (max - min)) * 10000) / 100)
+                .toFixed(2)
+                .padStart(5, "0"),
+    ),
+)
