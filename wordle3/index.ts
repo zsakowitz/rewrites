@@ -84,10 +84,11 @@ function strat(possible: Set): Word {
     return bestGuessFor(possible)[0]
 }
 
-console.log("const x={")
-console.time()
-logGuessesPerWord(SOLUTIONS.slice(0, 100))
-console.timeEnd()
-console.log("}")
+while (true) {
+    const n = Math.random() * 120 + 10 + ""
+    console.time(n)
+    logGuessesPerWord(SOLUTIONS.slice(0, +n))
+    console.timeEnd(n)
+}
 
-// (20,12),(50,370),(70,3090),(70,2190),(70,1067),(100,18340),(100,13110),(100,)
+// (20,12),(50,370),(70,3090),(70,2190),(70,1067),(100,18340),(100,13110),(100,13390),(20,7),(20,7),(20,7),(50,239),(50,118),(120,36240),(125,32140),(95,19630),(118,87700),(66,1159),(25,4),(55,253),(67,1299),(13,0),(38,32),(60,499),(13,0),(92,21160),(123,139180),(56,329),(80,13640),(73,2880),(15,0),(97,28060),(122,119040),(29,10)
