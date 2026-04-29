@@ -55,25 +55,39 @@ function test(guess1: Word): Word[] | null {
     return works
 }
 
-function guess2(guess1: Word, score1: Score): Word {}
+function findGuess2(guess1: Word, score1: Score): Word | null {
+    const possible = SOLUTIONS.filter(
+        (answer) => check(answer, guess1) == score1,
+    )
 
-// SOLUTIONS.forEach((guess1, i) => {
-//     const works = test(guess1)
+    return (
+        possible.find((guess2) =>
+            possible.every((answer) => {
+                const score2 = check(answer, guess2)
 
-//     const elapsed = Date.now() - now
-//     console.log(
-//         `${wordToString(guess1)} ${works ? "Y" : "N"} ${elapsed} ${(elapsed / (i + 1)) * (SOLUTIONS.length - (i + 1))}`,
-//     )
-// })
+                let total = 0
+                for (const answer of possible) {
+                    if (check(answer, guess2) == score2) {
+                        total++
+                        if (total == 2) return false
+                    }
+                }
 
-const answerIndex = Math.floor(SOLUTIONS.length * Math.random())
-const answer = SOLUTIONS[answerIndex]!
+                return true
+            }),
+        ) ?? null
+    )
+}
 
-const guess1 = wordFromString("trove")
-const guess2 = test(guess1)![answerIndex]!
+const now = Date.now()
 
-console.log({
-    answer: wordToString(answer),
-    guess1: wordToString(guess1),
-    guess2: wordToString(guess2),
+SOLUTIONS.forEach((guess1, i) => {
+    const scores = new Set(SOLUTIONS.map((answer) => check(answer, guess1)))
+    const works = scores.values().every((score1) => findGuess2(guess1, score1))
+
+    console.log(
+        `${wordToString(guess1)} ${works ? "Y" : "N"} ${
+            ((Date.now() - now) / (i + 1)) * (SOLUTIONS.length - (i + 1))
+        }`,
+    )
 })
