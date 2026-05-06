@@ -28,18 +28,7 @@ function div(attr: Attr, ...children: Child[]) {
     return h("div", attr, ...children)
 }
 
-function SidebarRightImage(src: string) {
-    return h(
-        "li",
-        "",
-        h("img", {
-            class: "",
-            src,
-        }),
-    )
-}
-
-function BarLeft() {
+function ImageFolders() {
     return h(
         "ul",
         "bg-gray-200 row-span-3 border-r contain-strict text-gray-900 py-1.5 overflow-auto",
@@ -56,7 +45,7 @@ function BarLeft() {
     }
 }
 
-function BarNav() {
+function Nav() {
     return h(
         "nav",
         "bg-gray-200 border-t border-r contain-strict text-gray-900 text-xs",
@@ -94,57 +83,68 @@ function encode(uuid: string) {
     return ret
 }
 
-function MainRight() {
+function Metadata(label: string, body: HTMLElement) {
+    return h(
+        "label",
+        "border-b flex flex-col",
+        h("p", "px-3 pt-2 text-xs text-gray-700", label),
+        body,
+    )
+}
+
+function MetadataEntries(...children: Child[]) {
     return div(
         "bg-gray-200 row-span-4 border-l flex flex-col overflow-auto contain-strict pb-12",
-        h(
-            "label",
-            "px-3 py-2 border-b flex flex-col",
-            h("p", "text-xs text-gray-700", "permanent id"),
+        ...children,
+    )
+}
+
+function CurrentPhotoMetadata() {
+    return MetadataEntries(
+        Metadata(
+            "identifier",
             h(
                 "p",
-                "text-sm font-mono text-gray-900",
+                "text-sm text-gray-900 px-3 pb-2",
                 encode("ee3e9923-819f-488c-ae46-8aef93377444"),
             ),
         ),
-        h(
-            "label",
-            "px-3 py-2 border-b flex flex-col",
-            h("p", "text-xs text-gray-700", "first seen at"),
-            h("time", "text-sm font-mono text-gray-900", "2026-05-04 17:53"),
+        Metadata(
+            "imported",
+            h(
+                "time",
+                "px-3 pb-2 text-sm font-mono text-gray-900",
+                "2026-03-02 17:53",
+            ),
         ),
-        h(
-            "label",
-            "border-b flex flex-col",
-            h("p", "px-3 pt-2 text-xs text-gray-700", "organizational date"),
+        Metadata(
+            "first viewed by user",
             h("input", {
                 type: "text",
                 class: "text-sm font-mono text-gray-900 pb-2 px-3 focus:outline-none",
-                value: "2026-05-04",
+                value: "2025-09-23",
             }),
         ),
-        h(
-            "label",
-            "border-b flex flex-col",
-            h("p", "px-3 pt-2 text-xs text-gray-700", "ocr caption"),
+        Metadata(
+            "last retagged",
+            h(
+                "time",
+                "px-3 pb-2 text-sm font-mono text-gray-900",
+                "2026-04-03",
+            ),
+        ),
+        Metadata(
+            "ocr caption",
             h(
                 "textarea",
                 "text-xs text-gray-900 pb-2 px-3 focus:outline-none h-[17.5lh] overflow-auto resize-none w-full",
-                `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi quis urna vitae neque mattis luctus. Vivamus malesuada leo in tellus congue, nec posuere elit tempor. Donec non ultricies urna. Praesent iaculis ex sit amet arcu efficitur tincidunt. Ut rhoncus placerat accumsan. Nunc at quam arcu. Proin quis felis ipsum. Fusce quis ante risus. Aliquam commodo mattis dui eu imperdiet.
-
-Integer scelerisque arcu augue, sed malesuada enim iaculis nec. Proin egestas dui porta, volutpat est quis, interdum felis. Sed vitae sapien at est volutpat egestas sit amet in sapien. Sed nec efficitur augue. Nam a turpis ac arcu tristique elementum porttitor a metus. Mauris hendrerit libero vel tincidunt interdum. Ut mollis fringilla pulvinar. Quisque placerat, est eu consequat sagittis, dui turpis ullamcorper est, et convallis turpis sapien sed nulla. Cras lacus erat, aliquam non porttitor id, vulputate in libero. Vivamus ut scelerisque nulla. Donec eu accumsan massa. Sed placerat, leo id sollicitudin suscipit, justo mauris semper lectus, sit amet tincidunt massa tellus eu leo. Integer sed fringilla nisi. Nulla facilisi. Nulla aliquet, lorem et dapibus cursus, ex lacus elementum ex, at viverra turpis mi vel eros.
-
-Nullam eget lectus ornare, posuere velit vel, cursus lacus. Duis condimentum venenatis ligula quis venenatis. Donec scelerisque ut felis nec fermentum. Sed pharetra nisi lorem, vel faucibus massa faucibus vitae. Ut sodales eros id egestas aliquam. Fusce porttitor, libero vitae interdum maximus, nulla nunc consectetur arcu, id viverra neque eros ac felis. Sed vestibulum augue quis lorem ornare, id tincidunt orci venenatis. Integer sit amet mauris nec nibh ullamcorper sodales. Phasellus volutpat libero purus, eu aliquam ex sagittis id.
-
-Vestibulum posuere tempor tincidunt. Vivamus lacinia nisl eu nisi vulputate, ornare ultricies ligula mattis. Sed interdum bibendum nisi nec ullamcorper. Praesent non hendrerit enim, quis consequat libero. Nam porttitor dui ut magna interdum vulputate eget quis sapien. Nulla facilisi. Maecenas volutpat semper metus quis porttitor. Phasellus quis lorem quis nunc consectetur pharetra. Nunc ornare egestas lorem gravida semper. Nullam cursus viverra placerat. Sed neque erat, pulvinar aliquet metus nec, dictum vehicula turpis. Sed aliquet urna sit amet lacinia pretium. Vestibulum sodales neque et ex blandit, sit amet convallis mauris finibus.
-
-Maecenas fermentum massa nec massa laoreet, quis auctor tortor varius. Morbi sed lacinia magna. Vestibulum tincidunt efficitur mauris ac semper. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Nulla efficitur diam nunc, non maximus nulla mattis in. Nam blandit massa dui, ac luctus mauris euismod quis. Maecenas vulputate ipsum nec aliquet rutrum. Sed ligula risus, consequat quis ante non, hendrerit lobortis metus. Nullam cursus massa non ligula fringilla tincidunt. Nam est tellus, consequat vitae arcu ac, facilisis elementum dolor. Ut condimentum porta augue ut porta. Cras lectus ligula, pulvinar at porttitor quis, luctus et libero. Cras tortor massa, accumsan ut sapien tincidunt, tempus semper lorem.`,
+                "Integer scelerisque arcu augue, sed malesuada enim iaculis nec. Proin egestas dui porta, volutpat est quis, interdum felis. Sed vitae sapien at est volutpat egestas sit amet in sapien. Sed nec efficitur augue. Nam a turpis ac arcu tristique elementum porttitor a metus. Mauris hendrerit libero vel tincidunt interdum. Ut mollis fringilla pulvinar. Quisque placerat, est eu consequat sagittis, dui turpis ullamcorper est, et convallis turpis sapien sed nulla. Cras lacus erat, aliquam non porttitor id, vulputate in libero. Vivamus ut scelerisque nulla. Donec eu accumsan massa. Sed placerat, leo id sollicitudin suscipit, justo mauris semper lectus, sit amet tincidunt massa tellus eu leo. Integer sed fringilla nisi. Nulla facilisi. Nulla aliquet, lorem et dapibus cursus, ex lacus elementum ex, at viverra turpis mi vel eros.",
             ),
         ),
     )
 }
 
-function MainImage(src: string) {
+function ImageLarge(src: string) {
     return div(
         "bg-white contain-strict",
         div(
@@ -154,7 +154,7 @@ function MainImage(src: string) {
     )
 }
 
-function MainTags() {
+function CurrentPhotoTags() {
     return h(
         "ul",
         "bg-gray-100 border-b text-sm/[1] text-gray-900 flex whitespace-nowrap contain-strict",
@@ -168,7 +168,7 @@ function MainTags() {
     }
 }
 
-function MainEditor() {
+function InputWithAutocomplete() {
     return div(
         "bg-gray-100 border-b text-sm/[1] text-gray-900 flex flex-col contain-size relative contain-style",
         h("input", {
@@ -195,15 +195,11 @@ function MainEditor() {
     }
 }
 
-function MainStatus() {
+function Keybinds(keybinds: [key: string, label: string][]) {
     return h(
         "ul",
         "bg-gray-100 border-t flex text-sm/[1] text-gray-900 whitespace-nowrap py-2 px-3 gap-6 contain-strict",
-        Keybind("Z", "undo"),
-        Keybind("S", "skip"),
-        Keybind("A", "zoom in"),
-        Keybind("T", "edit tags"),
-        Keybind("M", "maximize"),
+        ...keybinds.map((x) => Keybind(x[0], x[1])),
     )
 
     function Keybind(keys: string, label: string) {
@@ -215,16 +211,22 @@ function MainStatus() {
     }
 }
 
-function Main() {
+function View(className: string, ...children: Child[]) {
     return div(
-        "min-h-dvh grid grid-cols-[240px_1fr_260px] grid-rows-[2rem_2rem_1fr_2rem] select-none text-sm",
-        BarLeft(),
-        MainTags(),
-        MainRight(),
-        MainEditor(),
-        MainImage(test),
-        BarNav(),
-        MainStatus(),
+        "min-h-dvh grid select-none text-sm text-gray-900 " + className,
+        ImageFolders(),
+        CurrentPhotoTags(),
+        CurrentPhotoMetadata(),
+        InputWithAutocomplete(),
+        ImageLarge(test),
+        Nav(),
+        Keybinds([
+            ["Z", "undo"],
+            ["S", "skip"],
+            ["A", "zoom in"],
+            ["T", "edit tags"],
+            ["M", "maximize"],
+        ]),
     )
 }
 
@@ -247,4 +249,23 @@ function svg(i: IconNode, className: string): SVGSVGElement {
     return el
 }
 
-document.body.appendChild(Main())
+export function ViewEditPhotoTags() {
+    return View(
+        "grid-cols-[240px_1fr_260px] grid-rows-[2rem_2rem_1fr_2rem]",
+        ImageFolders(),
+        CurrentPhotoTags(),
+        CurrentPhotoMetadata(),
+        InputWithAutocomplete(),
+        ImageLarge(test),
+        Nav(),
+        Keybinds([
+            ["Z", "undo"],
+            ["S", "skip"],
+            ["A", "zoom in"],
+            ["T", "edit tags"],
+            ["M", "maximize"],
+        ]),
+    )
+}
+
+document.body.appendChild(ViewEditPhotoTags())
