@@ -1,43 +1,5 @@
 import { Filter, Folder, Image, Notebook, type IconNode } from "lucide"
-import test1 from "./asset/test-1.png"
-import test2 from "./asset/test-2.png"
-import test3 from "./asset/test-3.jpeg"
-import test4 from "./asset/test-4.jpeg"
-
-const test = [
-    test2,
-    test1,
-    test3,
-    test4,
-    test3,
-    test1,
-    test4,
-    test2,
-    test2,
-    test1,
-    test4,
-    test3,
-    test1,
-    test2,
-    test4,
-    test3,
-    test2,
-    test4,
-    test1,
-    test4,
-    test2,
-    test4,
-    test3,
-    test3,
-    test1,
-    test4,
-    test1,
-    test3,
-    test2,
-    test3,
-    test1,
-    test2,
-]
+import test from "./asset/test.jpeg"
 
 type Attr = string | null | undefined | Record<string, string | number>
 type Child = string | HTMLElement | SVGSVGElement
@@ -186,7 +148,7 @@ function MainImage(src: string) {
     return div(
         "bg-white contain-strict",
         div(
-            "flex relative h-full p-4",
+            "flex relative h-full p-2",
             h("img", { class: "relative m-auto max-h-full", src }),
         ),
     )
@@ -260,7 +222,7 @@ function Main() {
         MainTags(),
         MainRight(),
         MainEditor(),
-        MainImage(test1),
+        MainImage(test),
         BarNav(),
         MainStatus(),
     )
