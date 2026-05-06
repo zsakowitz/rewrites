@@ -20,6 +20,7 @@
         "@engine262/engine262": "^0.0.1-feee93540bcd10b4469fc363980945d8bdffbb1e",
         "@faker-js/faker": "^7.6.0",
         "@ohm-js/cli": "^1.1.0",
+        "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
         "@total-typescript/ts-reset": "^0.3.7",
         "@types/babel__core": "^7.20.5",
         "@types/bun": "^1.3.10",
