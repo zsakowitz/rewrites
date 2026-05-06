@@ -1,4 +1,4 @@
-import { Folder, type IconNode } from "lucide"
+import { Filter, Folder, Image, Notebook, type IconNode } from "lucide"
 import test1 from "./asset/test-1.png"
 import test2 from "./asset/test-2.png"
 import test3 from "./asset/test-3.jpeg"
@@ -80,7 +80,7 @@ function SidebarRightImage(src: string) {
 function BarLeft() {
     return h(
         "ul",
-        "bg-gray-200 row-span-4 border-r border-gray-500 contain-strict text-gray-900 text-sm py-1.5 overflow-auto",
+        "bg-gray-200 row-span-3 border-r border-gray-500 contain-strict text-gray-900 text-sm py-1.5 overflow-auto",
         ...JSON.parse((localStorage.notebookFolders ??= `[]`)).map(EFolder),
     )
 
@@ -88,8 +88,31 @@ function BarLeft() {
         return h(
             "li",
             "py-0.5 pr-3 hover:bg-gray-600 -indent-6 pl-9 hyphens-auto",
-            icon(Folder, "size-4 min-w-4 mr-2 align-bottom mb-0.5"),
+            svg(Folder, "size-4 min-w-4 mr-2 align-bottom mb-0.5"),
             name,
+        )
+    }
+}
+
+function BarNav() {
+    return h(
+        "nav",
+        "bg-gray-200 border-t border-r border-gray-500 contain-strict text-gray-900 text-xs",
+        h(
+            "ul",
+            "flex h-full p-0.5",
+            View(Image, "photos"),
+            View(Notebook, "notes"),
+            View(Filter, "sort"),
+        ),
+    )
+
+    function View(icon: IconNode, label: string) {
+        return h(
+            "li",
+            "flex-1 h-full items-center rounded-sm hover:bg-gray-500 gap-1 flex px-2",
+            svg(icon, "size-4 min-w-4"),
+            h("span", "text-gray-700", label),
         )
     }
 }
@@ -157,10 +180,11 @@ function MainStatus() {
     return h(
         "ul",
         "bg-gray-100 border-t border-gray-500 flex text-sm/[1] text-gray-900 whitespace-nowrap py-2 px-3 gap-6 contain-strict",
-        Keybind("S", "skip"),
-        Keybind("H", "hide"),
         Keybind("Z", "undo"),
+        Keybind("S", "skip"),
         Keybind("A", "zoom in"),
+        Keybind("T", "edit tags"),
+        Keybind("M", "maximize"),
     )
 
     function Keybind(keys: string, label: string) {
@@ -180,11 +204,12 @@ function Main() {
         BarRight(),
         MainEditor(),
         MainImage(test1),
+        BarNav(),
         MainStatus(),
     )
 }
 
-function icon(i: IconNode, className: string): SVGSVGElement {
+function svg(i: IconNode, className: string): SVGSVGElement {
     const el = document.createElementNS("http://www.w3.org/2000/svg", "svg")
     el.setAttribute("viewBox", "0 0 24 24")
     el.classList = "inline-block stroke-2 stroke-current fill-none " + className
