@@ -1,4 +1,4 @@
-import { Plus, type IconNode } from "lucide"
+import { Folder, type IconNode } from "lucide"
 import test1 from "./asset/test-1.png"
 import test2 from "./asset/test-2.png"
 import test3 from "./asset/test-3.jpeg"
@@ -77,12 +77,21 @@ function SidebarRightImage(src: string) {
     )
 }
 
-function BarInfo() {
-    return div("bg-gray-300 col-span-3 border-b border-gray-500 contain-strict")
-}
-
 function BarLeft() {
-    return div("bg-gray-200 row-span-4 border-r border-gray-500 contain-strict")
+    return h(
+        "ul",
+        "bg-gray-200 row-span-4 border-r border-gray-500 contain-strict text-gray-900 text-sm py-1.5 overflow-auto",
+        ...JSON.parse((localStorage.notebookFolders ??= `[]`)).map(EFolder),
+    )
+
+    function EFolder(name: string) {
+        return h(
+            "li",
+            "py-0.5 pr-3 hover:bg-gray-600 -indent-6 pl-9 hyphens-auto",
+            icon(Folder, "size-4 min-w-4 mr-2 align-bottom mb-0.5"),
+            name,
+        )
+    }
 }
 
 function BarRight() {
@@ -140,7 +149,7 @@ function MainEditor() {
     }
 
     function NewTag(name: string) {
-        return h("li", "p-1 rounded-sm opacity-70", "Create tag: " + name)
+        return h("li", "p-1 rounded-sm text-gray-700", "Create tag: " + name)
     }
 }
 
@@ -148,23 +157,24 @@ function MainStatus() {
     return h(
         "ul",
         "bg-gray-100 border-t border-gray-500 flex text-sm/[1] text-gray-900 whitespace-nowrap py-2 px-3 gap-6 contain-strict",
-        Keybind("⌘K", "prev"),
-        Keybind("⌘J", "next"),
+        Keybind("S", "skip"),
+        Keybind("H", "hide"),
+        Keybind("Z", "undo"),
+        Keybind("A", "zoom in"),
     )
 
     function Keybind(keys: string, label: string) {
         // prettier-ignore
         return h("li", "flex gap-1",
             h("kbd", "font-sans", keys),
-            h("span", "", label),
+            h("span", "text-gray-700", label),
         )
     }
 }
 
 function Main() {
     return div(
-        "min-h-dvh grid grid-cols-[240px_1fr_240px] grid-rows-[2rem_2rem_2rem_1fr_2rem] select-none",
-        BarInfo(),
+        "min-h-dvh grid grid-cols-[240px_1fr_240px] grid-rows-[2rem_2rem_1fr_2rem] select-none",
         BarLeft(),
         MainTags(),
         BarRight(),
@@ -177,9 +187,7 @@ function Main() {
 function icon(i: IconNode, className: string): SVGSVGElement {
     const el = document.createElementNS("http://www.w3.org/2000/svg", "svg")
     el.setAttribute("viewBox", "0 0 24 24")
-    el.classList =
-        "inline-block stroke-2 stroke-current fill-none align-[-0.5px] "
-        + className
+    el.classList = "inline-block stroke-2 stroke-current fill-none " + className
 
     for (const [tag, attrs] of i) {
         const child = document.createElementNS(
@@ -196,5 +204,3 @@ function icon(i: IconNode, className: string): SVGSVGElement {
 }
 
 document.body.appendChild(Main())
-
-console.log(Plus)

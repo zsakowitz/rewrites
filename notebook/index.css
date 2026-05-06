@@ -9,6 +9,7 @@
     --color-gray-300: #dce0e8; /* zed title bar bg */
     --color-gray-500: #cdd0d9; /* zed border */
     --color-gray-600: #c3c7d2; /* zed selected item in autocomplete */
+    --color-gray-700: #7c7f93; /* zed comment text */
     --color-gray-900: #4c4f69; /* zed plain text color */
 
     --color-accent-50: oklch(97.7% 0.014 308.299);
@@ -24,6 +25,10 @@
     --color-accent-950: oklch(29.1% 0.149 302.717);
 }
 
+:root {
+    color-scheme: light;
+}
+
 @media (prefers-color-scheme: dark) {
     :root {
         --color-white: #1a1c26;
@@ -32,7 +37,9 @@
         --color-gray-300: #232634; /* zed title bar bg */
         --color-gray-500: #414559; /* zed border */
         --color-gray-600: #4a4e62; /* zed selected item in autocomplete */
+        --color-gray-700: #949cbb; /* zed comment text */
         --color-gray-900: #c6d0f5; /* zed plain text color */
+        color-scheme: dark;
     }
 }
 
