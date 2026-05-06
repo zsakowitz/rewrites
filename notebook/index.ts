@@ -1,3 +1,4 @@
+import { Plus, type IconNode } from "lucide"
 import test1 from "./asset/test-1.png"
 import test2 from "./asset/test-2.png"
 import test3 from "./asset/test-3.jpeg"
@@ -39,7 +40,7 @@ const test = [
 ]
 
 type Attr = string | null | undefined | Record<string, string | number>
-type Child = string | HTMLElement
+type Child = string | HTMLElement | SVGSVGElement
 
 function h<K extends keyof HTMLElementTagNameMap>(
     tagName: K,
@@ -77,64 +78,123 @@ function SidebarRightImage(src: string) {
 }
 
 function BarInfo() {
-    return div("bg-gray-300 col-span-3 border-b border-gray-500")
+    return div("bg-gray-300 col-span-3 border-b border-gray-500 contain-strict")
 }
 
 function BarLeft() {
-    return div("bg-gray-200 row-span-3 border-r border-gray-500")
+    return div("bg-gray-200 row-span-4 border-r border-gray-500 contain-strict")
 }
 
 function BarRight() {
     return h(
         "ul",
-        "bg-gray-200 row-span-3 border-l border-gray-500 flex flex-wrap p-1 gap-1 overflow-auto",
+        "bg-gray-200 row-span-4 border-l border-gray-500 flex flex-wrap p-1 gap-1 overflow-auto contain-strict",
         ...test.map(SidebarRightImage),
     )
 }
 
 function MainImage(src: string) {
-    const img1 = h("img", {
-        class: "absolute -top-2 -left-2 w-[calc(100%+16px)] max-w-none h-[calc(100%+16px)] object-cover opacity-30 blur-xs",
-        src,
-    })
-
-    const img2 = h("img", { class: "relative m-auto max-h-full", src })
-
-    return div("bg-white", div("flex relative h-full p-4", img2))
+    return div(
+        "bg-white contain-strict",
+        div(
+            "flex relative h-full p-4",
+            h("img", { class: "relative m-auto max-h-full", src }),
+        ),
+    )
 }
 
 function MainTags() {
     return h(
         "ul",
-        "bg-white border-t border-gray-500 p-2 flex flex-wrap gap-x-1 gap-y-1 text-sm/[1]",
+        "bg-gray-100 border-b border-gray-500 text-sm/[1] text-gray-900 flex whitespace-nowrap contain-strict",
         Tag("mathematics"),
         Tag("programming"),
         Tag("bad proof"),
     )
 
     function Tag(label: string) {
-        return h(
-            "li",
-            "bg-gray-200 px-1 pb-0.5 rounded-sm text-gray-900 h-min",
-            label,
-        )
+        return h("li", "border-r border-gray-500 py-2 px-3", label)
     }
 }
 
 function MainEditor() {
-    return div("bg-gray-100 border-t border-gray-500")
+    return div(
+        "bg-gray-100 border-b border-gray-500 text-sm/[1] text-gray-900 flex flex-col contain-size relative contain-style",
+        h("input", {
+            type: "text",
+            class: "w-full px-3 pb-2.25 pt-1.75 focus:outline-none",
+            value: "inst",
+        }),
+        h(
+            "ul",
+            "absolute top-[calc(100%+.25rem)] left-0.75 bg-gray-200 border border-gray-500 z-10 p-1 rounded-md min-w-72",
+            PreexistingTag("instead of brain there is"),
+            PreexistingTag("instead of X say Y"),
+            PreexistingTag("instant loss"),
+            NewTag("inst"),
+        ),
+    )
+
+    function PreexistingTag(name: string) {
+        return h("li", "p-1 first:bg-gray-600 rounded-sm", name)
+    }
+
+    function NewTag(name: string) {
+        return h("li", "p-1 rounded-sm opacity-70", "Create tag: " + name)
+    }
+}
+
+function MainStatus() {
+    return h(
+        "ul",
+        "bg-gray-100 border-t border-gray-500 flex text-sm/[1] text-gray-900 whitespace-nowrap py-2 px-3 gap-6 contain-strict",
+        Keybind("⌘K", "prev"),
+        Keybind("⌘J", "next"),
+    )
+
+    function Keybind(keys: string, label: string) {
+        // prettier-ignore
+        return h("li", "flex gap-1",
+            h("kbd", "font-sans", keys),
+            h("span", "", label),
+        )
+    }
 }
 
 function Main() {
     return div(
-        "min-h-dvh grid grid-cols-[240px_1fr_240px] grid-rows-[2rem_1fr_3rem_6rem] *:contain-strict",
+        "min-h-dvh grid grid-cols-[240px_1fr_240px] grid-rows-[2rem_2rem_2rem_1fr_2rem] select-none",
         BarInfo(),
         BarLeft(),
-        MainImage(test1),
-        BarRight(),
         MainTags(),
+        BarRight(),
         MainEditor(),
+        MainImage(test1),
+        MainStatus(),
     )
 }
 
+function icon(i: IconNode, className: string): SVGSVGElement {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+    el.setAttribute("viewBox", "0 0 24 24")
+    el.classList =
+        "inline-block stroke-2 stroke-current fill-none align-[-0.5px] "
+        + className
+
+    for (const [tag, attrs] of i) {
+        const child = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            tag,
+        )
+        for (const key in attrs) {
+            child.setAttribute(key, "" + attrs[key]!)
+        }
+        el.appendChild(child)
+    }
+
+    return el
+}
+
 document.body.appendChild(Main())
+
+console.log(Plus)
