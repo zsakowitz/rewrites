@@ -65,14 +65,30 @@ function div(attr: Attr, ...children: Child[]) {
     return h("div", attr, ...children)
 }
 
-function SidebarRightImage(src: string, selected: boolean) {
+function SidebarRightImage(src: string) {
     return h(
         "li",
-        "relative" + (selected ? " ring-4 ring-accent-500 rounded-md" : ""),
+        "",
         h("img", {
-            class: "rounded-md" + (selected ? "" : " opacity-70"),
+            class: "",
             src,
         }),
+    )
+}
+
+function BarInfo() {
+    return div("bg-gray-300 col-span-3 border-b border-gray-500")
+}
+
+function BarLeft() {
+    return div("bg-gray-200 row-span-3 border-r border-gray-500")
+}
+
+function BarRight() {
+    return h(
+        "ul",
+        "bg-gray-200 row-span-3 border-l border-gray-500 flex flex-wrap p-1 gap-1 overflow-auto",
+        ...test.map(SidebarRightImage),
     )
 }
 
@@ -84,22 +100,40 @@ function MainImage(src: string) {
 
     const img2 = h("img", { class: "relative m-auto max-h-full", src })
 
-    return div("bg-white", img1, div("flex relative h-full p-4", img2))
+    return div("bg-white", div("flex relative h-full p-4", img2))
+}
+
+function MainTags() {
+    return h(
+        "ul",
+        "bg-white border-t border-gray-500 p-2 flex flex-wrap gap-x-1 gap-y-1 text-sm/[1]",
+        Tag("mathematics"),
+        Tag("programming"),
+        Tag("bad proof"),
+    )
+
+    function Tag(label: string) {
+        return h(
+            "li",
+            "bg-gray-200 px-1 pb-0.5 rounded-sm text-gray-900 h-min",
+            label,
+        )
+    }
+}
+
+function MainEditor() {
+    return div("bg-gray-100 border-t border-gray-500")
 }
 
 function Main() {
     return div(
         "min-h-dvh grid grid-cols-[240px_1fr_240px] grid-rows-[2rem_1fr_3rem_6rem] *:contain-strict",
-        div("bg-gray-300 col-span-3 border-b border-gray-500"),
-        div("bg-gray-200 row-span-3 border-r border-gray-500"),
+        BarInfo(),
+        BarLeft(),
         MainImage(test1),
-        h(
-            "ul",
-            "bg-gray-200 row-span-3 border-l border-gray-500 flex flex-wrap p-2 gap-2 overflow-auto",
-            ...test.map((x, i) => SidebarRightImage(x, i == 1)),
-        ),
-        div("bg-gray-100 border-t border-gray-500"),
-        div("bg-gray-100 border-t border-gray-500"),
+        BarRight(),
+        MainTags(),
+        MainEditor(),
     )
 }
 
