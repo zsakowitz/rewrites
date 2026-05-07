@@ -1,4 +1,4 @@
-import { Filter, Folder, Image, Notebook, type IconNode } from "lucide"
+import { Filter, Folder, Image, Notebook, Table2, type IconNode } from "lucide"
 import test from "./asset/test.jpeg"
 
 type Attr = string | null | undefined | Record<string, string | number>
@@ -28,21 +28,21 @@ function div(attr: Attr, ...children: Child[]) {
     return h("div", attr, ...children)
 }
 
-function ImageFolders() {
+function DirEntry(icon: IconNode, name: string) {
+    return h(
+        "li",
+        "py-0.5 pr-3 hover:bg-gray-600 -indent-6 pl-9 hyphens-auto",
+        svg(icon, "size-4 min-w-4 mr-2 align-bottom mb-0.5"),
+        name,
+    )
+}
+
+function Directory(...children: Child[]) {
     return h(
         "ul",
         "bg-gray-200 row-span-3 border-r contain-strict text-gray-900 py-1.5 overflow-auto",
-        ...JSON.parse((localStorage.notebookFolders ??= `[]`)).map(EFolder),
+        ...children,
     )
-
-    function EFolder(name: string) {
-        return h(
-            "li",
-            "py-0.5 pr-3 hover:bg-gray-600 -indent-6 pl-9 hyphens-auto",
-            svg(Folder, "size-4 min-w-4 mr-2 align-bottom mb-0.5"),
-            name,
-        )
-    }
 }
 
 function Nav() {
@@ -214,19 +214,7 @@ function Keybinds(keybinds: [key: string, label: string][]) {
 function View(className: string, ...children: Child[]) {
     return div(
         "min-h-dvh grid select-none text-sm text-gray-900 " + className,
-        ImageFolders(),
-        CurrentPhotoTags(),
-        CurrentPhotoMetadata(),
-        InputWithAutocomplete(),
-        ImageLarge(test),
-        Nav(),
-        Keybinds([
-            ["Z", "undo"],
-            ["S", "skip"],
-            ["A", "zoom in"],
-            ["T", "edit tags"],
-            ["M", "maximize"],
-        ]),
+        ...children,
     )
 }
 
@@ -252,7 +240,11 @@ function svg(i: IconNode, className: string): SVGSVGElement {
 export function ViewEditPhotoTags() {
     return View(
         "grid-cols-[240px_1fr_260px] grid-rows-[2rem_2rem_1fr_2rem]",
-        ImageFolders(),
+        Directory(
+            ...JSON.parse((localStorage.notebookFolders ??= `[]`)).map(
+                (x: string) => DirEntry(Folder, x),
+            ),
+        ),
         CurrentPhotoTags(),
         CurrentPhotoMetadata(),
         InputWithAutocomplete(),
@@ -268,4 +260,15 @@ export function ViewEditPhotoTags() {
     )
 }
 
-document.body.appendChild(ViewEditPhotoTags())
+export function ViewTable() {
+    return View(
+        "grid-cols-[240px_1fr_260px] grid-rows-[1fr_2rem]",
+        Directory(
+            DirEntry(Table2, ""),
+            DirEntry(Table2, ""),
+            DirEntry(Table2, ""),
+        ),
+    )
+}
+
+document.body.appendChild(ViewTable())
