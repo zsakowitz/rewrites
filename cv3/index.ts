@@ -1,15 +1,12 @@
-import REGL from "regl"
-
 const cv = document.createElement("canvas")
 cv.style = "width:100dvw;height:100dvh;position:absolute;top:0;left:0"
 new ResizeObserver(() => {
     cv.width = devicePixelRatio * cv.clientWidth
     cv.height = devicePixelRatio * cv.clientHeight
+    draw()
 }).observe(cv)
-addEventListener("resize", () => {
-    cv.width = devicePixelRatio * cv.clientWidth
-    cv.height = devicePixelRatio * cv.clientHeight
-})
+
+document.body.style = "background: #8839ef"
 document.body.appendChild(cv)
 
 const gl = cv.getContext("webgl2", {
@@ -17,64 +14,137 @@ const gl = cv.getContext("webgl2", {
     preserveDrawingBuffer: true,
 })!
 
-const regl = REGL(gl)
+function createShader(kind: GLenum) {
+    return (source: TemplateStringsArray): WebGLShader => {
+        const shader = gl.createShader(kind)!
+        gl.shaderSource(shader, source[0]!.trim())
+        gl.compileShader(shader)
 
-const basic = regl({
-    vert: `#version 300 es
-        precision highp float;
-        in vec2 position;
-        out vec2 pos;
-        void main() {
-            pos = position;
-            gl_Position = vec4(position, 0, 1);
-        }`,
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.log(gl.getShaderInfoLog(shader))
+            gl.deleteShader(shader)
+            throw new Error()
+        }
 
-    attributes: {
-        position: [-1, -1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1],
-    },
+        return shader
+    }
+}
 
-    count: 6,
-    offset: 0,
-    primitive: "triangles",
+function createProgram(vert: WebGLShader, frag: WebGLShader) {
+    const program = gl.createProgram()
+    gl.attachShader(program, vert)
+    gl.attachShader(program, frag)
+    gl.linkProgram(program)
 
-    frag: `#version 300 es
-        precision highp float;
-        in vec2 pos;
-        out vec4 color;
-        void main() {
-            color = vec4(pos, 0, 1);
-        }`,
-})
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.log(gl.getProgramInfoLog(program))
+        gl.deleteProgram(program)
+        throw new Error()
+    }
 
-const pink = regl({
-    vert: `#version 300 es
-        precision highp float;
-        in vec2 position;
-        out vec2 pos;
-        void main() {
-            pos = position;
-            gl_Position = vec4(position, 0, 2);
-        }`,
+    return program
+}
 
-    attributes: {
-        position: [-1, -1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1],
-    },
+function program(vertSource: TemplateStringsArray) {
+    return (fragSource: TemplateStringsArray) => {
+        const vert = createShader(gl.VERTEX_SHADER)(vertSource)
+        const frag = createShader(gl.FRAGMENT_SHADER)(fragSource)
+        return createProgram(vert, frag)
+    }
+}
 
-    count: 6,
-    offset: 0,
-    primitive: "triangles",
+const prog = program`
+    #version 300 es
 
-    frag: `#version 300 es
-        precision highp float;
-        in vec2 pos;
-        out vec4 color;
-        void main() {
-            color = vec4(1, 0, 1, 1);
-        }`,
-})
+    in vec4 position;
+    out vec4 pos;
+    uniform mat4 model;
 
-regl.frame(() => {
-    regl.clear({ color: [0, 0, 0, 1], depth: 10 })
-    basic()
-    pink()
-})
+    void main() {
+        gl_Position = model * position;
+        gl_Position.w = 1.0;
+        pos = position;
+    }
+``
+    #version 300 es
+    precision highp float;
+
+    out vec4 color;
+    in vec4 pos;
+
+    void main() {
+        color = vec4(0, 0, 0, 1);
+        if (pos.x == 0.0) color = vec4(0,1,1,1);
+        if (pos.y == 0.0) color = vec4(1,0,1,1);
+        if (pos.z == 0.0) color = vec4(1,1,0,1);
+        if (pos.x == 1.0) color = vec4(1,0,0,1);
+        if (pos.y == 1.0) color = vec4(0,1,0,1);
+        if (pos.z == 1.0) color = vec4(0,0,1,1);
+    }
+`
+
+function cube() {
+    // 0——————1
+    // |\    /|
+    // | 4——5 |
+    // | |  | |
+    // | 6——7 |
+    // |/    \|
+    // 2——————3
+
+    // prettier-ignore
+    return [
+        0, 1, 4, 5, 1, 4,
+        0, 4, 6, 2, 0, 6,
+        6, 7, 2, 3, 7, 2,
+        5, 1, 3, 5, 7, 3,
+        4, 5, 6, 5, 6, 7,
+        0, 1, 2, 3, 1, 2,
+    ].flatMap((i) => [
+        i & 0b001 ? 1 : 0,
+        i & 0b010 ? 1 : 0,
+        i & 0b100 ? 1 : 0,
+    ])
+}
+
+const start = Date.now()
+let rafId = -1
+
+function draw() {
+    if (rafId != -1) {
+        cancelAnimationFrame(rafId)
+        rafId = -1
+    }
+
+    const mat = new DOMMatrix()
+    mat.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
+    mat.rotateSelf(70, 30, 40)
+    mat.rotateSelf((Date.now() - start) / 20, 0, 0)
+    mat.scale3dSelf(0.3)
+    mat.translateSelf(-0.5, -0.5, -0.5)
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+    gl.clearColor(0, 0, 0, 0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    gl.useProgram(prog)
+    const ux = gl.getUniformLocation(prog, "model")
+    gl.uniformMatrix4fv(ux, false, mat.toFloat32Array())
+
+    const pos = new Float32Array(cube())
+    const posAttrLoc = gl.getAttribLocation(prog, "position")
+    const posBuf = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
+    gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW)
+
+    const vao = gl.createVertexArray()
+    gl.bindVertexArray(vao)
+    gl.enableVertexAttribArray(posAttrLoc)
+    gl.vertexAttribPointer(posAttrLoc, 3, gl.FLOAT, false, 0, 0)
+
+    gl.useProgram(prog)
+    gl.bindVertexArray(vao)
+    gl.drawArrays(gl.TRIANGLES, 0, pos.length / 3)
+
+    rafId = requestAnimationFrame(draw)
+}
