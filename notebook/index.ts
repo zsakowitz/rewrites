@@ -28,12 +28,17 @@ function div(attr: Attr, ...children: Child[]) {
     return h("div", attr, ...children)
 }
 
-function DirEntry(icon: IconNode, name: string) {
+function DirEntry(icon: IconNode, name: string, ...children: Child[]) {
     return h(
         "li",
-        "py-0.5 pr-3 hover:bg-gray-600 -indent-6 pl-9 hyphens-auto",
-        svg(icon, "size-4 min-w-4 mr-2 align-bottom mb-0.5"),
-        name,
+        "",
+        h(
+            "p",
+            "hover:bg-gray-600 py-0.5 px-3 -indent-6 pl-9 hyphens-auto in-[.folder]:pl-15 in-[.folder_.folder]:pl-21 in-[.folder_.folder_.folder]:pl-27 in-[.folder_.folder_.folder_.folder]:pl-33",
+            svg(icon, "size-4 min-w-4 mr-2 align-bottom mb-0.5"),
+            name,
+        ),
+        children.length ? h("ul", "folder", ...children) : "",
     )
 }
 
@@ -264,9 +269,13 @@ export function ViewTable() {
     return View(
         "grid-cols-[240px_1fr_260px] grid-rows-[1fr_2rem]",
         Directory(
-            DirEntry(Table2, ""),
-            DirEntry(Table2, ""),
-            DirEntry(Table2, ""),
+            DirEntry(
+                Folder,
+                "folder abc",
+                DirEntry(Table2, "hello"),
+                DirEntry(Table2, "world"),
+            ),
+            DirEntry(Table2, "goodbye"),
         ),
     )
 }
