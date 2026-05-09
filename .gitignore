@@ -33,5 +33,6 @@ dist
 story.ohm-bundle.d.ts
 ytm
 
-# aoc
+# personal
 aoc/.aoc
+notebook/asset/test.jpeg

@@ -59,6 +59,7 @@
         "prettier": "^3.8.1",
         "prettier-plugin-jsdoc": "^1.8.0",
         "puppeteer": "^22.15.0",
+        "regl": "^2.1.1",
         "socket.io": "^4.8.3",
         "solid-js": "^1.9.11",
         "source-map": "^0.7.6",
