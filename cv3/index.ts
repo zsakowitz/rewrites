@@ -3,6 +3,7 @@ cv.style = "width:100dvw;height:100dvh;position:absolute;top:0;left:0"
 new ResizeObserver(() => {
     cv.width = devicePixelRatio * cv.clientWidth
     cv.height = devicePixelRatio * cv.clientHeight
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
     draw()
 }).observe(cv)
 
@@ -62,7 +63,6 @@ const prog = program`
 
     void main() {
         gl_Position = model * position;
-        gl_Position.w = 1.0;
         pos = position;
     }
 ``
@@ -74,9 +74,9 @@ const prog = program`
 
     void main() {
         color = vec4(0, 0, 0, 1);
-        if (pos.x == 0.0) color = vec4(0,1,1,1);
-        if (pos.y == 0.0) color = vec4(1,0,1,1);
-        if (pos.z == 0.0) color = vec4(1,1,0,1);
+        if (pos.x == -1.0) color = vec4(0,1,1,1);
+        if (pos.y == -1.0) color = vec4(1,0,1,1);
+        if (pos.z == -1.0) color = vec4(1,1,0,1);
         if (pos.x == 1.0) color = vec4(1,0,0,1);
         if (pos.y == 1.0) color = vec4(0,1,0,1);
         if (pos.z == 1.0) color = vec4(0,0,1,1);
@@ -94,16 +94,16 @@ function cube() {
 
     // prettier-ignore
     return [
-        0, 1, 4, 5, 1, 4,
-        0, 4, 6, 2, 0, 6,
-        6, 7, 2, 3, 7, 2,
-        5, 1, 3, 5, 7, 3,
-        4, 5, 6, 5, 6, 7,
-        0, 1, 2, 3, 1, 2,
+        5, 1, 4, 4, 1, 0,
+        0, 2, 4, 4, 2, 6,
+        7, 5, 6, 6, 5, 4,
+        1, 5, 7, 7, 3, 1,
+        3, 7, 2, 6, 2, 7,
+        0, 1, 2, 3, 2, 1,
     ].flatMap((i) => [
-        i & 0b001 ? 1 : 0,
-        i & 0b010 ? 1 : 0,
-        i & 0b100 ? 1 : 0,
+        i & 0b001 ? 1 : -1,
+        i & 0b010 ? 1 : -1,
+        i & 0b100 ? 1 : -1,
     ])
 }
 
@@ -120,12 +120,13 @@ function draw() {
     mat.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
     mat.rotateSelf(70, 30, 40)
     mat.rotateSelf((Date.now() - start) / 20, 0, 0)
+    mat.rotateSelf(0, (Date.now() - start) / 5, 0)
     mat.scale3dSelf(0.3)
-    mat.translateSelf(-0.5, -0.5, -0.5)
 
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
     gl.clearColor(0, 0, 0, 0)
-    gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    gl.enable(gl.DEPTH_TEST)
+    gl.enable(gl.CULL_FACE)
 
     gl.useProgram(prog)
     const ux = gl.getUniformLocation(prog, "model")
