@@ -53,20 +53,27 @@ export function createProgram(
     return program
 }
 
+export function createBuffer(gl: WebGL2RenderingContext, data: Float32Array) {
+    const buffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
+    return buffer
+}
+
 export function createVao(
     gl: WebGL2RenderingContext,
     program: WebGLProgram,
-    data: Record<string, [WebGLBuffer, size: 1 | 2 | 3 | 4, offset?: number]>,
+    data: Record<string, { buffer: WebGLBuffer; size: number }>,
 ): WebGLVertexArrayObject {
     const vao = gl.createVertexArray()
     gl.bindVertexArray(vao)
 
     for (const key in data) {
-        const [buffer, size, offset = 0] = data[key]!
+        const { buffer, size } = data[key]!
         const location = gl.getAttribLocation(program, key)
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
         gl.enableVertexAttribArray(location)
-        gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, offset)
+        gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0)
     }
 
     return vao
@@ -77,10 +84,7 @@ export function program(
     props: {
         vert: string
         frag: string
-        attrs: Record<
-            string,
-            [WebGLBuffer, size: 1 | 2 | 3 | 4, offset?: number]
-        >
+        attrs: Record<string, number[][]>
         primitive:
             | typeof WebGL2RenderingContext.POINTS
             | typeof WebGL2RenderingContext.LINES
@@ -106,7 +110,22 @@ export function program(
         ),
     )
 
-    const vao = createVao(gl, program, props.attrs)
+    const vao = createVao(
+        gl,
+        program,
+        Object.fromEntries(
+            Object.entries(props.attrs).map(([k, v]) => {
+                const buffer = createBuffer(gl, new Float32Array(v.flat()))
+                return [
+                    k,
+                    {
+                        buffer,
+                        size: v[0]?.length ?? 1,
+                    },
+                ]
+            }),
+        ),
+    )
 
     return {
         prog: program,

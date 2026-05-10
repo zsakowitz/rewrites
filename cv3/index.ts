@@ -1,65 +1,9 @@
-import { program } from "./lib"
 import * as m4 from "./mat4"
+import { active, cv, gl } from "./program"
 
-const cv = document.createElement("canvas")
 cv.style = "width:100dvw;height:100dvh;position:absolute;top:0;left:0"
-
 document.body.style = "background: #8839ef"
 document.body.appendChild(cv)
-
-const gl = cv.getContext("webgl2", {
-    desynchronized: true,
-    preserveDrawingBuffer: true,
-})!
-
-function buf(data: number[]) {
-    const buffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW)
-    return buffer
-}
-
-const prog1 = program(gl, {
-    vert: `
-        in vec4 a_position;
-        out vec4 v_position;
-        uniform mat4 u_world;
-
-        void main() {
-            gl_Position = u_world * a_position;
-            v_position = a_position;
-        }
-    `,
-    frag: `
-        out vec4 color;
-        in vec4 v_position;
-
-        void main() {
-            vec3 p = v_position.xyz * 2.0 - 1.0;
-            color = vec4((p * p * p + 1.0) / 2.0, 1.0);
-        }
-    `,
-    attrs: {
-        a_position: [
-            buf([
-                0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
-                0, 1, 0, 0, 0, 1,
-
-                0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0,
-                1, 0, 1, 1, 1, 0,
-
-                1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1,
-                1, 1, 0, 1, 0, 1,
-
-                1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0,
-                0, 0, 1, 0, 1, 1,
-            ]),
-            3,
-        ],
-    },
-    primitive: gl.TRIANGLES,
-    count: 36,
-})
 
 const camera = m4.identity()
 m4.multiplyBy(camera, m4.rotateX(2))
@@ -83,7 +27,7 @@ function draw() {
     const world = m4.scale(gl.canvas.height / gl.canvas.width, 1, 1)
     m4.multiplyBy(world, camera)
 
-    for (const el of [prog1]) {
+    for (const el of active) {
         gl.useProgram(el.prog)
 
         const u1 = gl.getUniformLocation(el.prog, "u_world")
