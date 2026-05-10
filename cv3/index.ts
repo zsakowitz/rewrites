@@ -54,7 +54,32 @@ function program(vertSource: TemplateStringsArray) {
     }
 }
 
-const prog = program`
+function buf(data: number[]) {
+    const buffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW)
+    return buffer
+}
+
+function vao(
+    program: WebGLProgram,
+    data: Record<string, [WebGLBuffer, size: 1 | 2 | 3 | 4, offset?: number]>,
+): WebGLVertexArrayObject {
+    const vao = gl.createVertexArray()
+    gl.bindVertexArray(vao)
+
+    for (const key in data) {
+        const [buffer, size, offset = 0] = data[key]!
+        const location = gl.getAttribLocation(program, key)
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+        gl.enableVertexAttribArray(location)
+        gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, offset)
+    }
+
+    return vao
+}
+
+const mandelbrotProgram = program`
     #version 300 es
 
     in vec4 position;
@@ -74,8 +99,10 @@ const prog = program`
     uniform mat4 u_proj;
 
     void main() {
-        vec2 z = pos.xy;
-        vec2 c = pos.xy;
+        vec4 P = pos;
+
+        vec2 z = P.xy;
+        vec2 c = P.xy;
 
         for (int i = 0; i < 120; i++) {
             z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
@@ -91,6 +118,44 @@ const prog = program`
     }
 `
 
+// 221 375
+
+const mandelbrotVao = vao(mandelbrotProgram, {
+    position: [buf([-2, -2, -2, 2, 2, -2, -2, 2, 2, -2, 2, 2]), 2],
+})
+
+const axesProgram = program`
+    #version 300 es
+
+    in vec4 position;
+    in vec4 a_color;
+    out vec4 v_color;
+    uniform mat4 u_proj;
+
+    void main() {
+        gl_Position = u_proj * position;
+        v_color = a_color;
+    }
+``
+    #version 300 es
+    precision highp float;
+
+    out vec4 color;
+    in vec4 v_color;
+
+    void main() {
+        color = v_color;
+    }
+`
+
+const axesVao = vao(axesProgram, {
+    position: [buf([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]), 3],
+    a_color: [
+        buf([1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1]),
+        3,
+    ],
+})
+
 let rafId = -1
 
 const rot = new DOMMatrix()
@@ -104,7 +169,7 @@ function draw() {
 
     const proj = new DOMMatrix()
     proj.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
-    proj.multiplySelf(rot)
+    // proj.multiplySelf(rot)
     proj.scale3dSelf(0.3)
 
     gl.clearColor(0, 0, 0, 0)
@@ -112,25 +177,25 @@ function draw() {
     gl.enable(gl.DEPTH_TEST)
 
     {
-        gl.useProgram(prog)
+        gl.useProgram(mandelbrotProgram)
 
-        const ux = gl.getUniformLocation(prog, "u_proj")
+        const ux = gl.getUniformLocation(mandelbrotProgram, "u_proj")
         gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
 
-        const pos = new Float32Array([-2, -2, -2, 2, 2, -2, -2, 2, 2, -2, 2, 2])
-        const posAttrLoc = gl.getAttribLocation(prog, "position")
-        const posBuf = gl.createBuffer()
-        gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
-        gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW)
+        gl.useProgram(mandelbrotProgram)
+        gl.bindVertexArray(mandelbrotVao)
+        gl.drawArrays(gl.TRIANGLES, 0, 6)
+    }
 
-        const vao = gl.createVertexArray()
-        gl.bindVertexArray(vao)
-        gl.enableVertexAttribArray(posAttrLoc)
-        gl.vertexAttribPointer(posAttrLoc, 2, gl.FLOAT, false, 0, 0)
+    {
+        gl.useProgram(axesProgram)
 
-        gl.useProgram(prog)
-        gl.bindVertexArray(vao)
-        gl.drawArrays(gl.TRIANGLES, 0, pos.length / 2)
+        const ux = gl.getUniformLocation(axesProgram, "u_proj")
+        gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
+
+        gl.useProgram(axesProgram)
+        gl.bindVertexArray(axesVao)
+        gl.drawArrays(gl.LINES, 0, 6)
     }
 
     rafId = requestAnimationFrame(draw)
