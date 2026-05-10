@@ -74,38 +74,7 @@ const prog = program`
     uniform mat4 u_proj;
 
     void main() {
-        color = vec4(vec3(gl_FragCoord.z), 1.0);
-        // color = pos / 2.0 + 0.5;
-        if (int(abs(pos.z - 0.9) < 0.05) + int(abs(pos.x - 0.9) < 0.05) + int(abs(pos.y - 0.9) < 0.05) == 2
-        ) {
-            color = vec4(1, 0.5, 0, 1);
-        }
-    }
-`
-
-const prog2 = program`
-    #version 300 es
-
-    in vec4 position;
-    out vec4 pos;
-    uniform mat4 u_proj;
-
-    void main() {
-        gl_Position = position;
-        pos = position;
-    }
-``
-    #version 300 es
-    precision highp float;
-
-    out vec4 color;
-    in vec4 pos;
-    uniform mat4 u_proj;
-
-    void main() {
-        color = vec4(gl_FragCoord.xy, 0, 1);
-        // float depth = (u_proj * vec4(1,1,1,1)).z;
-        // color = vec4(depth,depth,depth,1);
+        color = pos / 2.0 + 0.5;
     }
 `
 
@@ -129,7 +98,7 @@ function cube() {
         3, 7, 2, 6, 2, 7,
         0, 1, 2, 3, 2, 1,
     ].flatMap((i) => [
-        i & 0b001 ? 1 : 0,
+        i & 0b001 ? 1 : -1,
         i & 0b010 ? 1 : -1,
         i & 0b100 ? 1 : -1,
     ])
@@ -175,28 +144,6 @@ function draw() {
         gl.useProgram(prog)
         gl.bindVertexArray(vao)
         gl.drawArrays(gl.TRIANGLES, 0, pos.length / 3)
-    }
-
-    {
-        gl.useProgram(prog2)
-
-        const ux = gl.getUniformLocation(prog2, "u_proj")
-        gl.uniformMatrix4fv(ux, false, u_proj.toFloat32Array())
-
-        const pos = new Float32Array([-1, -1, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1])
-        const posAttrLoc = gl.getAttribLocation(prog2, "position")
-        const posBuf = gl.createBuffer()
-        gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
-        gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW)
-
-        const vao = gl.createVertexArray()
-        gl.bindVertexArray(vao)
-        gl.enableVertexAttribArray(posAttrLoc)
-        gl.vertexAttribPointer(posAttrLoc, 2, gl.FLOAT, false, 0, 0)
-
-        gl.useProgram(prog2)
-        gl.bindVertexArray(vao)
-        gl.drawArrays(gl.TRIANGLES, 0, pos.length / 2)
     }
 
     rafId = requestAnimationFrame(draw)
