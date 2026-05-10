@@ -95,9 +95,10 @@ const prog2 = program`
 
     out vec4 color;
     in vec4 pos;
+    uniform mat4 u_proj;
 
     void main() {
-        color = vec4(1.0, 0.5, 0.0, 1.0);
+        color = pos;
     }
 `
 
@@ -125,8 +126,10 @@ function cube() {
     ])
 }
 
-const start = Date.now()
 let rafId = -1
+
+const u_rot = new DOMMatrix()
+u_rot.rotateSelf(70, 30, 10)
 
 function draw() {
     if (rafId != -1) {
@@ -136,9 +139,7 @@ function draw() {
 
     const u_proj = new DOMMatrix()
     u_proj.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
-    u_proj.rotateSelf(70, 30, 40)
-    u_proj.rotateSelf((Date.now() - start) / 20, 0, 0)
-    u_proj.rotateSelf(0, (Date.now() - start) / 70, 0)
+    u_proj.multiplySelf(u_rot)
     u_proj.scale3dSelf(0.3)
 
     gl.clearColor(0, 0, 0, 0)
@@ -168,5 +169,54 @@ function draw() {
         gl.drawArrays(gl.TRIANGLES, 0, pos.length / 3)
     }
 
+    {
+        gl.useProgram(prog2)
+        gl.disable(gl.CULL_FACE)
+
+        const ux = gl.getUniformLocation(prog2, "u_proj")
+        gl.uniformMatrix4fv(ux, false, u_proj.toFloat32Array())
+
+        const pos = new Float32Array(
+            Array.from({ length: 5 }, (_, z) =>
+                Array.from({ length: 5 }, (_, i) => [
+                    i - 2,
+                    -2,
+                    z - 2,
+
+                    i - 2,
+                    +2,
+                    z - 2,
+
+                    -2,
+                    i - 2,
+                    z - 2,
+
+                    +2,
+                    i - 2,
+                    z - 2,
+                ]).flat(),
+            ).flat(),
+        )
+        const posAttrLoc = gl.getAttribLocation(prog2, "position")
+        const posBuf = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
+        gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW)
+
+        const vao = gl.createVertexArray()
+        gl.bindVertexArray(vao)
+        gl.enableVertexAttribArray(posAttrLoc)
+        gl.vertexAttribPointer(posAttrLoc, 3, gl.FLOAT, false, 0, 0)
+
+        gl.useProgram(prog2)
+        gl.bindVertexArray(vao)
+        gl.drawArrays(gl.LINES, 0, pos.length / 3)
+    }
+
     rafId = requestAnimationFrame(draw)
+}
+
+onwheel = (ev) => {
+    const rot = new DOMMatrix()
+    rot.rotateSelf(ev.deltaY, ev.deltaX, 0)
+    u_rot.preMultiplySelf(rot)
 }
