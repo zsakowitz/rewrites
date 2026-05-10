@@ -114,34 +114,36 @@ const axesVao = vao(axesProgram, {
 let rafId = -1
 
 const rot = new DOMMatrix()
-rot.rotateSelf(48, 39, 10)
+rot.rotateSelf(160, 0, 0)
+rot.rotateSelf(110, 90, 20)
+rot.rotateSelf(0, 0, 300)
 
-const mandelbrotProgram = program`
+const unitSquareProg = program`
     #version 300 es
 
-    in vec4 position;
-    out vec4 pos;
+    in vec4 a_position;
+    out vec4 v_position;
     uniform mat4 u_proj;
 
     void main() {
-        gl_Position = u_proj * position;
-        pos = position;
+        gl_Position = u_proj * a_position;
+        v_position = a_position;
     }
 ``
     #version 300 es
     precision highp float;
 
-    out vec4 color;
-    in vec4 pos;
     uniform mat4 u_proj;
+    in vec4 v_position;
+    out vec4 color;
 
     void main() {
-        color = vec4(0.5 + 0.5 * tanh(u_proj * pos - gl_FragCoord).xyz, 1);
+        color = vec4(v_position.xy, 0, 1);
     }
 `
 
-const mandelbrotVao = vao(mandelbrotProgram, {
-    position: [buf([-2, -2, -2, 2, 2, -2, -2, 2, 2, -2, 2, 2]), 2],
+const unitSquareVao = vao(unitSquareProg, {
+    a_position: [buf([0, 0, 0, 1, 1, 0, 1, 1]), 2],
 })
 
 function draw() {
@@ -161,14 +163,14 @@ function draw() {
     gl.enable(gl.DEPTH_TEST)
 
     {
-        gl.useProgram(mandelbrotProgram)
+        gl.useProgram(unitSquareProg)
 
-        const ux = gl.getUniformLocation(mandelbrotProgram, "u_proj")
+        const ux = gl.getUniformLocation(unitSquareProg, "u_proj")
         gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
 
-        gl.useProgram(mandelbrotProgram)
-        gl.bindVertexArray(mandelbrotVao)
-        gl.drawArrays(gl.TRIANGLES, 0, 6)
+        gl.useProgram(unitSquareProg)
+        gl.bindVertexArray(unitSquareVao)
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     }
 
     {
