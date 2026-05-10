@@ -217,6 +217,6 @@ function draw() {
 
 onwheel = (ev) => {
     const rot = new DOMMatrix()
-    rot.rotateSelf(ev.deltaY, ev.deltaX, 0)
+    rot.rotateSelf(ev.deltaY / 2, ev.deltaX / 2, 0)
     u_rot.preMultiplySelf(rot)
 }
