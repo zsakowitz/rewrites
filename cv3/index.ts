@@ -153,28 +153,31 @@ const unitSquare = program`
     a_position: [buf([0, 0, 0, 1, 1, 0, 1, 1]), 2],
 })
 
-const grid = program`
+const triangle = program`
     #version 300 es
 
     uniform mat4 u_proj;
     in vec4 a_position;
 
     void main() {
-        gl_Position = u_proj * a_position;
+        gl_Position = a_position;
     }
 ``
     #version 300 es
     precision highp float;
 
     uniform mat4 u_proj;
+    uniform vec2 u_resolution;
     out vec4 color;
 
     void main() {
-        color = vec4(1, 0.5, 0, 1);
-        color = vec4((u_proj * gl_FragCoord).xy, 0.0, 1.0);
+        vec2 pos = gl_FragCoord.xy / u_resolution;
+        vec4 proj = inverse(u_proj) * vec4(pos, 0, 1);
+        proj /= proj.z * sign(proj.z);
+        color = vec4(proj.xy, 0, 0.5);
     }
 `(gl.TRIANGLES, 3, {
-    a_position: [buf([0, 0, 0.02, 0, 1, 0.02, 1, 0, 0.02]), 3],
+    a_position: [buf([-1, -1, 3, -1, -1, 3]), 2],
 })
 
 function draw() {
@@ -192,13 +195,20 @@ function draw() {
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.enable(gl.DEPTH_TEST)
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-    for (const el of [unitSquare, axes, grid]) {
+    for (const el of [unitSquare, axes, triangle]) {
         gl.useProgram(el.prog)
 
-        const ux = gl.getUniformLocation(el.prog, "u_proj")
-        if (ux != null) {
-            gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
+        const u1 = gl.getUniformLocation(el.prog, "u_proj")
+        if (u1 != null) {
+            gl.uniformMatrix4fv(u1, false, proj.toFloat32Array())
+        }
+
+        const u2 = gl.getUniformLocation(el.prog, "u_resolution")
+        if (u2 != null) {
+            gl.uniform2f(u2, gl.drawingBufferWidth, gl.drawingBufferHeight)
         }
 
         gl.useProgram(el.prog)
