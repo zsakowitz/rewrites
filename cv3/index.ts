@@ -62,7 +62,7 @@ const prog = program`
     uniform mat4 u_proj;
 
     void main() {
-        gl_Position = position;
+        gl_Position = u_proj * position;
         pos = position;
     }
 ``
@@ -74,80 +74,27 @@ const prog = program`
     uniform mat4 u_proj;
 
     void main() {
-        vec4 z = pos * vec4(0.5,0.5,0.5,1) + vec4(0.5,0.5,0,0);
-        color = z;
+        vec2 z = pos.xy;
+        vec2 c = pos.xy;
 
-        vec2 p = z.xy;
-        vec2 c = z.xy;
-        for (int i =0;i<100;i++) p = vec2(p.x * p.x - p.y * p.y, 2.0 * p.x * p.y) + c;
+        for (int i = 0; i < 120; i++) {
+            z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
+            if (length(z) > 4.0) break;
+        }
 
-        if (length(p) < 4.0) color = vec4(0);
+        if (length(z) < 4.0) {
+            color = vec4(1);
+        } else {
+            vec2 p = pos.xy * 0.25 + 0.5;
+            color = vec4(p, 1.0 - p.x - p.y, 1);
+        }
     }
 `
 
-function cube() {
-    // 0——————1
-    // |\    /|
-    // | 4——5 |
-    // | |  | |
-    // | 6——7 |
-    // |/    \|
-    // 2——————3
-
-    document.body
-
-    // prettier-ignore
-    return [
-        5, 1, 4, 4, 1, 0,
-        0, 2, 4, 4, 2, 6,
-        7, 5, 6, 6, 5, 4,
-        1, 5, 7, 7, 3, 1,
-        3, 7, 2, 6, 2, 7,
-        0, 1, 2, 3, 2, 1,
-    ].flatMap((i) => [
-        i & 0b001 ? 1 : 0,
-        i & 0b010 ? 1 : 0,
-        i & 0b100 ? 1 : 0,
-    ])
-}
-
 let rafId = -1
 
-const u_rot = new DOMMatrix()
-u_rot.rotateSelf(70, 30, 10)
-
-//! https://webgl2fundamentals.org/webgl/lessons/webgl-3d-perspective.html
-function perspective(
-    fovRadians: number,
-    aspect: number,
-    near: number,
-    far: number,
-) {
-    var f = Math.tan(Math.PI * 0.5 - 0.5 * fovRadians)
-    var rangeInv = 1.0 / (near - far)
-
-    return new DOMMatrix([
-        f / aspect,
-        0,
-        0,
-        0,
-
-        0,
-        f,
-        0,
-        0,
-
-        0,
-        0,
-        (near + far) * rangeInv,
-        -1,
-
-        0,
-        0,
-        near * far * rangeInv * 2,
-        0,
-    ])
-}
+const rot = new DOMMatrix()
+rot.rotateSelf(70, 30, 10)
 
 function draw() {
     if (rafId != -1) {
@@ -155,12 +102,10 @@ function draw() {
         rafId = -1
     }
 
-    const u_proj = perspective(
-        70 * (Math.PI / 180),
-        gl.canvas.width / gl.canvas.height,
-        0.5,
-        10,
-    )
+    const proj = new DOMMatrix()
+    proj.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
+    proj.multiplySelf(rot)
+    proj.scale3dSelf(0.3)
 
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -170,9 +115,9 @@ function draw() {
         gl.useProgram(prog)
 
         const ux = gl.getUniformLocation(prog, "u_proj")
-        gl.uniformMatrix4fv(ux, false, u_proj.toFloat32Array())
+        gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
 
-        const pos = new Float32Array([-1, -1, 3, -1, -1, 3])
+        const pos = new Float32Array([-2, -2, -2, 2, 2, -2, -2, 2, 2, -2, 2, 2])
         const posAttrLoc = gl.getAttribLocation(prog, "position")
         const posBuf = gl.createBuffer()
         gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
@@ -192,7 +137,7 @@ function draw() {
 }
 
 onwheel = (ev) => {
-    const rot = new DOMMatrix()
-    rot.rotateSelf(ev.deltaY / 2, ev.deltaX / 2, 0)
-    u_rot.preMultiplySelf(rot)
+    rot.preMultiplySelf(
+        new DOMMatrix().rotateSelf(ev.deltaY / 2, ev.deltaX / 2, 0),
+    )
 }
