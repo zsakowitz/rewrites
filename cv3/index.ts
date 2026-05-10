@@ -79,7 +79,7 @@ function vao(
     return vao
 }
 
-const axesProgram = program`
+const axesProg = program`
     #version 300 es
 
     in vec4 position;
@@ -103,7 +103,7 @@ const axesProgram = program`
     }
 `
 
-const axesVao = vao(axesProgram, {
+const axesVao = vao(axesProg, {
     position: [buf([0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 5]), 3],
     a_color: [
         buf([1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1]),
@@ -121,9 +121,9 @@ rot.rotateSelf(0, 0, 300)
 const unitSquareProg = program`
     #version 300 es
 
+    uniform mat4 u_proj;
     in vec4 a_position;
     out vec4 v_position;
-    uniform mat4 u_proj;
 
     void main() {
         gl_Position = u_proj * a_position;
@@ -144,6 +144,31 @@ const unitSquareProg = program`
 
 const unitSquareVao = vao(unitSquareProg, {
     a_position: [buf([0, 0, 0, 1, 1, 0, 1, 1]), 2],
+})
+
+const gridProg = program`
+    #version 300 es
+
+    uniform mat4 u_proj;
+    in vec4 a_position;
+
+    void main() {
+        gl_Position = u_proj * a_position;
+    }
+``
+    #version 300 es
+    precision highp float;
+
+    uniform mat4 u_proj;
+    out vec4 color;
+
+    void main() {
+        color = vec4(1, 0.5, 0, 1);
+    }
+`
+
+const gridVao = vao(gridProg, {
+    a_position: [buf([0, 0, 0.02, 0, 1, 0.02, 1, 0, 0.02]), 3],
 })
 
 function draw() {
@@ -174,14 +199,25 @@ function draw() {
     }
 
     {
-        gl.useProgram(axesProgram)
+        gl.useProgram(axesProg)
 
-        const ux = gl.getUniformLocation(axesProgram, "u_proj")
+        const ux = gl.getUniformLocation(axesProg, "u_proj")
         gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
 
-        gl.useProgram(axesProgram)
+        gl.useProgram(axesProg)
         gl.bindVertexArray(axesVao)
         gl.drawArrays(gl.LINES, 0, 6)
+    }
+
+    {
+        gl.useProgram(gridProg)
+
+        const ux = gl.getUniformLocation(gridProg, "u_proj")
+        gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
+
+        gl.useProgram(gridProg)
+        gl.bindVertexArray(gridVao)
+        gl.drawArrays(gl.TRIANGLES, 0, 3)
     }
 
     rafId = requestAnimationFrame(draw)
