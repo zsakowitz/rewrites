@@ -59,10 +59,34 @@ const prog = program`
 
     in vec4 position;
     out vec4 pos;
-    uniform mat4 model;
+    uniform mat4 u_proj;
 
     void main() {
-        gl_Position = model * position;
+        gl_Position = u_proj * position;
+        pos = position;
+    }
+``
+    #version 300 es
+    precision highp float;
+
+    out vec4 color;
+    in vec4 pos;
+    uniform mat4 u_proj;
+
+    void main() {
+        color = pos / 2.0 + 0.5;
+    }
+`
+
+const prog2 = program`
+    #version 300 es
+
+    in vec4 position;
+    out vec4 pos;
+    uniform mat4 u_proj;
+
+    void main() {
+        gl_Position = u_proj * position;
         pos = position;
     }
 ``
@@ -73,13 +97,7 @@ const prog = program`
     in vec4 pos;
 
     void main() {
-        color = vec4(0, 0, 0, 1);
-        if (pos.x == -1.0) color = vec4(0,1,1,1);
-        if (pos.y == -1.0) color = vec4(1,0,1,1);
-        if (pos.z == -1.0) color = vec4(1,1,0,1);
-        if (pos.x == 1.0) color = vec4(1,0,0,1);
-        if (pos.y == 1.0) color = vec4(0,1,0,1);
-        if (pos.z == 1.0) color = vec4(0,0,1,1);
+        color = vec4(1.0, 0.5, 0.0, 1.0);
     }
 `
 
@@ -116,36 +134,39 @@ function draw() {
         rafId = -1
     }
 
-    const mat = new DOMMatrix()
-    mat.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
-    mat.rotateSelf(70, 30, 40)
-    mat.rotateSelf((Date.now() - start) / 20, 0, 0)
-    mat.rotateSelf(0, (Date.now() - start) / 5, 0)
-    mat.scale3dSelf(0.3)
+    const u_proj = new DOMMatrix()
+    u_proj.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
+    u_proj.rotateSelf(70, 30, 40)
+    u_proj.rotateSelf((Date.now() - start) / 20, 0, 0)
+    u_proj.rotateSelf(0, (Date.now() - start) / 70, 0)
+    u_proj.scale3dSelf(0.3)
 
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.enable(gl.DEPTH_TEST)
     gl.enable(gl.CULL_FACE)
 
-    gl.useProgram(prog)
-    const ux = gl.getUniformLocation(prog, "model")
-    gl.uniformMatrix4fv(ux, false, mat.toFloat32Array())
+    {
+        gl.useProgram(prog)
 
-    const pos = new Float32Array(cube())
-    const posAttrLoc = gl.getAttribLocation(prog, "position")
-    const posBuf = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
-    gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW)
+        const ux = gl.getUniformLocation(prog, "u_proj")
+        gl.uniformMatrix4fv(ux, false, u_proj.toFloat32Array())
 
-    const vao = gl.createVertexArray()
-    gl.bindVertexArray(vao)
-    gl.enableVertexAttribArray(posAttrLoc)
-    gl.vertexAttribPointer(posAttrLoc, 3, gl.FLOAT, false, 0, 0)
+        const pos = new Float32Array(cube())
+        const posAttrLoc = gl.getAttribLocation(prog, "position")
+        const posBuf = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
+        gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW)
 
-    gl.useProgram(prog)
-    gl.bindVertexArray(vao)
-    gl.drawArrays(gl.TRIANGLES, 0, pos.length / 3)
+        const vao = gl.createVertexArray()
+        gl.bindVertexArray(vao)
+        gl.enableVertexAttribArray(posAttrLoc)
+        gl.vertexAttribPointer(posAttrLoc, 3, gl.FLOAT, false, 0, 0)
+
+        gl.useProgram(prog)
+        gl.bindVertexArray(vao)
+        gl.drawArrays(gl.TRIANGLES, 0, pos.length / 3)
+    }
 
     rafId = requestAnimationFrame(draw)
 }
