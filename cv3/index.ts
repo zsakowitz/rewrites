@@ -74,7 +74,12 @@ const prog = program`
     uniform mat4 u_proj;
 
     void main() {
-        color = pos / 2.0 + 0.5;
+        color = vec4(vec3(gl_FragCoord.z), 1.0);
+        // color = pos / 2.0 + 0.5;
+        if (int(abs(pos.z - 0.9) < 0.05) + int(abs(pos.x - 0.9) < 0.05) + int(abs(pos.y - 0.9) < 0.05) == 2
+        ) {
+            color = vec4(1, 0.5, 0, 1);
+        }
     }
 `
 
@@ -86,7 +91,7 @@ const prog2 = program`
     uniform mat4 u_proj;
 
     void main() {
-        gl_Position = u_proj * position;
+        gl_Position = position;
         pos = position;
     }
 ``
@@ -98,7 +103,9 @@ const prog2 = program`
     uniform mat4 u_proj;
 
     void main() {
-        color = pos;
+        color = vec4(gl_FragCoord.xy, 0, 1);
+        // float depth = (u_proj * vec4(1,1,1,1)).z;
+        // color = vec4(depth,depth,depth,1);
     }
 `
 
@@ -111,6 +118,8 @@ function cube() {
     // |/    \|
     // 2——————3
 
+    document.body
+
     // prettier-ignore
     return [
         5, 1, 4, 4, 1, 0,
@@ -120,7 +129,7 @@ function cube() {
         3, 7, 2, 6, 2, 7,
         0, 1, 2, 3, 2, 1,
     ].flatMap((i) => [
-        i & 0b001 ? 1 : -1,
+        i & 0b001 ? 1 : 0,
         i & 0b010 ? 1 : -1,
         i & 0b100 ? 1 : -1,
     ])
@@ -145,7 +154,6 @@ function draw() {
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.enable(gl.DEPTH_TEST)
-    gl.enable(gl.CULL_FACE)
 
     {
         gl.useProgram(prog)
@@ -171,32 +179,11 @@ function draw() {
 
     {
         gl.useProgram(prog2)
-        gl.disable(gl.CULL_FACE)
 
         const ux = gl.getUniformLocation(prog2, "u_proj")
         gl.uniformMatrix4fv(ux, false, u_proj.toFloat32Array())
 
-        const pos = new Float32Array(
-            Array.from({ length: 5 }, (_, z) =>
-                Array.from({ length: 5 }, (_, i) => [
-                    i - 2,
-                    -2,
-                    z - 2,
-
-                    i - 2,
-                    +2,
-                    z - 2,
-
-                    -2,
-                    i - 2,
-                    z - 2,
-
-                    +2,
-                    i - 2,
-                    z - 2,
-                ]).flat(),
-            ).flat(),
-        )
+        const pos = new Float32Array([-1, -1, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1])
         const posAttrLoc = gl.getAttribLocation(prog2, "position")
         const posBuf = gl.createBuffer()
         gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
@@ -205,11 +192,11 @@ function draw() {
         const vao = gl.createVertexArray()
         gl.bindVertexArray(vao)
         gl.enableVertexAttribArray(posAttrLoc)
-        gl.vertexAttribPointer(posAttrLoc, 3, gl.FLOAT, false, 0, 0)
+        gl.vertexAttribPointer(posAttrLoc, 2, gl.FLOAT, false, 0, 0)
 
         gl.useProgram(prog2)
         gl.bindVertexArray(vao)
-        gl.drawArrays(gl.LINES, 0, pos.length / 3)
+        gl.drawArrays(gl.TRIANGLES, 0, pos.length / 2)
     }
 
     rafId = requestAnimationFrame(draw)
