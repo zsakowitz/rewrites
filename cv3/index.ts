@@ -48,9 +48,20 @@ function createProgram(vert: WebGLShader, frag: WebGLShader) {
 
 function program(vertSource: TemplateStringsArray) {
     return (fragSource: TemplateStringsArray) => {
-        const vert = createShader(gl.VERTEX_SHADER)(vertSource)
-        const frag = createShader(gl.FRAGMENT_SHADER)(fragSource)
-        return createProgram(vert, frag)
+        return (
+            shape: number,
+            count: number,
+            attrs: Record<
+                string,
+                [WebGLBuffer, size: 1 | 2 | 3 | 4, offset?: number]
+            >,
+        ) => {
+            const vert = createShader(gl.VERTEX_SHADER)(vertSource)
+            const frag = createShader(gl.FRAGMENT_SHADER)(fragSource)
+            const prog = createProgram(vert, frag)
+            const vertexArray = vao(prog, attrs)
+            return { prog, shape, count, vertexArray }
+        }
     }
 }
 
@@ -79,7 +90,7 @@ function vao(
     return vao
 }
 
-const axesProg = program`
+const axes = program`
     #version 300 es
 
     in vec4 position;
@@ -101,9 +112,7 @@ const axesProg = program`
     void main() {
         color = v_color;
     }
-`
-
-const axesVao = vao(axesProg, {
+`(gl.LINES, 6, {
     position: [buf([0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 5]), 3],
     a_color: [
         buf([1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1]),
@@ -118,7 +127,7 @@ rot.rotateSelf(160, 0, 0)
 rot.rotateSelf(110, 90, 20)
 rot.rotateSelf(0, 0, 300)
 
-const unitSquareProg = program`
+const unitSquare = program`
     #version 300 es
 
     uniform mat4 u_proj;
@@ -140,13 +149,11 @@ const unitSquareProg = program`
     void main() {
         color = vec4(v_position.xy, 0, 1);
     }
-`
-
-const unitSquareVao = vao(unitSquareProg, {
+`(gl.TRIANGLE_STRIP, 4, {
     a_position: [buf([0, 0, 0, 1, 1, 0, 1, 1]), 2],
 })
 
-const gridProg = program`
+const grid = program`
     #version 300 es
 
     uniform mat4 u_proj;
@@ -164,10 +171,9 @@ const gridProg = program`
 
     void main() {
         color = vec4(1, 0.5, 0, 1);
+        color = vec4((u_proj * gl_FragCoord).xy, 0.0, 1.0);
     }
-`
-
-const gridVao = vao(gridProg, {
+`(gl.TRIANGLES, 3, {
     a_position: [buf([0, 0, 0.02, 0, 1, 0.02, 1, 0, 0.02]), 3],
 })
 
@@ -187,37 +193,17 @@ function draw() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.enable(gl.DEPTH_TEST)
 
-    {
-        gl.useProgram(unitSquareProg)
+    for (const el of [unitSquare, axes, grid]) {
+        gl.useProgram(el.prog)
 
-        const ux = gl.getUniformLocation(unitSquareProg, "u_proj")
-        gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
+        const ux = gl.getUniformLocation(el.prog, "u_proj")
+        if (ux != null) {
+            gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
+        }
 
-        gl.useProgram(unitSquareProg)
-        gl.bindVertexArray(unitSquareVao)
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-    }
-
-    {
-        gl.useProgram(axesProg)
-
-        const ux = gl.getUniformLocation(axesProg, "u_proj")
-        gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
-
-        gl.useProgram(axesProg)
-        gl.bindVertexArray(axesVao)
-        gl.drawArrays(gl.LINES, 0, 6)
-    }
-
-    {
-        gl.useProgram(gridProg)
-
-        const ux = gl.getUniformLocation(gridProg, "u_proj")
-        gl.uniformMatrix4fv(ux, false, proj.toFloat32Array())
-
-        gl.useProgram(gridProg)
-        gl.bindVertexArray(gridVao)
-        gl.drawArrays(gl.TRIANGLES, 0, 3)
+        gl.useProgram(el.prog)
+        gl.bindVertexArray(el.vertexArray)
+        gl.drawArrays(el.shape, 0, el.count)
     }
 
     rafId = requestAnimationFrame(draw)
