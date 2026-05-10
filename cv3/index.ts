@@ -62,7 +62,7 @@ const prog = program`
     uniform mat4 u_proj;
 
     void main() {
-        gl_Position = u_proj * position;
+        gl_Position = position;
         pos = position;
     }
 ``
@@ -74,7 +74,14 @@ const prog = program`
     uniform mat4 u_proj;
 
     void main() {
-        color = pos / 2.0 + 0.5;
+        vec4 z = pos * vec4(0.5,0.5,0.5,1) + vec4(0.5,0.5,0,0);
+        color = z;
+
+        vec2 p = z.xy;
+        vec2 c = z.xy;
+        for (int i =0;i<100;i++) p = vec2(p.x * p.x - p.y * p.y, 2.0 * p.x * p.y) + c;
+
+        if (length(p) < 4.0) color = vec4(0);
     }
 `
 
@@ -98,9 +105,9 @@ function cube() {
         3, 7, 2, 6, 2, 7,
         0, 1, 2, 3, 2, 1,
     ].flatMap((i) => [
-        i & 0b001 ? 1 : -1,
-        i & 0b010 ? 1 : -1,
-        i & 0b100 ? 1 : -1,
+        i & 0b001 ? 1 : 0,
+        i & 0b010 ? 1 : 0,
+        i & 0b100 ? 1 : 0,
     ])
 }
 
@@ -109,16 +116,51 @@ let rafId = -1
 const u_rot = new DOMMatrix()
 u_rot.rotateSelf(70, 30, 10)
 
+//! https://webgl2fundamentals.org/webgl/lessons/webgl-3d-perspective.html
+function perspective(
+    fovRadians: number,
+    aspect: number,
+    near: number,
+    far: number,
+) {
+    var f = Math.tan(Math.PI * 0.5 - 0.5 * fovRadians)
+    var rangeInv = 1.0 / (near - far)
+
+    return new DOMMatrix([
+        f / aspect,
+        0,
+        0,
+        0,
+
+        0,
+        f,
+        0,
+        0,
+
+        0,
+        0,
+        (near + far) * rangeInv,
+        -1,
+
+        0,
+        0,
+        near * far * rangeInv * 2,
+        0,
+    ])
+}
+
 function draw() {
     if (rafId != -1) {
         cancelAnimationFrame(rafId)
         rafId = -1
     }
 
-    const u_proj = new DOMMatrix()
-    u_proj.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
-    u_proj.multiplySelf(u_rot)
-    u_proj.scale3dSelf(0.3)
+    const u_proj = perspective(
+        70 * (Math.PI / 180),
+        gl.canvas.width / gl.canvas.height,
+        0.5,
+        10,
+    )
 
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -130,7 +172,7 @@ function draw() {
         const ux = gl.getUniformLocation(prog, "u_proj")
         gl.uniformMatrix4fv(ux, false, u_proj.toFloat32Array())
 
-        const pos = new Float32Array(cube())
+        const pos = new Float32Array([-1, -1, 3, -1, -1, 3])
         const posAttrLoc = gl.getAttribLocation(prog, "position")
         const posBuf = gl.createBuffer()
         gl.bindBuffer(gl.ARRAY_BUFFER, posBuf)
@@ -139,11 +181,11 @@ function draw() {
         const vao = gl.createVertexArray()
         gl.bindVertexArray(vao)
         gl.enableVertexAttribArray(posAttrLoc)
-        gl.vertexAttribPointer(posAttrLoc, 3, gl.FLOAT, false, 0, 0)
+        gl.vertexAttribPointer(posAttrLoc, 2, gl.FLOAT, false, 0, 0)
 
         gl.useProgram(prog)
         gl.bindVertexArray(vao)
-        gl.drawArrays(gl.TRIANGLES, 0, pos.length / 3)
+        gl.drawArrays(gl.TRIANGLES, 0, pos.length / 2)
     }
 
     rafId = requestAnimationFrame(draw)
