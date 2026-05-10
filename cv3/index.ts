@@ -1,17 +1,8 @@
-class Mat4 {
-    data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-    constructor() {}
-}
+import { program } from "./lib"
+import * as m4 from "./mat4"
 
 const cv = document.createElement("canvas")
 cv.style = "width:100dvw;height:100dvh;position:absolute;top:0;left:0"
-new ResizeObserver(() => {
-    cv.width = devicePixelRatio * cv.clientWidth
-    cv.height = devicePixelRatio * cv.clientHeight
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-    draw()
-}).observe(cv)
 
 document.body.style = "background: #8839ef"
 document.body.appendChild(cv)
@@ -21,56 +12,6 @@ const gl = cv.getContext("webgl2", {
     preserveDrawingBuffer: true,
 })!
 
-function createShader(kind: GLenum) {
-    return (source: TemplateStringsArray): WebGLShader => {
-        const shader = gl.createShader(kind)!
-        gl.shaderSource(shader, source[0]!.trim())
-        gl.compileShader(shader)
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            console.log(gl.getShaderInfoLog(shader))
-            gl.deleteShader(shader)
-            throw new Error()
-        }
-
-        return shader
-    }
-}
-
-function createProgram(vert: WebGLShader, frag: WebGLShader) {
-    const program = gl.createProgram()
-    gl.attachShader(program, vert)
-    gl.attachShader(program, frag)
-    gl.linkProgram(program)
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.log(gl.getProgramInfoLog(program))
-        gl.deleteProgram(program)
-        throw new Error()
-    }
-
-    return program
-}
-
-function program(vertSource: TemplateStringsArray) {
-    return (fragSource: TemplateStringsArray) => {
-        return (
-            shape: number,
-            count: number,
-            attrs: Record<
-                string,
-                [WebGLBuffer, size: 1 | 2 | 3 | 4, offset?: number]
-            >,
-        ) => {
-            const vert = createShader(gl.VERTEX_SHADER)(vertSource)
-            const frag = createShader(gl.FRAGMENT_SHADER)(fragSource)
-            const prog = createProgram(vert, frag)
-            const vertexArray = vao(prog, attrs)
-            return { prog, shape, count, vertexArray }
-        }
-    }
-}
-
 function buf(data: number[]) {
     const buffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
@@ -78,113 +19,54 @@ function buf(data: number[]) {
     return buffer
 }
 
-function vao(
-    program: WebGLProgram,
-    data: Record<string, [WebGLBuffer, size: 1 | 2 | 3 | 4, offset?: number]>,
-): WebGLVertexArrayObject {
-    const vao = gl.createVertexArray()
-    gl.bindVertexArray(vao)
+const prog1 = program(gl, {
+    vert: `
+        in vec4 a_position;
+        out vec4 v_position;
+        uniform mat4 u_world;
 
-    for (const key in data) {
-        const [buffer, size, offset = 0] = data[key]!
-        const location = gl.getAttribLocation(program, key)
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-        gl.enableVertexAttribArray(location)
-        gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, offset)
-    }
+        void main() {
+            gl_Position = u_world * a_position;
+            v_position = a_position;
+        }
+    `,
+    frag: `
+        out vec4 color;
+        in vec4 v_position;
 
-    return vao
-}
+        void main() {
+            vec3 p = v_position.xyz * 2.0 - 1.0;
+            color = vec4((p * p * p + 1.0) / 2.0, 1.0);
+        }
+    `,
+    attrs: {
+        a_position: [
+            buf([
+                0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+                0, 1, 0, 0, 0, 1,
 
-const axes = program`
-    #version 300 es
+                0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0,
+                1, 0, 1, 1, 1, 0,
 
-    in vec4 position;
-    in vec4 a_color;
-    out vec4 v_color;
-    uniform mat4 u_proj;
+                1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1,
+                1, 1, 0, 1, 0, 1,
 
-    void main() {
-        gl_Position = u_proj * position;
-        v_color = a_color;
-    }
-``
-    #version 300 es
-    precision highp float;
-
-    out vec4 color;
-    in vec4 v_color;
-
-    void main() {
-        color = v_color;
-    }
-`(gl.LINES, 6, {
-    position: [buf([0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 5]), 3],
-    a_color: [
-        buf([1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1]),
-        3,
-    ],
+                1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0,
+                0, 0, 1, 0, 1, 1,
+            ]),
+            3,
+        ],
+    },
+    primitive: gl.TRIANGLES,
+    count: 36,
 })
+
+const camera = m4.identity()
+m4.multiplyBy(camera, m4.rotateX(2))
+m4.multiplyBy(camera, m4.rotateY(1.3))
+m4.multiplyBy(camera, m4.scale(0.3, 0.3, 0.3))
 
 let rafId = -1
-
-const rot = new DOMMatrix()
-rot.rotateSelf(160, 0, 0)
-rot.rotateSelf(110, 90, 20)
-rot.rotateSelf(0, 0, 300)
-
-const unitSquare = program`
-    #version 300 es
-
-    uniform mat4 u_proj;
-    in vec4 a_position;
-    out vec4 v_position;
-
-    void main() {
-        gl_Position = u_proj * a_position;
-        v_position = a_position;
-    }
-``
-    #version 300 es
-    precision highp float;
-
-    uniform mat4 u_proj;
-    in vec4 v_position;
-    out vec4 color;
-
-    void main() {
-        color = vec4(v_position.xy, 0, 1);
-    }
-`(gl.TRIANGLE_STRIP, 4, {
-    a_position: [buf([0, 0, 0, 1, 1, 0, 1, 1]), 2],
-})
-
-const triangle = program`
-    #version 300 es
-
-    uniform mat4 u_proj;
-    in vec4 a_position;
-
-    void main() {
-        gl_Position = a_position;
-    }
-``
-    #version 300 es
-    precision highp float;
-
-    uniform mat4 u_proj;
-    uniform vec2 u_resolution;
-    out vec4 color;
-
-    void main() {
-        vec2 pos = gl_FragCoord.xy / u_resolution;
-        vec4 proj = inverse(u_proj) * vec4(pos, 0, 1);
-        proj /= proj.z * sign(proj.z);
-        color = vec4(proj.xy, 0, 0.5);
-    }
-`(gl.TRIANGLES, 3, {
-    a_position: [buf([-1, -1, 3, -1, -1, 3]), 2],
-})
 
 function draw() {
     if (rafId != -1) {
@@ -192,24 +74,21 @@ function draw() {
         rafId = -1
     }
 
-    const proj = new DOMMatrix()
-    proj.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
-    proj.multiplySelf(rot)
-    proj.scale3dSelf(0.3)
-    console.log(proj.toString())
-
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.enable(gl.DEPTH_TEST)
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-    for (const el of [unitSquare, axes, triangle]) {
+    const world = m4.scale(gl.canvas.height / gl.canvas.width, 1, 1)
+    m4.multiplyBy(world, camera)
+
+    for (const el of [prog1]) {
         gl.useProgram(el.prog)
 
-        const u1 = gl.getUniformLocation(el.prog, "u_proj")
+        const u1 = gl.getUniformLocation(el.prog, "u_world")
         if (u1 != null) {
-            gl.uniformMatrix4fv(u1, false, proj.toFloat32Array())
+            gl.uniformMatrix4fv(u1, false, new Float32Array(world))
         }
 
         const u2 = gl.getUniformLocation(el.prog, "u_resolution")
@@ -217,7 +96,6 @@ function draw() {
             gl.uniform2f(u2, gl.drawingBufferWidth, gl.drawingBufferHeight)
         }
 
-        gl.useProgram(el.prog)
         gl.bindVertexArray(el.vertexArray)
         gl.drawArrays(el.shape, 0, el.count)
     }
@@ -225,8 +103,14 @@ function draw() {
     rafId = requestAnimationFrame(draw)
 }
 
+new ResizeObserver(() => {
+    cv.width = devicePixelRatio * cv.clientWidth
+    cv.height = devicePixelRatio * cv.clientHeight
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+    draw()
+}).observe(cv)
+
 onwheel = (ev) => {
-    rot.preMultiplySelf(
-        new DOMMatrix().rotateSelf(ev.deltaY / 2, ev.deltaX / 2, 0),
-    )
+    m4.multiplyInto(camera, m4.rotateY(ev.deltaX * 0.01))
+    m4.multiplyInto(camera, m4.rotateX(ev.deltaY * 0.01))
 }

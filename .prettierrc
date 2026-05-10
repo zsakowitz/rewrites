@@ -23,6 +23,12 @@
             "options": {
                 "singleAttributePerLine": true
             }
+        },
+        {
+            "files": "cv3/**/*",
+            "options": {
+                "printWidth": 80
+            }
         }
     ]
 }
