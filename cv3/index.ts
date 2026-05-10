@@ -1,3 +1,9 @@
+class Mat4 {
+    data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    constructor() {}
+}
+
 const cv = document.createElement("canvas")
 cv.style = "width:100dvw;height:100dvh;position:absolute;top:0;left:0"
 new ResizeObserver(() => {
