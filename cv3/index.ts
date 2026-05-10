@@ -114,7 +114,7 @@ const axesVao = vao(axesProgram, {
 let rafId = -1
 
 const rot = new DOMMatrix()
-rot.rotateSelf(70, 30, 10)
+rot.rotateSelf(48, 39, 10)
 
 const mandelbrotProgram = program`
     #version 300 es
@@ -136,25 +136,7 @@ const mandelbrotProgram = program`
     uniform mat4 u_proj;
 
     void main() {
-        vec4 P = pos;
-
-        vec2 z = P.xy;
-        vec2 c = P.xy;
-
-        for (int i = 0; i < 120; i++) {
-            z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
-            if (length(z) > 4.0) break;
-        }
-
-        if (length(z) < 4.0) {
-            color = vec4(1);
-        } else {
-            vec2 p = c * 0.25 + 0.5;
-            color = vec4(p, 1.0 - p.x - p.y, 1);
-            if (abs(c.x) > 2.0 || abs(c.y) > 2.0) {
-                color.xyz *= 0.5;
-            }
-        }
+        color = vec4(0.5 + 0.5 * tanh(u_proj * pos - gl_FragCoord).xyz, 1);
     }
 `
 
@@ -172,6 +154,7 @@ function draw() {
     proj.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
     proj.multiplySelf(rot)
     proj.scale3dSelf(0.3)
+    console.log(proj.toString())
 
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
