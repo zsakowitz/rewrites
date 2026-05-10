@@ -1,3 +1,21 @@
+// # Coordinate Handedness
+//
+// WebGL is a left-handed coordinate system. That is, in the diagram below:
+//
+// ↑ Y
+// |
+// |
+// |
+// |        X
+// +-------->
+//
+// The Z-axis points into the screen.
+//
+// # Clip Space
+//
+// WebGL clips coordinates to the unit box. Therefore, to make perspective
+// functions, we will want to
+
 export type Vec4 = [x: number, y: number, z: number, w: number]
 
 export function origin(): Vec4 {
