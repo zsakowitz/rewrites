@@ -79,6 +79,43 @@ function vao(
     return vao
 }
 
+const axesProgram = program`
+    #version 300 es
+
+    in vec4 position;
+    in vec4 a_color;
+    out vec4 v_color;
+    uniform mat4 u_proj;
+
+    void main() {
+        gl_Position = u_proj * position;
+        v_color = a_color;
+    }
+``
+    #version 300 es
+    precision highp float;
+
+    out vec4 color;
+    in vec4 v_color;
+
+    void main() {
+        color = v_color;
+    }
+`
+
+const axesVao = vao(axesProgram, {
+    position: [buf([0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 5]), 3],
+    a_color: [
+        buf([1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1]),
+        3,
+    ],
+})
+
+let rafId = -1
+
+const rot = new DOMMatrix()
+rot.rotateSelf(70, 30, 10)
+
 const mandelbrotProgram = program`
     #version 300 es
 
@@ -112,54 +149,18 @@ const mandelbrotProgram = program`
         if (length(z) < 4.0) {
             color = vec4(1);
         } else {
-            vec2 p = pos.xy * 0.25 + 0.5;
+            vec2 p = c * 0.25 + 0.5;
             color = vec4(p, 1.0 - p.x - p.y, 1);
+            if (abs(c.x) > 2.0 || abs(c.y) > 2.0) {
+                color.xyz *= 0.5;
+            }
         }
     }
 `
 
-// 221 375
-
 const mandelbrotVao = vao(mandelbrotProgram, {
     position: [buf([-2, -2, -2, 2, 2, -2, -2, 2, 2, -2, 2, 2]), 2],
 })
-
-const axesProgram = program`
-    #version 300 es
-
-    in vec4 position;
-    in vec4 a_color;
-    out vec4 v_color;
-    uniform mat4 u_proj;
-
-    void main() {
-        gl_Position = u_proj * position;
-        v_color = a_color;
-    }
-``
-    #version 300 es
-    precision highp float;
-
-    out vec4 color;
-    in vec4 v_color;
-
-    void main() {
-        color = v_color;
-    }
-`
-
-const axesVao = vao(axesProgram, {
-    position: [buf([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]), 3],
-    a_color: [
-        buf([1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1]),
-        3,
-    ],
-})
-
-let rafId = -1
-
-const rot = new DOMMatrix()
-rot.rotateSelf(70, 30, 10)
 
 function draw() {
     if (rafId != -1) {
@@ -169,7 +170,7 @@ function draw() {
 
     const proj = new DOMMatrix()
     proj.scaleSelf(gl.canvas.height / gl.canvas.width, 1, 1)
-    // proj.multiplySelf(rot)
+    proj.multiplySelf(rot)
     proj.scale3dSelf(0.3)
 
     gl.clearColor(0, 0, 0, 0)
