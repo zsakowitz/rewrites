@@ -23,33 +23,27 @@ function draw() {
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-    const world = m4.identity()
+    const perspective = m4.identity()
 
-    m4.multiplyInto(world, spin)
-    m4.multiplyInto(world, m4.translate(0, 0, -15))
+    m4.multiplyInto(perspective, spin)
+    m4.multiplyInto(perspective, m4.translate(0, 0, -10))
+    m4.multiplyInto(perspective, m4.scale(10 / 15, 10 / 15, 1))
     m4.multiplyInto(
-        world,
+        perspective,
         m4.perspective(
             30 * (Math.PI / 180),
             gl.canvas.height / gl.canvas.width,
-            8.7,
-            19,
+            0.1,
+            1000,
         ),
     )
-
-    const model = m4.identity()
 
     for (const el of active) {
         gl.useProgram(el.prog)
 
-        const u1 = gl.getUniformLocation(el.prog, "u_world")
+        const u1 = gl.getUniformLocation(el.prog, "u_perspective")
         if (u1 != null) {
-            gl.uniformMatrix4fv(u1, false, new Float32Array(world))
-        }
-
-        const u3 = gl.getUniformLocation(el.prog, "u_model")
-        if (u3 != null) {
-            gl.uniformMatrix4fv(u3, false, new Float32Array(model))
+            gl.uniformMatrix4fv(u1, false, new Float32Array(perspective))
         }
 
         const u2 = gl.getUniformLocation(el.prog, "u_resolution")

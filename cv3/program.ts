@@ -8,21 +8,23 @@ export const gl = cv.getContext("webgl2", {
     preserveDrawingBuffer: true,
 })!
 
-export const pCube = program(gl, {
+const pCube = program(gl, {
     vert: `
+        uniform mat4 u_perspective;
+
         in vec4 a_position;
+
         out vec4 v_position;
-        uniform mat4 u_world;
-        uniform mat4 u_model;
 
         void main() {
-            gl_Position = u_world * u_model * a_position;
+            gl_Position = u_perspective * a_position;
             v_position = a_position;
         }
     `,
     frag: `
-        out vec4 color;
         in vec4 v_position;
+
+        out vec4 color;
 
         void main() {
             vec3 p = v_position.xyz;
@@ -43,4 +45,55 @@ export const pCube = program(gl, {
     count: cube().length * 6,
 })
 
-export const active = [pCube]
+const pAxes = program(gl, {
+    vert: `
+        uniform mat4 u_perspective;
+
+        in vec4 a_position;
+        in vec4 a_color;
+
+        out vec4 v_position;
+        out vec4 v_color;
+
+        void main() {
+            gl_Position = u_perspective * a_position;
+            v_position = a_position;
+            v_color = a_color;
+        }
+    `,
+    frag: `
+        in vec4 v_color;
+
+        out vec4 color;
+
+        void main() {
+            color = v_color;
+        }
+    `,
+    attrs: {
+        a_position: [
+            [0, 0, 0],
+            [10, 0, 0],
+
+            [0, 0, 0],
+            [0, 10, 0],
+
+            [0, 0, 0],
+            [0, 0, 10],
+        ],
+        a_color: [
+            [1, 0, 0],
+            [1, 0, 0],
+
+            [0, 1, 0],
+            [0, 1, 0],
+
+            [0, 0, 1],
+            [0, 0, 1],
+        ],
+    },
+    primitive: gl.LINES,
+    count: 6,
+})
+
+export const active = [pCube, pAxes]
