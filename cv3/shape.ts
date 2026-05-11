@@ -8,11 +8,6 @@ export function cube(): {
     normal: Vec3
     vertices: [Vec3, Vec3, Vec3, Vec3]
 }[] {
-    // 4   5
-    //  0 1
-    //  2 3
-    // 6   7
-
     return [
         { normal: [+1, 0, 0], vertices: [v(4), v(5), v(6), v(7)] },
         { normal: [-1, 0, 0], vertices: [v(0), v(2), v(1), v(3)] },
