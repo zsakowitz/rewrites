@@ -6,8 +6,8 @@ document.body.style = "background: #8839ef"
 document.body.appendChild(cv)
 
 const spin = m4.identity()
-// m4.multiplyBy(camera, m4.rotateX(2))
-// m4.multiplyBy(camera, m4.rotateY(1.3))
+m4.multiplyBy(spin, m4.rotateX(2))
+m4.multiplyBy(spin, m4.rotateY(1.3))
 
 let rafId = -1
 
