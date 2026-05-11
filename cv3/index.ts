@@ -6,12 +6,26 @@ document.body.style = "background: #8b5cf6"
 document.body.appendChild(cv)
 
 const camera = m4.identity()
-m4.multiplyInto(camera, m4.rotateY(-0.6))
-m4.multiplyInto(camera, m4.rotateX(0.2))
-m4.multiplyInto(camera, m4.rotateY(0.9))
-m4.multiplyInto(camera, m4.rotateZ(1.2))
+m4.multiplyInto(camera, m4.rotateX(-1.3))
+m4.multiplyBy(camera, m4.rotateZ(0.3))
 
-const camera2 = m4.identity()
+function getPerspective() {
+    const perspective = m4.identity()
+
+    m4.multiplyInto(perspective, camera)
+    m4.multiplyInto(perspective, m4.translate(0, 0, -15))
+    m4.multiplyInto(
+        perspective,
+        m4.perspective(
+            30 * (Math.PI / 180),
+            gl.canvas.height / gl.canvas.width,
+            0.1,
+            1000,
+        ),
+    )
+
+    return perspective
+}
 
 let rafId = -1
 
@@ -28,20 +42,7 @@ function draw() {
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-    const perspective = m4.identity()
-
-    m4.multiplyInto(perspective, camera)
-    m4.multiplyInto(perspective, camera2)
-    m4.multiplyInto(perspective, m4.translate(0, 0, -15))
-    m4.multiplyInto(
-        perspective,
-        m4.perspective(
-            30 * (Math.PI / 180),
-            gl.canvas.height / gl.canvas.width,
-            0.1,
-            1000,
-        ),
-    )
+    const perspective = getPerspective()
 
     for (const el of active) {
         gl.useProgram(el.prog)
@@ -76,9 +77,46 @@ onwheel = (ev) => {
         m4.multiplyInto(camera, m4.rotateY(-ev.deltaX * 0.01))
         m4.multiplyInto(camera, m4.rotateX(-ev.deltaY * 0.01))
     } else {
-        m4.multiplyBy(
-            camera,
-            m4.translate(-ev.deltaX * 0.01, ev.deltaY * 0.01, 0),
-        )
+        shift(-ev.deltaX * 0.02, ev.deltaY * 0.02)
     }
+}
+
+function dehomogenize(v: m4.Vec4) {
+    const l = v[3]
+    v[0] /= l
+    v[1] /= l
+    v[2] /= l
+    v[3] /= l
+}
+
+function normalize(v: m4.Vec4) {
+    const l = Math.hypot(v[0], v[1])
+    v[0] /= l
+    v[1] /= l
+    v[2] /= l
+}
+
+function shift(mx: number, my: number) {
+    const perspective = m4.inverse(getPerspective())
+
+    const po: m4.Vec4 = [0, 0, 0, 1]
+    const px: m4.Vec4 = [1, 0, 0, 1]
+
+    m4.applyTo(po, perspective)
+    m4.applyTo(px, perspective)
+
+    dehomogenize(po)
+    dehomogenize(px)
+
+    px[0] -= po[0]
+    px[1] -= po[1]
+    px[2] -= po[2]
+    px[3] -= po[3]
+
+    normalize(px)
+
+    const dx = px[0] * mx - px[1] * my
+    const dy = px[1] * mx + px[0] * my
+
+    m4.multiplyBy(camera, m4.translate(dx, dy, 0))
 }

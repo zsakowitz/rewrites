@@ -275,3 +275,7 @@ export function perspective(
         0,          0, zmin * zmax * rangeInv * 2, 0,
     ];
 }
+
+export function inverse(mat: Mat4): Mat4 {
+    return Array.from(new DOMMatrix(mat).inverse().toFloat64Array()) as Mat4
+}
