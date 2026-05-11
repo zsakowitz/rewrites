@@ -8,7 +8,8 @@ document.body.appendChild(cv)
 const camera = m4.identity()
 m4.multiplyInto(camera, m4.rotateY(-0.6))
 m4.multiplyInto(camera, m4.rotateX(0.2))
-m4.multiplyInto(camera, m4.rotateY(0.43))
+m4.multiplyInto(camera, m4.rotateY(0.9))
+m4.multiplyInto(camera, m4.rotateZ(1.2))
 
 const camera2 = m4.identity()
 
@@ -72,12 +73,12 @@ new ResizeObserver(() => {
 
 onwheel = (ev) => {
     if (ev.shiftKey) {
-        m4.multiplyInto(
+        m4.multiplyInto(camera, m4.rotateY(-ev.deltaX * 0.01))
+        m4.multiplyInto(camera, m4.rotateX(-ev.deltaY * 0.01))
+    } else {
+        m4.multiplyBy(
             camera,
             m4.translate(-ev.deltaX * 0.01, ev.deltaY * 0.01, 0),
         )
-    } else {
-        m4.multiplyInto(camera, m4.rotateY(-ev.deltaX * 0.01))
-        m4.multiplyInto(camera, m4.rotateX(-ev.deltaY * 0.01))
     }
 }
