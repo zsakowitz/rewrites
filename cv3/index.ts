@@ -8,7 +8,7 @@ document.body.appendChild(cv)
 const camera = m4.identity()
 m4.multiplyInto(camera, m4.rotateY(-0.6))
 m4.multiplyInto(camera, m4.rotateX(0.2))
-m4.multiplyInto(camera, m4.rotateY(0.2))
+m4.multiplyInto(camera, m4.rotateY(0.3))
 
 const camera2 = m4.identity()
 

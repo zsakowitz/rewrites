@@ -137,32 +137,77 @@ export const pMandelbrot = program(gl, {
         uniform mat4 u_perspective;
 
         in vec4 a_position;
-        out vec4 v_position;
 
         void main() {
             gl_Position = u_perspective * a_position;
-            v_position = u_perspective * a_position;
         }
     `,
     frag: `
         uniform mat4 u_perspective;
-
-        in vec4 v_position;
+        uniform vec2 u_resolution;
 
         out vec4 color;
 
+        struct Plane {
+            vec3 normal;
+            float offset;
+        };
+
+        struct Line {
+            vec3 p0;
+            vec3 p1;
+        };
+
+        Plane plane_from_three_points(vec3 p1, vec3 p2, vec3 p3) {
+            vec3 normal = normalize(cross(p3 - p2, p1 - p2));
+            float offset = -dot(p2, normal);
+            return Plane(normal, offset);
+        }
+
+        vec3 intersection(Plane plane, Line line) {
+            vec3 n = plane.normal;
+            vec3 p0 = n * plane.offset;
+
+            vec3 l0 = line.p0;
+            vec3 l = normalize(line.p1 - line.p0);
+
+            float d = dot(p0 - l0, n) / dot(l, n);
+
+            return l0 + l * d;
+        }
+
+        vec3 n(vec4 v) {
+            return (v / v.w).xyz;
+        }
+
         void main() {
+            vec4 zm = vec4(gl_FragCoord.xy / u_resolution * 2.0 - 1.0, -1, 1);
+            vec4 zp = vec4(gl_FragCoord.xy / u_resolution * 2.0 - 1.0, +1, 1);
+
+            vec3 p = intersection(
+                plane_from_three_points(
+                    vec3(0, 0, 0),
+                    vec3(0, 1, 0),
+                    vec3(1, 0, 0)
+                ),
+                Line(
+                    n(inverse(u_perspective) * zm),
+                    n(inverse(u_perspective) * zp)
+                )
+            );
+
             vec2 z = vec2(0);
-            vec2 c = (inverse(u_perspective) * v_position).xy;
+            vec2 c = p.xy * vec2(1, -1);
 
             float i = 0.0;
             for (; i < 100.0; i++) {
                 if (length(z) > 2.0) break;
                 z = abs(z);
-                z = vec2(z.x*z.x-z.y*z.y, 2.0*z.x*z.y) + c*vec2(1,-1);
+                z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
             }
 
-            color = vec4(vec3(i / 100.0), 0.5);
+            color = vec4(vec3(i / 100.0), 1);
+            return;
         }
     `,
     attrs: {
