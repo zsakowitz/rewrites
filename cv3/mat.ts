@@ -257,3 +257,21 @@ export function rotateZ(angle: number): Mat4 {
         0 , 0, 0, 1,
     ]
 }
+
+export function perspective(
+    fov: number,
+    hOverW: number,
+    zmin: number,
+    zmax: number,
+): Mat4 {
+    const f = Math.tan(Math.PI * 0.5 - 0.5 * fov)
+    const rangeInv = 1.0 / (zmin - zmax)
+
+    // prettier-ignore
+    return [
+        f * hOverW, 0, 0,                          0,
+        0,          f, 0,                          0,
+        0,          0, (zmin + zmax) * rangeInv,   -1,
+        0,          0, zmin * zmax * rangeInv * 2, 0,
+    ];
+}

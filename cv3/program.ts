@@ -8,16 +8,15 @@ export const gl = cv.getContext("webgl2", {
     preserveDrawingBuffer: true,
 })!
 
-gl.enable(gl.CULL_FACE)
-
 export const pCube = program(gl, {
     vert: `
         in vec4 a_position;
         out vec4 v_position;
         uniform mat4 u_world;
+        uniform mat4 u_model;
 
         void main() {
-            gl_Position = u_world * a_position;
+            gl_Position = u_world * u_model * a_position;
             v_position = a_position;
         }
     `,
