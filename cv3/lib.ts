@@ -94,6 +94,7 @@ export function program(
             | typeof WebGL2RenderingContext.TRIANGLE_STRIP
             | typeof WebGL2RenderingContext.TRIANGLE_FAN
         count: number
+        writeDepth?: boolean
     },
 ) {
     const program = createProgram(
@@ -132,5 +133,6 @@ export function program(
         vertexArray: vao,
         shape: props.primitive,
         count: props.count,
+        writeDepth: props.writeDepth,
     }
 }

@@ -20,6 +20,7 @@ function draw() {
         rafId = -1
     }
 
+    gl.depthMask(true)
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.enable(gl.DEPTH_TEST)
@@ -30,8 +31,7 @@ function draw() {
 
     m4.multiplyInto(perspective, camera)
     m4.multiplyInto(perspective, camera2)
-    m4.multiplyInto(perspective, m4.translate(0, 0, -10))
-    m4.multiplyInto(perspective, m4.scale(10 / 15, 10 / 15, 1))
+    m4.multiplyInto(perspective, m4.translate(0, 0, -15))
     m4.multiplyInto(
         perspective,
         m4.perspective(
@@ -44,6 +44,7 @@ function draw() {
 
     for (const el of active) {
         gl.useProgram(el.prog)
+        gl.depthMask(el.writeDepth ?? true)
 
         const u1 = gl.getUniformLocation(el.prog, "u_perspective")
         if (u1 != null) {
