@@ -195,23 +195,13 @@ export const pMandelbrot = program(gl, {
             );
 
             vec4 q = u_perspective * vec4(p, 1);
-            gl_FragDepth = q.z / q.w;
-
-            vec2 z = vec2(0);
-            vec2 c = p.xy * vec2(1, -1);
-
-            float i = 0.0;
-            for (; i < 100.0; i++) {
-                if (length(z) > 100.0) break;
-                z = abs(z);
-                z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
-            }
+            gl_FragDepth = +q.w - 14.5;
 
             color = vec4(
                 gl_FragDepth * 2.0 - 1.0,
-                i / 100.0,
                 0,
-                0.5
+                0,
+                0.9
             );
         }
     `,
