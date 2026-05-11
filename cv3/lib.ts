@@ -16,13 +16,73 @@ declare global {
     }
 }
 
+const prelude = `#version 300 es
+    precision highp float;
+
+    uniform vec2 u_resolution;
+    uniform mat4 u_perspective;
+
+    struct Plane {
+        vec3 normal;
+        float offset;
+    };
+
+    struct Line {
+        vec3 p0;
+        vec3 p1;
+    };
+
+    Plane plane_from_three_points(vec3 p1, vec3 p2, vec3 p3) {
+        vec3 normal = normalize(cross(p3 - p2, p1 - p2));
+        float offset = -dot(p2, normal);
+        return Plane(normal, offset);
+    }
+
+    vec4 intersection(Plane plane, Line line) {
+        vec3 n = plane.normal;
+        vec3 p0 = n * plane.offset;
+
+        vec3 l0 = line.p0;
+        vec3 l = normalize(line.p1 - line.p0);
+
+        float d = dot(p0 - l0, n) / dot(l, n);
+
+        return vec4(l0 + l * d, d);
+    }
+
+    Plane xyplane = Plane(vec3(0, 0, 1), 0.0);
+
+    vec3 deperspective(vec4 p) {
+        return p.xyz / p.w;
+    }
+
+    vec3 as_xy(vec2 gc) {
+        vec2 p_screen_initial = gc / u_resolution * 2.0 - 1.0;
+
+        vec4 zm = vec4(p_screen_initial, -1, 1);
+        vec4 zp = vec4(p_screen_initial, +1, 1);
+
+        vec4 p_world = intersection(
+            xyplane,
+            Line(
+                deperspective(inverse(u_perspective) * zm),
+                deperspective(inverse(u_perspective) * zp)
+            )
+        );
+
+        vec4 p_screen = u_perspective * vec4(p_world.xyz, 1.0);
+
+        return vec3(p_world.xy, (p_screen.z / p_screen.w + 1.0) * 0.5);
+    }
+`
+
 export function createShader(
     gl: WebGL2RenderingContext,
     kind: GLenum,
     source: string,
 ) {
     const shader = gl.createShader(kind)!
-    gl.shaderSource(shader, source)
+    gl.shaderSource(shader, prelude + source)
     gl.compileShader(shader)
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
@@ -99,16 +159,8 @@ export function program(
 ) {
     const program = createProgram(
         gl,
-        createShader(
-            gl,
-            gl.VERTEX_SHADER,
-            "#version 300 es\nprecision highp float;\n" + props.vert,
-        ),
-        createShader(
-            gl,
-            gl.FRAGMENT_SHADER,
-            "#version 300 es\nprecision highp float;\n" + props.frag,
-        ),
+        createShader(gl, gl.VERTEX_SHADER, props.vert),
+        createShader(gl, gl.FRAGMENT_SHADER, props.frag),
     )
 
     const vao = createVao(
@@ -117,13 +169,7 @@ export function program(
         Object.fromEntries(
             Object.entries(props.attrs).map(([k, v]) => {
                 const buffer = createBuffer(gl, new Float32Array(v.flat()))
-                return [
-                    k,
-                    {
-                        buffer,
-                        size: v[0]?.length ?? 1,
-                    },
-                ]
+                return [k, { buffer, size: v[0]?.length ?? 1 }]
             }),
         ),
     )

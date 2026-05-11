@@ -10,8 +10,6 @@ export const gl = cv.getContext("webgl2", {
 
 export const pCube = program(gl, {
     vert: `
-        uniform mat4 u_perspective;
-
         in vec4 a_position;
 
         out vec4 v_position;
@@ -47,8 +45,6 @@ export const pCube = program(gl, {
 
 export const pAxes = program(gl, {
     vert: `
-        uniform mat4 u_perspective;
-
         in vec4 a_position;
         in vec4 a_color;
 
@@ -98,8 +94,6 @@ export const pAxes = program(gl, {
 
 export const pPlane = program(gl, {
     vert: `
-        uniform mat4 u_perspective;
-
         in vec4 a_position;
 
         void main() {
@@ -107,44 +101,7 @@ export const pPlane = program(gl, {
         }
     `,
     frag: `
-        uniform mat4 u_perspective;
-        uniform vec2 u_resolution;
-
         out vec4 color;
-
-        struct Plane {
-            vec3 normal;
-            float offset;
-        };
-
-        struct Line {
-            vec3 p0;
-            vec3 p1;
-        };
-
-        Plane plane_from_three_points(vec3 p1, vec3 p2, vec3 p3) {
-            vec3 normal = normalize(cross(p3 - p2, p1 - p2));
-            float offset = -dot(p2, normal);
-            return Plane(normal, offset);
-        }
-
-        vec4 intersection(Plane plane, Line line) {
-            vec3 n = plane.normal;
-            vec3 p0 = n * plane.offset;
-
-            vec3 l0 = line.p0;
-            vec3 l = normalize(line.p1 - line.p0);
-
-            float d = dot(p0 - l0, n) / dot(l, n);
-
-            return vec4(l0 + l * d, d);
-        }
-
-        vec3 n(vec4 v) {
-            return (v / v.w).xyz;
-        }
-
-        Plane xyplane = Plane(vec3(0, 0, 1), 0.0);
 
         //! Pristine grid from The Best Darn Grid Shader (yet)
         //! https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8
@@ -172,41 +129,24 @@ export const pPlane = program(gl, {
             return mix(grid2.x, 1.0, grid2.y);
         }
 
-
         void main() {
-            vec2 p_screen_initial = gl_FragCoord.xy / u_resolution * 2.0 - 1.0;
+            vec3 p = as_xy(gl_FragCoord.xy);
+            gl_FragDepth = p.z;
 
-            vec4 zm = vec4(p_screen_initial, -1, 1);
-            vec4 zp = vec4(p_screen_initial, +1, 1);
+            float grid = pristineGrid(p.xy, vec2(.05));
+            float grid2 = pristineGrid(0.2 * p.xy, vec2(.01));
 
-            vec4 p_world = intersection(
-                xyplane,
-                Line(
-                    n(inverse(u_perspective) * zm),
-                    n(inverse(u_perspective) * zp)
-                )
-            );
-
-            vec4 p_screen = u_perspective * vec4(p_world.xyz, 1.0);
-
-            gl_FragDepth = (p_screen.z / p_screen.w + 1.0) * 0.5;
-
-            float grid = max(
-                pristineGrid(p_world.xy, vec2(.05)),
-                pristineGrid(0.2 * p_world.xy, vec2(.02))
-            );
-
-            vec3 filt = vec3(1.0, 1.0, 1.0);
-            if (abs(p_world.x) < 0.05 && p_world.y > 0.0) {
-                filt.xz = vec2(0.0, 0.0);
+            vec3 filt = grid2 > 0.0 ? vec3(0x4c, 0x1d, 0x95) / 255.0 : vec3(0x6d, 0x28, 0xd9) / 255.0;
+            if (abs(p.x) < 0.025 && p.y > 0.0) {
+                filt = vec3(0, 1, 0);
             }
-            if (abs(p_world.y) < 0.05 && p_world.x > 0.0) {
-                filt.yz = vec2(0.0, 0.0);
+            if (abs(p.y) < 0.025 && p.x > 0.0) {
+                filt = vec3(1, 0, 0);
             }
 
             color = vec4(
                 filt * grid,
-                0.3 * grid
+                grid
             );
         }
     `,
@@ -223,4 +163,42 @@ export const pPlane = program(gl, {
     writeDepth: false,
 })
 
-export const active = [pCube, pPlane]
+export const pMandelbrot = program(gl, {
+    vert: `in vec4 a_position; void main() { gl_Position = a_position; }`,
+    frag: `
+        out vec4 color;
+
+        void main() {
+            vec3 p = as_xy(gl_FragCoord.xy);
+            gl_FragDepth = p.z;
+
+            if (p.x < 0.0 || p.x > 4.0 || p.y < 0.0 || p.y > 4.0) {
+                discard;
+            }
+
+            vec2 z = vec2(0, 0);
+            vec2 c = (p.xy - 2.0) * vec2(1, -1);
+
+            float i = 0.0;
+            for (; i < 100.0; i++) {
+                if (length(z) > 2.0) break;
+                z = abs(z);
+                z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
+            }
+
+            color = vec4(vec3(i / 100.0), 1);
+        }
+    `,
+    attrs: {
+        a_position: [
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+            [1, 1],
+        ],
+    },
+    primitive: gl.TRIANGLE_STRIP,
+    count: 4,
+})
+
+export const active = [pCube, pPlane, pMandelbrot]
