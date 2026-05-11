@@ -5,9 +5,11 @@ cv.style = "width:100dvw;height:100dvh;position:absolute;top:0;left:0"
 document.body.style = "background: #8839ef"
 document.body.appendChild(cv)
 
-const spin = m4.identity()
-m4.multiplyBy(spin, m4.rotateX(2))
-m4.multiplyBy(spin, m4.rotateY(1.3))
+const camera = m4.identity()
+m4.multiplyInto(camera, m4.rotateY(1.3))
+m4.multiplyInto(camera, m4.rotateX(2))
+
+const camera2 = m4.identity()
 
 let rafId = -1
 
@@ -25,7 +27,8 @@ function draw() {
 
     const perspective = m4.identity()
 
-    m4.multiplyInto(perspective, spin)
+    m4.multiplyInto(perspective, camera)
+    m4.multiplyInto(perspective, camera2)
     m4.multiplyInto(perspective, m4.translate(0, 0, -10))
     m4.multiplyInto(perspective, m4.scale(10 / 15, 10 / 15, 1))
     m4.multiplyInto(
@@ -66,6 +69,13 @@ new ResizeObserver(() => {
 }).observe(cv)
 
 onwheel = (ev) => {
-    m4.multiplyInto(spin, m4.rotateY(-ev.deltaX * 0.01))
-    m4.multiplyInto(spin, m4.rotateX(-ev.deltaY * 0.01))
+    if (ev.shiftKey) {
+        m4.multiplyInto(
+            camera,
+            m4.translate(-ev.deltaX * 0.01, ev.deltaY * 0.01, 0),
+        )
+    } else {
+        m4.multiplyInto(camera, m4.rotateY(-ev.deltaX * 0.01))
+        m4.multiplyInto(camera, m4.rotateX(-ev.deltaY * 0.01))
+    }
 }

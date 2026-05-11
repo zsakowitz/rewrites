@@ -96,4 +96,47 @@ const pAxes = program(gl, {
     count: 6,
 })
 
-export const active = [pCube, pAxes]
+const pMandelbrot = program(gl, {
+    vert: `
+        uniform mat4 u_perspective;
+
+        in vec4 a_position;
+        out vec2 v_position;
+
+        void main() {
+            gl_Position = u_perspective * a_position;
+            v_position = a_position.xy;
+        }
+    `,
+    frag: `
+        in vec2 v_position;
+
+        out vec4 color;
+
+        void main() {
+            vec2 z = vec2(0);
+            vec2 c = v_position;
+
+            float i = 0.0;
+            for (; i < 100.0; i++) {
+                if (length(z) > 2.0) break;
+                z = abs(z);
+                z = vec2(z.x*z.x-z.y*z.y, 2.0*z.x*z.y) + c*vec2(1,-1);
+            }
+
+            color = vec4(vec3(i / 100.0), 0.5);
+        }
+    `,
+    attrs: {
+        a_position: [
+            [-2, -2, 1.1],
+            [-2, 2, 1.1],
+            [2, -2, 1.1],
+            [2, 2, 1.1],
+        ],
+    },
+    primitive: gl.TRIANGLE_STRIP,
+    count: 4,
+})
+
+export const active = [pCube, pAxes, pMandelbrot]
