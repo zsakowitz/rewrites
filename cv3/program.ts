@@ -101,21 +101,23 @@ const pMandelbrot = program(gl, {
         uniform mat4 u_perspective;
 
         in vec4 a_position;
-        out vec2 v_position;
+        out vec4 v_position;
 
         void main() {
             gl_Position = u_perspective * a_position;
-            v_position = a_position.xy;
+            v_position = u_perspective * a_position;
         }
     `,
     frag: `
-        in vec2 v_position;
+        uniform mat4 u_perspective;
+
+        in vec4 v_position;
 
         out vec4 color;
 
         void main() {
             vec2 z = vec2(0);
-            vec2 c = v_position;
+            vec2 c = (inverse(u_perspective) * v_position).xy;
 
             float i = 0.0;
             for (; i < 100.0; i++) {
