@@ -132,7 +132,7 @@ export const pAxes = program(gl, {
     count: 18,
 })
 
-export const pMandelbrot = program(gl, {
+export const pPlane = program(gl, {
     vert: `
         uniform mat4 u_perspective;
 
@@ -164,7 +164,7 @@ export const pMandelbrot = program(gl, {
             return Plane(normal, offset);
         }
 
-        vec3 intersection(Plane plane, Line line) {
+        vec4 intersection(Plane plane, Line line) {
             vec3 n = plane.normal;
             vec3 p0 = n * plane.offset;
 
@@ -173,7 +173,7 @@ export const pMandelbrot = program(gl, {
 
             float d = dot(p0 - l0, n) / dot(l, n);
 
-            return l0 + l * d;
+            return vec4(l0 + l * d, d);
         }
 
         vec3 n(vec4 v) {
@@ -183,10 +183,12 @@ export const pMandelbrot = program(gl, {
         Plane xyplane = Plane(vec3(0, 0, 1), 0.0);
 
         void main() {
-            vec4 zm = vec4(gl_FragCoord.xy / u_resolution * 2.0 - 1.0, -1, 1);
-            vec4 zp = vec4(gl_FragCoord.xy / u_resolution * 2.0 - 1.0, +1, 1);
+            vec2 p_screen_initial = gl_FragCoord.xy / u_resolution * 2.0 - 1.0;
 
-            vec3 p = intersection(
+            vec4 zm = vec4(p_screen_initial, -1, 1);
+            vec4 zp = vec4(p_screen_initial, +1, 1);
+
+            vec4 p_world = intersection(
                 xyplane,
                 Line(
                     n(inverse(u_perspective) * zm),
@@ -194,14 +196,15 @@ export const pMandelbrot = program(gl, {
                 )
             );
 
-            vec4 q = u_perspective * vec4(p, 1);
-            gl_FragDepth = +q.w - 14.5;
+            vec4 p_screen = u_perspective * vec4(p_world.xyz, 1.0);
+
+            gl_FragDepth = (p_screen.z / p_screen.w + 1.0) * 0.5;
 
             color = vec4(
-                gl_FragDepth * 2.0 - 1.0,
                 0,
                 0,
-                0.9
+                0,
+                0.8
             );
         }
     `,
@@ -218,4 +221,4 @@ export const pMandelbrot = program(gl, {
     writeDepth: false,
 })
 
-export const active = [pAxes, pMandelbrot]
+export const active = [pAxes, pCube, pPlane]
