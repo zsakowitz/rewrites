@@ -8,7 +8,7 @@ export const gl = cv.getContext("webgl2", {
     preserveDrawingBuffer: true,
 })!
 
-const pCube = program(gl, {
+export const pCube = program(gl, {
     vert: `
         uniform mat4 u_perspective;
 
@@ -45,7 +45,7 @@ const pCube = program(gl, {
     count: cube().length * 6,
 })
 
-const pAxes = program(gl, {
+export const pAxes = program(gl, {
     vert: `
         uniform mat4 u_perspective;
 
@@ -96,7 +96,7 @@ const pAxes = program(gl, {
     count: 6,
 })
 
-const pMandelbrot = program(gl, {
+export const pMandelbrot = program(gl, {
     vert: `
         uniform mat4 u_perspective;
 
@@ -131,14 +131,14 @@ const pMandelbrot = program(gl, {
     `,
     attrs: {
         a_position: [
-            [-2, -2, 1.1],
-            [-2, 2, 1.1],
-            [2, -2, 1.1],
-            [2, 2, 1.1],
+            [-2, -2],
+            [-2, 2],
+            [2, -2],
+            [2, 2],
         ],
     },
     primitive: gl.TRIANGLE_STRIP,
     count: 4,
 })
 
-export const active = [pCube, pAxes, pMandelbrot]
+export const active = [pAxes, pMandelbrot]

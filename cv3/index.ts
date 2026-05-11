@@ -1,13 +1,14 @@
 import * as m4 from "./mat"
 import { active, cv, gl } from "./program"
 
-cv.style = "width:100dvw;height:100dvh;position:absolute;top:0;left:0"
+cv.style = "width: 100dvw; height: 100dvh; position: absolute; top: 0; left: 0"
 document.body.style = "background: #8839ef"
 document.body.appendChild(cv)
 
 const camera = m4.identity()
-m4.multiplyInto(camera, m4.rotateY(1.3))
-m4.multiplyInto(camera, m4.rotateX(2))
+m4.multiplyInto(camera, m4.rotateY(-0.6))
+m4.multiplyInto(camera, m4.rotateX(0.2))
+m4.multiplyInto(camera, m4.rotateY(0.2))
 
 const camera2 = m4.identity()
 
