@@ -13,9 +13,9 @@
 //
 // # Clip Space
 //
-// WebGL clips coordinates to the unit box. Therefore, to make perspective
-// functions, we will want to
+// WebGL clips coordinates to the unit box.
 
+export type Vec3 = [x: number, y: number, z: number]
 export type Vec4 = [x: number, y: number, z: number, w: number]
 
 export function origin(): Vec4 {

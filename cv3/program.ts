@@ -1,4 +1,5 @@
 import { program } from "./lib"
+import { cube } from "./shape"
 
 export const cv = document.createElement("canvas")
 
@@ -6,6 +7,8 @@ export const gl = cv.getContext("webgl2", {
     desynchronized: true,
     preserveDrawingBuffer: true,
 })!
+
+gl.enable(gl.CULL_FACE)
 
 export const pCube = program(gl, {
     vert: `
@@ -23,55 +26,22 @@ export const pCube = program(gl, {
         in vec4 v_position;
 
         void main() {
-            vec3 p = v_position.xyz * 2.0 - 1.0;
+            vec3 p = v_position.xyz;
             color = vec4((p * p * p + 1.0) / 2.0, 1.0);
         }
     `,
     attrs: {
-        a_position: [
-            [0, 0, 0],
-            [1, 0, 0],
-            [0, 1, 0],
-            [0, 0, 0],
-            [1, 0, 0],
-            [0, 0, 1],
-            [0, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1],
-
-            [0, 0, 1],
-            [1, 0, 1],
-            [0, 1, 1],
-            [0, 1, 0],
-            [1, 1, 0],
-            [0, 1, 1],
-            [1, 0, 0],
-            [1, 0, 1],
-            [1, 1, 0],
-
-            [1, 1, 1],
-            [0, 1, 1],
-            [1, 1, 0],
-            [1, 1, 1],
-            [0, 1, 1],
-            [1, 0, 1],
-            [1, 1, 1],
-            [1, 1, 0],
-            [1, 0, 1],
-
-            [1, 0, 0],
-            [0, 1, 0],
-            [1, 1, 0],
-            [1, 0, 0],
-            [0, 0, 1],
-            [1, 0, 1],
-            [0, 1, 0],
-            [0, 0, 1],
-            [0, 1, 1],
-        ],
+        a_position: cube().flatMap((x) => [
+            x.vertices[0],
+            x.vertices[1],
+            x.vertices[2],
+            x.vertices[1],
+            x.vertices[3],
+            x.vertices[2],
+        ]),
     },
     primitive: gl.TRIANGLES,
-    count: 36,
+    count: cube().length * 6,
 })
 
 export const active = [pCube]

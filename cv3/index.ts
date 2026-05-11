@@ -1,4 +1,4 @@
-import * as m4 from "./mat4"
+import * as m4 from "./mat"
 import { active, cv, gl } from "./program"
 
 cv.style = "width:100dvw;height:100dvh;position:absolute;top:0;left:0"
