@@ -80,24 +80,6 @@ export const pAxes = program(gl, {
 
             [0, 0, 0],
             [0, 0, 10],
-
-            [-1.95, -2, 0],
-            [-1.95, 2, 0],
-
-            [-2, -1.95, 0],
-            [2, -1.95, 0],
-
-            [-1.5, -2, 0],
-            [-1.5, 2, 0],
-
-            [-2, -1.5, 0],
-            [2, -1.5, 0],
-
-            [1.95, -2, 0],
-            [1.95, 2, 0],
-
-            [-2, 1.95, 0],
-            [2, 1.95, 0],
         ],
         a_color: [
             [1, 0, 0],
@@ -108,28 +90,10 @@ export const pAxes = program(gl, {
 
             [0, 0, 1],
             [0, 0, 1],
-
-            [0, 1, 1],
-            [0, 1, 1],
-
-            [0, 1, 1],
-            [0, 1, 1],
-
-            [0, 1, 1],
-            [0, 1, 1],
-
-            [0, 1, 1],
-            [0, 1, 1],
-
-            [0, 1, 1],
-            [0, 1, 1],
-
-            [0, 1, 1],
-            [0, 1, 1],
         ],
     },
     primitive: gl.LINES,
-    count: 18,
+    count: 6,
 })
 
 export const pPlane = program(gl, {
@@ -182,6 +146,33 @@ export const pPlane = program(gl, {
 
         Plane xyplane = Plane(vec3(0, 0, 1), 0.0);
 
+        //! Pristine grid from The Best Darn Grid Shader (yet)
+        //! https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8
+        float pristineGrid(vec2 uv, vec2 lineWidth) {
+            vec2 ddx = dFdx(uv);
+            vec2 ddy = dFdy(uv);
+            vec2 uvDeriv = vec2(length(vec2(ddx.x, ddy.x)), length(vec2(ddx.y, ddy.y)));
+            bvec2 invertLine = bvec2(lineWidth.x > 0.5, lineWidth.y > 0.5);
+            vec2 targetWidth = vec2(
+            invertLine.x ? 1.0 - lineWidth.x : lineWidth.x,
+            invertLine.y ? 1.0 - lineWidth.y : lineWidth.y
+            );
+            vec2 drawWidth = clamp(targetWidth, uvDeriv, vec2(0.5));
+            vec2 lineAA = uvDeriv * 1.5;
+            vec2 gridUV = abs(fract(uv) * 2.0 - 1.0);
+            gridUV.x = invertLine.x ? gridUV.x : 1.0 - gridUV.x;
+            gridUV.y = invertLine.y ? gridUV.y : 1.0 - gridUV.y;
+            vec2 grid2 = smoothstep(drawWidth + lineAA, drawWidth - lineAA, gridUV);
+
+            grid2 *= clamp(targetWidth / drawWidth, 0.0, 1.0);
+            grid2 = mix(grid2, targetWidth, clamp(uvDeriv * 2.0 - 1.0, 0.0, 1.0));
+            grid2.x = invertLine.x ? 1.0 - grid2.x : grid2.x;
+            grid2.y = invertLine.y ? 1.0 - grid2.y : grid2.y;
+
+            return mix(grid2.x, 1.0, grid2.y);
+        }
+
+
         void main() {
             vec2 p_screen_initial = gl_FragCoord.xy / u_resolution * 2.0 - 1.0;
 
@@ -200,11 +191,22 @@ export const pPlane = program(gl, {
 
             gl_FragDepth = (p_screen.z / p_screen.w + 1.0) * 0.5;
 
+            float grid = max(
+                pristineGrid(p_world.xy, vec2(.05)),
+                pristineGrid(0.2 * p_world.xy, vec2(.02))
+            );
+
+            vec3 filt = vec3(1.0, 1.0, 1.0);
+            if (abs(p_world.x) < 0.05 && p_world.y > 0.0) {
+                filt.xz = vec2(0.0, 0.0);
+            }
+            if (abs(p_world.y) < 0.05 && p_world.x > 0.0) {
+                filt.yz = vec2(0.0, 0.0);
+            }
+
             color = vec4(
-                0,
-                0,
-                0,
-                0.8
+                filt * grid,
+                0.3 * grid
             );
         }
     `,
@@ -221,4 +223,4 @@ export const pPlane = program(gl, {
     writeDepth: false,
 })
 
-export const active = [pAxes, pCube, pPlane]
+export const active = [pCube, pPlane]
