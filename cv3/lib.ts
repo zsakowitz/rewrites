@@ -21,6 +21,7 @@ const prelude = `#version 300 es
 
     uniform vec2 u_resolution;
     uniform mat4 u_perspective;
+    uniform float u_dpr;
 
     struct Plane {
         vec3 normal;

@@ -2,7 +2,7 @@ import * as m4 from "./mat"
 import { active, cv, gl } from "./program"
 
 cv.style = "width: 100dvw; height: 100dvh; position: absolute; top: 0; left: 0"
-document.body.style = "background: #8b5cf6"
+document.body.style = "background: white"
 document.body.appendChild(cv)
 
 const camera = m4.identity()
@@ -56,6 +56,11 @@ function draw() {
         const u2 = gl.getUniformLocation(el.prog, "u_resolution")
         if (u2 != null) {
             gl.uniform2f(u2, gl.drawingBufferWidth, gl.drawingBufferHeight)
+        }
+
+        const u3 = gl.getUniformLocation(el.prog, "u_dpr")
+        if (u3 != null) {
+            gl.uniform1f(u3, devicePixelRatio)
         }
 
         gl.bindVertexArray(el.vertexArray)
