@@ -101,7 +101,8 @@ onwheel = (ev) => {
     } else {
         shift(
             (12 * -ev.deltaX) / cv.clientWidth,
-            (12 * ev.deltaY) / cv.clientHeight,
+            ((rotationSign() < -0.5 ? -1 : 1) * (12 * ev.deltaY))
+                / cv.clientHeight,
         )
     }
 }
@@ -158,5 +159,5 @@ function rotationSign() {
     m4.applyTo(po, camera)
     dehomogenize(po)
 
-    return pz[1] - po[1] < 0 ? -1 : 1
+    return pz[1] - po[1]
 }
