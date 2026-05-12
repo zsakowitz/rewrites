@@ -12,8 +12,10 @@ const entries = Array.from({ length: 12 }, (_, i) => {
     const { cv, gl, programs } = setup()
 
     const camera = m4.identity()
-    m4.multiplyInto(camera, m4.rotateX(-1.3))
+    m4.multiplyInto(camera, m4.rotateX((i / 12) * 3.28 + 3.28 + 0.1))
     m4.multiplyInto(camera, m4.rotateZ(0.1))
+
+    const label = document.createElement("div")
 
     new ResizeObserver(() => {
         cv.width = cv.clientWidth * devicePixelRatio
@@ -21,12 +23,12 @@ const entries = Array.from({ length: 12 }, (_, i) => {
         gl.viewport(0, 0, cv.width, cv.height)
     }).observe(cv)
 
-    return { cv, gl, programs, camera, i }
+    return { cv, gl, programs, camera, i, label }
 })
 
 type Entry = (typeof entries)[number]
 
-for (const { cv } of entries) {
+for (const { cv, label } of entries) {
     const el = document.createElement("div")
     el.style = "position: relative"
     div.appendChild(el)
@@ -34,6 +36,11 @@ for (const { cv } of entries) {
     cv.style =
         "background: #8b5cf6; image-rendering: pixelated; position: absolute; top: 0; left: 0; width: 100%; height: 100%"
     el.appendChild(cv)
+
+    label.style =
+        "position: absolute; bottom: 4px; right: 4px; background: #0008; color: white; padding: 4px 4px 2px 5px; line-height: 1"
+    el.appendChild(label)
+    label.textContent = "0.00"
 }
 
 function getPerspective({ gl, camera }: Entry) {
@@ -55,7 +62,7 @@ function getPerspective({ gl, camera }: Entry) {
 }
 
 function draw(entry: Entry) {
-    const { gl, programs, camera } = entry
+    const { gl, programs } = entry
 
     gl.depthMask(true)
     gl.clearColor(0, 0, 0, 0)
@@ -100,87 +107,97 @@ function drawAll() {
 
 drawAll()
 
-// onwheel = (ev) => {
-//     if (ev.altKey) {
-//         m4.multiplyBy(
-//             camera,
-//             m4.translate(0, 0, (12 * ev.deltaY) / cv.clientHeight),
-//         )
-//     } else if (ev.shiftKey) {
-//         const rs = rotationSign()
+onwheel = (ev) => {
+    for (const entry of entries) {
+        const { cv, camera, label } = entry
 
-//         const p0: m4.Vec4 = [0, 0, 0, 1]
-//         m4.applyTo(p0, m4.inverse(camera))
-//         dehomogenize(p0)
+        if (ev.altKey) {
+            m4.multiplyBy(
+                camera,
+                m4.translate(0, 0, (12 * ev.deltaY) / cv.clientHeight),
+            )
+        } else if (ev.shiftKey) {
+            const rs = rotationSign(entry)
 
-//         m4.multiplyBy(camera, m4.translate(p0[0], p0[1], p0[2]))
-//         m4.multiplyBy(
-//             camera,
-//             m4.rotateZ((rs * 6 * -ev.deltaX) / cv.clientWidth),
-//         )
-//         m4.multiplyBy(camera, m4.translate(-p0[0], -p0[1], -p0[2]))
+            const p0: m4.Vec4 = [0, 0, 0, 1]
+            m4.applyTo(p0, m4.inverse(camera))
+            dehomogenize(p0)
 
-//         m4.multiplyInto(camera, m4.rotateX((6 * -ev.deltaY) / cv.clientHeight))
-//     } else {
-//         shift(
-//             (12 * -ev.deltaX) / cv.clientWidth,
-//             ((rotationSign() < -0.5 ? -1 : 1) * (12 * ev.deltaY))
-//                 / cv.clientHeight,
-//         )
-//     }
-// }
+            m4.multiplyBy(camera, m4.translate(p0[0], p0[1], p0[2]))
+            m4.multiplyBy(
+                camera,
+                m4.rotateZ((rs * 6 * -ev.deltaX) / cv.clientWidth),
+            )
+            m4.multiplyBy(camera, m4.translate(-p0[0], -p0[1], -p0[2]))
 
-// function dehomogenize(v: m4.Vec4) {
-//     const l = v[3]
-//     v[0] /= l
-//     v[1] /= l
-//     v[2] /= l
-//     v[3] /= l
-// }
+            m4.multiplyInto(
+                camera,
+                m4.rotateX((6 * -ev.deltaY) / cv.clientHeight),
+            )
+        } else {
+            const rs = rotationSign(entry)
 
-// function normalize(v: m4.Vec4) {
-//     const l = Math.hypot(v[0], v[1])
-//     v[0] /= l
-//     v[1] /= l
-//     v[2] /= l
-// }
+            shift(
+                entry,
+                (12 * -ev.deltaX) / cv.clientWidth,
+                ((Math.abs(rs) < Math.PI / 2 ? 1 : -1) * 12 * ev.deltaY)
+                    / cv.clientHeight,
+            )
+        }
+    }
+}
 
-// function diff(p1: m4.Vec4) {
-//     const perspective = m4.inverse(getPerspective())
+function dehomogenize(v: m4.Vec4) {
+    const l = v[3]
+    v[0] /= l
+    v[1] /= l
+    v[2] /= l
+    v[3] /= l
+}
 
-//     const p0: m4.Vec4 = [0, 0, 0, 1]
+function normalize(v: m4.Vec4) {
+    const l = Math.hypot(v[0], v[1])
+    v[0] /= l
+    v[1] /= l
+    v[2] /= l
+}
 
-//     m4.applyTo(p0, perspective)
-//     m4.applyTo(p1, perspective)
+function diff(entry: Entry, p1: m4.Vec4) {
+    const perspective = m4.inverse(getPerspective(entry))
 
-//     dehomogenize(p0)
-//     dehomogenize(p1)
+    const p0: m4.Vec4 = [0, 0, 0, 1]
 
-//     p1[0] -= p0[0]
-//     p1[1] -= p0[1]
-//     p1[2] -= p0[2]
+    m4.applyTo(p0, perspective)
+    m4.applyTo(p1, perspective)
 
-//     normalize(p1)
-// }
+    dehomogenize(p0)
+    dehomogenize(p1)
 
-// function shift(mx: number, my: number) {
-//     const px: m4.Vec4 = [1, 0, 0, 1]
-//     diff(px)
+    p1[0] -= p0[0]
+    p1[1] -= p0[1]
+    p1[2] -= p0[2]
 
-//     const dx = px[0] * mx - px[1] * my
-//     const dy = px[1] * mx + px[0] * my
+    normalize(p1)
+}
 
-//     m4.multiplyBy(camera, m4.translate(dx, dy, 0))
-// }
+function shift(entry: Entry, mx: number, my: number) {
+    const px: m4.Vec4 = [1, 0, 0, 1]
+    diff(entry, px)
 
-// function rotationSign() {
-//     const pz: m4.Vec4 = [0, 0, 1, 1]
-//     m4.applyTo(pz, camera)
-//     dehomogenize(pz)
+    const dx = px[0] * mx - px[1] * my
+    const dy = px[1] * mx + px[0] * my
 
-//     const po: m4.Vec4 = [0, 0, 0, 1]
-//     m4.applyTo(po, camera)
-//     dehomogenize(po)
+    m4.multiplyBy(entry.camera, m4.translate(dx, dy, 0))
+}
 
-//     return pz[1] - po[1]
-// }
+function rotationSign(entry: Entry) {
+    const pz: m4.Vec4 = [0, 0, 1, 1]
+    m4.applyTo(pz, entry.camera)
+    dehomogenize(pz)
+
+    const po: m4.Vec4 = [0, 0, 0, 1]
+    m4.applyTo(po, entry.camera)
+    dehomogenize(po)
+
+    return Math.atan2(pz[1] - po[1], pz[2] - po[2])
+}
