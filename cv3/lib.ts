@@ -140,46 +140,45 @@ export function createVao(
     return vao
 }
 
-export function program(
-    gl: WebGL2RenderingContext,
-    props: {
-        vert: string
-        frag: string
-        attrs: Record<string, number[][]>
-        primitive:
-            | typeof WebGL2RenderingContext.POINTS
-            | typeof WebGL2RenderingContext.LINES
-            | typeof WebGL2RenderingContext.LINE_LOOP
-            | typeof WebGL2RenderingContext.LINE_STRIP
-            | typeof WebGL2RenderingContext.TRIANGLES
-            | typeof WebGL2RenderingContext.TRIANGLE_STRIP
-            | typeof WebGL2RenderingContext.TRIANGLE_FAN
-        count: number
-        writeDepth?: boolean
-    },
-) {
-    const program = createProgram(
-        gl,
-        createShader(gl, gl.VERTEX_SHADER, props.vert),
-        createShader(gl, gl.FRAGMENT_SHADER, props.frag),
-    )
+export function program(props: {
+    vert: string
+    frag: string
+    attrs: Record<string, number[][]>
+    primitive:
+        | typeof WebGL2RenderingContext.POINTS
+        | typeof WebGL2RenderingContext.LINES
+        | typeof WebGL2RenderingContext.LINE_LOOP
+        | typeof WebGL2RenderingContext.LINE_STRIP
+        | typeof WebGL2RenderingContext.TRIANGLES
+        | typeof WebGL2RenderingContext.TRIANGLE_STRIP
+        | typeof WebGL2RenderingContext.TRIANGLE_FAN
+    count: number
+    writeDepth?: boolean
+}) {
+    return (gl: WebGL2RenderingContext) => {
+        const program = createProgram(
+            gl,
+            createShader(gl, gl.VERTEX_SHADER, props.vert),
+            createShader(gl, gl.FRAGMENT_SHADER, props.frag),
+        )
 
-    const vao = createVao(
-        gl,
-        program,
-        Object.fromEntries(
-            Object.entries(props.attrs).map(([k, v]) => {
-                const buffer = createBuffer(gl, new Float32Array(v.flat()))
-                return [k, { buffer, size: v[0]?.length ?? 1 }]
-            }),
-        ),
-    )
+        const vao = createVao(
+            gl,
+            program,
+            Object.fromEntries(
+                Object.entries(props.attrs).map(([k, v]) => {
+                    const buffer = createBuffer(gl, new Float32Array(v.flat()))
+                    return [k, { buffer, size: v[0]?.length ?? 1 }]
+                }),
+            ),
+        )
 
-    return {
-        prog: program,
-        vertexArray: vao,
-        shape: props.primitive,
-        count: props.count,
-        writeDepth: props.writeDepth,
+        return {
+            prog: program,
+            vertexArray: vao,
+            shape: props.primitive,
+            count: props.count,
+            writeDepth: props.writeDepth,
+        }
     }
 }

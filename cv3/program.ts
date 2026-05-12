@@ -1,14 +1,7 @@
 import { program } from "./lib"
 import { cube } from "./shape"
 
-export const cv = document.createElement("canvas")
-
-export const gl = cv.getContext("webgl2", {
-    desynchronized: true,
-    preserveDrawingBuffer: true,
-})!
-
-export const pCube = program(gl, {
+export const pCube = program({
     vert: `
         in vec4 a_position;
 
@@ -39,11 +32,11 @@ export const pCube = program(gl, {
             x.vertices[2],
         ]),
     },
-    primitive: gl.TRIANGLES,
+    primitive: WebGL2RenderingContext.TRIANGLES,
     count: cube().length * 6,
 })
 
-export const pAxes = program(gl, {
+export const pAxes = program({
     vert: `
         in vec4 a_position;
         in vec4 a_color;
@@ -88,11 +81,11 @@ export const pAxes = program(gl, {
             [0, 0, 1],
         ],
     },
-    primitive: gl.LINES,
+    primitive: WebGL2RenderingContext.LINES,
     count: 6,
 })
 
-export const pPlane = program(gl, {
+export const pPlane = program({
     vert: `
         in vec4 a_position;
 
@@ -129,23 +122,6 @@ export const pPlane = program(gl, {
             return mix(grid2.x, 1.0, grid2.y);
         }
 
-        //! https://fadaaszhi.github.io/2d-touch-controls/
-        const float GRID_SPACING = 200.0;
-        const float GRID_SUBDIVISION = 4.0;
-        const float GRID_LINE_THICKNESS = 1.0;
-        const float AXIS_LINE_THICKNESS = 1.5;
-        const vec3 FOG_COLOR = vec3(0.8);
-        const float FOG_AMOUNT = 10.0;
-
-        vec2 grid(vec2 x, vec2 g) {
-            float w = GRID_LINE_THICKNESS * u_dpr;
-            return clamp((1.0 + w) / 2.0 - abs(x - round(x / g) * g), 0.0, 1.0);
-        }
-
-        float dlength(float x) {
-            return length(vec2(dFdx(x), dFdy(x)));
-        }
-
         void main() {
             vec3 p = as_xy(gl_FragCoord.xy);
             gl_FragDepth = p.z;
@@ -175,12 +151,12 @@ export const pPlane = program(gl, {
             [1, 1],
         ],
     },
-    primitive: gl.TRIANGLE_STRIP,
+    primitive: WebGL2RenderingContext.TRIANGLE_STRIP,
     count: 4,
     writeDepth: false,
 })
 
-export const pMandelbrot = program(gl, {
+export const pMandelbrot = program({
     vert: `in vec4 a_position; void main() { gl_Position = a_position; }`,
     frag: `
         out vec4 color;
@@ -214,8 +190,19 @@ export const pMandelbrot = program(gl, {
             [1, 1],
         ],
     },
-    primitive: gl.TRIANGLE_STRIP,
+    primitive: WebGL2RenderingContext.TRIANGLE_STRIP,
     count: 4,
 })
 
-export const active = [pCube, pPlane, pMandelbrot]
+export function setup() {
+    const cv = document.createElement("canvas")
+
+    const gl = cv.getContext("webgl2", {
+        desynchronized: true,
+        preserveDrawingBuffer: true,
+    })!
+
+    const programs = [pCube, pPlane, pMandelbrot].map((x) => x(gl))
+
+    return { cv, gl, programs }
+}
