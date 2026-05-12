@@ -84,19 +84,16 @@ onwheel = (ev) => {
             m4.translate(0, 0, (12 * ev.deltaY) / cv.clientHeight),
         )
     } else if (ev.shiftKey) {
+        const rs = rotationSign()
+
         const p0: m4.Vec4 = [0, 0, 0, 1]
         m4.applyTo(p0, m4.inverse(camera))
         dehomogenize(p0)
 
-        const pz: m4.Vec4 = [0, 0, 1, 1]
-        diff(pz)
-
         m4.multiplyBy(camera, m4.translate(p0[0], p0[1], p0[2]))
         m4.multiplyBy(
             camera,
-            m4.rotateZ(
-                (6 * (pz[1] < 0.0 ? -1 : 1) * -ev.deltaX) / cv.clientWidth,
-            ),
+            m4.rotateZ((rs * 6 * -ev.deltaX) / cv.clientWidth),
         )
         m4.multiplyBy(camera, m4.translate(-p0[0], -p0[1], -p0[2]))
 
@@ -150,4 +147,16 @@ function shift(mx: number, my: number) {
     const dy = px[1] * mx + px[0] * my
 
     m4.multiplyBy(camera, m4.translate(dx, dy, 0))
+}
+
+function rotationSign() {
+    const pz: m4.Vec4 = [0, 0, 1, 1]
+    m4.applyTo(pz, camera)
+    dehomogenize(pz)
+
+    const po: m4.Vec4 = [0, 0, 0, 1]
+    m4.applyTo(po, camera)
+    dehomogenize(po)
+
+    return pz[1] - po[1] < 0 ? -1 : 1
 }
