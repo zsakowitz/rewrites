@@ -150,28 +150,21 @@ export const pPlane = program(gl, {
             vec3 p = as_xy(gl_FragCoord.xy);
             gl_FragDepth = p.z;
 
-            //! https://fadaaszhi.github.io/2d-touch-controls/
-            vec2 dp = vec2(dlength(p.x), dlength(p.y));
-            vec2 l = log2(GRID_SPACING * u_dpr * dp) / log2(GRID_SUBDIVISION);
-            vec2 t = fract(l);
-            vec2 g1 = pow(vec2(GRID_SUBDIVISION), floor(l)) / dp;
-            vec2 g0 = g1 / GRID_SUBDIVISION;
-            vec2 g2 = g1 * GRID_SUBDIVISION;
-            vec2 q = p.xy / dp;
-            vec2 k0 = grid(q, g0);
-            vec2 k1 = grid(q, g1);
-            vec2 k2 = grid(q, g2);
-            vec2 minor = mix(k0, k1, t);
-            vec2 major = mix(k1, k2, t);
-            vec2 axes = clamp(abs(q) + (1.0 - AXIS_LINE_THICKNESS * u_dpr) / 2.0, 0.0, 1.0);
-            float gridVal = min(min(
-                1.0 - 0.4 * max(minor.x, minor.y),
-                1.0 - 0.7 * max(major.x, major.y)),
-                min(axes.x, axes.y)
-            );
+            float grid = pristineGrid(p.xy, vec2(.05));
+            float grid2 = pristineGrid(0.2 * p.xy, vec2(.01));
 
-            // float grid = pristineGrid(p.xy, vec2(20.0 / u_resolution.x));
-            color = vec4(0, 0, 0, 1.0 - gridVal);
+            vec3 filt = grid2 > 0.0 ? vec3(0x4c, 0x1d, 0x95) / 255.0 : vec3(0x6d, 0x28, 0xd9) / 255.0;
+            if (abs(p.x) < 0.025 && p.y > 0.0) {
+                filt = vec3(0, 1, 0);
+            }
+            if (abs(p.y) < 0.025 && p.x > 0.0) {
+                filt = vec3(1, 0, 0);
+            }
+
+            color = vec4(
+                filt * grid,
+                grid
+            );
         }
     `,
     attrs: {

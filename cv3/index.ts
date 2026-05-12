@@ -2,7 +2,7 @@ import * as m4 from "./mat"
 import { active, cv, gl } from "./program"
 
 cv.style = "width: 100dvw; height: 100dvh; position: absolute; top: 0; left: 0"
-document.body.style = "background: white"
+document.body.style = "background: #8b5cf6"
 document.body.appendChild(cv)
 
 const camera = m4.identity()
