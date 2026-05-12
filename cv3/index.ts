@@ -5,14 +5,14 @@ document.body.style = "margin: 0"
 
 const div = document.createElement("div")
 div.style =
-    "padding: 8px; gap: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; height: 100dvh; width: 100dvw; box-sizing: border-box; background: #1e1b4b; grid-template-rows: 1fr 1fr 1fr"
+    "padding: 8px; gap: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; height: 100dvh; width: 100dvw; box-sizing: border-box; background: #1e1b4b; grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr"
 document.body.appendChild(div)
 
-const entries = Array.from({ length: 18 }, (_, i) => {
+const entries = Array.from({ length: 36 }, (_, i) => {
     const { cv, gl, programs } = setup()
 
     const camera = m4.identity()
-    m4.multiplyInto(camera, m4.rotateX((i / 18) * 6.28 + 0.1))
+    m4.multiplyInto(camera, m4.rotateX((i / 36) * 6.28 + 0.1))
     m4.multiplyInto(camera, m4.rotateZ(0.1))
 
     const label = document.createElement("div")
@@ -111,12 +111,7 @@ onwheel = (ev) => {
     for (const entry of entries) {
         const { cv, camera, label } = entry
 
-        if (ev.altKey) {
-            m4.multiplyBy(
-                camera,
-                m4.translate(0, 0, (12 * ev.deltaY) / cv.clientHeight),
-            )
-        } else if (ev.shiftKey) {
+        if (ev.shiftKey) {
             const rs = xyPlaneRotation(entry)
 
             const p0: m4.Vec4 = [0, 0, 0, 1]
@@ -130,10 +125,10 @@ onwheel = (ev) => {
             )
             m4.multiplyBy(camera, m4.translate(-p0[0], -p0[1], -p0[2]))
 
-            m4.multiplyInto(
-                camera,
-                m4.rotateX((6 * -ev.deltaY) / cv.clientHeight),
-            )
+            // m4.multiplyInto(
+            //     camera,
+            //     m4.rotateX((6 * -ev.deltaY) / cv.clientHeight),
+            // )
         } else {
             const rs = xyPlaneRotation(entry)
 
@@ -201,22 +196,6 @@ function xyPlaneRotation(entry: Entry) {
     dehomogenize(po)
 
     return Math.atan2(pz[1] - po[1], pz[2] - po[2])
-}
-
-// rotation sign metric (rsm) such that a cube always moves vertically onscreen
-// in whatever direction matches a trackpad
-//
-// pros:
-//
-// - intuitive when xy plane is parallel to screen
-// - direction of movement changes when xy plane changes
-//
-// cons:
-//
-// - not at all intuitive when xy plane is in perspective
-function rsmUniform(entry: Entry) {
-    const rot = xyPlaneRotation(entry) / Math.PI
-    return -0.5 <= rot && rot <= 0.5 ? 1 : -1
 }
 
 // rotation sign metric (rsm) such that swiping up either moves the plane
