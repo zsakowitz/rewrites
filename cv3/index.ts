@@ -140,10 +140,10 @@ onwheel = (ev) => {
             shift(
                 entry,
                 (12 * -ev.deltaX) / cv.clientWidth,
-                (rsm60(entry) * 12 * ev.deltaY) / cv.clientHeight,
+                (rsmDynamic(entry) * 12 * ev.deltaY) / cv.clientHeight,
             )
 
-            label.textContent = rsm60(entry) == -1 ? "!" : "="
+            label.textContent = rsmDynamic(entry) == -1 ? "!" : "="
         }
     }
 }
@@ -206,23 +206,34 @@ function xyPlaneRotation(entry: Entry) {
 // rotation sign metric (rsm) such that a cube always moves vertically onscreen
 // in whatever direction matches a trackpad
 //
-// behaviors:
+// pros:
 //
 // - intuitive when xy plane is parallel to screen
 // - direction of movement changes when xy plane changes
-function rsmMatchTrackpad(entry: Entry) {
-    const rot = xyPlaneRotation(entry)
-    return Math.abs(rot) < Math.PI / 2 ? 1 : -1
+//
+// cons:
+//
+// - not at all intuitive when xy plane is in perspective
+function rsmUniform(entry: Entry) {
+    const rot = xyPlaneRotation(entry) / Math.PI
+    return -0.5 <= rot && rot <= 0.5 ? 1 : -1
 }
 
-// rotation sign metric (rsm) such that a cube always moves vertically onscreen
-// in whatever direction matches a trackpad
+// rotation sign metric (rsm) such that swiping up either moves the plane
+// away from the user (when it is in perspective), or upwards on the screen
+// (when it is mostly parallel to the screen), depending on which is the more
+// obvious behavior
 //
-// behaviors:
+// pros:
 //
-// - intuitive when xy plane is parallel to screen
-// - direction of movement changes when xy plane changes
-function rsm60(entry: Entry) {
-    const rot = xyPlaneRotation(entry)
-    return 1 //Math.abs(rot - Math.PI / 8) < Math.PI / 3 ? 1 : -1
+// - generally feels intuitive in plane and perspective modes, even when
+//   slightly not parallel to screen
+//
+// cons:
+//
+// - the "switch" point is basically unguessable, so users may feel like the
+//   software is bugged or inconsistent
+function rsmDynamic(entry: Entry) {
+    const rot = xyPlaneRotation(entry) / Math.PI
+    return -0.15 <= rot && rot <= 0.65 ? 1 : -1
 }
