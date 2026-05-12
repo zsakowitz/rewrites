@@ -202,7 +202,7 @@ export function setup() {
         preserveDrawingBuffer: true,
     })!
 
-    const programs = [pCube, pMandelbrot].map((x) => x(gl))
+    const programs = [pCube, pPlane, pMandelbrot].map((x) => x(gl))
 
     return { cv, gl, programs }
 }
