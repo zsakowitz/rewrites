@@ -5,14 +5,14 @@ document.body.style = "margin: 0"
 
 const div = document.createElement("div")
 div.style =
-    "padding: 8px; gap: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; height: 100dvh; width: 100dvw; box-sizing: border-box; background: #1e1b4b; grid-template-rows: 1fr 1fr"
+    "padding: 8px; gap: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; height: 100dvh; width: 100dvw; box-sizing: border-box; background: #1e1b4b; grid-template-rows: 1fr 1fr 1fr"
 document.body.appendChild(div)
 
-const entries = Array.from({ length: 12 }, (_, i) => {
+const entries = Array.from({ length: 18 }, (_, i) => {
     const { cv, gl, programs } = setup()
 
     const camera = m4.identity()
-    m4.multiplyInto(camera, m4.rotateX((i / 12) * 3.28 + 3.28 + 0.1))
+    m4.multiplyInto(camera, m4.rotateX((i / 18) * 6.28 + 0.1))
     m4.multiplyInto(camera, m4.rotateZ(0.1))
 
     const label = document.createElement("div")
@@ -117,7 +117,7 @@ onwheel = (ev) => {
                 m4.translate(0, 0, (12 * ev.deltaY) / cv.clientHeight),
             )
         } else if (ev.shiftKey) {
-            const rs = rotationSign(entry)
+            const rs = xyPlaneRotation(entry)
 
             const p0: m4.Vec4 = [0, 0, 0, 1]
             m4.applyTo(p0, m4.inverse(camera))
@@ -135,14 +135,15 @@ onwheel = (ev) => {
                 m4.rotateX((6 * -ev.deltaY) / cv.clientHeight),
             )
         } else {
-            const rs = rotationSign(entry)
+            const rs = xyPlaneRotation(entry)
 
             shift(
                 entry,
                 (12 * -ev.deltaX) / cv.clientWidth,
-                ((Math.abs(rs) < Math.PI / 2 ? 1 : -1) * 12 * ev.deltaY)
-                    / cv.clientHeight,
+                (rsm60(entry) * 12 * ev.deltaY) / cv.clientHeight,
             )
+
+            label.textContent = rsm60(entry) == -1 ? "!" : "="
         }
     }
 }
@@ -190,7 +191,7 @@ function shift(entry: Entry, mx: number, my: number) {
     m4.multiplyBy(entry.camera, m4.translate(dx, dy, 0))
 }
 
-function rotationSign(entry: Entry) {
+function xyPlaneRotation(entry: Entry) {
     const pz: m4.Vec4 = [0, 0, 1, 1]
     m4.applyTo(pz, entry.camera)
     dehomogenize(pz)
@@ -200,4 +201,28 @@ function rotationSign(entry: Entry) {
     dehomogenize(po)
 
     return Math.atan2(pz[1] - po[1], pz[2] - po[2])
+}
+
+// rotation sign metric (rsm) such that a cube always moves vertically onscreen
+// in whatever direction matches a trackpad
+//
+// behaviors:
+//
+// - intuitive when xy plane is parallel to screen
+// - direction of movement changes when xy plane changes
+function rsmMatchTrackpad(entry: Entry) {
+    const rot = xyPlaneRotation(entry)
+    return Math.abs(rot) < Math.PI / 2 ? 1 : -1
+}
+
+// rotation sign metric (rsm) such that a cube always moves vertically onscreen
+// in whatever direction matches a trackpad
+//
+// behaviors:
+//
+// - intuitive when xy plane is parallel to screen
+// - direction of movement changes when xy plane changes
+function rsm60(entry: Entry) {
+    const rot = xyPlaneRotation(entry)
+    return 1 //Math.abs(rot - Math.PI / 8) < Math.PI / 3 ? 1 : -1
 }
