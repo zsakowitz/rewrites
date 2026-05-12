@@ -73,11 +73,26 @@ new ResizeObserver(() => {
 }).observe(cv)
 
 onwheel = (ev) => {
-    if (ev.shiftKey) {
-        m4.multiplyInto(camera, m4.rotateY(-ev.deltaX * 0.01))
-        m4.multiplyInto(camera, m4.rotateX(-ev.deltaY * 0.01))
+    if (ev.altKey) {
+        m4.multiplyBy(
+            camera,
+            m4.translate(0, 0, (12 * ev.deltaY) / cv.clientHeight),
+        )
+    } else if (ev.shiftKey) {
+        const p0: m4.Vec4 = [0, 0, 0, 1]
+        m4.applyTo(p0, m4.inverse(camera))
+        dehomogenize(p0)
+
+        m4.multiplyBy(camera, m4.translate(p0[0], p0[1], p0[2]))
+        m4.multiplyBy(camera, m4.rotateZ((6 * -ev.deltaX) / cv.clientWidth))
+        m4.multiplyBy(camera, m4.translate(-p0[0], -p0[1], -p0[2]))
+
+        m4.multiplyInto(camera, m4.rotateX((6 * -ev.deltaY) / cv.clientHeight))
     } else {
-        shift(-ev.deltaX * 0.02, ev.deltaY * 0.02)
+        shift(
+            (12 * -ev.deltaX) / cv.clientWidth,
+            (12 * ev.deltaY) / cv.clientHeight,
+        )
     }
 }
 
@@ -96,24 +111,27 @@ function normalize(v: m4.Vec4) {
     v[2] /= l
 }
 
-function shift(mx: number, my: number) {
+function diff(p1: m4.Vec4) {
     const perspective = m4.inverse(getPerspective())
 
-    const po: m4.Vec4 = [0, 0, 0, 1]
+    const p0: m4.Vec4 = [0, 0, 0, 1]
+
+    m4.applyTo(p0, perspective)
+    m4.applyTo(p1, perspective)
+
+    dehomogenize(p0)
+    dehomogenize(p1)
+
+    p1[0] -= p0[0]
+    p1[1] -= p0[1]
+    p1[2] -= p0[2]
+
+    normalize(p1)
+}
+
+function shift(mx: number, my: number) {
     const px: m4.Vec4 = [1, 0, 0, 1]
-
-    m4.applyTo(po, perspective)
-    m4.applyTo(px, perspective)
-
-    dehomogenize(po)
-    dehomogenize(px)
-
-    px[0] -= po[0]
-    px[1] -= po[1]
-    px[2] -= po[2]
-    px[3] -= po[3]
-
-    normalize(px)
+    diff(px)
 
     const dx = px[0] * mx - px[1] * my
     const dy = px[1] * mx + px[0] * my
