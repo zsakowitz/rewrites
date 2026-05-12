@@ -88,8 +88,16 @@ onwheel = (ev) => {
         m4.applyTo(p0, m4.inverse(camera))
         dehomogenize(p0)
 
+        const pz: m4.Vec4 = [0, 0, 1, 1]
+        diff(pz)
+
         m4.multiplyBy(camera, m4.translate(p0[0], p0[1], p0[2]))
-        m4.multiplyBy(camera, m4.rotateZ((6 * -ev.deltaX) / cv.clientWidth))
+        m4.multiplyBy(
+            camera,
+            m4.rotateZ(
+                (6 * (pz[1] < 0.0 ? -1 : 1) * -ev.deltaX) / cv.clientWidth,
+            ),
+        )
         m4.multiplyBy(camera, m4.translate(-p0[0], -p0[1], -p0[2]))
 
         m4.multiplyInto(camera, m4.rotateX((6 * -ev.deltaY) / cv.clientHeight))
