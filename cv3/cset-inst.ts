@@ -48,14 +48,14 @@ function diff(camera: Camera, p1: m4.Vec4) {
     normalize(p1)
 }
 
-function shift(camera: Camera, mx: number, my: number) {
+function shift(camera: Camera, mx: number, my: number, mz: number) {
     const px: m4.Vec4 = [1, 0, 0, 1]
     diff(camera, px)
 
     const dx = px[0] * mx - px[1] * my
     const dy = px[1] * mx + px[0] * my
 
-    m4.multiplyBy(camera.mat, m4.translate(dx, dy, 0))
+    m4.multiplyBy(camera.mat, m4.translate(dx, dy, mz))
 }
 
 function xyPlaneRotation(camera: Camera) {
@@ -92,12 +92,13 @@ function rsmDynamic(camera: Camera) {
 /** A control set which moves parallel to the XY plane. */
 export function csetMoveXYPlane(camera: Camera, ev: ControlsProps) {
     const dx =
-        ev.source == "wheel" ? (12 * ev.delta[0]) / camera.vh : 12 * ev.delta[0]
+        ev.source == "wheel" ? (4 * ev.delta[0]) / camera.vh : 4 * ev.delta[0]
 
     const dy =
-        ev.source == "wheel" ?
-            (12 * -ev.delta[1]) / camera.vh
-        :   12 * ev.delta[1]
+        ev.source == "wheel" ? (4 * -ev.delta[1]) / camera.vh : 4 * ev.delta[1]
+
+    const dz =
+        ev.source == "wheel" ? (4 * -ev.delta[2]) / camera.vh : 4 * ev.delta[2]
 
     if (ev.shiftKey) {
         const rs = xyPlaneRotation(camera)
@@ -111,6 +112,6 @@ export function csetMoveXYPlane(camera: Camera, ev: ControlsProps) {
         m4.multiplyBy(camera.mat, m4.translate(-p0[0], -p0[1], -p0[2]))
         m4.multiplyInto(camera.mat, m4.rotateX(dy))
     } else {
-        shift(camera, -dx, rsmDynamic(camera) * -dy)
+        shift(camera, -3 * dx, -3 * rsmDynamic(camera) * dy, -3 * dz)
     }
 }
