@@ -91,6 +91,14 @@ function rsmDynamic(camera: Camera) {
 
 /** A control set which moves parallel to the XY plane. */
 export function csetMoveXYPlane(camera: Camera, ev: ControlsProps) {
+    const dx =
+        ev.source == "wheel" ? (12 * ev.delta[0]) / camera.vh : 12 * ev.delta[0]
+
+    const dy =
+        ev.source == "wheel" ?
+            (12 * -ev.delta[1]) / camera.vh
+        :   12 * ev.delta[1]
+
     if (ev.shiftKey) {
         const rs = xyPlaneRotation(camera)
 
@@ -99,23 +107,10 @@ export function csetMoveXYPlane(camera: Camera, ev: ControlsProps) {
         dehomogenize(p0)
 
         m4.multiplyBy(camera.mat, m4.translate(p0[0], p0[1], p0[2]))
-        m4.multiplyBy(
-            camera.mat,
-            m4.rotateZ((rs * 6 * -ev.delta[0]) / camera.vw),
-        )
+        m4.multiplyBy(camera.mat, m4.rotateZ(-rs * dx))
         m4.multiplyBy(camera.mat, m4.translate(-p0[0], -p0[1], -p0[2]))
-
-        // m4.multiplyInto(
-        //     camera,
-        //     m4.rotateX((6 * -ev.deltaY) / clientHeight),
-        // )
+        m4.multiplyInto(camera.mat, m4.rotateX(dy))
     } else {
-        const rs = xyPlaneRotation(camera)
-
-        shift(
-            camera,
-            (12 * -ev.delta[0]) / camera.vw,
-            (rsmDynamic(camera) * 12 * ev.delta[1]) / camera.vh,
-        )
+        shift(camera, -dx, rsmDynamic(camera) * -dy)
     }
 }

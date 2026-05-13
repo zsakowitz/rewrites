@@ -8,14 +8,14 @@ document.body.style = "margin: 0"
 
 const div = document.createElement("div")
 div.style =
-    "padding: 8px; gap: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; height: 100dvh; width: 100dvw; box-sizing: border-box; background: #1e1b4b; grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr"
+    "padding: 8px; gap: 8px; display: grid; grid-template-columns: repeat(1, 1fr); height: 100dvh; width: 100dvw; box-sizing: border-box; background: #1e1b4b; grid-template-rows: repeat(1, 1fr)"
 document.body.appendChild(div)
 
-const entries = Array.from({ length: 36 }, (_, i) => {
+const entries = Array.from({ length: 1 }, (_, i) => {
     const { cv, gl, programs } = setup()
 
     const cameraMat = m4.identity()
-    m4.multiplyInto(cameraMat, m4.rotateX((i / 36) * 6.28 + 0.1))
+    m4.multiplyInto(cameraMat, m4.rotateX((i / 1) * 6.28 + 0.1))
     m4.multiplyInto(cameraMat, m4.rotateZ(0.1))
 
     const camera: Camera = {

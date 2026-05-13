@@ -54,7 +54,7 @@ export function registerControls(camera: Camera, cset: ControlSet) {
                 heldKeys[ev.code] = true
                 m4.v3add(dirAllKeys, dir)
                 activeControls++
-                queueKeySignal()
+                queueKeyEvents()
             }
         }
     })
@@ -74,18 +74,25 @@ export function registerControls(camera: Camera, cset: ControlSet) {
         }
     })
 
-    function queueKeySignal() {
-        if (keyRafId == -1) {
-            keyRafId = requestAnimationFrame(queueKeySignal)
-        }
+    let lastTime = performance.now()
 
-        sendKeySignal()
+    function queueKeyEvents() {
+        if (keyRafId == -1) {
+            lastTime = performance.now()
+            keyRafId = requestAnimationFrame(sendKeyEvents)
+        }
     }
 
-    function sendKeySignal() {
-        if (dirAllKeys[0] || dirAllKeys[1]) {
+    function sendKeyEvents(currentTime: number) {
+        const deltaTime = (currentTime - lastTime) / 1e3
+
+        if (dirAllKeys[0] || dirAllKeys[1] || dirAllKeys[2]) {
             cset(camera, {
-                delta: m4.v3copy(dirAllKeys),
+                delta: [
+                    dirAllKeys[0] * deltaTime,
+                    dirAllKeys[1] * deltaTime,
+                    dirAllKeys[2] * deltaTime,
+                ],
                 source: "wasd",
                 shiftKey: hasShift,
                 altKey: hasAlt,
@@ -93,7 +100,8 @@ export function registerControls(camera: Camera, cset: ControlSet) {
         }
 
         if (activeControls) {
-            keyRafId = requestAnimationFrame(sendKeySignal)
+            lastTime = currentTime
+            keyRafId = requestAnimationFrame(sendKeyEvents)
         } else {
             keyRafId = -1
         }
