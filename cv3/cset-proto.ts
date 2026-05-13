@@ -1,3 +1,4 @@
+import type { Camera } from "./camera"
 import * as m4 from "./mat"
 
 export interface ControlsProps {
@@ -6,11 +7,11 @@ export interface ControlsProps {
     source: "wasd" | "wheel"
 
     // Active keyboard modifiers
-    hasShift: boolean
-    hasAlt: boolean
+    shiftKey: boolean
+    altKey: boolean
 }
 
-export type Controls = (camera: m4.Mat4, props: ControlsProps) => void
+export type ControlSet = (camera: Camera, props: ControlsProps) => void
 
 const keyToDir: { readonly [x: string]: m4.Vec3 } = {
     KeyD: [1, 0, 0],
@@ -21,7 +22,7 @@ const keyToDir: { readonly [x: string]: m4.Vec3 } = {
     KeyQ: [0, 0, -1],
 }
 
-export function registerControls(camera: m4.Mat4, controls: Controls) {
+export function registerControls(camera: Camera, cset: ControlSet) {
     let hasShift = false
     let hasAlt = false
     let activeControls = 0
@@ -83,11 +84,11 @@ export function registerControls(camera: m4.Mat4, controls: Controls) {
 
     function sendKeySignal() {
         if (dirAllKeys[0] || dirAllKeys[1]) {
-            controls(camera, {
+            cset(camera, {
                 delta: m4.v3copy(dirAllKeys),
                 source: "wasd",
-                hasShift,
-                hasAlt,
+                shiftKey: hasShift,
+                altKey: hasAlt,
             })
         }
 
@@ -99,11 +100,11 @@ export function registerControls(camera: m4.Mat4, controls: Controls) {
     }
 
     window.addEventListener("wheel", (ev) => {
-        controls(camera, {
+        cset(camera, {
             delta: [ev.deltaX, ev.deltaY, ev.deltaZ],
             source: "wheel",
-            hasShift,
-            hasAlt,
+            shiftKey: hasShift,
+            altKey: hasAlt,
         })
     })
 
