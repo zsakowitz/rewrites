@@ -2,8 +2,8 @@ import * as m4 from "./mat"
 
 export interface ControlsProps {
     // Raw input data
-    delta: m4.Vec2
-    source: "wasd" | "arrow" | "wheel"
+    delta: m4.Vec3
+    source: "wasd" | "wheel"
 
     // Active keyboard modifiers
     hasShift: boolean
@@ -12,38 +12,30 @@ export interface ControlsProps {
 
 export type Controls = (camera: m4.Mat4, props: ControlsProps) => void
 
-const dirWasd: Record<string, m4.Vec2> = {
-    KeyW: [0, 1],
-    W: [0, 1],
-    w: [0, 1],
-
-    KeyD: [1, 0],
-    D: [1, 0],
-    d: [1, 0],
-
-    KeyS: [0, -1],
-    S: [0, -1],
-    s: [0, -1],
-
-    KeyA: [-1, 0],
-    A: [-1, 0],
-    a: [-1, 0],
+const keyToDir: { readonly [x: string]: m4.Vec3 } = {
+    KeyD: [1, 0, 0],
+    KeyA: [-1, 0, 0],
+    KeyW: [0, 1, 0],
+    KeyS: [0, -1, 0],
+    KeyE: [0, 0, 1],
+    KeyQ: [0, 0, -1],
 }
 
-const dirArrow: Record<string, m4.Vec2> = {
-    ArrowUp: [0, 1],
-    ArrowRight: [1, 0],
-    ArrowDown: [0, -1],
-    ArrowLeft: [-1, 0],
-}
-
-export function registerControls(controls: Controls, camera: m4.Mat4) {
+export function registerControls(camera: m4.Mat4, controls: Controls) {
     let hasShift = false
     let hasAlt = false
     let activeControls = 0
 
-    const deltaWasd: m4.Vec2 = [0, 0]
-    const deltaArrow: m4.Vec2 = [0, 0]
+    const heldKeys: Record<string, boolean> = {
+        KeyD: false,
+        KeyA: false,
+        KeyW: false,
+        KeyS: false,
+        KeyE: false,
+        KeyQ: false,
+    }
+
+    const dirAllKeys: m4.Vec3 = [0, 0, 0]
     let keyRafId = -1
 
     document.body.addEventListener("keydown", (ev) => {
@@ -54,44 +46,25 @@ export function registerControls(controls: Controls, camera: m4.Mat4) {
             hasAlt = ev.altKey
         }
 
-        const d1 = dirWasd[ev.key ?? ev.code]
-        if (d1 != null) {
+        const dir = keyToDir[ev.code]
+        if (dir != null) {
             ev.preventDefault()
-            deltaWasd[0] += d1[0]
-            deltaWasd[1] += d1[1]
-            activeControls++
-            queueKeySignal()
-            return
-        }
-
-        const d2 = dirArrow[ev.key ?? ev.code]
-        if (d2 != null) {
-            ev.preventDefault()
-            deltaArrow[0] += d2[0]
-            deltaArrow[1] += d2[1]
-            activeControls++
-            queueKeySignal()
-            return
+            if (!heldKeys[ev.code]) {
+                heldKeys[ev.code] = true
+                m4.v3add(dirAllKeys, dir)
+                activeControls++
+                queueKeySignal()
+            }
         }
     })
 
     document.body.addEventListener("keyup", (ev) => {
-        const d1 = dirWasd[ev.key ?? ev.code]
-        if (d1 != null) {
+        const dir = keyToDir[ev.code]
+        if (dir != null && heldKeys[ev.code]) {
+            heldKeys[ev.code] = false
             ev.preventDefault()
-            deltaWasd[0] -= d1[0]
-            deltaWasd[1] -= d1[1]
+            m4.v3sub(dirAllKeys, dir)
             activeControls--
-            return
-        }
-
-        const d2 = dirArrow[ev.key ?? ev.code]
-        if (d2 != null) {
-            ev.preventDefault()
-            deltaArrow[0] -= d2[0]
-            deltaArrow[1] -= d2[1]
-            activeControls--
-            return
         }
 
         if (!activeControls) {
@@ -104,39 +77,35 @@ export function registerControls(controls: Controls, camera: m4.Mat4) {
         if (keyRafId == -1) {
             keyRafId = requestAnimationFrame(queueKeySignal)
         }
+
+        sendKeySignal()
     }
 
     function sendKeySignal() {
-        let keepGoing = false
-
-        if (deltaArrow[0] || deltaArrow[1]) {
-            keepGoing = true
+        if (dirAllKeys[0] || dirAllKeys[1]) {
             controls(camera, {
-                delta: deltaArrow,
-                source: "arrow",
-                hasShift,
-                hasAlt,
-            })
-        }
-
-        if (deltaWasd[0] || deltaWasd[1]) {
-            keepGoing = true
-            controls(camera, {
-                delta: deltaWasd,
+                delta: m4.v3copy(dirAllKeys),
                 source: "wasd",
                 hasShift,
                 hasAlt,
             })
         }
 
-        if (keepGoing) {
+        if (activeControls) {
             keyRafId = requestAnimationFrame(sendKeySignal)
         } else {
             keyRafId = -1
         }
     }
 
-    document.body.addEventListener("wheel", (ev) => {})
+    window.addEventListener("wheel", (ev) => {
+        controls(camera, {
+            delta: [ev.deltaX, ev.deltaY, ev.deltaZ],
+            source: "wheel",
+            hasShift,
+            hasAlt,
+        })
+    })
 
     document.body.addEventListener("pointerdown", (ev) => {})
 
@@ -146,7 +115,3 @@ export function registerControls(controls: Controls, camera: m4.Mat4) {
 
     document.body.addEventListener("pointercancel", (ev) => {})
 }
-
-registerControls((camera, props) => {
-    console.log(props)
-}, m4.identity())

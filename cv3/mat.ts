@@ -15,8 +15,24 @@
 //
 // WebGL clips coordinates to the unit box.
 
-export type Vec2 = [x: number, y: number]
 export type Vec3 = [x: number, y: number, z: number]
+
+export function v3add(dst: Vec3, src: Vec3) {
+    dst[0] += src[0]
+    dst[1] += src[1]
+    dst[2] += src[2]
+}
+
+export function v3sub(dst: Vec3, src: Vec3) {
+    dst[0] -= src[0]
+    dst[1] -= src[1]
+    dst[2] -= src[2]
+}
+
+export function v3copy(src: Vec3): Vec3 {
+    return [src[0], src[1], src[2]]
+}
+
 export type Vec4 = [x: number, y: number, z: number, w: number]
 
 export function origin(): Vec4 {
