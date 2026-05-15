@@ -168,9 +168,9 @@ export interface Def {
     level: Level | null
 
     /**
-     * If initial value is `null`, inferred to be some universe type from `body`. If this definition is axiomatically
-     * defined, `null` is an invalid value. After the type-checker checks this definition, this is guaranteed to be
-     * non-null.
+     * If initial value is `null`, inferred to be some universe type from `body`. If this definition is
+     * axiomatically defined, `null` is an invalid value. After the type-checker checks this definition, this
+     * is guaranteed to be non-null.
      */
     type: Expr | null
 
@@ -197,8 +197,9 @@ type Fmt = number | string | Expr | Level
 let depth = 0
 
 /**
- * Contexts are always assumed to be well-formed. This means all definitions before `def` are well-formed, no entry in
- * `vars` refers to an unbound variable, and `levels` matches the number of levels in the associated definition.
+ * Contexts are always assumed to be well-formed. This means all definitions before `def` are well-formed, no
+ * entry in `vars` refers to an unbound variable, and `levels` matches the number of levels in the associated
+ * definition.
  */
 export class Context {
     readonly vars: Expr[] = []
@@ -320,8 +321,8 @@ export class Context {
 }
 
 /**
- * Assumes `base` is well-formed and uses no level variables outside of `args`. That is, if `args` has length `2`,
- * `base` should never reference a level variable of index `2` or higher.
+ * Assumes `base` is well-formed and uses no level variables outside of `args`. That is, if `args` has length
+ * `2`, `base` should never reference a level variable of index `2` or higher.
  */
 export function subLevelIntoLevel(base: Level, args: readonly Level[]): Level {
     return (
@@ -472,7 +473,10 @@ export function subInBinder(binderContents: Expr, argument: Expr) {
     )
 }
 
-/** Assumimng `a` and `b` are well-formed, return the level corresponding to their maximum, simplifying when possible. */
+/**
+ * Assumimng `a` and `b` are well-formed, return the level corresponding to their maximum, simplifying when
+ * possible.
+ */
 export function levelMax(a: Level, b: Level): Level {
     if (isLevelLte(a, b, 0)) return b
     if (isLevelLte(b, a, 0)) return a
@@ -508,8 +512,8 @@ export function checkLevelWF(context: Context, level: Level) {
 }
 
 /**
- * Assuming `lhs` and `rhs` are well-formed and `offset` is an integer, returns whether `lhs <= rhs + offset` for all
- * possible values of ambient level variables.
+ * Assuming `lhs` and `rhs` are well-formed and `offset` is an integer, returns whether `lhs <= rhs + offset`
+ * for all possible values of ambient level variables.
  */
 function isLevelLte(lhs: Level, rhs: Level, offset: number): boolean {
     return (
@@ -555,11 +559,11 @@ export function checkRef(context: Context, ref: Expr & { k: "ref" }): Def {
 /**
  * Assuming `expectedType` is well-formed, checks that `value` is well-formed and has type `expectedType`.
  *
- * Values may have multiple types; for instance, `λx. x` has type `2 -> 2` and `0 -> 0`, and `0` has type `Type 0` and
- * `Type 1`.
+ * Values may have multiple types; for instance, `λx. x` has type `2 -> 2` and `0 -> 0`, and `0` has type
+ * `Type 0` and `Type 1`.
  */
 export function checkType(context: Context, value: Expr, type: Expr) {
-    using _ = context.group`${value} : ${type}`
+    using _ = context.group`${value} ${dim}:${reset} ${type}`
 
     if (value.k == "ref") {
         const def = checkRef(context, value)
@@ -610,11 +614,11 @@ export function checkType(context: Context, value: Expr, type: Expr) {
 }
 
 /**
- * Assuming `expected` is a well-formed type, checks that `value` is a subtype of `expected`. That is, checks that
- * anything with type `value` also has type `expected`.
+ * Assuming `expected` is a well-formed type, checks that `value` is a subtype of `expected`. That is, checks
+ * that anything with type `value` also has type `expected`.
  */
 export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
-    using _ = context.group`${value} <= ${expected}`
+    using _ = context.group`${value} ${dim}<=${reset} ${expected}`
 
     if (expected.k == "universe") {
         if (value.k == "universe") {
@@ -641,31 +645,31 @@ export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
 }
 
 /** Checks that `value` is a well-formed type and returns the smallest level known to contain it. */
-export function inferLevelOfType(context: Context, value: Expr): Level {
-    using _ = context.group`${value} : Type`
+export function inferType(context: Context, value: Expr): Expr {
+    using _ = context.group`${value} ${dim}:${reset} Type _`
 
     // U_x : U_(succ x)
     if (value.k == "universe") {
         checkLevelWF(context, value.level)
-        return { k: "succ", v: value.level }
+        return { k: "universe", level: { k: "succ", v: value.level } }
     }
 
     // (∑(x: A). B): U_max(levelof A, levelof B)
     if (value.k == "sum") {
-        const fstLevel = inferLevelOfType(context, value.fst)
+        const fstLevel = levelOfUniverseType(context, inferType(context, value.fst))
         context.vars.push(value.fst)
-        const sndLevel = inferLevelOfType(context, value.snd)
+        const sndLevel = levelOfUniverseType(context, inferType(context, value.snd))
         context.vars.pop()
-        return levelMax(fstLevel, sndLevel)
+        return { k: "universe", level: levelMax(fstLevel, sndLevel) }
     }
 
     // (∏(x: A). B): U_max(levelof A, levelof B)
     if (value.k == "prod") {
-        const argLevel = inferLevelOfType(context, value.arg)
+        const argLevel = levelOfUniverseType(context, inferType(context, value.arg))
         context.vars.push(value.arg)
-        const retLevel = inferLevelOfType(context, value.ret)
+        const retLevel = levelOfUniverseType(context, inferType(context, value.ret))
         context.vars.pop()
-        return levelMax(argLevel, retLevel)
+        return { k: "universe", level: levelMax(argLevel, retLevel) }
     }
 
     if (value.k == "pair" || value.k == "func") {
@@ -673,25 +677,35 @@ export function inferLevelOfType(context: Context, value: Expr): Level {
     }
 
     if (value.k == "var") {
-        const varType = context.getVarType(value.var)
-        return extractLevelFromUniverseType(context, varType)
+        return context.getVarType(value.var)
     }
 
     if (value.k == "ref") {
         const def = checkRef(context, value)
-        return extractLevelFromUniverseType(context, subLevel(def.type!, value.levels))
+        return subLevel(def.type!, value.levels)
     }
 
     value.k satisfies "app"
+
+    const f = inferType(context, value.f)
+
+    if (f.k == "pair" || f.k == "func" || f.k == "sum" || f.k == "universe" || f.k == "var") {
+        return context.e`invalid function call`
+    }
+
+    if (f.k == "prod") {
+        checkType(context, value.x, f.arg)
+        return subInBinder(f.ret, value.x)
+    }
 
     context.todo({ value })
 }
 
 /**
- * Checks that `type` is well-formed, infers it to be some universe type, and attempts to determine that universe's
- * level.
+ * Checks that `type` is well-formed, infers it to be some universe type, and attempts to determine that
+ * universe's level.
  */
-export function extractLevelFromUniverseType(context: Context, type: Expr): Level {
+export function levelOfUniverseType(context: Context, type: Expr): Level {
     if (type.k == "universe") {
         checkLevelWF(context, type.level)
         return type.level
@@ -720,7 +734,7 @@ export function checkModule(mod: Module) {
         using _ = context.group`${defToString(mod, def)}`
 
         if (def.type) {
-            def.level = inferLevelOfType(context, def.type)
+            def.level = levelOfUniverseType(context, inferType(context, def.type))
 
             if (def.body.k) {
                 checkType(context, def.body.v, def.type)
@@ -733,7 +747,7 @@ export function checkModule(mod: Module) {
             return context.e`axiomatic definition must have an explicit type`
         }
 
-        const type = inferLevelOfType(context, def.body.v)
+        const type = levelOfUniverseType(context, inferType(context, def.body.v))
         def.type = { k: "universe", level: type }
         def.level = { k: "succ", v: type }
         continue
