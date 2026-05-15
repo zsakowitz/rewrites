@@ -14,7 +14,7 @@ function varName(n: number) {
 
 /** `#` */
 function lvlName(n: number) {
-    return yellow + ("uvw"[n] ?? `#` + n) + reset
+    return "uvw"[n] ?? `#` + n
 }
 
 /** `@` */
@@ -206,7 +206,7 @@ export class Context {
             }
 
             if (reasonText.endsWith("#")) {
-                ret += reasonText.slice(0, -1) + lvlName(arg)
+                ret += reasonText.slice(0, -1) + yellow + lvlName(arg) + reset
                 continue
             }
 
@@ -426,7 +426,7 @@ function isLevelLte(lhs: Level, rhs: Level, offset: number): boolean {
     }
 
     if (rhs.k == "max") {
-        return isLevelLte(lhs, rhs.v[0], offset) && isLevelLte(lhs, rhs.v[1], offset)
+        return isLevelLte(lhs, rhs.v[0], offset) || isLevelLte(lhs, rhs.v[1], offset)
     }
 
     // basic test for the above: max(a,b) <= max(a,b)?
@@ -435,11 +435,11 @@ function isLevelLte(lhs: Level, rhs: Level, offset: number): boolean {
     // answer: true
 
     if (lhs.k == "succ") {
-        return isLevelLte(lhs, rhs, offset - 1)
+        return isLevelLte(lhs.v, rhs, offset - 1)
     }
 
     if (rhs.k == "succ") {
-        return isLevelLte(lhs, rhs, offset + 1)
+        return isLevelLte(lhs, rhs.v, offset + 1)
     }
 
     // basic test for the above: succ(a) <= succ(a)?
