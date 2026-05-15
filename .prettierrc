@@ -29,6 +29,12 @@
             "options": {
                 "printWidth": 80
             }
+        },
+        {
+            "files": "hott/**/*",
+            "options": {
+                "printWidth": 120
+            }
         }
     ]
 }
