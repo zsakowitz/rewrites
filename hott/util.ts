@@ -1,4 +1,4 @@
-import { type AxiomComputationalRule, type Def, type Expr, type Level, type Module } from "./core"
+import { moduleToString, type AxiomComputationalRule, type Def, type Expr, type Level, type Module } from "./core"
 
 export const Z: Level = { k: "zero", v: null }
 
@@ -92,6 +92,8 @@ export function createModule(
             return body
         },
     )
+
+    console.log(moduleToString(mod))
 
     return mod
 }

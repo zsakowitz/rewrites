@@ -169,9 +169,9 @@ export interface Def {
 }
 
 export function defToString(mod: Module, def: Def): string {
-    const level = `${dim}::${reset} ${yellow}Type ${def.level ? levelToString(def.level) : ""}`
-    const type = `${dim}:${reset} ${exprToString(mod, 0, def.type)}`
-    const expr = `${dim}:=${reset} ${def.body.k ? exprToString(mod, 0, def.body.v) : "axiom" + (def.body.v ? " with rule" : "")}`
+    const level = `${reset}${dim}::${reset} ${yellow}Type${def.level ? " " + levelToString(def.level) : ""}`
+    const type = `${reset}${dim}:${reset} ${exprToString(mod, 0, def.type)}`
+    const expr = `${reset}${dim}:=${reset} ${def.body.k ? exprToString(mod, 0, def.body.v) : "axiom" + (def.body.v ? " with rule" : "")}`
 
     return `${blue}${def.name}${reset}${levelArgsToString(
         Array.from({ length: def.levels }, (_, i) => ({ k: "var", v: i })),
@@ -203,7 +203,7 @@ export class Context {
             this.e`Variable $${index} is not defined.`
         }
 
-        return this.vars[this.vars.length - index]!
+        return this.vars[this.vars.length - index - 1]!
     }
 
     e(reason: TemplateStringsArray, ...args: (number | string | Expr)[]): never {
@@ -256,22 +256,33 @@ export class Context {
         throw error
     }
 
-    todo(): never {
-        const error = new Error(`(in ${defName(this.mod, this.defId)}${bold}) this branch is not done yet`)
+    todo(props: Record<string, number | string | Expr | Level>): never {
+        let message = `(in ${defName(this.mod, this.defId)}${bold}) branch not done yet`
+        for (const key in props) {
+            const val = props[key]!
+            message += `\n  ${reset}${dim}.${reset}${red}${key}${reset}${dim} = ${reset}${
+                typeof val == "object" ?
+                    val.k == "zero" || val.k == "succ" || val.k == "max" || (val.k == "var" && "v" in val) ?
+                        levelToString(val)
+                    :   exprToString(this.mod, this.vars.length, val)
+                :   val
+            }${reset}`
+        }
+
+        const error = new Error(message)
         Error.captureStackTrace(error, this.todo)
         throw error
     }
 }
 
-/** Assumes all level variables in `base` are present in `args`. */
+/**
+ * Assumes `base` is well-formed and uses no level variables outside of `args`. That is, if `args` has length `2`,
+ * `base` should never reference a level variable of index `2` or higher.
+ */
 export function subLevelIntoLevel(base: Level, args: readonly Level[]): Level {
     return (
         base.k == "succ" ? { k: "succ", v: subLevelIntoLevel(base.v, args) }
-        : base.k == "max" ?
-            {
-                k: "max",
-                v: [subLevelIntoLevel(base.v[0], args), subLevelIntoLevel(base.v[1], args)],
-            }
+        : base.k == "max" ? levelMax(subLevelIntoLevel(base.v[0], args), subLevelIntoLevel(base.v[1], args))
         : base.k == "var" ? args[base.v]!
         : (base.k satisfies "zero", { k: "zero", v: null })
     )
@@ -417,6 +428,13 @@ export function subInBinder(binderContents: Expr, argument: Expr) {
     )
 }
 
+/** Assumimng `a` and `b` are well-formed, return the level corresponding to their maximum, simplifying when possible. */
+export function levelMax(a: Level, b: Level): Level {
+    if (isLevelLte(a, b, 0)) return b
+    if (isLevelLte(b, a, 0)) return a
+    return { k: "max", v: [a, b] }
+}
+
 /** Returns whether `index` is an integer in the range `[0, max)`. */
 export function isIndexInRange(max: number, index: number): boolean {
     return index === Math.floor(index) && 0 <= index && index < max
@@ -496,43 +514,58 @@ export function checkRef(context: Context, ref: Expr & { k: "ref" }): Def {
  * Values may have multiple types; for instance, `λx. x` has type `2 -> 2` and `0 -> 0`, and `0` has type `Type 0` and
  * `Type 1`.
  */
-export function checkType(context: Context, value: Expr, expectedType: Expr) {
+export function checkType(context: Context, value: Expr, type: Expr) {
     if (value.k == "ref") {
         const def = checkRef(context, value)
-        checkIsSubtype(context, subLevel(def.type, value.levels), expectedType)
+        checkIsSubtype(context, subLevel(def.type, value.levels), type)
         return
     }
 
-    if (expectedType.k == "universe") {
+    if (value.k == "var") {
+        const varType = context.getVarType(value.var)
+        checkIsSubtype(context, varType, type)
+        return
+    }
+
+    if (type.k == "universe") {
         if (value.k == "universe") {
             checkLevelWF(context, value.level)
-            checkLevel(context, { k: "succ", v: value.level }, expectedType.level)
+            checkLevel(context, { k: "succ", v: value.level }, type.level)
             return
         }
 
         if (value.k == "sum") {
-            checkType(context, value.fst, expectedType)
+            checkType(context, value.fst, type)
             context.vars.push(value.fst)
-            checkType(context, value.snd, expectedType)
+            checkType(context, value.snd, type)
             context.vars.pop()
             return
         }
 
         if (value.k == "prod") {
-            checkType(context, value.arg, expectedType)
+            checkType(context, value.arg, type)
             context.vars.push(value.arg)
-            checkType(context, value.ret, expectedType)
+            checkType(context, value.ret, type)
             context.vars.pop()
             return
         }
     }
 
-    context.todo()
+    if (type.k == "prod") {
+        if (value.k == "func") {
+            context.vars.push(type.arg)
+            checkType(context, value.ret, type.ret)
+            context.vars.pop()
+            return
+        }
+    }
+
+    context.todo({ value, type })
 }
 
 /**
- * Assuming `expectedType` is well-formed, checks that `type` is a subtype of `expectedType`. In general, nothing is a
- * subtype of anything else, except that anything assignable to one universe is assignable to all larger universes.
+ * Assuming `expected` is a well-formed type, checks that `value` is a subtype of `expected`. That is, checks that
+ * anything with type `value` also has type `expected`.
  */
 export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
     if (expected.k == "universe") {
@@ -543,7 +576,12 @@ export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
         }
     }
 
-    context.todo()
+    if (expected.k == "ref" && value.k == "ref" && expected.defId == value.defId) {
+        const def = checkRef(context, value)
+        if (def.levels == 0) return
+    }
+
+    context.todo({ value, expected })
 }
 
 /** Checks that `value` is a well-formed type and returns the smallest level known to contain it. */
@@ -560,7 +598,7 @@ export function inferLevelOfType(context: Context, value: Expr): Level {
         context.vars.push(value.fst)
         const sndLevel = inferLevelOfType(context, value.snd)
         context.vars.pop()
-        return { k: "max", v: [fstLevel, sndLevel] }
+        return levelMax(fstLevel, sndLevel)
     }
 
     // (∏(x: A). B): U_max(levelof A, levelof B)
@@ -569,7 +607,7 @@ export function inferLevelOfType(context: Context, value: Expr): Level {
         context.vars.push(value.arg)
         const retLevel = inferLevelOfType(context, value.ret)
         context.vars.pop()
-        return { k: "max", v: [argLevel, retLevel] }
+        return levelMax(argLevel, retLevel)
     }
 
     if (value.k == "pair" || value.k == "func") {
@@ -588,7 +626,7 @@ export function inferLevelOfType(context: Context, value: Expr): Level {
 
     value.k satisfies "app"
 
-    context.todo()
+    context.todo({ value })
 }
 
 /**
@@ -603,11 +641,11 @@ export function extractLevelFromUniverseType(context: Context, type: Expr): Leve
 
     if (type.k == "ref") {
         const def = checkRef(context, type)
-        context.todo()
+        context.todo({ type })
     }
 
     if (type.k == "app") {
-        context.todo()
+        context.todo({ type })
     }
 
     // variables `x: U` do not need to be checked, since they could theoretically be some non-universe type like `0`
