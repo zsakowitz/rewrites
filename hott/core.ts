@@ -194,6 +194,15 @@ export class Context {
         readonly levels: number,
     ) {}
 
+    /** Checks that `index` is a well-formed variable index, and returns its type. */
+    getVarType(index: number): Expr {
+        if (!isIndexInRange(this.vars.length, index)) {
+            this.e`Variable $${index} is not defined.`
+        }
+
+        return this.vars[this.vars.length - index]!
+    }
+
     e(reason: TemplateStringsArray, ...args: (number | string | Expr)[]): never {
         let ret = ""
 
@@ -474,8 +483,41 @@ export function checkType(context: Context, value: Expr, expectedType: Expr) {
     context.todo()
 }
 
-/** Checks that `value` is well-formed, and attempts to infer its type. */
-export function inferType(context: Context, value: Expr): Expr {
+/** Checks that `value` is a well-formed type and returns the smallest level known to contain it. */
+export function inferLevelOfType(context: Context, value: Expr): Level {
+    // U_x : U_(succ x)
+    if (value.k == "universe") {
+        checkLevelWF(context, value.level)
+        return { k: "succ", v: value.level }
+    }
+
+    // (∑(x: A). B): U_max(levelof A, levelof B)
+    if (value.k == "sum") {
+        const fstLevel = inferLevelOfType(context, value.fst)
+        context.vars.push(value.fst)
+        const sndLevel = inferLevelOfType(context, value.snd)
+        context.vars.pop()
+        return { k: "max", v: [fstLevel, sndLevel] }
+    }
+
+    // (∏(x: A). B): U_max(levelof A, levelof B)
+    if (value.k == "prod") {
+        const argLevel = inferLevelOfType(context, value.arg)
+        context.vars.push(value.arg)
+        const retLevel = inferLevelOfType(context, value.ret)
+        context.vars.pop()
+        return { k: "max", v: [argLevel, retLevel] }
+    }
+
+    if (value.k == "pair" || value.k == "func") {
+        return context.e`expected type, found ${value}`
+    }
+
+    if (value.k == "var") {
+        const varType = context.getVarType(value.var)
+        return extractLevelFromUniverseType(context, varType)
+    }
+
     context.todo()
 }
 
@@ -490,12 +532,15 @@ export function extractLevelFromUniverseType(context: Context, type: Expr): Leve
     }
 
     if (type.k == "ref") {
-        context.def
-    }
-
-    if (type.k == "app" || type.k == "ref") {
+        const def = checkRef(context, type)
         context.todo()
     }
+
+    if (type.k == "app") {
+        context.todo()
+    }
+
+    // variables `x: U` do not need to be checked, since they could theoretically be some non-universe type like `0`
 
     return context.e`${type} is not a universe`
 }
