@@ -610,6 +610,16 @@ export function checkType(context: Context, value: Expr, type: Expr) {
         }
     }
 
+    if (value.k == "app") {
+        const f = inferType(context, value.f)
+
+        if (f.k == "prod") {
+            checkType(context, value.x, f.arg)
+            checkIsSubtype(context, subInBinder(f.ret, value.x), type)
+            return
+        }
+    }
+
     context.todo({ value, type })
 }
 
