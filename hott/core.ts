@@ -160,12 +160,13 @@ export interface AxiomComputationalRule {
 
 export type DefBody = Readonly<{ k: false; v: Expr } | { k: true; v: AxiomComputationalRule | null }>
 
-export type Def = Readonly<{
-    name: string
-    levels: number
-    type: Expr
-    body: DefBody
-}>
+export interface Def {
+    readonly name: string
+    readonly levels: number
+    level: Level | null // must initially be `null`; the type-checker sets it to the right level when checking
+    readonly type: Expr
+    readonly body: DefBody
+}
 
 export function defToString(mod: Module, def: Def): string {
     return `${blue}${def.name}${reset}${levelArgsToString(
