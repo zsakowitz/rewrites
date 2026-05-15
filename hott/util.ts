@@ -47,7 +47,7 @@ export function createModule(
         def: (
             name: string,
             levelArgs: number,
-            type: Expr,
+            type: Expr | null,
             body: Expr,
         ) => {
             (...args: Level[]): Expr

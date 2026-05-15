@@ -163,19 +163,27 @@ export type DefBody = Readonly<{ k: true; v: Expr } | { k: false; v: AxiomComput
 export interface Def {
     readonly name: string
     readonly levels: number
-    level: Level | null // must initially be `null`; the type-checker sets it to the right level when checking
-    readonly type: Expr
+
+    /** Initial value is ignored; the type-checker sets it to the right level when checking the module. */
+    level: Level | null
+
+    /**
+     * If initial value is `null`, inferred to be some universe type from `body`. If this definition is axiomatically
+     * defined, `null` is an invalid value. After the type-checker checks this definition, this is guaranteed to be
+     * non-null.
+     */
+    type: Expr | null
+
     readonly body: DefBody
 }
 
 export function defToString(mod: Module, def: Def): string {
-    const level = `${reset}${dim}::${reset} ${yellow}Type${def.level ? " " + levelToString(def.level) : ""}`
-    const type = `${reset}${dim}:${reset} ${exprToString(mod, 0, def.type)}`
+    const type = `${reset}${dim}:${reset} ${def.type ? exprToString(mod, 0, def.type) : "Type"}`
     const expr = `${reset}${dim}:=${reset} ${def.body.k ? exprToString(mod, 0, def.body.v) : "axiom" + (def.body.v ? " with rule" : "")}`
 
     return `${blue}${def.name}${reset}${levelArgsToString(
         Array.from({ length: def.levels }, (_, i) => ({ k: "var", v: i })),
-    )} ${level} ${type} ${expr}`
+    )} ${type} ${expr}`
 }
 
 export type Module = readonly Def[]
@@ -207,7 +215,7 @@ export class Context {
             this.e`Variable $${index} is not defined.`
         }
 
-        return this.vars[this.vars.length - index - 1]!
+        return offsetVariableIndices(this.vars[this.vars.length - index - 1]!, this.vars.length - index - 1)
     }
 
     fmt(text: readonly string[], reset: string, args: Fmt[]): string {
@@ -555,7 +563,7 @@ export function checkType(context: Context, value: Expr, type: Expr) {
 
     if (value.k == "ref") {
         const def = checkRef(context, value)
-        checkIsSubtype(context, subLevel(def.type, value.levels), type)
+        checkIsSubtype(context, subLevel(def.type!, value.levels), type)
         return
     }
 
@@ -621,6 +629,14 @@ export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
         if (def.levels == 0) return
     }
 
+    if (expected.k == "var" && value.k == "var") {
+        if (expected.var == value.var) {
+            return
+        }
+
+        return context.e`${expected} is not a subtype of ${value}`
+    }
+
     context.todo({ value, expected })
 }
 
@@ -663,7 +679,7 @@ export function inferLevelOfType(context: Context, value: Expr): Level {
 
     if (value.k == "ref") {
         const def = checkRef(context, value)
-        return extractLevelFromUniverseType(context, subLevel(def.type, value.levels))
+        return extractLevelFromUniverseType(context, subLevel(def.type!, value.levels))
     }
 
     value.k satisfies "app"
@@ -703,10 +719,23 @@ export function checkModule(mod: Module) {
 
         using _ = context.group`${defToString(mod, def)}`
 
-        def.level = inferLevelOfType(context, def.type)
+        if (def.type) {
+            def.level = inferLevelOfType(context, def.type)
 
-        if (def.body.k) {
-            checkType(context, def.body.v, def.type)
+            if (def.body.k) {
+                checkType(context, def.body.v, def.type)
+            }
+
+            continue
         }
+
+        if (!def.body.k) {
+            return context.e`axiomatic definition must have an explicit type`
+        }
+
+        const type = inferLevelOfType(context, def.body.v)
+        def.type = { k: "universe", level: type }
+        def.level = { k: "succ", v: type }
+        continue
     }
 }
