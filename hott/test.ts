@@ -120,4 +120,10 @@ createModule((def, axiom) => {
             ),
         ),
     )
+
+    const id = axiom(
+        "Id",
+        1,
+        Pi(U(Larg(0)), Pi(Var(0), Pi(Var(1), U(Larg(0))))),
+    )
 })
