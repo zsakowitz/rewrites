@@ -421,47 +421,14 @@ export function checkLevelWF(context: Context, level: Level) {
  * possible values of ambient level variables.
  */
 function isLevelLte(lhs: Level, rhs: Level, offset: number): boolean {
-    if (lhs.k == "max") {
-        return isLevelLte(lhs.v[0], rhs, offset) && isLevelLte(lhs.v[1], rhs, offset)
-    }
-
-    if (rhs.k == "max") {
-        return isLevelLte(lhs, rhs.v[0], offset) || isLevelLte(lhs, rhs.v[1], offset)
-    }
-
-    // basic test for the above: max(a,b) <= max(a,b)?
-    // answer: a <= max(a,b) && b <= max(a,b)
-    // answer: (a <= a || a <= b) && (b <= a || b <= b)
-    // answer: true
-
-    if (lhs.k == "succ") {
-        return isLevelLte(lhs.v, rhs, offset - 1)
-    }
-
-    if (rhs.k == "succ") {
-        return isLevelLte(lhs, rhs.v, offset + 1)
-    }
-
-    // basic test for the above: succ(a) <= succ(a)?
-    // answer: a <= succ(a) - 1
-    // answer: a <= a
-    // answer: true
-
-    if (lhs.k == "var" && rhs.k == "var") {
-        return (
-            lhs.v == rhs.v // unrelated variables can't be compared
-            && offset >= 0 // `x <= x - 1` is clearly false
-        )
-    }
-
-    // `x <= n` is clearly false for any finite `n`, since `x` could be `succ(n)`
-    if (lhs.k == "var" && rhs.k == "zero") {
-        return false
-    }
-
-    // clearly `0 <= x + offset` if `offset` is nonnegative, but it's otherwise not guaranteed
-    // also, `0 <= 0 + offset` iff `offset` is nonnegative
-    return offset >= 0
+    return (
+        (lhs.k == "max" && isLevelLte(lhs.v[0], rhs, offset) && isLevelLte(lhs.v[1], rhs, offset))
+        || (rhs.k == "max" && (isLevelLte(lhs, rhs.v[0], offset) || isLevelLte(lhs, rhs.v[1], offset)))
+        || (lhs.k == "succ" && isLevelLte(lhs.v, rhs, offset - 1))
+        || (rhs.k == "succ" && isLevelLte(lhs, rhs.v, offset + 1))
+        || (lhs.k == "var" && rhs.k == "var" && lhs.v == rhs.v && offset >= 0)
+        || (lhs.k == "zero" && offset >= 0)
+    )
 }
 
 /** Assuming `lhs` and `rhs` are well-defined, checks that `lhs <= rhs`. */
