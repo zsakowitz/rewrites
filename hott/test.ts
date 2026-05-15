@@ -28,16 +28,16 @@ export function Sum(fst: Expr, snd: Expr): Expr {
     return { k: "sum", fst, snd }
 }
 
-export function Pair(type: Expr, fst: Expr, snd: Expr): Expr {
-    return { k: "pair", type, fst, snd }
+export function Pair(fst: Expr, snd: Expr): Expr {
+    return { k: "pair", fst, snd }
 }
 
 export function Pi(arg: Expr, ret: Expr): Expr {
     return { k: "prod", arg, ret }
 }
 
-export function Func(type: Expr, ret: Expr): Expr {
-    return { k: "func", type, ret }
+export function Func(ret: Expr): Expr {
+    return { k: "func", ret }
 }
 
 export function Axiom(type: Expr): Expr {
@@ -90,6 +90,34 @@ export function createModule(
 }
 
 createModule((def, axiom) => {
-    const dzero = axiom("0", 0, U(Z))
-    const dzeroind = axiom("0-rec", 1, Pi(U(Larg(0)), Pi(dzero(), Var(1))))
+    const zero = axiom("0", 0, U(Z))
+
+    const zero_ind = axiom("0-rec", 1, Pi(U(Larg(0)), Pi(zero(), Var(1))))
+
+    const not = (x: Expr) => Pi(x, zero())
+
+    const not_not_not_x_implies_x = def(
+        "¬¬¬X=>¬X",
+        1,
+        Pi(U(Larg(0)), Pi(not(not(not(Var(0)))), not(Var(1)))),
+        Func(
+            // accepts X
+            Func(
+                // accepts ¬¬¬X
+                Func(
+                    // accepts X
+                    Apply(
+                        Var(1), // ¬¬¬X
+                        Func(
+                            // accepts ¬X
+                            Apply(
+                                Var(0), // ¬X
+                                Var(2), // X
+                            ), // 0
+                        ), // ¬¬X
+                    ), // 0
+                ),
+            ),
+        ),
+    )
 })

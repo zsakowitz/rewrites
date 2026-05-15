@@ -9,7 +9,7 @@ export type Level = Readonly<
 
 /** `$` */
 function varName(n: number) {
-    return red + ("xyzabcdefghijklmnopqrst"[n] ?? `$-` + n) + reset
+    return red + ("xyzabcdefghijklmnopqrst"[n] ?? "$" + n) + reset
 }
 
 /** `#` */
@@ -47,13 +47,121 @@ export type Expr = Readonly<
     | { k: "universe"; level: Level }
     | { k: "ref"; defId: number; levels: readonly Level[] }
     | { k: "sum"; fst: Expr; snd: Expr }
-    | { k: "pair"; type: Expr; fst: Expr; snd: Expr }
+    | { k: "pair"; fst: Expr; snd: Expr }
     | { k: "prod"; arg: Expr; ret: Expr }
-    | { k: "func"; type: Expr; ret: Expr }
+    | { k: "func"; ret: Expr }
     | { k: "app"; f: Expr; x: Expr }
     | { k: "var"; var: number } // de bruijn indices
     | { k: "axiom"; type: Expr }
 >
+
+/** Checks if `varIndex` is ever mentioned in `expr`. */
+export function refs(expr: Expr, varIndex: number): boolean {
+    return (
+        expr.k == "universe" ? false
+        : expr.k == "sum" ?
+            refs(expr.fst, varIndex) || refs(expr.snd, varIndex + 1)
+        : expr.k == "pair" ?
+            refs(expr.fst, varIndex) || refs(expr.snd, varIndex)
+        : expr.k == "prod" ?
+            refs(expr.arg, varIndex) || refs(expr.ret, varIndex + 1)
+        : expr.k == "func" ? refs(expr.ret, varIndex + 1)
+        : expr.k == "ref" ? false
+        : expr.k == "app" ? refs(expr.f, varIndex) || refs(expr.x, varIndex)
+        : expr.k == "var" ? expr.var == varIndex
+        : (expr.k satisfies "axiom", refs(expr.type, varIndex))
+    )
+}
+
+const enum Prec {
+    Atom, // X
+    Application, // X Y
+    TrivialSum, // X × Y
+    TrivialProd, // X -> Y
+    Binder, // ∑(x: X). Y
+}
+
+export function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
+    if (expr.k == "universe")
+        return [yellow + "U" + levelToString(expr.level) + reset, Prec.Atom]
+
+    if (expr.k == "sum") {
+        let [fst, fstp] = str(mod, depth, expr.fst)
+        let [snd, sndp] = str(mod, depth + 1, expr.snd)
+
+        if (refs(expr.snd, 0)) {
+            return [`∑(${varName(depth)}: ${fst}). ${snd}`, Prec.Binder]
+        }
+
+        if (fstp > Prec.TrivialSum) fst = `(${fst})`
+        if (sndp >= Prec.TrivialSum) snd = `(${snd})`
+        return [`${fst} × ${snd}`, Prec.TrivialSum]
+    }
+
+    if (expr.k == "pair") {
+        let ret = "("
+
+        while (expr.k == "pair") {
+            let [fst, fstp] = str(mod, depth, expr.fst)
+            if (fstp >= Prec.TrivialProd) fst = `(${fst})`
+
+            ret += fst + ", "
+        }
+
+        let [snd, sndp] = str(mod, depth, expr)
+        if (sndp >= Prec.TrivialProd) snd = `(${snd})`
+
+        ret += snd
+
+        return [ret + ")", Prec.Atom]
+    }
+
+    if (expr.k == "prod") {
+        let [arg, argp] = str(mod, depth, expr.arg)
+        let [ret, retp] = str(mod, depth + 1, expr.ret)
+
+        if (refs(expr.ret, 0)) {
+            return [`∏(${varName(depth)}: ${arg}). ${ret}`, Prec.Binder]
+        }
+
+        if (argp > Prec.TrivialProd) arg = `(${arg})`
+        if (retp >= Prec.TrivialProd) ret = `(${ret})`
+
+        return [`${arg} -> ${ret}`, Prec.TrivialProd]
+    }
+
+    if (expr.k == "func") {
+        return [
+            `λ${varName(depth)}. ${str(mod, depth + 1, expr.ret)[0]}`,
+            Prec.Binder,
+        ]
+    }
+
+    if (expr.k == "ref") {
+        return [
+            defName(mod, expr.defId) + levelArgsToString(expr.levels),
+            Prec.Atom,
+        ]
+    }
+
+    if (expr.k == "app") {
+        let [f, fp] = str(mod, depth, expr.f)
+        let [x, xp] = str(mod, depth, expr.x)
+
+        if (fp > Prec.Application) f = `(${f})`
+        if (xp >= Prec.Application) x = `(${x})`
+
+        return [`${f} ${x}`, Prec.Application]
+    }
+
+    if (expr.k == "var") {
+        return [varName(depth - expr.var - 1), Prec.Atom]
+    }
+
+    expr.k satisfies "axiom"
+
+    return ["axiom", Prec.Atom]
+}
 
 export function exprToString(mod: Module, depth: number, expr: Expr): string {
     return (
@@ -70,7 +178,7 @@ export function exprToString(mod: Module, depth: number, expr: Expr): string {
             defName(mod, expr.defId) + levelArgsToString(expr.levels)
         : expr.k == "app" ?
             `(${exprToString(mod, depth, expr.f)}) (${exprToString(mod, depth, expr.x)})`
-        : expr.k == "var" ? varName(expr.var)
+        : expr.k == "var" ? varName(depth - expr.var - 1)
         : (expr.k satisfies "axiom", "axiom")
     )
 }
@@ -180,7 +288,6 @@ export function subLevel(base: Expr, args: Level[]): Expr {
         : base.k == "pair" ?
             {
                 k: "pair",
-                type: subLevel(base.type, args),
                 fst: subLevel(base.fst, args),
                 snd: subLevel(base.snd, args),
             }
@@ -193,7 +300,6 @@ export function subLevel(base: Expr, args: Level[]): Expr {
         : base.k == "func" ?
             {
                 k: "func",
-                type: subLevel(base.type, args),
                 ret: subLevel(base.ret, args),
             }
         : base.k == "app" ?
@@ -217,7 +323,6 @@ export function offsetVariableIndices(base: Expr, offset: number): Expr {
         : base.k == "pair" ?
             {
                 k: "pair",
-                type: offsetVariableIndices(base.type, offset),
                 fst: offsetVariableIndices(base.fst, offset),
                 snd: offsetVariableIndices(base.snd, offset),
             }
@@ -230,7 +335,6 @@ export function offsetVariableIndices(base: Expr, offset: number): Expr {
         : base.k == "func" ?
             {
                 k: "func",
-                type: offsetVariableIndices(base.type, offset),
                 ret: offsetVariableIndices(base.ret, offset),
             }
         : base.k == "app" ?
