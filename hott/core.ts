@@ -1,4 +1,4 @@
-import { blue, dim, red, reset, yellow } from "../nyalang2/ansi"
+import { blue, bold, dim, red, reset, yellow } from "../nyalang2/ansi"
 
 export type Level = Readonly<
     | { k: "var"; v: number }
@@ -79,7 +79,7 @@ const enum Prec {
 }
 
 export function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
-    if (expr.k == "universe") return [yellow + "U" + levelToString(expr.level) + reset, Prec.Atom]
+    if (expr.k == "universe") return [yellow + "Type " + levelToString(expr.level) + reset, Prec.Application]
 
     if (expr.k == "sum") {
         let [fst, fstp] = str(mod, depth, expr.fst)
@@ -158,7 +158,7 @@ export interface AxiomComputationalRule {
     exec(levels: Level[], args: Expr[]): Expr | null
 }
 
-export type DefBody = Readonly<{ k: false; v: Expr } | { k: true; v: AxiomComputationalRule | null }>
+export type DefBody = Readonly<{ k: true; v: Expr } | { k: false; v: AxiomComputationalRule | null }>
 
 export interface Def {
     readonly name: string
@@ -169,11 +169,13 @@ export interface Def {
 }
 
 export function defToString(mod: Module, def: Def): string {
+    const level = `${dim}::${reset} ${yellow}Type ${def.level ? levelToString(def.level) : ""}`
+    const type = `${dim}:${reset} ${exprToString(mod, 0, def.type)}`
+    const expr = `${dim}:=${reset} ${def.body.k ? exprToString(mod, 0, def.body.v) : "axiom" + (def.body.v ? " with rule" : "")}`
+
     return `${blue}${def.name}${reset}${levelArgsToString(
         Array.from({ length: def.levels }, (_, i) => ({ k: "var", v: i })),
-    )} ${dim}:${reset} ${exprToString(mod, 0, def.type)} ${dim}:=${reset} ${
-        def.body.k ? "axiom" + (def.body.v ? " with rule" : "") : exprToString(mod, 0, def.body.v)
-    }`
+    )} ${level} ${type} ${expr}`
 }
 
 export type Module = readonly Def[]
@@ -191,7 +193,7 @@ export class Context {
 
     constructor(
         readonly mod: Module,
-        readonly def: number,
+        readonly defId: number,
         readonly levels: number,
     ) {}
 
@@ -241,19 +243,28 @@ export class Context {
                 continue
             }
 
-            throw new Error(`untagged number encountered in error message \`${reason.join("${...}")}\``)
+            const error = new Error(`untagged number encountered in error message \`${reason.join("${...}")}\``)
+            Error.captureStackTrace(error, this.e)
+            throw error
         }
 
-        throw new Error(`(in ${defName(this.mod, this.def)}) ` + ret + reason[reason.length - 1]!)
+        const error = new Error(
+            `(in ${defName(this.mod, this.defId)}${bold}) `
+                + (ret + reason[reason.length - 1]!).replaceAll(reset, reset + bold),
+        )
+        Error.captureStackTrace(error, this.e)
+        throw error
     }
 
     todo(): never {
-        return this.e`this branch is not done yet`
+        const error = new Error(`(in ${defName(this.mod, this.defId)}${bold}) this branch is not done yet`)
+        Error.captureStackTrace(error, this.todo)
+        throw error
     }
 }
 
 /** Assumes all level variables in `base` are present in `args`. */
-export function subLevelIntoLevel(base: Level, args: Level[]): Level {
+export function subLevelIntoLevel(base: Level, args: readonly Level[]): Level {
     return (
         base.k == "succ" ? { k: "succ", v: subLevelIntoLevel(base.v, args) }
         : base.k == "max" ?
@@ -267,7 +278,7 @@ export function subLevelIntoLevel(base: Level, args: Level[]): Level {
 }
 
 /** Assumes all level variables in `base` are present in `args`. */
-export function subLevel(base: Expr, args: Level[]): Expr {
+export function subLevel(base: Expr, args: readonly Level[]): Expr {
     return (
         base.k == "universe" ? { k: "universe", level: subLevelIntoLevel(base.level, args) }
         : base.k == "ref" ?
@@ -462,7 +473,7 @@ export function checkRef(context: Context, ref: Expr & { k: "ref" }): Def {
         context.e`@${ref.defId} does not exist`
     }
 
-    if (!isIndexInRange(context.def, ref.defId)) {
+    if (!isIndexInRange(context.defId, ref.defId)) {
         context.e`@${ref.defId} is defined after this expression`
     }
 
@@ -479,8 +490,59 @@ export function checkRef(context: Context, ref: Expr & { k: "ref" }): Def {
     return def
 }
 
-/** Assuming `expectedType` is well-formed, checks that `value` is well-formed and has type `expectedType`. */
+/**
+ * Assuming `expectedType` is well-formed, checks that `value` is well-formed and has type `expectedType`.
+ *
+ * Values may have multiple types; for instance, `λx. x` has type `2 -> 2` and `0 -> 0`, and `0` has type `Type 0` and
+ * `Type 1`.
+ */
 export function checkType(context: Context, value: Expr, expectedType: Expr) {
+    if (value.k == "ref") {
+        const def = checkRef(context, value)
+        checkIsSubtype(context, subLevel(def.type, value.levels), expectedType)
+        return
+    }
+
+    if (expectedType.k == "universe") {
+        if (value.k == "universe") {
+            checkLevelWF(context, value.level)
+            checkLevel(context, { k: "succ", v: value.level }, expectedType.level)
+            return
+        }
+
+        if (value.k == "sum") {
+            checkType(context, value.fst, expectedType)
+            context.vars.push(value.fst)
+            checkType(context, value.snd, expectedType)
+            context.vars.pop()
+            return
+        }
+
+        if (value.k == "prod") {
+            checkType(context, value.arg, expectedType)
+            context.vars.push(value.arg)
+            checkType(context, value.ret, expectedType)
+            context.vars.pop()
+            return
+        }
+    }
+
+    context.todo()
+}
+
+/**
+ * Assuming `expectedType` is well-formed, checks that `type` is a subtype of `expectedType`. In general, nothing is a
+ * subtype of anything else, except that anything assignable to one universe is assignable to all larger universes.
+ */
+export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
+    if (expected.k == "universe") {
+        if (value.k == "universe") {
+            checkLevelWF(context, value.level)
+            checkLevel(context, value.level, expected.level)
+            return
+        }
+    }
+
     context.todo()
 }
 
@@ -519,6 +581,13 @@ export function inferLevelOfType(context: Context, value: Expr): Level {
         return extractLevelFromUniverseType(context, varType)
     }
 
+    if (value.k == "ref") {
+        const def = checkRef(context, value)
+        return extractLevelFromUniverseType(context, subLevel(def.type, value.levels))
+    }
+
+    value.k satisfies "app"
+
     context.todo()
 }
 
@@ -544,4 +613,17 @@ export function extractLevelFromUniverseType(context: Context, type: Expr): Leve
     // variables `x: U` do not need to be checked, since they could theoretically be some non-universe type like `0`
 
     return context.e`${type} is not a universe`
+}
+
+export function checkModule(mod: Module) {
+    for (let defId = 0; defId < mod.length; defId++) {
+        const def = mod[defId]!
+
+        const context = new Context(mod, defId, def.levels)
+        def.level = inferLevelOfType(context, def.type)
+
+        if (def.body.k) {
+            checkType(context, def.body.v, def.type)
+        }
+    }
 }

@@ -1,4 +1,4 @@
-import { moduleToString, type AxiomComputationalRule, type Def, type Expr, type Level, type Module } from "./core"
+import { type AxiomComputationalRule, type Def, type Expr, type Level, type Module } from "./core"
 
 export const Z: Level = { k: "zero", v: null }
 
@@ -69,7 +69,7 @@ export function createModule(
     body(
         (name, levels, type, v) => {
             const defId = mod.length
-            mod.push({ name, levels, level: null, type, body: { k: false, v } })
+            mod.push({ name, levels, level: null, type, body: { k: true, v } })
 
             function body(...levels: Level[]): Expr {
                 return { k: "ref", defId, levels }
@@ -81,7 +81,7 @@ export function createModule(
         },
         (name, levels, type, v) => {
             const defId = mod.length
-            mod.push({ name, levels, level: null, type, body: { k: true, v } })
+            mod.push({ name, levels, level: null, type, body: { k: false, v } })
 
             function body(...levels: Level[]): Expr {
                 return { k: "ref", defId, levels }
@@ -92,8 +92,6 @@ export function createModule(
             return body
         },
     )
-
-    console.log(moduleToString(mod))
 
     return mod
 }
