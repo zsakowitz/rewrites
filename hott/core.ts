@@ -188,12 +188,17 @@ export class Context {
         readonly levels: number,
     ) {}
 
-    e(reason: TemplateStringsArray, ...args: (number | string)[]): never {
+    e(reason: TemplateStringsArray, ...args: (number | string | Expr)[]): never {
         let ret = ""
 
         for (let i = 0; i < args.length; i++) {
             const reasonText = reason[i]!
             const arg = args[i]!
+
+            if (typeof arg == "object") {
+                ret += reasonText + "`" + exprToString(this.mod, this.vars.length, arg) + "`"
+                continue
+            }
 
             if (typeof arg == "string") {
                 ret += reasonText + arg
@@ -218,7 +223,7 @@ export class Context {
             throw new Error(`untagged number encountered in error message \`${reason.join("${...}")}\``)
         }
 
-        throw new Error(ret + reason[reason.length - 1]!)
+        throw new Error(`(in ${defName(this.mod, this.def)}) ` + ret + reason[reason.length - 1]!)
     }
 
     todo(): never {
@@ -458,5 +463,9 @@ export function extractLevelFromUniverseType(context: Context, type: Expr): Leve
         return type.level
     }
 
-    context.todo()
+    if (type.k == "app" || type.k == "ref") {
+        context.todo()
+    }
+
+    return context.e`${type} is not a universe`
 }
