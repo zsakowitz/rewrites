@@ -184,6 +184,10 @@ export function moduleToString(mod: Module): string {
     return mod.map((x) => defToString(mod, x)).join("\n\n")
 }
 
+type Fmt = number | string | Expr | Level
+
+let depth = 0
+
 /**
  * Contexts are always assumed to be well-formed. This means all definitions before `def` are well-formed, no entry in
  * `vars` refers to an unbound variable, and `levels` matches the number of levels in the associated definition.
@@ -206,15 +210,29 @@ export class Context {
         return this.vars[this.vars.length - index - 1]!
     }
 
-    e(reason: TemplateStringsArray, ...args: (number | string | Expr)[]): never {
+    fmt(text: readonly string[], reset: string, args: Fmt[]): string {
         let ret = ""
 
         for (let i = 0; i < args.length; i++) {
-            const reasonText = reason[i]!
+            const reasonText = text[i]!
             const arg = args[i]!
 
             if (typeof arg == "object") {
-                ret += reasonText + "`" + exprToString(this.mod, this.vars.length, arg) + "`"
+                ret += reasonText
+
+                let color: string
+                let body: string
+
+                if (arg.k == "zero" || arg.k == "succ" || arg.k == "max" || (arg.k == "var" && "v" in arg)) {
+                    color = yellow
+                    body = levelToString(arg)
+                } else {
+                    color = ""
+                    body = exprToString(this.mod, this.vars.length, arg)
+                }
+
+                ret += reset + body + reset
+
                 continue
             }
 
@@ -243,33 +261,51 @@ export class Context {
                 continue
             }
 
-            const error = new Error(`untagged number encountered in error message \`${reason.join("${...}")}\``)
-            Error.captureStackTrace(error, this.e)
+            const error = new Error(`untagged number encountered in format string \`${text.join("${...}")}\``)
+            Error.captureStackTrace(error, this.fmt)
             throw error
         }
 
-        const error = new Error(
-            `(in ${defName(this.mod, this.defId)}${bold}) `
-                + (ret + reason[reason.length - 1]!).replaceAll(reset, reset + bold),
-        )
+        return ret + text[text.length - 1]
+    }
+
+    e(reason: readonly string[], ...args: Fmt[]): never {
+        const error = new Error(this.fmt(reason, reset + bold, args))
         Error.captureStackTrace(error, this.e)
         throw error
     }
 
-    todo(props: Record<string, number | string | Expr | Level>): never {
-        let message = `(in ${defName(this.mod, this.defId)}${bold}) branch not done yet`
-        for (const key in props) {
-            const val = props[key]!
-            message += `\n  ${reset}${dim}.${reset}${red}${key}${reset}${dim} = ${reset}${
-                typeof val == "object" ?
-                    val.k == "zero" || val.k == "succ" || val.k == "max" || (val.k == "var" && "v" in val) ?
-                        levelToString(val)
-                    :   exprToString(this.mod, this.vars.length, val)
-                :   val
-            }${reset}`
+    group(label: readonly string[], ...args: Fmt[]): Disposable {
+        const text = this.fmt(label, reset, args)
+        const width = Bun.stringWidth(text)
+        console.group(
+            reset
+                + text
+                + " ".repeat(Math.max(0, 40 - width - depth))
+                + this.vars.map((type, i) => `${varName(i)}: ${exprToString(this.mod, i, type)}`).join(", ")
+                + reset,
+        )
+        depth += 2
+        return {
+            [Symbol.dispose]() {
+                depth -= 2
+                console.groupEnd()
+            },
         }
+    }
 
-        const error = new Error(message)
+    todo(props: Record<string, Fmt>): never {
+        const reason: string[] = ["not yet implemented {"]
+        const args: Fmt[] = []
+
+        for (const [key, value] of Object.entries(props)) {
+            reason[reason.length - 1] += "\n  " + key + ": "
+            args.push(value)
+            reason.push("")
+        }
+        reason[reason.length - 1] += "\n}"
+
+        const error = new Error(this.fmt(reason, reset + bold, args))
         Error.captureStackTrace(error, this.todo)
         throw error
     }
@@ -515,6 +551,8 @@ export function checkRef(context: Context, ref: Expr & { k: "ref" }): Def {
  * `Type 1`.
  */
 export function checkType(context: Context, value: Expr, type: Expr) {
+    using _ = context.group`${value} : ${type}`
+
     if (value.k == "ref") {
         const def = checkRef(context, value)
         checkIsSubtype(context, subLevel(def.type, value.levels), type)
@@ -568,6 +606,8 @@ export function checkType(context: Context, value: Expr, type: Expr) {
  * anything with type `value` also has type `expected`.
  */
 export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
+    using _ = context.group`${value} <= ${expected}`
+
     if (expected.k == "universe") {
         if (value.k == "universe") {
             checkLevelWF(context, value.level)
@@ -586,6 +626,8 @@ export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
 
 /** Checks that `value` is a well-formed type and returns the smallest level known to contain it. */
 export function inferLevelOfType(context: Context, value: Expr): Level {
+    using _ = context.group`${value} : Type`
+
     // U_x : U_(succ x)
     if (value.k == "universe") {
         checkLevelWF(context, value.level)
@@ -658,6 +700,9 @@ export function checkModule(mod: Module) {
         const def = mod[defId]!
 
         const context = new Context(mod, defId, def.levels)
+
+        using _ = context.group`${defToString(mod, def)}`
+
         def.level = inferLevelOfType(context, def.type)
 
         if (def.body.k) {
