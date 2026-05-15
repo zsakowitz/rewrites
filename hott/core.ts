@@ -124,8 +124,8 @@ export function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
             return [`∏(${varName(depth)}: ${arg}). ${ret}`, Prec.Binder]
         }
 
-        if (argp > Prec.TrivialProd) arg = `(${arg})`
-        if (retp >= Prec.TrivialProd) ret = `(${ret})`
+        if (argp >= Prec.TrivialProd) arg = `(${arg})`
+        if (retp > Prec.TrivialProd) ret = `(${ret})`
 
         return [`${arg} -> ${ret}`, Prec.TrivialProd]
     }
@@ -164,23 +164,7 @@ export function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
 }
 
 export function exprToString(mod: Module, depth: number, expr: Expr): string {
-    return (
-        expr.k == "universe" ? yellow + "U" + levelToString(expr.level) + reset
-        : expr.k == "sum" ?
-            `∑(${varName(depth)}: ${exprToString(mod, depth, expr.fst)}). ${exprToString(mod, depth + 1, expr.snd)}`
-        : expr.k == "pair" ?
-            `(${exprToString(mod, depth, expr.fst)}, ${exprToString(mod, depth, expr.snd)})`
-        : expr.k == "prod" ?
-            `∏(${varName(depth)}: ${exprToString(mod, depth, expr.arg)}). ${exprToString(mod, depth + 1, expr.ret)}`
-        : expr.k == "func" ?
-            `λ${varName(depth)}. ${exprToString(mod, depth + 1, expr.ret)}`
-        : expr.k == "ref" ?
-            defName(mod, expr.defId) + levelArgsToString(expr.levels)
-        : expr.k == "app" ?
-            `(${exprToString(mod, depth, expr.f)}) (${exprToString(mod, depth, expr.x)})`
-        : expr.k == "var" ? varName(depth - expr.var - 1)
-        : (expr.k satisfies "axiom", "axiom")
-    )
+    return str(mod, depth, expr)[0]
 }
 
 export type Def = Readonly<{
