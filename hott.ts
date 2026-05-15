@@ -1,57 +1,81 @@
-export type Level =
+export type Level = Readonly<
     | { k: "var"; v: number }
     | { k: "succ"; v: Level }
     | { k: "zero"; v: null }
-    | { k: "max"; v: [Level, Level] }
+    | { k: "max"; v: readonly [Level, Level] }
+>
 
-export function printLevel(x: Level): string {
-    switch (x.k) {
-        case "var":
-            return ["u", "v", "w", "U", "V", "W"][x.v] ?? "#" + x.v
-
-        case "succ":
-            return "S" + printLevel(x.v)
-
-        case "zero":
-            return "0"
-
-        case "max":
-            return `max(${printLevel(x.v[0])},${printLevel(x.v[1])})`
-    }
+function varName(n: number) {
+    return "xyzabcdefghijklmnopqrst"[n] ?? `$` + n
 }
 
-// checks if x <= y+o
-function lteLevel(x: Level, y: Level, o: number): boolean {
-    if (x.k == "max") {
-        return lteLevel(x.v[0], y, o) && lteLevel(x.v[1], y, o)
-    }
-
-    if (y.k == "max") {
-        return lteLevel(x, y.v[0], o) || lteLevel(x, y.v[1], o)
-    }
-
-    if (x.k == "zero") {
-        return true
-    }
-
-    if (x.k == "succ") {
-        if (o >= 1) return lteLevel(x.v, y, o - 1)
-        if (y.k == "succ") return lteLevel(x, y, o)
-        return false // maybe
-    }
-
-    if (y.k == "zero") {
-        return false // maybe
-    }
-
-    if (y.k == "succ") {
-        return lteLevel(x, y, o + 1)
-    }
-
-    return x.v == y.v
+function lvlName(n: number) {
+    return "uvw"[n] ?? `#` + n
 }
 
-export function checkLevel(a: Level, b: Level) {
-    if (!lteLevel(a, b, 0)) {
+export function levelToString(level: Level): string {
+    let n = 0
+    while (level.k == "succ") {
+        n++
+        level = level.v
     }
+
+    return (
+        level.k == "var" ? lvlName(level.v) + (n ? "+" + n : "")
+        : level.k == "max" ?
+            `max(${level.v[0]},${level.v[1]})` + (n ? "+" + n : "")
+        : level.k == "zero" ? "" + n
+        : "__NEVER__"
+    )
+}
+
+export function levelArgsToString(level: readonly Level[]): string {
+    if (level.length == 0) return ""
+    return `.{` + level.map(levelToString).join(",") + `}`
+}
+
+export type Expr = Readonly<
+    | { k: "universe"; level: Level }
+    | { k: "ref"; defId: number; levels: readonly Level[] }
+    | { k: "sum"; var: number; fst: Expr; snd: Expr }
+    | { k: "prod"; var: number; fst: Expr; snd: Expr }
+    | { k: "app"; f: Expr; x: Expr }
+    | { k: "var"; var: number }
+>
+
+export function exprToString(mod: Module, expr: Expr): string {
+    return (
+        expr.k == "universe" ? "𝒰" + levelToString(expr.level)
+        : expr.k == "sum" ?
+            `∑(${varName(expr.var)}: ${exprToString(mod, expr.fst)}). ${exprToString(mod, expr.snd)}`
+        : expr.k == "prod" ?
+            `∏(${varName(expr.var)}: ${exprToString(mod, expr.fst)}). ${exprToString(mod, expr.snd)}`
+        : expr.k == "ref" ?
+            (mod[expr.defId] ?
+                "@" + mod[expr.defId]!.name
+            :   `def@${expr.defId}`) + levelArgsToString(expr.levels)
+        : expr.k == "app" ?
+            `(${exprToString(mod, expr.f)}) (${exprToString(mod, expr.x)})`
+        : expr.k == "var" ? varName(expr.var)
+        : "__NEVER__"
+    )
+}
+
+export type Def = Readonly<{
+    name: string
+    levels: number
+    body: Expr
+}>
+
+export function defToString(mod: Module, def: Def): string {
+    return (
+        `@${def.name}${levelArgsToString(Array.from({ length: def.levels }, (_, i) => ({ k: "var", v: i })))} := `
+        + exprToString(mod, def.body)
+    )
+}
+
+export type Module = readonly Def[]
+
+export function moduleToString(mod: Module): string {
+    return mod.map((x) => defToString(mod, x)).join("\n\n")
 }
