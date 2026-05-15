@@ -9,7 +9,7 @@ export type Level = Readonly<
 
 /** `$` */
 function varName(n: number) {
-    return red + ("xyzabcdefghijklmnopqrst"[n] ?? `$` + n) + reset
+    return red + (`$-` + n) + reset
 }
 
 /** `#` */
@@ -46,32 +46,33 @@ export function levelArgsToString(level: readonly Level[]): string {
 export type Expr = Readonly<
     | { k: "universe"; level: Level }
     | { k: "ref"; defId: number; levels: readonly Level[] }
-    | { k: "sum"; var: number; fst: Expr; snd: Expr }
+    | { k: "sum"; fst: Expr; snd: Expr }
     | { k: "pair"; fst: Expr; snd: Expr; type: Expr }
-    | { k: "prod"; var: number; arg: Expr; ret: Expr }
-    | { k: "func"; var: number; ret: Expr; type: Expr }
+    | { k: "prod"; arg: Expr; ret: Expr }
+    | { k: "func"; ret: Expr; type: Expr }
     | { k: "app"; f: Expr; x: Expr }
-    | { k: "var"; var: number }
+    | { k: "var"; var: number } // de bruijn indices
     | { k: "axiom"; type: Expr }
 >
 
-export function exprToString(mod: Module, expr: Expr): string {
+export function exprToString(mod: Module, depth: number, expr: Expr): string {
     return (
         expr.k == "universe" ? yellow + "U" + levelToString(expr.level) + reset
         : expr.k == "sum" ?
-            `∑(${varName(expr.var)}: ${exprToString(mod, expr.fst)}). ${exprToString(mod, expr.snd)}`
+            `∑(${varName(depth)}: ${exprToString(mod, depth, expr.fst)}). ${exprToString(mod, depth + 1, expr.snd)}`
         : expr.k == "pair" ?
-            `(${exprToString(mod, expr.fst)}, ${exprToString(mod, expr.snd)})`
+            `(${exprToString(mod, depth, expr.fst)}, ${exprToString(mod, depth, expr.snd)})`
         : expr.k == "prod" ?
-            `∏(${varName(expr.var)}: ${exprToString(mod, expr.arg)}). ${exprToString(mod, expr.ret)}`
+            `∏(${varName(depth)}: ${exprToString(mod, depth, expr.arg)}). ${exprToString(mod, depth + 1, expr.ret)}`
         : expr.k == "func" ?
-            `λ${varName(expr.var)}. ${exprToString(mod, expr.ret)}`
+            `λ${varName(depth)}. ${exprToString(mod, depth + 1, expr.ret)}`
         : expr.k == "ref" ?
             defName(mod, expr.defId) + levelArgsToString(expr.levels)
         : expr.k == "app" ?
-            `(${exprToString(mod, expr.f)}) (${exprToString(mod, expr.x)})`
+            `(${exprToString(mod, depth, expr.f)}) (${exprToString(mod, depth, expr.x)})`
         : expr.k == "var" ? varName(expr.var)
-        : "__NEVER__"
+        : (expr.k satisfies "axiom",
+            "(axiom " + exprToString(mod, depth, expr.type) + ")")
     )
 }
 
@@ -85,7 +86,7 @@ export type Def = Readonly<{
 export function defToString(mod: Module, def: Def): string {
     return `@${def.name}${levelArgsToString(
         Array.from({ length: def.levels }, (_, i) => ({ k: "var", v: i })),
-    )} : ${exprToString(mod, def.type)} := ${exprToString(mod, def.body)}`
+    )} : ${exprToString(mod, 0, def.type)} := ${exprToString(mod, 0, def.body)}`
 }
 
 export type Module = readonly Def[]
@@ -95,7 +96,7 @@ export function moduleToString(mod: Module): string {
 }
 
 export class Context {
-    readonly vars: Record<number, Expr> = Object.create(null)
+    readonly vars: Expr[] = []
 
     constructor(
         readonly mod: Module,
@@ -174,7 +175,6 @@ export function subLevel(base: Expr, args: Level[]): Expr {
         : base.k == "sum" ?
             {
                 k: "sum",
-                var: base.var,
                 fst: subLevel(base.fst, args),
                 snd: subLevel(base.snd, args),
             }
@@ -188,14 +188,12 @@ export function subLevel(base: Expr, args: Level[]): Expr {
         : base.k == "prod" ?
             {
                 k: "prod",
-                var: base.var,
                 arg: subLevel(base.arg, args),
                 ret: subLevel(base.ret, args),
             }
         : base.k == "func" ?
             {
                 k: "func",
-                var: base.var,
                 ret: subLevel(base.ret, args),
                 type: subLevel(base.type, args),
             }
@@ -204,5 +202,46 @@ export function subLevel(base: Expr, args: Level[]): Expr {
         : base.k == "var" ? base
         : (base.k satisfies "axiom",
             { k: "axiom", type: subLevel(base.type, args) })
+    )
+}
+
+/** Assumes variables will not overflow. */
+export function offsetVariableIndices(base: Expr, offset: number): Expr {
+    return (
+        base.k == "universe" || base.k == "ref" ? base
+        : base.k == "sum" ?
+            {
+                k: "sum",
+                fst: offsetVariableIndices(base.fst, offset),
+                snd: offsetVariableIndices(base.snd, offset),
+            }
+        : base.k == "pair" ?
+            {
+                k: "pair",
+                fst: offsetVariableIndices(base.fst, offset),
+                snd: offsetVariableIndices(base.snd, offset),
+                type: offsetVariableIndices(base.type, offset),
+            }
+        : base.k == "prod" ?
+            {
+                k: "prod",
+                arg: offsetVariableIndices(base.arg, offset),
+                ret: offsetVariableIndices(base.ret, offset),
+            }
+        : base.k == "func" ?
+            {
+                k: "func",
+                ret: offsetVariableIndices(base.ret, offset),
+                type: offsetVariableIndices(base.type, offset),
+            }
+        : base.k == "app" ?
+            {
+                k: "app",
+                f: offsetVariableIndices(base.f, offset),
+                x: offsetVariableIndices(base.x, offset),
+            }
+        : base.k == "var" ? { k: "var", var: base.var + offset }
+        : (base.k satisfies "axiom",
+            { k: "axiom", type: offsetVariableIndices(base.type, offset) })
     )
 }
