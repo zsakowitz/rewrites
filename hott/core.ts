@@ -1,4 +1,4 @@
-import { blue, dim, red, reset, yellow } from "../nyalang2/ansi"
+import { blue, dim, red, reset, yellow } from "../nyalang2/ansi";
 
 export type Level = Readonly<
     | { k: "var"; v: number }
@@ -55,7 +55,6 @@ export type Expr = Readonly<
     | { k: "func"; ret: Expr }
     | { k: "app"; f: Expr; x: Expr }
     | { k: "var"; var: number } // de bruijn indices
-    | { k: "axiom"; type: Expr }
 >
 
 /** Checks if `varIndex` is ever mentioned in `expr`. */
@@ -68,8 +67,7 @@ export function refs(expr: Expr, varIndex: number): boolean {
         : expr.k == "func" ? refs(expr.ret, varIndex + 1)
         : expr.k == "ref" ? false
         : expr.k == "app" ? refs(expr.f, varIndex) || refs(expr.x, varIndex)
-        : expr.k == "var" ? expr.var == varIndex
-        : (expr.k satisfies "axiom", refs(expr.type, varIndex))
+        : (expr.k satisfies "var", expr.var == varIndex)
     )
 }
 
@@ -146,30 +144,35 @@ export function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
         return [`${f} ${x}`, Prec.Application]
     }
 
-    if (expr.k == "var") {
-        return [varName(depth - expr.var - 1), Prec.Atom]
-    }
+    expr.k satisfies "var"
 
-    expr.k satisfies "axiom"
-
-    return ["axiom", Prec.Atom]
+    return [varName(depth - expr.var - 1), Prec.Atom]
 }
 
 export function exprToString(mod: Module, depth: number, expr: Expr): string {
     return str(mod, depth, expr)[0]
 }
 
+export interface AxiomComputationalRule {
+    readonly args: number
+    exec(levels: Level[], args: Expr[]): Expr | null
+}
+
+export type DefBody = Readonly<{ k: false; v: Expr } | { k: true; v: AxiomComputationalRule | null }>
+
 export type Def = Readonly<{
     name: string
     levels: number
-    body: Expr
     type: Expr
+    body: DefBody
 }>
 
 export function defToString(mod: Module, def: Def): string {
     return `${blue}${def.name}${reset}${levelArgsToString(
         Array.from({ length: def.levels }, (_, i) => ({ k: "var", v: i })),
-    )} ${dim}:${reset} ${exprToString(mod, 0, def.type)} ${dim}:=${reset} ${exprToString(mod, 0, def.body)}`
+    )} ${dim}:${reset} ${exprToString(mod, 0, def.type)} ${dim}:=${reset} ${
+        def.body.k ? "axiom" : exprToString(mod, 0, def.body.v)
+    }`
 }
 
 export type Module = readonly Def[]
@@ -279,8 +282,7 @@ export function subLevel(base: Expr, args: Level[]): Expr {
                 ret: subLevel(base.ret, args),
             }
         : base.k == "app" ? { k: "app", f: subLevel(base.f, args), x: subLevel(base.x, args) }
-        : base.k == "var" ? base
-        : (base.k satisfies "axiom", { k: "axiom", type: subLevel(base.type, args) })
+        : (base.k satisfies "var", base)
     )
 }
 
@@ -317,8 +319,7 @@ export function offsetVariableIndices(base: Expr, offset: number): Expr {
                 f: offsetVariableIndices(base.f, offset),
                 x: offsetVariableIndices(base.x, offset),
             }
-        : base.k == "var" ? { k: "var", var: base.var + offset }
-        : (base.k satisfies "axiom", { k: "axiom", type: offsetVariableIndices(base.type, offset) })
+        :   (base.k satisfies "var", { k: "var", var: base.var + offset })
     )
 }
 
@@ -374,12 +375,6 @@ function subExpr(
             return name == original.var ?
                     offsetVariableIndices(replacement, replacementOffset)
                 :   { k: "var", var: original.var + originalOffset }
-
-        case "axiom":
-            return {
-                k: "axiom",
-                type: subExpr(original.type, originalOffset, name, replacement, replacementOffset),
-            }
     }
 }
 

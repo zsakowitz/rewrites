@@ -1,4 +1,4 @@
-import { moduleToString, type Def, type Expr, type Level, type Module } from "./core"
+import { moduleToString, type AxiomComputationalRule, type Def, type Expr, type Level, type Module } from "./core"
 
 export const Z: Level = { k: "zero", v: null }
 
@@ -34,10 +34,6 @@ export function Func(ret: Expr): Expr {
     return { k: "func", ret }
 }
 
-export function Axiom(type: Expr): Expr {
-    return { k: "axiom", type }
-}
-
 export function Apply(f: Expr, ...x: Expr[]): Expr {
     return x.reduce((f, x) => ({ k: "app", f, x }), f)
 }
@@ -49,21 +45,26 @@ export function Var(idx: number): Expr {
 export function createModule(
     body: (
         def: (name: string, levelArgs: number, type: Expr, body: Expr) => (...args: Level[]) => Expr,
-        axiom: (name: string, levelArgs: number, type: Expr) => (...args: Level[]) => Expr,
+        axiom: (
+            name: string,
+            levelArgs: number,
+            type: Expr,
+            rule: AxiomComputationalRule | null,
+        ) => (...args: Level[]) => Expr,
     ) => void,
 ): Module {
     const mod: Def[] = []
 
     body(
-        (name, levels, type, body) => {
+        (name, levels, type, v) => {
             const defId = mod.length
-            mod.push({ name, levels, type, body })
+            mod.push({ name, levels, type, body: { k: false, v } })
 
             return (...levels) => ({ k: "ref", defId, levels })
         },
-        (name, levels, type) => {
+        (name, levels, type, v) => {
             const defId = mod.length
-            mod.push({ name, levels, type, body: { k: "axiom", type } })
+            mod.push({ name, levels, type, body: { k: true, v } })
 
             return (...levels) => ({ k: "ref", defId, levels })
         },
