@@ -44,13 +44,24 @@ export function Var(idx: number): Expr {
 
 export function createModule(
     body: (
-        def: (name: string, levelArgs: number, type: Expr, body: Expr) => (...args: Level[]) => Expr,
+        def: (
+            name: string,
+            levelArgs: number,
+            type: Expr,
+            body: Expr,
+        ) => {
+            (...args: Level[]): Expr
+            defId: number
+        },
         axiom: (
             name: string,
             levelArgs: number,
             type: Expr,
             rule: AxiomComputationalRule | null,
-        ) => (...args: Level[]) => Expr,
+        ) => {
+            (...args: Level[]): Expr
+            defId: number
+        },
     ) => void,
 ): Module {
     const mod: Def[] = []
@@ -60,13 +71,25 @@ export function createModule(
             const defId = mod.length
             mod.push({ name, levels, type, body: { k: false, v } })
 
-            return (...levels) => ({ k: "ref", defId, levels })
+            function body(...levels: Level[]): Expr {
+                return { k: "ref", defId, levels }
+            }
+
+            body.defId = defId
+
+            return body
         },
         (name, levels, type, v) => {
             const defId = mod.length
             mod.push({ name, levels, type, body: { k: true, v } })
 
-            return (...levels) => ({ k: "ref", defId, levels })
+            function body(...levels: Level[]): Expr {
+                return { k: "ref", defId, levels }
+            }
+
+            body.defId = defId
+
+            return body
         },
     )
 

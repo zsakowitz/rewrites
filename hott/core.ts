@@ -1,4 +1,4 @@
-import { blue, dim, red, reset, yellow } from "../nyalang2/ansi";
+import { blue, dim, red, reset, yellow } from "../nyalang2/ansi"
 
 export type Level = Readonly<
     | { k: "var"; v: number }
@@ -171,7 +171,7 @@ export function defToString(mod: Module, def: Def): string {
     return `${blue}${def.name}${reset}${levelArgsToString(
         Array.from({ length: def.levels }, (_, i) => ({ k: "var", v: i })),
     )} ${dim}:${reset} ${exprToString(mod, 0, def.type)} ${dim}:=${reset} ${
-        def.body.k ? "axiom" : exprToString(mod, 0, def.body.v)
+        def.body.k ? "axiom" + (def.body.v ? " with rule" : "") : exprToString(mod, 0, def.body.v)
     }`
 }
 
@@ -181,7 +181,10 @@ export function moduleToString(mod: Module): string {
     return mod.map((x) => defToString(mod, x)).join("\n\n")
 }
 
-/** Contexts are always assumed to be well-formed. */
+/**
+ * Contexts are always assumed to be well-formed. This means all definitions before `def` are well-formed, no entry in
+ * `vars` refers to an unbound variable, and `levels` matches the number of levels in the associated definition.
+ */
 export class Context {
     readonly vars: Expr[] = []
 
@@ -220,6 +223,11 @@ export class Context {
 
             if (reasonText.endsWith("@")) {
                 ret += reasonText.slice(0, -1) + defName(this.mod, arg)
+                continue
+            }
+
+            if (reasonText.endsWith(".")) {
+                ret += reasonText.slice(0, -1) + arg
                 continue
             }
 
@@ -417,7 +425,7 @@ export function checkLevelWF(context: Context, level: Level) {
 }
 
 /**
- * Assuming `lhs` and `rhs` are well-defined and `offset` is an integer, returns whether `lhs <= rhs + offset` for all
+ * Assuming `lhs` and `rhs` are well-formed and `offset` is an integer, returns whether `lhs <= rhs + offset` for all
  * possible values of ambient level variables.
  */
 function isLevelLte(lhs: Level, rhs: Level, offset: number): boolean {
@@ -431,11 +439,34 @@ function isLevelLte(lhs: Level, rhs: Level, offset: number): boolean {
     )
 }
 
-/** Assuming `lhs` and `rhs` are well-defined, checks that `lhs <= rhs`. */
+/** Assuming `lhs` and `rhs` are well-formed, checks that `lhs <= rhs`. */
 export function checkLevel(context: Context, lhs: Level, rhs: Level) {
     if (!isLevelLte(lhs, rhs, 0)) {
         context.e`level ${levelToString(lhs)} does not fit in level ${levelToString(rhs)}`
     }
+}
+
+/** Checks that a reference expression is well-formed, and returns the referenced definition. */
+export function checkRef(context: Context, ref: Expr & { k: "ref" }): Def {
+    if (!isIndexInRange(context.mod.length, ref.defId)) {
+        context.e`@${ref.defId} does not exist`
+    }
+
+    if (!isIndexInRange(context.def, ref.defId)) {
+        context.e`@${ref.defId} is defined after this expression`
+    }
+
+    const def = context.mod[ref.defId]!
+
+    if (def.levels != ref.levels.length) {
+        context.e`@${ref.defId} expected ${def.levels} levels, but received ${ref.levels.length}`
+    }
+
+    for (let i = 0; i < ref.levels.length; i++) {
+        checkLevelWF(context, ref.levels[i]!)
+    }
+
+    return def
 }
 
 /** Assuming `expectedType` is well-formed, checks that `value` is well-formed and has type `expectedType`. */
@@ -456,6 +487,10 @@ export function extractLevelFromUniverseType(context: Context, type: Expr): Leve
     if (type.k == "universe") {
         checkLevelWF(context, type.level)
         return type.level
+    }
+
+    if (type.k == "ref") {
+        context.def
     }
 
     if (type.k == "app" || type.k == "ref") {
