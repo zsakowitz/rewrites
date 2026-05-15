@@ -120,7 +120,7 @@ export function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
         let [ret, retp] = str(mod, depth + 1, expr.ret)
 
         if (refs(expr.ret, 0)) {
-            return [`∏(${varName(depth)}: ${arg}). ${ret}`, Prec.Binder]
+            return [`(${varName(depth)}: ${arg}) -> ${ret}`, Prec.Binder]
         }
 
         if (argp >= Prec.Binder) arg = `(${arg})`

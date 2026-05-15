@@ -156,5 +156,3 @@ createModule((def, axiom) => {
         ),
     )
 })
-
-// ind-Id : (T: U) -> (P: (x: T) -> (y: T) -> (p: x =T y) -> U) -> ((x: T) -> P x x (refl T x)) -> (x: T) -> (y: T) -> (p: x =T y) -> P x y p
