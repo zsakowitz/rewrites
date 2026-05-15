@@ -32,8 +32,8 @@ export function Pair(fst: Expr, snd: Expr): Expr {
     return { k: "pair", fst, snd }
 }
 
-export function Pi(arg: Expr, ret: Expr): Expr {
-    return { k: "prod", arg, ret }
+export function Pi(...body: Expr[]): Expr {
+    return body.reduceRight((ret, arg) => ({ k: "prod", arg, ret }))
 }
 
 export function Func(ret: Expr): Expr {
@@ -44,8 +44,8 @@ export function Axiom(type: Expr): Expr {
     return { k: "axiom", type }
 }
 
-export function Apply(f: Expr, x: Expr): Expr {
-    return { k: "app", f, x }
+export function Apply(f: Expr, ...x: Expr[]): Expr {
+    return x.reduce((f, x) => ({ k: "app", f, x }), f)
 }
 
 export function Var(idx: number): Expr {
@@ -121,9 +121,40 @@ createModule((def, axiom) => {
         ),
     )
 
-    const id = axiom(
-        "Id",
+    const Id = axiom("Id", 1, Pi(U(Larg(0)), Var(0), Var(1), U(Larg(0))))
+
+    const refl = axiom(
+        "refl",
         1,
-        Pi(U(Larg(0)), Pi(Var(0), Pi(Var(1), U(Larg(0))))),
+        Pi(U(Larg(0)), Var(0), Apply(Id(Larg(0)), Var(1), Var(0), Var(0))),
+    )
+
+    const IdInd = axiom(
+        "ind-Id",
+        2,
+        Pi(
+            U(Larg(0)), // T: Uu
+            Pi(
+                Var(0),
+                Var(1),
+                Apply(Id(Larg(0)), Var(2), Var(1), Var(0)),
+                U(Larg(1)),
+            ), // P: (x: T) -> (y: T) -> (p: Id T x y) -> Uv
+            Pi(
+                Var(0),
+                Apply(
+                    Var(1),
+                    Var(0),
+                    Var(0),
+                    Apply(refl(Larg(0)), Var(2), Var(0)),
+                ),
+            ), // D: (x: T) -> P x x (refl x)
+            Var(2),
+            Var(3),
+            Apply(Id(Larg(0)), Var(4), Var(1), Var(0)),
+            Apply(Var(4), Var(2), Var(1), Var(0)),
+        ),
     )
 })
+
+// ind-Id : (T: U) -> (P: (x: T) -> (y: T) -> (p: x =T y) -> U) -> ((x: T) -> P x x (refl T x)) -> (x: T) -> (y: T) -> (p: x =T y) -> P x y p

@@ -77,7 +77,6 @@ const enum Prec {
     Atom, // X
     Application, // X Y
     TrivialSum, // X × Y
-    TrivialProd, // X -> Y
     Binder, // ∑(x: X). Y
 }
 
@@ -103,13 +102,13 @@ export function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
 
         while (expr.k == "pair") {
             let [fst, fstp] = str(mod, depth, expr.fst)
-            if (fstp >= Prec.TrivialProd) fst = `(${fst})`
+            if (fstp > Prec.TrivialSum) fst = `(${fst})`
 
             ret += fst + ", "
         }
 
         let [snd, sndp] = str(mod, depth, expr)
-        if (sndp >= Prec.TrivialProd) snd = `(${snd})`
+        if (sndp > Prec.TrivialSum) snd = `(${snd})`
 
         ret += snd
 
@@ -124,10 +123,10 @@ export function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
             return [`∏(${varName(depth)}: ${arg}). ${ret}`, Prec.Binder]
         }
 
-        if (argp >= Prec.TrivialProd) arg = `(${arg})`
-        if (retp > Prec.TrivialProd) ret = `(${ret})`
+        if (argp >= Prec.Binder) arg = `(${arg})`
+        if (retp > Prec.Binder) ret = `(${ret})`
 
-        return [`${arg} -> ${ret}`, Prec.TrivialProd]
+        return [`${arg} -> ${ret}`, Prec.Binder]
     }
 
     if (expr.k == "func") {
