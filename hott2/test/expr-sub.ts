@@ -97,3 +97,19 @@ eqAnsi(
     ),
     "λa. λb. b a a (λc. c (b a))",
 )
+
+eqAnsi(
+    printExpr(
+        [],
+        0,
+        // λa. λb.
+        Fn(
+            2,
+            sub(
+                Func(Var(1)), // substituting into λc. λd. c
+                Var(0), // substituting b
+            ),
+        ),
+    ),
+    "λ. λb. λ. b",
+)
