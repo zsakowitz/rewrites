@@ -83,10 +83,7 @@ export class Context {
         const varIndexFromTop = this.vars.length - varIndex - 1
         const typeUnshifted = this.vars[varIndexFromTop]!
 
-        using _ = this
-            .group`getVarType(${varIndex}) : { vift: ${varIndexFromTop}, tu: ${printExpr(this.mod, varIndexFromTop, typeUnshifted)} }`
-
-        return shift(typeUnshifted, varIndex)
+        return shift(typeUnshifted, varIndex + 1)
     }
 }
 
