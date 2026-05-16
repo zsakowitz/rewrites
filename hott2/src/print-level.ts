@@ -3,7 +3,7 @@ import type { Level } from "./decl"
 const enum Prec {
     Atom,
     Application,
-    LevelSum,
+    Sum,
 }
 
 // #
@@ -19,7 +19,7 @@ function printLevelInner(x: Level): [string, Prec] {
 
     const N = n ? " + " + n : ""
 
-    if (x.k == "var") return [levelVar(x.v) + N, n ? Prec.LevelSum : Prec.Atom]
+    if (x.k == "var") return [levelVar(x.v) + N, n ? Prec.Sum : Prec.Atom]
 
     let [a, pa] = printLevelInner(x.v[0])
     if (pa >= Prec.Application) a = `(${a})`
@@ -27,7 +27,7 @@ function printLevelInner(x: Level): [string, Prec] {
     let [b, pb] = printLevelInner(x.v[1])
     if (pb >= Prec.Application) b = `(${b})`
 
-    return [`max ${a} ${b}${N}`, n ? Prec.LevelSum : Prec.Application]
+    return [`max ${a} ${b}${N}`, n ? Prec.Sum : Prec.Application]
 }
 
 export function printLevel(x: Level): string {
