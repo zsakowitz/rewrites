@@ -113,3 +113,19 @@ eqAnsi(
     ),
     "λ. λb. λ. b",
 )
+
+eqAnsi(
+    printExpr(
+        [],
+        0,
+        // λa. λb.
+        Fn(
+            2,
+            sub(
+                Apply(Var(2), Func(Var(1))), // substituting into λc. a (λ. c)
+                Apply(Var(0), Func(Apply(Var(2), Var(0)))), // with b (λc. a c)
+            ),
+        ),
+    ),
+    "λa. λb. a (λ. b (λd. a d))",
+)
