@@ -9,7 +9,7 @@ export function S(base: Level): Level {
 }
 
 export function L(v: number): Level {
-    return { k: "var", v }
+    return { k: "lvar", v }
 }
 
 export function M(a: Level, b: Level): Level {

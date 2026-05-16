@@ -1,7 +1,7 @@
 export type Level = Readonly<
     | { k: "zero"; v: null }
     | { k: "succ"; v: Level }
-    | { k: "var"; v: number }
+    | { k: "lvar"; v: number }
     | { k: "max"; v: readonly [Level, Level] }
 >
 

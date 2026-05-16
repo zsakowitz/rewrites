@@ -3,7 +3,7 @@ import type { Expr, Module } from "./decl"
 import { isFree } from "./expr-isfree"
 import { printLevel, printLevelArgs } from "./level-print"
 
-function varName(indexFromTop: number): string {
+export function varNameFromTop(indexFromTop: number): string {
     return "abcdefghijklmnopqrst"[indexFromTop] ?? "$" + indexFromTop
 }
 
@@ -30,7 +30,7 @@ function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
         }
 
         case "var":
-            return [red + varName(depth - 1 - expr.v) + reset, Prec.Atom]
+            return [red + varNameFromTop(depth - 1 - expr.v) + reset, Prec.Atom]
 
         case "sum":
         case "prod": {
@@ -38,7 +38,7 @@ function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
             let [body, bodyp] = str(mod, depth + 1, expr.body)
 
             if (isFree(expr.body, 0)) {
-                arg = `(${red}${varName(depth)}${reset}: ${arg})`
+                arg = `(${red}${varNameFromTop(depth)}${reset}: ${arg})`
             } else if (argp >= Prec.Chain) {
                 arg = `(${arg})`
             }
@@ -64,7 +64,7 @@ function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
             let name = ""
 
             if (isFree(expr.v, 0)) {
-                name = red + varName(depth) + reset
+                name = red + varNameFromTop(depth) + reset
             }
 
             return [`λ${name}. ${ret}`, Prec.Binder]

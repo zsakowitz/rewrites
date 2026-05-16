@@ -9,7 +9,7 @@ export function subLevelIntoLevel(level: Level, args: readonly Level[]): Level {
         case "succ":
             return S(subLevelIntoLevel(level.v, args))
 
-        case "var":
+        case "lvar":
             return args[level.v]!
 
         case "max":

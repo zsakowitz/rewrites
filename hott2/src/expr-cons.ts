@@ -3,7 +3,7 @@ import { N } from "./level-cons"
 
 export function Uni(level: Level | number): Expr {
     if (typeof level == "number") {
-        return { k: "universe", v: { k: "var", v: level } }
+        return { k: "universe", v: { k: "lvar", v: level } }
     }
 
     return { k: "universe", v: level }

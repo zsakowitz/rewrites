@@ -14,7 +14,7 @@ export function printLevel(level: Level): string {
 
     if (level.k == "zero") return "" + n
 
-    if (level.k == "var") return n ? `(${levelVar(level.v)} + ${n})` : levelVar(level.v)
+    if (level.k == "lvar") return n ? `(${levelVar(level.v)} + ${n})` : levelVar(level.v)
 
     return `(max ${printLevel(level.v[0])} ${printLevel(level.v[1])}${n ? " + " + n : ""})`
 }
@@ -40,5 +40,5 @@ export function printLevelArgs(levels: readonly Level[]): string {
 
 /** Returns either the empty string or a level string like `.{u, v, ...}`. */
 export function printLevelParams(levels: number): string {
-    return printLevelArgs(Array.from({ length: levels }, (_, i) => ({ k: "var", v: i })))
+    return printLevelArgs(Array.from({ length: levels }, (_, i) => ({ k: "lvar", v: i })))
 }
