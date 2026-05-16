@@ -1,0 +1,67 @@
+import { Apply, Fn, Func, Var } from "../src/expr-cons"
+import { printExpr } from "../src/expr-print"
+import { sub } from "../src/expr-sub"
+import { eqAnsi } from "./decl"
+
+eqAnsi(
+    printExpr(
+        [],
+        0,
+        // λa.
+        Func(
+            sub(
+                Var(0), // substituting into λb. b
+                Var(0), // with a
+            ),
+        ),
+    ),
+    "λa. a",
+)
+
+eqAnsi(
+    printExpr(
+        [],
+        0,
+        // λa. λb.
+        Fn(
+            2,
+            sub(
+                Var(1), // substituting into λc. b
+                Var(0), // with b
+            ),
+        ),
+    ),
+    "λ. λb. b",
+)
+
+eqAnsi(
+    printExpr(
+        [],
+        0,
+        // λa. λb.
+        Fn(
+            2,
+            sub(
+                Apply(Var(0), Var(1)), // substituting into λc. c b
+                Var(0), // with b
+            ),
+        ),
+    ),
+    "λ. λb. b b",
+)
+
+eqAnsi(
+    printExpr(
+        [],
+        0,
+        // λa. λb.
+        Fn(
+            2,
+            sub(
+                Apply(Var(0), Var(1), Func(Var(0))), // substituting into λc. c b (λd. d)
+                Var(0), // with b
+            ),
+        ),
+    ),
+    "λ. λb. b b (λc. c)",
+)
