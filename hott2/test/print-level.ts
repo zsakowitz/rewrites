@@ -31,3 +31,6 @@ eq(printLevel(lmax_maxuv2_u), "max (max u v + 2) u")
 
 const lmax_u_maxuv: Level = { k: "max", v: [lu, lmaxuv] }
 eq(printLevel(lmax_u_maxuv), "max u (max u v)")
+
+const lh6: Level = { k: "var", v: 6 }
+eq(printLevel(lh6), "#6")
