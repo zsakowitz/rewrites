@@ -1,4 +1,4 @@
 import "./decl"
-import "./print-level"
+import "./level-print"
 
 console.log("✅ all tests passed")
