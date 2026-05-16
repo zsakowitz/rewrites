@@ -1,7 +1,7 @@
-import { dim, red, reset, yellow } from "./ansi"
+import { blue, dim, red, reset, yellow } from "./ansi"
 import type { Expr, Module } from "./decl"
 import { isFree } from "./expr-isfree"
-import { printLevel } from "./level-print"
+import { printLevel, printLevelArgs } from "./level-print"
 
 function varName(indexFromTop: number): string {
     return "abcdefghijklmnopqrst"[indexFromTop] ?? "$" + indexFromTop
@@ -70,9 +70,12 @@ function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
             return [`λ${name}. ${ret}`, Prec.Binder]
         }
 
-        case "func":
-        case "ref":
-            throw new Error("todo")
+        case "ref": {
+            return [
+                blue + (mod[expr.defId]?.name ?? "@" + expr.defId) + printLevelArgs(expr.levels),
+                Prec.Atom,
+            ]
+        }
     }
 }
 
