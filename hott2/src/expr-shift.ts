@@ -1,5 +1,9 @@
 import type { Expr } from "./decl"
 
+/**
+ * `min` stops us from shifting locally defined variables. For instance, the `x` in `λx. x` should
+ * never be shifted, since it isn't bound to a free variable.
+ */
 function shiftInner(expr: Expr, min: number, offset: number): Expr {
     switch (expr.k) {
         case "universe":
