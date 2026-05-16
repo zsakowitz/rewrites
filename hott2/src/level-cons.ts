@@ -15,3 +15,14 @@ export function L(v: number): Level {
 export function M(a: Level, b: Level): Level {
     return { k: "max", v: [a, b] }
 }
+
+export function N(v: number): Level {
+    if (!Number.isSafeInteger(v) || v < 0) {
+        throw new Error(`${v} is not a valid level`)
+    }
+
+    let level = Z()
+    while (v--) level = S(level)
+
+    return level
+}

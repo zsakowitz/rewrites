@@ -6,12 +6,12 @@ export type Level = Readonly<
 >
 
 export type Expr = Readonly<
-    | { k: "universe"; level: Level }
-    | { k: "var"; var: number }
+    | { k: "universe"; v: Level }
+    | { k: "var"; v: number }
     | { k: "sum"; arg: Expr; body: Expr }
-    | { k: "pair"; fst: Expr; snd: Expr }
+    | { k: "pair"; f: Expr; x: Expr }
     | { k: "prod"; arg: Expr; body: Expr }
-    | { k: "func"; ret: Expr }
+    | { k: "func"; v: Expr }
     | { k: "app"; f: Expr; x: Expr }
     | { k: "ref"; defId: number; levels: readonly Level[] }
 >
@@ -22,8 +22,7 @@ export interface ComputationalRule {
 }
 
 export type DefBody = Readonly<
-    | { axiom: false; body: Expr }
-    | { axiom: true; body: ComputationalRule | null }
+    { axiom: false; body: Expr } | { axiom: true; body: ComputationalRule | null }
 >
 
 export interface Def {
