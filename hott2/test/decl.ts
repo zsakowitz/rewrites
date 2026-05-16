@@ -1,4 +1,4 @@
-import { reset } from "../../nyalang2/ansi"
+import { reset } from "../src/ansi"
 
 export function assert(cond: boolean) {
     if (!cond) {

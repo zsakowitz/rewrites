@@ -7,6 +7,7 @@ export type Level = Readonly<
 
 export type Expr = Readonly<
     | { k: "universe"; v: Level }
+    | { k: "cast"; f: Expr; x: Expr } // ensures a certain object has a known type
     | { k: "var"; v: number }
     | { k: "sum"; arg: Expr; body: Expr }
     | { k: "pair"; f: Expr; x: Expr }

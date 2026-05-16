@@ -13,6 +13,7 @@ export function isFree(expr: Expr, varIndex: number): boolean {
         case "prod":
             return isFree(expr.arg, varIndex) || isFree(expr.body, varIndex + 1)
 
+        case "cast":
         case "pair":
         case "app":
             return isFree(expr.f, varIndex) || isFree(expr.x, varIndex)

@@ -57,3 +57,7 @@ export function Apply(f: Expr, ...args: Expr[]): Expr {
 export function Ref(defId: number, levels: readonly Level[]): Expr {
     return { k: "ref", defId, levels }
 }
+
+export function Cast(type: Expr, value: Expr): Expr {
+    return { k: "cast", f: type, x: value }
+}

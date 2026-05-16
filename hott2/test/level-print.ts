@@ -1,6 +1,5 @@
-import { S } from "../../hott/util"
 import type { Level } from "../src/decl"
-import { L, M, Z } from "../src/level-cons"
+import { L, M, S, Z } from "../src/level-cons"
 import { printLevel } from "../src/level-print"
 import { eq } from "./decl"
 
