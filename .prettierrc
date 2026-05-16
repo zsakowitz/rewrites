@@ -12,29 +12,13 @@
             "files": "lambda-in-js.js",
             "options": { "arrowParens": "avoid", "semi": false }
         },
-        {
-            "files": "five-point-conic.ts",
-            "options": {
-                "printWidth": 40
-            }
-        },
+        { "files": "five-point-conic.ts", "options": { "printWidth": 40 } },
         {
             "files": "block-lang/**/*",
-            "options": {
-                "singleAttributePerLine": true
-            }
+            "options": { "singleAttributePerLine": true }
         },
-        {
-            "files": "cv3/**/*",
-            "options": {
-                "printWidth": 80
-            }
-        },
-        {
-            "files": "hott/**/*",
-            "options": {
-                "printWidth": 110
-            }
-        }
+        { "files": "cv3/**/*", "options": { "printWidth": 80 } },
+        { "files": "hott/**/*", "options": { "printWidth": 110 } },
+        { "files": "hott2/**/*", "options": { "printWidth": 100 } }
     ]
 }
