@@ -290,9 +290,13 @@ export class Context {
         console.group(
             reset
                 + text
-                + " ".repeat(Math.max(0, 40 - width - depth))
-                + this.vars.map((type, i) => `${varName(i)}: ${exprToString(this.mod, i, type)}`).join(", ")
-                + reset,
+                + " ".repeat(Math.max(4, 40 - width - depth))
+                + this.vars
+                    .map((type, i) => `${varName(i)}${dim}:${reset} ${exprToString(this.mod, i, type)}`)
+                    .join(dim + ", " + reset)
+                + reset
+                + " "
+                + new Error().stack?.split("\n")[3],
         )
         depth += 2
         return {
@@ -587,7 +591,7 @@ export function checkType(context: Context, value: Expr, type: Expr) {
         if (value.k == "sum") {
             checkType(context, value.fst, type)
             context.vars.push(value.fst)
-            checkType(context, value.snd, type)
+            checkType(context, value.snd, offsetVariableIndices(type, 1))
             context.vars.pop()
             return
         }
@@ -595,7 +599,7 @@ export function checkType(context: Context, value: Expr, type: Expr) {
         if (value.k == "prod") {
             checkType(context, value.arg, type)
             context.vars.push(value.arg)
-            checkType(context, value.ret, type)
+            checkType(context, value.ret, offsetVariableIndices(type, 1))
             context.vars.pop()
             return
         }
@@ -604,7 +608,7 @@ export function checkType(context: Context, value: Expr, type: Expr) {
     if (type.k == "prod") {
         if (value.k == "func") {
             context.vars.push(type.arg)
-            checkType(context, value.ret, type.ret)
+            checkType(context, offsetVariableIndices(value.ret, 1), type.ret)
             context.vars.pop()
             return
         }
@@ -654,9 +658,12 @@ export function checkIsSubtype(context: Context, value: Expr, expected: Expr) {
     context.todo({ value, expected })
 }
 
-/** Checks that `value` is a well-formed type and returns the smallest level known to contain it. */
+/**
+ * Checks that `value` is a well-formed value and returns the smallest type known to contain it. Will fail on
+ * bare lambdas and pairs.
+ */
 export function inferType(context: Context, value: Expr): Expr {
-    using _ = context.group`${value} ${dim}:${reset} Type _`
+    using _ = context.group`${value} ${dim}:${reset} _`
 
     // U_x : U_(succ x)
     if (value.k == "universe") {
@@ -683,7 +690,7 @@ export function inferType(context: Context, value: Expr): Expr {
     }
 
     if (value.k == "pair" || value.k == "func") {
-        return context.e`expected type, found ${value}`
+        return context.e`cannot infer type of ${value}`
     }
 
     if (value.k == "var") {
@@ -716,6 +723,8 @@ export function inferType(context: Context, value: Expr): Expr {
  * universe's level.
  */
 export function levelOfUniverseType(context: Context, type: Expr): Level {
+    using _ = context.group`${type} ${dim}≡${reset} ${yellow}Type _${reset}`
+
     if (type.k == "universe") {
         checkLevelWF(context, type.level)
         return type.level

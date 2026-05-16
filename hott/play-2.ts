@@ -19,6 +19,14 @@ const mod = createModule((def, axiom) => {
     const star = axiom("*", 0, one, null)()
 
     const id_small_of_star = def("id-small-of-star", 0, one, Apply(id_small, one, star))()
+
+    const not_not_not_x_implies_not_x = def(
+        "¬¬¬X=>¬X",
+        1,
+        Pi(U(Larg(0)), Pi(Pi(Pi(Var(0), zero), zero), zero), Pi(Var(1), zero)),
+        Func(Func(Func(Apply(Var(1), Func(Apply(Var(0), Var(1))))))),
+        // λa.λb.λc.b (λd.d c),
+    )
 })
 
 checkModule(mod)
