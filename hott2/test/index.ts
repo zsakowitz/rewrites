@@ -1,3 +1,4 @@
+import "./context"
 import "./decl"
 import "./def-print"
 import "./expr-isfree"

@@ -1,7 +1,9 @@
 import { dim, red, reset } from "./ansi"
 import type { Expr, Level, Module } from "./decl"
 import { printExpr, varNameFromTop } from "./expr-print"
+import { shift } from "./expr-shift"
 import { group } from "./group"
+import { isInRange } from "./is-in-range"
 import { printLevel } from "./level-print"
 
 export class Context {
@@ -42,15 +44,12 @@ export class Context {
     }
 
     fmt(text: readonly string[], args: Fmt[]): string {
-        return String.raw(
-            { raw: text },
-            args.map((x) => this.fmtValue(x)),
-        )
+        return String.raw({ raw: text }, ...args.map((x) => this.fmtValue(x)))
     }
 
     group(text: readonly string[], ...args: Fmt[]): Disposable {
         const label = this.fmt(text, args)
-        return group(label.padEnd(Math.max(4, 40 - Bun.stringWidth(label))) + this.fmtVars())
+        return group(label + " ".repeat(Math.max(4, 60 - Bun.stringWidth(label))) + this.fmtVars())
     }
 
     e(text: readonly string[], ...args: Fmt[]): never {
@@ -70,6 +69,24 @@ export class Context {
         )
         Error.captureStackTrace(error, this.todo)
         throw error
+    }
+
+    /**
+     * Check that `varIndex` is in-bounds, and returns that variable's type, properly shifted into
+     * the current depth.
+     */
+    getVarType(varIndex: number): Expr {
+        if (!isInRange(this.vars.length, varIndex)) {
+            return this.e`variable ${varIndex} is not bound`
+        }
+
+        const varIndexFromTop = this.vars.length - varIndex - 1
+        const typeUnshifted = this.vars[varIndexFromTop]!
+
+        using _ = this
+            .group`getVarType(${varIndex}) : { vift: ${varIndexFromTop}, tu: ${printExpr(this.mod, varIndexFromTop, typeUnshifted)} }`
+
+        return shift(typeUnshifted, varIndex)
     }
 }
 

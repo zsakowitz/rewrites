@@ -4,21 +4,21 @@ import type { Expr } from "./decl"
  * `min` stops us from shifting locally defined variables. For instance, the `x` in `λx. x` should
  * never be shifted, since it isn't bound to a free variable.
  */
-function shiftInner(expr: Expr, min: number, offset: number): Expr {
+export function shiftWithMin(expr: Expr, min: number, offset: number): Expr {
     switch (expr.k) {
         case "universe":
         case "ref":
             return expr
 
         case "var":
-            return { k: "var", v: expr.v + offset * +(expr.v >= min) }
+            return { k: "var", v: expr.v < min ? expr.v : expr.v + offset }
 
         case "sum":
         case "prod":
             return {
                 k: expr.k,
-                arg: shiftInner(expr.arg, min, offset),
-                body: shiftInner(expr.body, min + 1, offset),
+                arg: shiftWithMin(expr.arg, min, offset),
+                body: shiftWithMin(expr.body, min + 1, offset),
             }
 
         case "cast":
@@ -26,15 +26,15 @@ function shiftInner(expr: Expr, min: number, offset: number): Expr {
         case "app":
             return {
                 k: expr.k,
-                f: shiftInner(expr.f, min, offset),
-                x: shiftInner(expr.x, min, offset),
+                f: shiftWithMin(expr.f, min, offset),
+                x: shiftWithMin(expr.x, min, offset),
             }
 
         case "func":
-            return { k: "func", v: shiftInner(expr.v, min + 1, offset) }
+            return { k: "func", v: shiftWithMin(expr.v, min + 1, offset) }
     }
 }
 
 export function shift(expr: Expr, offset: number): Expr {
-    return offset ? shiftInner(expr, 0, offset) : expr
+    return offset ? shiftWithMin(expr, 0, offset) : expr
 }
