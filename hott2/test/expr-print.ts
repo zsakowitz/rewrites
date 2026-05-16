@@ -1,5 +1,5 @@
 import type { Expr } from "../src/decl"
-import { Func, Sum, Uni, UniN, Var } from "../src/expr-cons"
+import { Fn, Func, Pi, Prod, Sum, Uni, UniN, Var } from "../src/expr-cons"
 import { printExpr } from "../src/expr-print"
 import { L, M, N, S, Z } from "../src/level-cons"
 import { eqAnsi } from "./decl"
@@ -22,7 +22,14 @@ check(Var(2), "$-3")
 check(Var(20), "$-21")
 
 check(Func(Var(0)), "λa. a")
-check(Func(Func(Var(0))), "λ. λb. b")
+check(Fn(2, Var(0)), "λ. λb. b")
 
 check(Sum(UniN(0), UniN(0)), "Type 0 × Type 0")
 check(Sum(UniN(0), Var(0)), "(a: Type 0) × a")
+
+check(Prod(UniN(0), UniN(0)), "Type 0 → Type 0")
+check(Prod(UniN(0), Var(0)), "(a: Type 0) → a")
+
+check(Func(Pi(Var(0), Var(1), Var(2))), "λa. a → a → a")
+check(Func(Pi(Pi(Var(0), Var(1)), Var(1))), "λa. (a → a) → a")
+check(Func(Pi(Pi(Var(0), Var(1)), Func(Var(0)))), "λa. (a → a) → (λc. c)")

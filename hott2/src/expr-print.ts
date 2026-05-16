@@ -34,7 +34,7 @@ function str(mod: Module, depth: number, expr: Expr): [string, Prec] {
             }
 
             if (bodyp >= Prec.Binder) body = `(${body})`
-            return [`${arg} ${expr.k == "sum" ? "×" : "∏"} ${body}`, Prec.Chain]
+            return [`${arg} ${expr.k == "sum" ? "×" : "→"} ${body}`, Prec.Chain]
         }
 
         case "pair":
