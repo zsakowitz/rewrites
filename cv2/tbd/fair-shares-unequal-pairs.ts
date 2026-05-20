@@ -65,7 +65,7 @@ interface E {
     stroke: string
 }
 
-export function createGraph(size: number): Graph<T, E> {
+export function createGraph(size: number, allPaths: boolean): Graph<T, E> {
     const join = size >= 10 ? "," : ""
 
     const graph = new Graph<T, E>()
@@ -128,9 +128,10 @@ export function createGraph(size: number): Graph<T, E> {
             const b = nodes[bi]!
 
             const join =
-                a.data.state == "win" ?
+                allPaths
+                || (a.data.state == "win" ?
                     b.data.state == "loss" && a.data.gen > b.data.gen
-                :   a.data.gen == 1 + b.data.gen
+                :   a.data.gen == 1 + b.data.gen)
 
             if (!join) continue
 

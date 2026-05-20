@@ -9,6 +9,6 @@ document.body.appendChild(cv.el)
 
 cv.push(new Grid())
 
-const g = new ForceGraphLib(createGraph(18))
+const g = new ForceGraphLib(createGraph(27, false))
 cv.push(g)
 g.fdg.onEngineTick(() => cv.redraw())
