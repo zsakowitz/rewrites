@@ -22,6 +22,42 @@ interface ObjectPointer {
     size: 1 | 2
 }
 
+export type Cursor =
+    | "auto"
+    | "default"
+    | "none"
+    | "context-menu"
+    | "help"
+    | "pointer"
+    | "progress"
+    | "wait"
+    | "cell"
+    | "crosshair"
+    | "text"
+    | "vertical-text"
+    | "alias"
+    | "copy"
+    | "move"
+    | "not-allowed"
+    | "grab"
+    | "grabbing"
+    | "col-resize"
+    | "row-resize"
+    | "n-resize"
+    | "e-resize"
+    | "s-resize"
+    | "w-resize"
+    | "ne-resize"
+    | "nw-resize"
+    | "se-resize"
+    | "sw-resize"
+    | "ew-resize"
+    | "ns-resize"
+    | "nesw-resize"
+    | "nwse-resize"
+    | "zoom-in"
+    | "zoom-out"
+
 export class Canvas2 {
     readonly el = document.createElement("canvas")
     readonly ctx = this.el.getContext("2d", { alpha: false })!
@@ -43,6 +79,7 @@ export class Canvas2 {
     #touchesMoved = false
     #objects = new Map<number, ObjectPointer>()
     #scene: Object2[] = []
+    #cursor: Cursor[] = []
 
     constructor(ul: Tform2) {
         this.#ul = this.#ul0 = ul
@@ -69,6 +106,16 @@ export class Canvas2 {
         el.addEventListener("pointerup", this, { passive: true })
         el.addEventListener("pointercancel", this, { passive: true })
         el.addEventListener("pointerleave", this, { passive: true })
+    }
+
+    pushCursor(cursor: Cursor) {
+        this.#cursor.push(cursor)
+        this.el.style.cursor = cursor
+    }
+
+    popCursor() {
+        this.#cursor.pop()
+        this.el.style.cursor = this.#cursor[this.#cursor.length - 1] ?? "auto"
     }
 
     push(object: Object2) {
@@ -338,8 +385,6 @@ export class Canvas2 {
             return
         }
 
-        // TODO:
-        // keep pointer in same position after zooming
         const [px, py] = apply2(this.tlu, l)
 
         this.#ul = this.#ul0 = {

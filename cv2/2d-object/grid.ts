@@ -4,8 +4,6 @@ import { apply2x, apply2y } from "../2d/tform"
 
 const FONT_SIZE = 16
 
-// TODO: 4 doesn't render. 4.0 and -4 are fine though
-
 export class Grid extends Object2 {
     draw(cv: Canvas2): void {
         cv.ctx.fillStyle = "black"

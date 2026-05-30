@@ -26,10 +26,12 @@ export class GeoPoint extends Object2 {
 
     onPointerEnter(ev: PEvent): void {
         this.hovered = true
+        ev.cv.pushCursor("grab")
     }
 
     onPointerDown(ev: PEvent): void {
         this.active = true
+        ev.cv.pushCursor("grabbing")
     }
 
     onPointerMove(ev: PEvent): void {
@@ -40,13 +42,16 @@ export class GeoPoint extends Object2 {
 
     onPointerUp(ev: PEvent): void {
         this.active = false
+        ev.cv.popCursor()
     }
 
     onPointerCancel(ev: PEvent): void {
         this.active = false
+        ev.cv.popCursor()
     }
 
     onPointerLeave(ev: PEvent): void {
         this.hovered = false
+        ev.cv.popCursor()
     }
 }

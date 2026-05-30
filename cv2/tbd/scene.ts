@@ -66,7 +66,6 @@ export class Scene<I> {
 
         const next = (item.value = item.compute() as T)
         item.stale = false
-        console.log("computed", ref)
 
         return next
     }
