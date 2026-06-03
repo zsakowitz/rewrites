@@ -1,13 +1,14 @@
+import type { Canvas2 } from "../2d/canvas"
+import { apply2 } from "../2d/tform"
+import type { Vec2 } from "../2d/vec"
 import {
     ColorBlue,
     ColorGreen,
     ColorPurple,
     OpacityPointHalo,
     SizeLine,
-} from "../../cv/dcg"
-import type { Canvas2 } from "../2d/canvas"
-import { apply2 } from "../2d/tform"
-import type { Vec2 } from "../2d/vec"
+} from "../tbd/dcg"
+import type { AbstractLine } from "../tbd/geometry"
 
 export function drawPoint(
     { ctx, tlo }: Canvas2,
@@ -53,7 +54,7 @@ export function drawCircle(
 
 export function drawLine(
     { ctx, tlo, height, width }: Canvas2,
-    [p1, p2]: [Vec2, Vec2],
+    [p1, p2]: AbstractLine,
 ): void {
     const [x1, y1] = apply2(tlo, p1)
     const [x2, y2] = apply2(tlo, p2)

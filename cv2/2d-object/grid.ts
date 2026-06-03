@@ -59,7 +59,7 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
         for (const [multiplier, alpha] of mx) {
             if (x % multiplier == 0) {
                 ctx.globalAlpha = x == 0 ? 1 : alpha
-                ctx.fillRect(ox, 0, 1, Math.ceil(height))
+                ctx.fillRect(ox - 0.5, 0, 1, Math.ceil(height))
                 break
             }
         }
@@ -104,7 +104,7 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
         for (const [multiplier, alpha] of my) {
             if (y % multiplier == 0) {
                 ctx.globalAlpha = y == 0 ? 1 : alpha
-                ctx.fillRect(0, oy, Math.ceil(width), 1)
+                ctx.fillRect(0, oy - 0.5, Math.ceil(width), 1)
                 break
             }
         }
