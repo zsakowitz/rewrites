@@ -18,7 +18,7 @@ export class Grid extends Object2 {
     }
 }
 
-function toFixed(n: number, digits: number): string {
+function toFixed(n: number, digits: number, singleFiveEntry: boolean): string {
     const sign = n < 0 ? "−" : ""
     n = Math.abs(n)
 
@@ -32,24 +32,24 @@ function toFixed(n: number, digits: number): string {
 
     n = Math.round(n)
 
-    // TODO: 5e+18 next to 1.0e+19 is weird
-    const str = n.toExponential()
-    const expIndex = str.indexOf("e")
-    if (expIndex == -1) return str
+    let exp = Math.floor(Math.log10(n))
+    if (singleFiveEntry && exp == digits) {
+        exp += 1
+        digits -= 1
+    }
+    const mant = n / 10 ** exp
 
     return (
-        (+str.slice(0, expIndex)).toFixed(
-            Math.max(0, Math.floor(Math.log10(n)) - digits),
-        )
+        mant.toFixed(Math.max(0, Math.floor(Math.log10(n)) - digits))
         + "ᴇ"
-        + str.slice(expIndex + 2)
-        //+ "×10"
-        //+ str.slice(expIndex + 2).replace(/\d/g, (x) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+x]!)
+        + exp
+        // + " · 10"
+        // + str.slice(expIndex + 2).replace(/\d/g, (x) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+x]!)
     )
 }
 
 function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
-    const [dx, tx, tr, mx] = spacing(pixelWidth)
+    const [dx, tx, tr, sfe, mx] = spacing(pixelWidth)
     const xmin = Math.floor(apply2x(tol, 0) / dx)
     const xmax = Math.ceil(apply2x(tol, width) / dx)
 
@@ -80,7 +80,7 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
         if (x == 0) continue
 
         const lx = x * tx
-        const label = toFixed(lx, tr)
+        const label = toFixed(lx, tr, sfe)
         const ox = apply2x(tlo, x * tx) + (label.startsWith("−") ? -5.5 : 0)
         const w = ctx.measureText(label).width / 2
         const oxActual =
@@ -94,7 +94,7 @@ function drawXLines({ height, pixelWidth, ctx, width, tol, tlo }: Canvas2) {
 }
 
 function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
-    const [dy, ty, tr, my] = spacing(-pixelHeight)
+    const [dy, ty, tr, sfe, my] = spacing(-pixelHeight)
     const ymin = Math.floor(apply2y(tol, height) / dy)
     const ymax = Math.ceil(apply2y(tol, 0) / dy)
 
@@ -124,7 +124,7 @@ function drawYLines({ height, pixelHeight, ctx, width, tol, tlo }: Canvas2) {
         const ly = y * ty
         const oy = apply2y(tlo, y * ty) + 1
 
-        const label = toFixed(ly, tr)
+        const label = toFixed(ly, tr, sfe)
         const { width } = ctx.measureText(label)
         const oxActual = ox - width < 4 ? 4 + width : ox
 
@@ -139,6 +139,7 @@ function spacing(
     space: number,
     text: number,
     textRound: number,
+    singleFiveEntry: boolean,
     [multiplier: number, alpha: number][],
 ] {
     const log = Math.log10(pixelSize * 4)
@@ -163,9 +164,16 @@ function spacing(
                 pow,
                 diff < 1 / 4 ? pow * 5 : pow * 10,
                 diff < 1 / 4 ? exp + 1 : exp + 2,
+                diff < 1 / 4 ? true : false,
                 FST,
             ]
-        :   [pow * 5, diff < 3 / 4 ? pow * 10 : pow * 50, exp + 2, SND]
+        :   [
+                pow * 5,
+                diff < 3 / 4 ? pow * 10 : pow * 50,
+                exp + 2,
+                diff < 0.9 ? false : true,
+                SND,
+            ]
 }
 
 function lerp(x: number, x0: number, x1: number, y0: number, y1: number) {

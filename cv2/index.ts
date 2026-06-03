@@ -1,7 +1,7 @@
 import { Grid } from "./2d-object/grid"
 import { Canvas2 } from "./2d/canvas"
 
-const cv = new Canvas2({ sx: 10, sy: 10, tx: 0, ty: 0 })
+const cv = new Canvas2({ sx: 1.0e7, sy: 1.0e7, tx: 1.3e7, ty: 0.4e7 })
 
 document.body.appendChild(cv.el)
 
