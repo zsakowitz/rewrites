@@ -9,6 +9,7 @@ export interface FGT {
     label: string
     stroke: string
     fill: string
+    fillText?: string
 }
 
 export interface FGE {
@@ -34,8 +35,8 @@ export class ForceGraph<
             const [x1, y1] = apply2(tlo, this.graph.nodes[from]!.data.pos)
             const [x2, y2] = apply2(tlo, this.graph.nodes[into]!.data.pos)
 
-            const norm5 = norm([x2 - x1, y2 - y1], 10)
-            const [xd, yd] = norm([x2 - x1, y2 - y1], nodeSize + 4)
+            const norm5 = norm([x2 - x1, y2 - y1], 6)
+            const [xd, yd] = norm([x2 - x1, y2 - y1], nodeSize + 2)
             const [xc, yc] = rotate(
                 norm5,
                 Math.sin(0.85 * Math.PI),
@@ -57,7 +58,7 @@ export class ForceGraph<
             ctx.closePath()
             ctx.strokeStyle = data.stroke
             ctx.fillStyle = data.fill
-            ctx.lineWidth = 2.5
+            ctx.lineWidth = 0.5
             ctx.stroke()
             ctx.fill()
         }
@@ -80,14 +81,14 @@ export class ForceGraph<
         ctx.textAlign = "center"
         ctx.textBaseline = "middle"
 
-        for (const { data: node } of this.graph.nodes) {
-            const [ox, oy] = apply2(tlo, node.pos)
+        for (const { data } of this.graph.nodes) {
+            const [ox, oy] = apply2(tlo, data.pos)
 
             ctx.font = `1px Symbola`
-            const { width } = ctx.measureText(node.label)
+            const { width } = ctx.measureText(data.label)
             ctx.font = `${(1.5 * nodeSize) / width}px Symbola`
-            ctx.fillStyle = node.fill
-            ctx.fillText(node.label, ox, oy + 1)
+            ctx.fillStyle = data.fillText ?? data.fill
+            ctx.fillText(data.label, ox, oy + 1)
         }
     }
 

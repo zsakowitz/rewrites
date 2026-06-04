@@ -54,6 +54,7 @@ export function generateChopsticks(handSize: number) {
         fill: string
         stroke: string
         gen: number
+        fillText: string
     }
 
     interface E {
@@ -89,6 +90,7 @@ export function generateChopsticks(handSize: number) {
                             )
                         },
                         gen: Infinity,
+                        fillText: "black",
                     })
                     vertices.set(str(pos), vertex)
                 }
