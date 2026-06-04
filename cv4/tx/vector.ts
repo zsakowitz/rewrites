@@ -10,7 +10,7 @@ export class Vector implements VectorLike {
         return new Vector(value.x, value.y, value.z, value.w)
     }
 
-    static fromArray(array: number[]): Vector {
+    static fromArray(array: Float64Array): Vector {
         return new Vector(array[0]!, array[1]!, array[2]!, array[3]!)
     }
 
@@ -34,25 +34,25 @@ export class Vector implements VectorLike {
         public w: number,
     ) {}
 
-    toArray() {
-        return [this.x, this.y, this.z, this.w]
+    toArray(): Float64Array {
+        return new Float64Array([this.x, this.y, this.z, this.w])
     }
 
-    add(rhs: Vector) {
+    add(rhs: Vector): void {
         this.x += rhs.x
         this.y += rhs.y
         this.z += rhs.z
         this.w += rhs.w
     }
 
-    sub(rhs: Vector) {
+    sub(rhs: Vector): void {
         this.x -= rhs.x
         this.y -= rhs.y
         this.z -= rhs.z
         this.w -= rhs.w
     }
 
-    scale(rhs: number) {
+    scale(rhs: number): void {
         this.x *= rhs
         this.y *= rhs
         this.z *= rhs
@@ -63,7 +63,7 @@ export class Vector implements VectorLike {
         return Math.hypot(this.x, this.y, this.z, this.w)
     }
 
-    norm() {
+    norm(): void {
         this.scale(1 / this.len())
     }
 }

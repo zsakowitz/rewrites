@@ -1,4 +1,4 @@
-import type { Vector } from "./vector"
+import { Vector } from "./vector"
 
 // prettier-ignore
 export interface MatrixLike {
@@ -9,7 +9,7 @@ export interface MatrixLike {
 }
 
 /** mCR is the value in the Cth column, Rth row. */
-export class Matrix {
+export class Matrix implements MatrixLike {
     static from(value: MatrixLike): Matrix {
         // prettier-ignore
         return new Matrix(
@@ -20,7 +20,7 @@ export class Matrix {
         )
     }
 
-    static fromArray(array: number[]): Matrix {
+    static fromArray(array: Float64Array): Matrix {
         // prettier-ignore
         return new Matrix(
             array[ 0]!, array[ 1]!, array[ 2]!, array[ 3]!,
@@ -32,7 +32,7 @@ export class Matrix {
 
     static random(): Matrix {
         return Matrix.fromArray(
-            Array.from({ length: 16 }, () => Math.random() * 2 - 1),
+            Float64Array.from({ length: 16 }, () => Math.random() * 2 - 1),
         )
     }
 
@@ -46,26 +46,98 @@ export class Matrix {
         )
     }
 
+    static rotateX(angle: number): Matrix {
+        const C = Math.cos(angle)
+        const S = Math.sin(angle)
+
+        // prettier-ignore
+        return new Matrix(
+            1, 0,  0, 0,
+            0, C,  S, 0,
+            0, -S, C, 0,
+            0, 0,  0, 1,
+        )
+    }
+
+    static rotateY(angle: number): Matrix {
+        const C = Math.cos(angle)
+        const S = Math.sin(angle)
+
+        // prettier-ignore
+        return new Matrix(
+            C, 0, -S, 0,
+            0, 1,  0, 0,
+            S, 0,  C, 0,
+            0, 0,  0, 1,
+        )
+    }
+
+    static rotateZ(angle: number): Matrix {
+        const C = Math.cos(angle)
+        const S = Math.sin(angle)
+
+        // prettier-ignore
+        return new Matrix(
+            C,  S, 0, 0,
+            -S, C, 0, 0,
+            0,  0, 1, 0,
+            0,  0, 0, 1,
+        )
+    }
+
+    /** Assumes `axis` is normed. */
+    static rotateAxisAngle(axis: Vector, angle: number): Matrix {
+        const { x, y, z } = axis
+
+        const C = Math.cos(angle)
+        const S = Math.sin(angle)
+        const c = 1 - C
+
+        return new Matrix(
+            x * x * c + C,
+            x * y * c + z * S,
+            x * z * c - y * S,
+            0,
+
+            x * y * c - z * S,
+            y * y * c + C,
+            y * z * c + x * S,
+            0,
+
+            x * z * c + y * S,
+            y * z * c - x * S,
+            z * z * c + C,
+            0,
+
+            0,
+            0,
+            0,
+            1,
+        )
+    }
+
+    static frustum() {}
+
     // prettier-ignore
     constructor(
-        private m11: number, private m12: number, private m13: number, private m14: number,
-        private m21: number, private m22: number, private m23: number, private m24: number,
-        private m31: number, private m32: number, private m33: number, private m34: number,
-        private m41: number, private m42: number, private m43: number, private m44: number,
+        public m11: number, public m12: number, public m13: number, public m14: number,
+        public m21: number, public m22: number, public m23: number, public m24: number,
+        public m31: number, public m32: number, public m33: number, public m34: number,
+        public m41: number, public m42: number, public m43: number, public m44: number,
     ) {}
 
-    toArray() {
+    toArray(): Float64Array {
         // prettier-ignore
-        return [
+        return new Float64Array([
             this.m11, this.m12, this.m13, this.m14,
             this.m21, this.m22, this.m23, this.m24,
             this.m31, this.m32, this.m33, this.m34,
             this.m41, this.m42, this.m43, this.m44,
-        ]
+        ])
     }
 
     /** Executes `this := this * rhs`. */
-    mul(rhs: Matrix) {
+    mul(rhs: Matrix): void {
         // prettier-ignore
         const {
             m11: l11, m12: l12, m13: l13, m14: l14,
@@ -104,7 +176,7 @@ export class Matrix {
     }
 
     /** Executes `this := lhs * this`. */
-    premul(lhs: Matrix) {
+    premul(lhs: Matrix): void {
         // prettier-ignore
         const {
             m11: l11, m12: l12, m13: l13, m14: l14,
@@ -143,7 +215,7 @@ export class Matrix {
     }
 
     /** Executes `vec := this * vec`. */
-    applyTo(vec: Vector) {
+    applyTo(vec: Vector): void {
         const { x, y, z, w } = vec
 
         vec.x = this.m11 * x + this.m21 * y + this.m31 * z + this.m41 * w
@@ -151,4 +223,22 @@ export class Matrix {
         vec.z = this.m13 * x + this.m23 * y + this.m33 * z + this.m43 * w
         vec.w = this.m14 * x + this.m24 * y + this.m34 * z + this.m44 * w
     }
+
+    toCSS() {
+        return `matrix3d(${this.toArray().join(", ")})`
+    }
+
+    [Symbol.for("nodejs.util.inspect.custom")]() {
+        return ((text: TemplateStringsArray, ...args: number[]) =>
+            String.raw(
+                { raw: text },
+                ...args.map((x) => (x < 0 ? "" : " ") + x.toFixed(2)),
+            ))`⌈ ${this.m11} ${this.m12} ${this.m13} ${this.m14} ⌉
+| ${this.m21} ${this.m22} ${this.m23} ${this.m24} |
+| ${this.m31} ${this.m32} ${this.m33} ${this.m34} |
+⌊ ${this.m41} ${this.m42} ${this.m43} ${this.m44} ⌋`
+    }
 }
+
+console.log(Matrix.rotateX(30))
+console.log(Matrix.rotateAxisAngle(new Vector(1, 0, 0, 0), 30))
