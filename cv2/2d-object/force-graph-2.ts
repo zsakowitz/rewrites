@@ -11,12 +11,16 @@ interface C {
     stroke: string
 }
 
+interface E {
+    visible?: boolean
+}
+
 export class ForceGraphLib extends Object2 {
     fdg
     el
     private cv: Canvas2 | undefined
 
-    constructor(readonly graph: Graph<C, unknown>) {
+    constructor(readonly graph: Graph<C, E>) {
         super()
         const el = (this.el = document.createElement("div"))
         this.fdg = new FG<C & NodeObject>(el)
@@ -25,15 +29,15 @@ export class ForceGraphLib extends Object2 {
                     id: i,
                     ...x.data,
                 })),
-                links: graph.edges.map((x) => ({
-                    source: x.from,
-                    target: x.into,
-                })),
+                links: graph.edges
+                    .filter((x) => x.data?.visible !== false)
+                    .map((x) => ({
+                        source: x.from,
+                        target: x.into,
+                    })),
             })
             .nodeLabel((n) => n.label)
             .linkCurvature(0)
-            .d3AlphaDecay(0.015)
-            .d3AlphaMin(0.1)
             .onEngineTick(() => this.cv?.redraw())
     }
 
