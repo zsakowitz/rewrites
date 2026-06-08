@@ -116,7 +116,36 @@ export class Matrix implements MatrixLike {
         )
     }
 
-    static frustum() {}
+    static identity(): Matrix {
+        // prettier-ignore
+        return new Matrix(
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
+        )
+    }
+
+    /**
+     * - `(rx, ry, -zNear)` moves to `(1, 1, -1)`
+     * - `(rx*far/near, ry*far/near, -zFar)` moves to `(1, 1, 1)`
+     * - `(0, 0, -zNear)` moves to `(0, 0, -1)`
+     * - `(0, 0, -zFar)` moves to `(0, 0, 1)`
+     */
+    static frustum(
+        rx: number,
+        ry: number,
+        zNear: number,
+        zFar: number,
+    ): Matrix {
+        // prettier-ignore
+        return new Matrix(
+            (2 * zNear) / (2 * rx), 0,                      0,                                    0,
+            0,                      (2 * zNear) / (2 * ry), 0,                                    0,
+            0,                      0,                      (zFar + zNear) / (zNear - zFar),     -1,
+            0,                      0,                      (2 * zFar * zNear) / (zNear - zFar),  0,
+        )
+    }
 
     // prettier-ignore
     constructor(
@@ -215,7 +244,7 @@ export class Matrix implements MatrixLike {
     }
 
     /** Executes `vec := this * vec`. */
-    applyTo(vec: Vector): void {
+    transform(vec: Vector): void {
         const { x, y, z, w } = vec
 
         vec.x = this.m11 * x + this.m21 * y + this.m31 * z + this.m41 * w
@@ -239,6 +268,3 @@ export class Matrix implements MatrixLike {
 ⌊ ${this.m41} ${this.m42} ${this.m43} ${this.m44} ⌋`
     }
 }
-
-console.log(Matrix.rotateX(30))
-console.log(Matrix.rotateAxisAngle(new Vector(1, 0, 0, 0), 30))

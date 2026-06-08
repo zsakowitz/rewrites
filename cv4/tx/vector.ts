@@ -38,6 +38,10 @@ export class Vector implements VectorLike {
         return new Float64Array([this.x, this.y, this.z, this.w])
     }
 
+    toString() {
+        return `(${this.x.toFixed(2)}, ${this.y.toFixed(2)}, ${this.z.toFixed(2)}, ${this.w.toFixed(2)})`
+    }
+
     add(rhs: Vector): void {
         this.x += rhs.x
         this.y += rhs.y
@@ -66,4 +70,31 @@ export class Vector implements VectorLike {
     norm(): void {
         this.scale(1 / this.len())
     }
+
+    /**
+     * Scales the vector so that `w = 1`.
+     *
+     * Numerically unstable when `w` is close to zero.
+     */
+    dehomogenize() {
+        this.scale(1 / this.w)
+    }
+
+    dot3(rhs: Vector): number {
+        return this.x * rhs.x + this.y * rhs.y + this.z * rhs.z
+    }
+
+    cross3(rhs: Vector) {
+        const { x: lx, y: ly, z: lz } = this
+        const { x: rx, y: ry, z: rz } = rhs
+
+        this.x = ly * rz - lz * ry
+        this.y = lz * rx - lx * rz
+        this.z = lx * ry - ly * rx
+    }
 }
+
+const v1 = new Vector(2, 3, 5, 1)
+const v2 = new Vector(4, 8, 6, 1)
+v1.cross3(v2)
+console.log(v1.toString())
