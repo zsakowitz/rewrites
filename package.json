@@ -67,7 +67,6 @@
         "source-map": "^0.7.6",
         "tailwindcss": "^4.2.1",
         "ts-fsrs": "^3.5.7",
-        "typescript": "6",
         "ytdl-core": "^4.11.5",
         "ytpl": "^2.3.0",
         "zod": "^3.25.76"
