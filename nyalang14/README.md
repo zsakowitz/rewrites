@@ -25,8 +25,8 @@ void should not coerce into or out of anything.
 | type                    | example values  | meaning                                                     |
 | ----------------------- | --------------- | ----------------------------------------------------------- |
 | null                    | null            | subtype of all ?T                                           |
-| .tag                    | .tag            | shorthand for T.tag, where T is expected type               |
-| .tag(int, num)          | .tag(32, 4.5)   | shorthand for T.tag(32, 4.5) as T, where T is expected type |
+| .lit                    | .lit            | shorthand for T.lit, where T is expected type               |
+| .lit(int, num)          | .lit(32, 4.5)   | shorthand for T.lit(32, 4.5) as T, where T is expected type |
 | .{a: int, b: num = 4.5} | .{a: 4, b: 3.4} | record literal                                              |
 
 # Extended types -- possibly not included by default
