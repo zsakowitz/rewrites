@@ -105,3 +105,11 @@ The following additional coercions are built-in:
 It would be nice to have global functions, like `sin(2+3i)` instead of `(2+3i).sin()`. We can
 probably make it so that, if `sin` is not in the current scope, `sin(2+3i)` is a special case which
 acts like `(2+3i).sin()`.
+
+It would be nice if coercions worked for all functions, e.g. if `a.atan2(b)` worked even if `a` and
+`b` are directed angles. Maybe we can introduce a special mode where `f(a, b)` tries to coerce `a`
+and `b` instead of simply resolving to the function on `a`.
+
+We need some way to implement additional methods on builtin types, or on foreign types. Maybe an
+`impl` block, or maybe it's just that all `fn` declarations automatically apply to the first type as
+methods once declared. But that is probably a bad idea.
