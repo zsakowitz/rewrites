@@ -16,3 +16,8 @@ export class Span {
         return this.file.body.slice(this.start, this.end)
     }
 }
+
+/** Assumes that both Spans come from the same file. */
+export function join(lhs: Span, rhs: Span): Span {
+    return new Span(lhs.file, lhs.start, rhs.end)
+}

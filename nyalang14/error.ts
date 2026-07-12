@@ -6,6 +6,7 @@ export enum E {
     SUnknownCharacter,
 
     // P- are parsing errors (after the tokenization stage)
+    PExpectedExpr,
 
     // T- are type errors
 }
@@ -13,6 +14,7 @@ export enum E {
 export interface EArgs {
     [E.SCarriageReturnNotFollowedByNewline]: []
     [E.SUnknownCharacter]: []
+    [E.PExpectedExpr]: []
 }
 
 export class Error {

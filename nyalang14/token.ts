@@ -2,10 +2,15 @@ import { E, type Errors } from "./error"
 import { Span, type File } from "./span"
 
 export enum T {
-    Ident,
+    // miscellaneous
+    Eof,
 
+    // literals
     LInt,
 
+    // identifiers
+    Ident,
+    Underscore,
     KBreak,
     KContinue,
     KElse,
@@ -36,7 +41,6 @@ export enum T {
     Colon,
     Semi,
     Eq,
-    Underscore,
 
     // arithmetic ops
     Plus,
