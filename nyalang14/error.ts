@@ -1,4 +1,4 @@
-import type { Span } from "./span"
+import type { Span } from "./ast/span"
 
 export enum E {
     // S- are syntactical errors (during the tokenization stage)

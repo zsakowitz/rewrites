@@ -1,7 +1,7 @@
+import { tokenize } from "./ast/token"
 import { printErrors, printTokens } from "./debug"
 import { Errors } from "./error"
-import { File } from "./span"
-import { tokenize } from "./token"
+import { File } from "./ast/span"
 
 const e = new Errors()
 

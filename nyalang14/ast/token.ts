@@ -1,4 +1,4 @@
-import { E, type Errors } from "./error"
+import { E, type Errors } from "../error"
 import { Span, type File } from "./span"
 
 export enum T {

@@ -1,6 +1,6 @@
+import { T, type Token } from "./ast/token"
 import { E, Errors, type Error } from "./error"
-import type { Span } from "./span"
-import { T, type Token } from "./token"
+import type { Span } from "./ast/span"
 
 export function printToken(token: Token): string {
     return `${T[token.kind].padEnd(10, " ")} ${token.span.text()}`
