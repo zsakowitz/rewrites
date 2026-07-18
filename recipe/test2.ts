@@ -39,7 +39,9 @@ const recipes = new RecipeSet([
     new Recipe("Source", "0s")
         .withOutput(Redstone, 1)
         .withOutput(DarkOakLog, 1)
-        .withOutput(Charcoal, 1),
+        .withOutput(Charcoal, 1)
+        .withOutput(StoneDust, 1)
+        .withOutput(Water, 1),
 
     new Recipe("Pyrolyse Oven", "10.65s")
         .withInput(DarkOakLog, 16)
@@ -80,7 +82,7 @@ const recipes = new RecipeSet([
 
     new Recipe("Electrolyzer A", "1.5s")
         .withInput(RareOreResidue, 1000)
-        .withInput(RawOreSlurry, 250)
+        .withOutput(RawOreSlurry, 250)
         .withOutput(ChromiteSludgeDust, 1)
         .withOutput(RareEarthSludgeDust, 1)
         .withOutput(VanadiumMagnetiteSludgeDust, 1)
@@ -91,8 +93,7 @@ const recipes = new RecipeSet([
         .withOutput(CrushedBeryllium, 1)
         .withOutput(CrushedZavaritskite, 1)
         .withOutput(SulfuricMineralMixture, 400)
-        .withOutput(OxygeneousMineralMixture, 600)
-        .multiply(3),
+        .withOutput(OxygeneousMineralMixture, 600),
 ])
 
-console.log(recipes.toString())
+console.log(recipes.asLimited().toString())

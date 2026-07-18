@@ -10,7 +10,7 @@
 // is no concept of "output increases quadratically with input", since that
 // isn't relevant.
 
-import { cyan, dim, reset, yellow } from "../nyalang2/ansi"
+import { blue, cyan, dim, reset, yellow } from "../nyalang2/ansi"
 
 export class Type {
     readonly name: string
@@ -20,6 +20,10 @@ export class Type {
         readonly type: "item" | "fluid",
     ) {
         this.name = name.replace(/(?<!^)[A-Z]/g, (x) => " " + x).toLowerCase()
+    }
+
+    toString() {
+        return (this.type == "item" ? "" : blue) + this.name + reset
     }
 }
 
@@ -82,18 +86,14 @@ export class Recipe {
         this.duration = Duration.from(duration)
 
         for (const v of input.values()) {
-            if (!isFinite(v.value) || v.value <= 0) {
-                throw new Error(
-                    `Inputs for "${name}" must be strictly positive.`,
-                )
+            if (!(v.value >= 0)) {
+                throw new Error(`Inputs for "${name}" must be nonnegative.`)
             }
         }
 
         for (const v of output.values()) {
-            if (!isFinite(v.value) || v.value <= 0) {
-                throw new Error(
-                    `Outputs for "${name}" must be strictly positive.`,
-                )
+            if (!(v.value >= 0)) {
+                throw new Error(`Outputs for "${name}" must be nonnegative.`)
             }
         }
     }
@@ -132,19 +132,24 @@ export class Recipe {
         )
     }
 
-    multiply(multiplier: number): this {
-        this.duration = new Duration(this.duration.ticks / multiplier)
-        this.name = this.name + " x" + multiplier
+    multiply(multiplier: number): Recipe {
+        const name =
+            this.name
+            + (multiplier === 1.0 ? "" : " x" + toPrecision2(multiplier))
+
+        const duration = new Duration(this.duration.ticks / multiplier)
+        const input = new Map<Type, Rate>()
+        const output = new Map<Type, Rate>()
 
         for (const [k, v] of this.input) {
-            this.input.set(k, new Rate(v.value * multiplier))
+            input.set(k, new Rate(v.value * multiplier))
         }
 
         for (const [k, v] of this.output) {
-            this.output.set(k, new Rate(v.value * multiplier))
+            output.set(k, new Rate(v.value * multiplier))
         }
 
-        return this
+        return new Recipe(name, duration, input, output)
     }
 
     toString() {
@@ -188,20 +193,20 @@ export function createSource(type: Type, rate: Rate) {
 }
 
 export class RecipeSet {
-    constructor(readonly items: readonly Recipe[]) {
-        if (new Set(items).size !== items.length) {
+    constructor(readonly recipes: readonly Recipe[]) {
+        if (new Set(recipes).size !== recipes.length) {
             throw new Error(
                 "Recipe array passed to RecipeSet must not contain duplicates. Use `Recipe.multiply` to multiply recipe rates.",
             )
         }
 
-        this.items = this.sort()
+        this.recipes = this.sort()
     }
 
     private byInput(): Map<Type, Recipe[]> {
         const ret = new Map<Type, Recipe[]>()
 
-        for (const el of this.items) {
+        for (const el of this.recipes) {
             for (const input of el.input.keys()) {
                 ret.getOrInsert(input, []).push(el)
             }
@@ -225,7 +230,7 @@ export class RecipeSet {
         const byInput = this.byInput()
 
         const ret: Recipe[] = []
-        const unvisited = new Set<Recipe>(this.items)
+        const unvisited = new Set<Recipe>(this.recipes)
         const currentlyVisiting = new Set<Recipe>()
 
         while (unvisited.size) {
@@ -260,6 +265,51 @@ export class RecipeSet {
     }
 
     toString() {
-        return this.items.join("\n")
+        return this.recipes.join("\n")
+    }
+
+    asLimited() {
+        const recipes: Recipe[] = []
+
+        // Output rates so far. `number` is `Rate.value`.
+        const rates = new Map<Type, number>()
+
+        for (const recipe of this.recipes) {
+            // The percentage speed at which this recipe can run
+            let efficiency = 1.0
+
+            // Find the limiting input
+            for (const [input, expectedRate] of recipe.input) {
+                const actualRate = rates.get(input) ?? 0
+                efficiency = Math.min(
+                    efficiency,
+                    actualRate / expectedRate.value,
+                )
+            }
+
+            // Adjust current input rates
+            for (const [input, expectedRate] of recipe.input) {
+                rates.set(
+                    input,
+                    (rates.get(input) ?? 0) - efficiency * expectedRate.value,
+                )
+            }
+
+            // Adjust current output rates
+            for (const [output, expectedRate] of recipe.output) {
+                rates.set(
+                    output,
+                    (rates.get(output) ?? 0) + efficiency * expectedRate.value,
+                )
+            }
+
+            recipes.push(recipe.multiply(efficiency))
+        }
+
+        for (const [type, rate] of rates) {
+            console.log(`Excess ${type}: ${rate}`)
+        }
+
+        return new RecipeSet(recipes)
     }
 }
