@@ -1,4 +1,5 @@
 import type { Span } from "./ast/span"
+import type { T } from "./ast/token"
 
 export enum E {
     // S- are syntactical errors (during the tokenization stage)
@@ -6,15 +7,15 @@ export enum E {
     SUnknownCharacter,
 
     // P- are parsing errors (after the tokenization stage)
-    PExpectedExpr,
+    PUnexpectedToken,
 
     // T- are type errors
 }
 
 export interface EArgs {
-    [E.SCarriageReturnNotFollowedByNewline]: []
-    [E.SUnknownCharacter]: []
-    [E.PExpectedExpr]: []
+    [E.SCarriageReturnNotFollowedByNewline]: null
+    [E.SUnknownCharacter]: null
+    [E.PUnexpectedToken]: T[]
 }
 
 export class Error {

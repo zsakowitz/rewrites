@@ -253,7 +253,7 @@ export function tokenize(e: Errors, file: File): Token[] {
                     break
                 }
 
-                e.push(E.SCarriageReturnNotFollowedByNewline, new Span(file, idx, ++idx), [])
+                e.push(E.SCarriageReturnNotFollowedByNewline, new Span(file, idx, ++idx), null)
                 break
             }
 
@@ -273,7 +273,7 @@ export function tokenize(e: Errors, file: File): Token[] {
 
                 const end = K_PUNC.lastIndex
                 if (end === 0) {
-                    e.push(E.SUnknownCharacter, new Span(file, idx, idx + 1), [])
+                    e.push(E.SUnknownCharacter, new Span(file, idx, idx + 1), null)
                     idx++
                     break
                 }
