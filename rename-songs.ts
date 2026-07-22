@@ -1,11 +1,12 @@
-import { renameSync, readdirSync } from "fs"
+import { readdirSync, renameSync } from "fs"
 
-const files = readdirSync("/Users/zsakowitz/Desktop/songs")
+const { HOME } = process.env
+
+const files = readdirSync(HOME + "/Desktop/songs")
 
 files.forEach((fileName) =>
     renameSync(
-        "/Users/zsakowitz/Desktop/songs/" + fileName,
-        "/Users/zsakowitz/Desktop/songs/"
-            + fileName.replace("spotifydown.com - ", ""),
+        HOME + "/Desktop/songs/" + fileName,
+        HOME + "/Desktop/songs/" + fileName.replace("spotifydown.com - ", ""),
     ),
 )
