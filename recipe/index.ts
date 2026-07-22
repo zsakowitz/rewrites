@@ -134,8 +134,7 @@ export class Recipe {
 
     multiply(multiplier: number): Recipe {
         const name =
-            this.name
-            + (multiplier === 1.0 ? "" : " x" + toPrecision2(multiplier))
+            this.name + (multiplier === 1.0 ? "" : " x" + round(multiplier))
 
         const duration = new Duration(this.duration.ticks / multiplier)
         const input = new Map<Type, Rate>()
@@ -156,14 +155,14 @@ export class Recipe {
         const input = Array.from(this.input)
             .map(
                 ([type, amount]) =>
-                    `${yellow}${toPrecision2(amount.value)}${reset} ${type.name}`,
+                    `${yellow}${round(amount.value)}${reset} ${type.name}`,
             )
             .join(dim + ", " + reset)
 
         const output = Array.from(this.output)
             .map(
                 ([type, amount]) =>
-                    `${yellow}${toPrecision2(amount.value)}${reset} ${type.name}`,
+                    `${yellow}${round(amount.value)}${reset} ${type.name}`,
             )
             .join(dim + ", " + reset)
 
@@ -171,7 +170,7 @@ export class Recipe {
     }
 }
 
-function toPrecision2(value: number) {
+function round(value: number) {
     if (value === 1 / 0) {
         return `∞`
     }
@@ -268,7 +267,10 @@ export class RecipeSet {
         return this.recipes.join("\n")
     }
 
-    asLimited() {
+    calculate(): {
+        rates: Map<Type, number>
+        set: RecipeSet
+    } {
         const recipes: Recipe[] = []
 
         // Output rates so far. `number` is `Rate.value`.
@@ -306,10 +308,33 @@ export class RecipeSet {
             recipes.push(recipe.multiply(efficiency))
         }
 
-        for (const [type, rate] of rates) {
-            console.log(`Excess ${type}: ${rate}`)
-        }
+        return { rates, set: new RecipeSet(recipes) }
+    }
 
-        return new RecipeSet(recipes)
+    printExcess() {
+        const { rates } = this.calculate()
+
+        const entries = Array.from(rates)
+            .sort(
+                ([a, av], [b, bv]) =>
+                    a.type.localeCompare(b.type)
+                    || av - bv
+                    || a.name.localeCompare(b.name),
+            )
+            .filter((x) => x[1] >= 0.001)
+
+        const maxTypeLength = entries.reduce(
+            (a, b) => Math.max(a, b[0].name.length),
+            0,
+        )
+
+        console.log(
+            entries
+                .map(
+                    ([k, v]) =>
+                        `${k}${" ".repeat(maxTypeLength - k.name.length)}    ${round(v)}`,
+                )
+                .join("\n"),
+        )
     }
 }

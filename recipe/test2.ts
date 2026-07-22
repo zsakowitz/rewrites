@@ -4,12 +4,6 @@ const Redstone = new Type("Redstone", "item")
 const DarkOakLog = new Type("DarkOakLog", "item")
 const Charcoal = new Type("Charcoal", "item")
 const StoneDust = new Type("StoneDust", "item")
-const RawCoal = new Type("RawCoal", "item")
-const RawGold = new Type("RawGold", "item")
-const RawSodalite = new Type("RawSodalite", "item")
-const RawPentalandite = new Type("RawPentalandite", "item")
-const RawRealgar = new Type("RawRealgar", "item")
-const RawSilver = new Type("RawSilver", "item")
 const CrushedLepidolite = new Type("CrushedLepidolite", "item")
 const CrushedPyrochlore = new Type("CrushedPyrochlore", "item")
 const CrushedPyrolusite = new Type("CrushedPyrolusite", "item")
@@ -23,6 +17,8 @@ const VanadiumMagnetiteSludgeDust = new Type(
 const CobaltiteSludeDust = new Type("CobaltiteSludeDust", "item")
 const CrushedBeryllium = new Type("CrushedBeryllium", "item")
 const CrushedZavaritskite = new Type("CrushedZavaritskite", "item")
+const Geode = new Type("Geode", "item")
+const RawGeode = new Type("RawGeode", "item")
 
 const Creosote = new Type("Creosote", "fluid")
 const Lubricant = new Type("Lubricant", "fluid")
@@ -61,12 +57,7 @@ const recipes = new RecipeSet([
 
     new Recipe("Void Extractor", "8s")
         .withInput(DrillingFluid, 5000)
-        .withOutput(RawCoal, 1)
-        .withOutput(RawGold, 1)
-        .withOutput(RawSodalite, 1)
-        .withOutput(RawPentalandite, 1)
-        .withOutput(RawRealgar, 1)
-        .withOutput(RawSilver, 1)
+        .withOutput(RawGeode, 6)
         .withOutput(RareOreResidue, 400)
         .withOutput(RawOreSlurry, 600)
         .multiply(8),
@@ -94,6 +85,22 @@ const recipes = new RecipeSet([
         .withOutput(CrushedZavaritskite, 1)
         .withOutput(SulfuricMineralMixture, 400)
         .withOutput(OxygeneousMineralMixture, 600),
+
+    new Recipe("Rock Filtrator Gravel", "15s")
+        .withOutput(Geode, 3.8)
+        .multiply(2),
+
+    new Recipe("Rock Filtrator Sand", "15s")
+        .withOutput(Geode, 2.775)
+        .multiply(2),
+
+    new Recipe("Cutter", "2.5s")
+        .withInput(Geode, 1)
+        .withInput(Lubricant, 4)
+        .withOutput(RawGeode, 1)
+        .multiply(4),
+
+    new Recipe("Macerator", "1.25s").withInput(RawGeode, 1).multiply(9),
 ])
 
-console.log(recipes.asLimited().toString())
+recipes.printExcess()
