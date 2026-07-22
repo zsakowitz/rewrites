@@ -1,4 +1,4 @@
-import { blue, bold, dim, red, reset, yellow } from "../nyalang2/ansi"
+import { blue, bold, dim, red, reset, yellow } from "../../nyalang/2/ansi"
 
 export type Level = Readonly<
     | { k: "var"; v: number }

@@ -1,4 +1,4 @@
-import { generateChopsticks } from "../chopsticks"
+import { generateChopsticks } from "../../chopsticks"
 import { ForceGraphLib } from "./2d-object/force-graph-2"
 import { Grid } from "./2d-object/grid"
 import { Canvas2 } from "./2d/canvas"
