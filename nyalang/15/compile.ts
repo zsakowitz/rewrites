@@ -2,6 +2,7 @@ import { assert } from "./assert"
 import { Errors, TraceEntry } from "./ast/error"
 import type { File } from "./ast/file"
 import type { Expr, Stmt } from "./ast/parse"
+import type { Frac } from "./frac"
 
 export type Lazy<Final, Raw> =
     | { resolved: true; value: Final }
@@ -12,7 +13,6 @@ export type RType =
     | { k: "void"; v: null }
     | { k: "bool"; v: null }
     | { k: "comptime_int"; v: null }
-    | { k: "comptime_float"; v: null }
     | { k: "comptime_frac"; v: null }
     | { k: "u" | "i"; v: number }
     | { k: "f" | "r"; v: 32 | 64 }
@@ -61,7 +61,7 @@ export type RValue =
     | { k: "bool"; v: boolean }
     | { k: "int"; v: bigint }
     | { k: "float"; v: number }
-    | { k: "frac"; v: { n: bigint; /** positive */ d: bigint } }
+    | { k: "frac"; v: Frac }
     | { k: "str"; v: string }
     | { k: "null"; v: null }
     | { k: "some"; v: RValue }
@@ -110,7 +110,7 @@ export class Block {
     ) {}
 
     raiseAt(range: { s: number; e: number }, message: string) {
-        this.errors.raise(new TraceEntry(this.file, expr.s, expr.e, message))
+        this.errors.raise(new TraceEntry(this.file, range.s, range.e, message))
     }
 }
 
@@ -121,7 +121,7 @@ export function typeName(type: RType): string {
         case "bool":
         case "str":
         case "comptime_int":
-        case "comptime_float":
+        case "comptime_frac":
         case "type":
             return type.k
 
@@ -202,10 +202,10 @@ export function expr(
             const value = v.v
 
             if (type?.k === "f") {
-                return { type, value: { k: "float", v: value } }
+                return { type, value: { k: "float", v: Number(value.n) / Number(value.d) } }
             }
 
-            return { type: { k: "comptime_float", v: null }, value: { k: "float", v: value } }
+            return { type: { k: "comptime_frac", v: null }, value: { k: "frac", v: value } }
         }
 
         case "lit-string":
@@ -335,14 +335,30 @@ export function expr(
     return null
 }
 
-export function stmt(block: Block, time: "comptime" | "any", type: RType | null, v: Stmt) {
-    switch (v.k) {
-        case "const":
-        case "var":
-        case "expr":
-        case "assign":
+export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" | "never" | "void" {
+    if (v.k === "expr") {
+        const returnValue = expr(block, time, false, { k: "void", v: null }, v.v)
+
+        if (returnValue === null) {
+            return "error"
+        }
+
+        if (returnValue.type.k === "never" || returnValue.value.k === "unreachable") {
+            return "never"
+        }
+
+        if (returnValue.type.k === "void") {
+            return "void"
+        }
+
+        block.raiseAt(
+            v.v,
+            `Values of type '${typeName(returnValue.type)}' cannot be silently ignored. Use \`_ = ...\` to explicitly discard the value.`,
+        )
+
+        return "void"
     }
 
     block.raiseAt(v, "Statement type not implemented yet.")
-    return null
+    return "error"
 }
