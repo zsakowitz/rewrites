@@ -59,6 +59,8 @@ null
 
 // Expressions, operators
 
+-2
+/2.0
 2 + 3
 2 +% 3
 2 - 3
@@ -136,13 +138,15 @@ fn world(a: i32, b: u32) u32 {} // normal function declaration
 fn (a: i32, b: u32) u32 {} // constructor declaration
 fn +(a: self, b: i32) i32 {} // operator overload
 
-let A = ... // constant declaration
-let A: T = ... // constant declaration
+const A = ... // constant declaration
+const A: T = ... // constant declaration
 
 var A = ... // variable declaration
 var A: T = ... // constant declaration
 
 test "world" { ... }
+
+comptime { ... }
 ```
 
 # Built-in functions
@@ -244,18 +248,15 @@ filesize (# of bytes)            2mb
 
 # Mapping to external JavaScript values
 
-Many JavaScript values are plain arrays, numbers, strings, booleans, and
-bigints. These map to `[]T`, various number types, `str`, `bool`, `u64` (for a
-bigint of appropriate size).
+Many JavaScript values are plain arrays, numbers, strings, booleans, and bigints. These map to
+`[]T`, various number types, `str`, `bool`, `u64` (for a bigint of appropriate size).
 
-Trickier values are `null` and `undefined`, since they are usually in a union
-with some other type. My preferred solution is an annotation like
-`?extern(.null) T` and `?extern(.undefined) T`, but those seem a bit complicated
-and would require assertions to ban `?extern(.null) ?extern(.null) T`. But these
-will be necessary anyway.
+Trickier values are `null` and `undefined`, since they are usually in a union with some other type.
+My preferred solution is an annotation like `?extern(.null) T` and `?extern(.undefined) T`, but
+those seem a bit complicated and would require assertions to ban `?extern(.null) ?extern(.null) T`.
+But these will be necessary anyway.
 
-The other kind of values are complex objects. Here is an example in TypeScript
-syntax:
+The other kind of values are complex objects. Here is an example in TypeScript syntax:
 
 ```ts
 namespace Temporal {
@@ -281,13 +282,13 @@ namespace Temporal {
 }
 ```
 
-What would the diagram look like if we implemented this in nyalang? I'll drop
-function bodies for now.
+What would the diagram look like if we implemented this in nyalang? I'll drop function bodies for
+now.
 
 ```zig
-// This is all living inside a giant `let Temporal = struct { ... }`.
+// This is all living inside a giant `const Temporal = struct { ... }`.
 
-let Instant = struct {
+const Instant = struct {
     fn compare(instant1: Instant, instant2: Instant) enum(i8) { lt = -1, eq = 0, gt = 1 }
     fn from_instant(other: Instant) Instant
     fn from_str(iso: str) Instant
@@ -296,7 +297,7 @@ let Instant = struct {
     fn until(self, future: Instant): Duration
 }
 
-let InstantArray = struct {
+const InstantArray = struct {
     fn [](self, index: u32) Instant
     len: u32,
     extern(.{name: .symbol_iterator}) fn iterator(self) struct {
@@ -305,5 +306,4 @@ let InstantArray = struct {
 }
 ```
 
-For now I'm not going to worry about this. We'll have JS interop somehow,
-eventually.
+For now I'm not going to worry about this. We'll have JS interop somehow, eventually.

@@ -20,7 +20,7 @@
         { "files": "cv3/**/*", "options": { "printWidth": 80 } },
         { "files": "hott/**/*", "options": { "printWidth": 110 } },
         {
-            "files": ["hott2/**/*", "nyalang14/**/*"],
+            "files": ["hott2/**/*", "nyalang/14/**/*", "nyalang/15/**/*"],
             "options": { "printWidth": 100 }
         }
     ]

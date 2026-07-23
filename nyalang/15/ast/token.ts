@@ -7,7 +7,6 @@ export enum T {
     DotInt,
     Ident,
     Builtin,
-    Label,
     Char,
     Str, // "xyz"
     StrPart, // \\xyz
@@ -57,7 +56,9 @@ export enum T {
     LtEq,
     LtLt,
     Minus,
+    MinusPercent,
     Plus,
+    PlusPercent,
     Ques,
     RBrace,
     RBrack,
@@ -65,6 +66,7 @@ export enum T {
     Semi,
     Slash,
     Star,
+    StarPercent,
     Tilde,
     Underscore,
 }
@@ -113,8 +115,7 @@ const INT =
 const FLOAT =
     /^(?:0x[0-9A-Fa-f]+(?:_[0-9A-Fa-f]+)*(?!$)(?:\.[0-9A-Fa-f]+(?:_[0-9A-Fa-f]+)*)?(?:[Pp][+-]?[0-9]+)?|[0-9]+(?:_[0-9]+)*(?!$)(?:\.[0-9]+(?:_[0-9]+)*)?(?:[Ee][+-]?[0-9]+)?)$/
 
-const STRING =
-    /"(?:[^"\\\r\n]|\\[\\nrt'"]|\\x[0-9A-Fa-f]{2}|\\u\{[0-9A-Fa-f]+\})*"/y
+const STRING = /"(?:[^"\\\r\n]|\\[\\nrt'"]|\\x[0-9A-Fa-f]{2}|\\u\{[0-9A-Fa-f]+\})*"/y
 
 const WS = /[ \t\n\r]+/y
 
@@ -142,7 +143,9 @@ const OPERATORS = new Map([
     ["<=", T.LtEq],
     ["<<", T.LtLt],
     ["-", T.Minus],
+    ["-%", T.MinusPercent],
     ["+", T.Plus],
+    ["+%", T.PlusPercent],
     ["?", T.Ques],
     ["}", T.RBrace],
     ["]", T.RBrack],
@@ -150,10 +153,11 @@ const OPERATORS = new Map([
     [";", T.Semi],
     ["/", T.Slash],
     ["*", T.Star],
+    ["*%", T.StarPercent],
     ["~", T.Tilde],
 ])
 
-const OPERATOR = /!=|<=|>=|<<|>>|.?|[&!|^:,.=>{[(<\-+?}\]);/\*~]/y
+const OPERATOR = /!=|<=|>=|<<|>>|.?|[+\-*]%|[&!|^:,.=>{[(<\-+?}\]);/\*~]/y
 
 export function tokenize(e: Errors, file: File): Tokens {
     const { body } = file
@@ -233,9 +237,7 @@ export function tokenize(e: Errors, file: File): Tokens {
         if (OPERATOR.test(body)) {
             start.push(index)
             end.push(OPERATOR.lastIndex)
-            kind.push(
-                OPERATORS.get(body.slice(index, (index = OPERATOR.lastIndex)))!,
-            )
+            kind.push(OPERATORS.get(body.slice(index, (index = OPERATOR.lastIndex)))!)
             continue
         }
 
@@ -256,15 +258,28 @@ export function tokenize(e: Errors, file: File): Tokens {
             continue
         }
 
+        if (body.charAt(index) === "@") {
+            IDENT.lastIndex = index + 1
+            if (!IDENT.test(body)) {
+                e.push(E.InvalidToken, [TraceEntry.character(file, index, "Invalid builtin name")])
+                index = file.lineEnd[file.row(index)]!
+                continue
+            }
+
+            start.push(index)
+            end.push((index = IDENT.lastIndex))
+            kind.push(T.Builtin)
+
+            continue
+        }
+
         if (body.charAt(index) === "\\" && body.charAt(index + 1) === "\\") {
             start.push(index)
             end.push((index = file.lineEnd[file.row(index)]!))
             continue
         }
 
-        e.push(E.InvalidToken, [
-            TraceEntry.character(file, index, "Invalid token"),
-        ])
+        e.push(E.InvalidToken, [TraceEntry.character(file, index, "Invalid token")])
         index = file.lineEnd[file.row(index)]!
     }
 
