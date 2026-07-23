@@ -1,14 +1,33 @@
 import type { Value } from "../../../math/game/value"
-import type { Errors } from "./error"
-import type { Tokens } from "./token"
+import { assert, unreachable } from "../assert"
+import type { Frac } from "../frac"
+import { TraceEntry, type Errors } from "./error"
+import { T, type Tokens } from "./token"
 
 export class ParseContext {
     index = 0
 
     constructor(
-        readonly e: Errors,
+        readonly errors: Errors,
         readonly tokens: Tokens,
     ) {}
+
+    raise(message: string) {
+        const { tokens } = this
+        const { file } = tokens
+
+        if (this.index >= this.tokens.length) {
+            this.errors.raise(new TraceEntry(file, file.body.length, file.body.length, message))
+            return
+        }
+
+        this.errors.raise(TraceEntry.at(file, tokens.start[this.index]!, message))
+    }
+
+    peek(): T {
+        if (this.index >= this.tokens.length) return T.Eof
+        return this.tokens.kind[this.index]!
+    }
 }
 
 export type OpPrefix = "!" | "~" | "-" | "/"
@@ -19,7 +38,7 @@ export type OpInfix =
     | "~"  | "&"  | "|" | "<<" | ">>"
     | "==" | "!=" | "<" | ">"  | "<=" | ">=" | "==" | "!="
 
-export type Ident = { s: number; e: number; name: string }
+export type Ident = { s: number; e: number; raw: boolean; name: string }
 export type Label = { s: number; e: number; name: string } | null
 export type Pat = { s: number; e: number; k: "else"; v: null } | Expr
 export type ForInput =
@@ -30,8 +49,8 @@ export type TestName =
     | { s: number; e: number; k: "ident"; v: string }
 
 export type Expr = { s: number; e: number } & (
-    | { k: "lit-int"; v: bigint }
-    | { k: "lit-float"; v: number }
+    | { k: "lit-int"; v: /* nonnegative */ bigint }
+    | { k: "lit-float"; v: Frac }
     | { k: "lit-string"; v: string }
     | { k: "ty-optional"; v: { child: Expr } }
     | { k: "ty-array"; v: { len: Expr | null; child: Expr } }
@@ -89,13 +108,102 @@ export type Decl = { s: number; e: number } & (
     | { k: "var"; v: { name: Ident; type: Expr | null; body: Expr } }
     | {
           k: "fn"
-          v: { name: Ident | null; args: { name: Ident; type: Expr }; ret: Expr; body: Expr }
+          v: {
+              name: Ident | null
+              args: { comptime: boolean; name: Ident; type: Expr }
+              ret: Expr
+              body: Expr
+          }
       }
 )
 
 export type Stmt = { s: number; e: number } & (
-    | { k: "const"; v: { name: Ident; type: Expr | null; body: Expr } }
-    | { k: "var"; v: { name: Ident; type: Expr | null; body: Expr } }
     | { k: "expr"; v: Expr }
-    | { k: "assign"; v: { lhs: Expr[]; rhs: Expr } }
+    | { k: "assign"; v: { lhs: AssignTarget[]; rhs: Expr } }
 )
+
+export type AssignTarget = { s: number; e: number } & (
+    | { k: "var" | "const"; v: { name: Ident; type: Expr | null } }
+    | { k: "expr"; v: Expr }
+)
+
+/** @param body Excludes quotes. */
+function readStr(body: string): string {
+    let ret = ""
+
+    for (let i = 0; i < body.length; i++) {
+        const nextBackslash = body.indexOf("\\", i)
+        if (nextBackslash !== i) {
+            ret += body.slice(i, nextBackslash)
+            if (nextBackslash === -1) break
+            i = nextBackslash
+        }
+
+        switch (body.charAt(i + 1)) {
+            case "n":
+                ret += "\n"
+                i += 2
+                break
+
+            case "r":
+                ret += "\r"
+                i += 2
+                break
+
+            case "t":
+                ret += "\t"
+                i += 2
+                break
+
+            case "u": {
+                const closingQuote = body.indexOf("}", i + 3)
+                assert(closingQuote !== -1)
+                ret += String.fromCodePoint(parseInt(body.slice(i + 3, closingQuote), 16))
+                i = closingQuote + 1
+                break
+            }
+
+            case "x":
+                ret += String.fromCodePoint(parseInt(body.slice(i + 2, i + 4), 16))
+                i += 2
+                break
+
+            default:
+                unreachable()
+        }
+    }
+
+    return ret
+}
+
+function readInt(body: string): bigint {
+    return BigInt(body.replaceAll("_", ""))
+}
+
+function readFrac(body: string): Frac {
+    let base: 10 | 16 = 10
+
+    if (body.startsWith("0x")) {
+        base = 16
+        body = body.slice(2)
+    }
+}
+
+function parseIdent(context: ParseContext): Ident {
+    const next = context.peek()
+}
+
+export function parseStmt(context: ParseContext): Stmt {}
+
+function parseAssignTarget(context: ParseContext): AssignTarget {
+    const next = context.peek()
+
+    if (next === T.KVar || next === T.KConst) {
+        const kind = next === T.KVar ? "var" : "const"
+        context.index++
+    }
+}
+
+export function parseExpr(context: ParseContext): Expr {}
+
+export function parseDecl(context: ParseContext): Decl {}

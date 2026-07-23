@@ -1,7 +1,9 @@
-import { E, TraceEntry, type Errors } from "./error"
+import { TraceEntry, type Errors } from "./error"
 import type { File } from "./file"
 
 export enum T {
+    Eof,
+
     Int,
     Float,
     DotInt,
@@ -76,6 +78,7 @@ export interface Tokens {
     readonly start: readonly number[]
     readonly end: readonly number[]
     readonly kind: readonly T[]
+    readonly length: number
 }
 
 const IDENT = /[A-Za-z_][A-Za-z0-9_]*/y
@@ -159,7 +162,7 @@ const OPERATORS = new Map([
 
 const OPERATOR = /!=|<=|>=|<<|>>|.?|[+\-*]%|[&!|^:,.=>{[(<\-+?}\]);/\*~]/y
 
-export function tokenize(e: Errors, file: File): Tokens {
+export function tokenize(errors: Errors, file: File): Tokens {
     const { body } = file
 
     const start: number[] = []
@@ -196,17 +199,16 @@ export function tokenize(e: Errors, file: File): Tokens {
                 continue
             }
 
-            e.push(E.InvalidNumber, [
+            errors.raise(
                 new TraceEntry(
                     file,
                     i0,
                     i1,
-                    i0,
                     body.slice(i0, i1).includes("-") ?
                         "Invalid numeric literal; if `-` is meant to subtract numbers, surround it with whitespace"
                     :   "Invalid numeric literal",
                 ),
-            ])
+            )
 
             continue
         }
@@ -244,9 +246,7 @@ export function tokenize(e: Errors, file: File): Tokens {
         if (body.charAt(index) === "@" && body.charAt(index + 1) === '"') {
             STRING.lastIndex = index + 1
             if (!STRING.test(body)) {
-                e.push(E.InvalidString, [
-                    TraceEntry.character(file, index, "Invalid string literal"),
-                ])
+                errors.raise(TraceEntry.at(file, index, "Invalid string literal"))
                 index = file.lineEnd[file.row(index)]!
                 continue
             }
@@ -261,7 +261,7 @@ export function tokenize(e: Errors, file: File): Tokens {
         if (body.charAt(index) === "@") {
             IDENT.lastIndex = index + 1
             if (!IDENT.test(body)) {
-                e.push(E.InvalidToken, [TraceEntry.character(file, index, "Invalid builtin name")])
+                errors.raise(TraceEntry.at(file, index, "Invalid builtin name"))
                 index = file.lineEnd[file.row(index)]!
                 continue
             }
@@ -279,9 +279,9 @@ export function tokenize(e: Errors, file: File): Tokens {
             continue
         }
 
-        e.push(E.InvalidToken, [TraceEntry.character(file, index, "Invalid token")])
+        errors.raise(TraceEntry.at(file, index, "Invalid token"))
         index = file.lineEnd[file.row(index)]!
     }
 
-    return { file, start, end, kind }
+    return { file, start, end, kind, length: kind.length }
 }

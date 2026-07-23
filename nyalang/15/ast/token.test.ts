@@ -1,4 +1,4 @@
-import { E, Error, Errors } from "./error"
+import { Errors, printErrors } from "./error"
 import { File } from "./file"
 import { T, tokenize, type Tokens } from "./token"
 
@@ -14,15 +14,8 @@ function printTokens(tokens: Tokens) {
     }
 }
 
-function printError(error: Error) {
-    console.log(`error: ${E[error.code]}`)
-    for (const el of error.trace) {
-        console.log(`    ${el.message} @ ${el.start}..${el.end}`)
-    }
-}
+const errors = new Errors()
 
-const e = new Errors()
+printTokens(tokenize(errors, new File("test.nya", `2+3.4*2028-09-5`)))
 
-printTokens(tokenize(e, new File("test.nya", `2+3.4*2028-09-5`)))
-
-e.errors.forEach(printError)
+printErrors(errors)
