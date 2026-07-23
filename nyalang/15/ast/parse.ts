@@ -76,6 +76,7 @@ export type Expr = { s: number; e: number } & (
     | { k: "builtin"; v: { name: string; args: Expr[] } }
     | { k: "ident"; v: string }
     | { k: "underscore"; v: null }
+    | { k: "closure"; v: { args: { name: Ident; type: Expr | null }[]; body: Expr } }
 )
 
 export type Decl = { s: number; e: number } & (
