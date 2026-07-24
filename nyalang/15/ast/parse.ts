@@ -12,6 +12,16 @@ export class ParseContext {
         readonly tokens: Tokens,
     ) {}
 
+    /** Start of next token. */
+    get s() {
+        return this.tokens.start[this.index] ?? this.tokens.file.body.length
+    }
+
+    /** End of previous token. */
+    get e() {
+        return this.tokens.end[this.index - 1] ?? 0
+    }
+
     raise(message: string) {
         const { tokens } = this
         const { file } = tokens
@@ -27,6 +37,16 @@ export class ParseContext {
     peek(): T {
         if (this.index >= this.tokens.length) return T.Eof
         return this.tokens.kind[this.index]!
+    }
+
+    peekN(n: number): T {
+        if (this.index + n >= this.tokens.length) return T.Eof
+        return this.tokens.kind[this.index + n]!
+    }
+
+    take(expected: T) {
+        if (this.peek() === expected) this.index++
+        else this.raise(`Expected ${T[expected]}`)
     }
 }
 
@@ -96,6 +116,7 @@ export type Expr = { s: number; e: number } & (
     | { k: "ident"; v: string }
     | { k: "underscore"; v: null }
     | { k: "closure"; v: { args: { name: Ident; type: Expr | null }[]; body: Expr } }
+    | { k: "paren"; v: Expr }
 )
 
 export type Decl = { s: number; e: number } & (
@@ -180,28 +201,153 @@ function readInt(body: string): bigint {
     return BigInt(body.replaceAll("_", ""))
 }
 
-function readFrac(body: string): Frac {
-    let base: 10 | 16 = 10
+function parseIdent(context: ParseContext): Ident | null {
+    const next = context.peek()
 
-    if (body.startsWith("0x")) {
-        base = 16
-        body = body.slice(2)
+    if (next !== T.Ident) {
+        context.raise(`Expected identifier`)
+        return null
+    }
+
+    const { index, tokens } = context
+    const s = tokens.start[index]!
+    const e = tokens.end[index]!
+    context.index++
+
+    const name = context.tokens.file.body.slice(s, e)
+
+    if (name.startsWith("@")) {
+        return { s, e, raw: true, name: readStr(name.slice(2, -1)) }
+    }
+
+    return { s, e, raw: false, name: name }
+}
+
+function parseSemi(context: ParseContext) {
+    if (context.peek() === T.Semi) {
+        context.index++
+    } else {
+        context.raise(`Expected semicolon.`)
     }
 }
 
-function parseIdent(context: ParseContext): Ident {
-    const next = context.peek()
-}
+function parseStmtAssign(
+    context: ParseContext,
+    s: number,
+    nextToken: "target" | "punctuation",
+    targets: AssignTarget[],
+): Stmt | null {
+    if (nextToken === "target") {
+        targets.push(parseAssignTarget(context))
+    }
 
-export function parseStmt(context: ParseContext): Stmt {}
+    while (context.peek() === T.Comma) {
+        context.index++
+        targets.push(parseAssignTarget(context))
+    }
+
+    let rhs = null
+
+    if (context.peek() === T.Eq) {
+        context.index++
+        rhs = parseExpr(context)
+    }
+
+    parseSemi(context)
+
+    if (rhs === null) {
+        return null
+    }
+
+    return { s, e: context.e, k: "assign", v: { lhs: targets, rhs } }
+}
 
 function parseAssignTarget(context: ParseContext): AssignTarget {
     const next = context.peek()
 
     if (next === T.KVar || next === T.KConst) {
+        const s = context.s
         const kind = next === T.KVar ? "var" : "const"
         context.index++
+
+        const name = parseIdent(context)
+
+        let type = null
+        if (context.peek() === T.Colon) {
+            context.index++
+            type = parseExpr(context)
+        }
+
+        if (name === null) {
+            return { s, e: context.e, k: "expr", v: { k: "underscore", s, e: context.e, v: null } }
+        }
+
+        return { s, e: context.e, k: kind, v: { name, type } }
     }
+
+    const expr = parseExpr(context)
+    return { s: expr.s, e: expr.e, k: "expr", v: expr }
+}
+
+/** `null` is for when the statement is syntactically invalid. */
+export function parseStmt(context: ParseContext): Stmt | null {
+    const s = context.s
+    const next = context.peek()
+
+    if (next === T.KVar || next === T.KConst) {
+        return parseStmtAssign(context, s, "target", [])
+    }
+
+    // TODO: special case `if (2) { ... } + 4` and siblings (for/while/comptime/block)
+    const v = parseExpr(context)
+    return { s, e: context.e, k: "expr", v }
+}
+
+function parseCapture1(context: ParseContext): Ident | null {
+    if (context.peek() !== T.Bar) {
+        return null
+    }
+
+    context.index++
+    const ident = parseIdent(context)
+    context.take(T.Bar)
+    return ident
+}
+
+function parseBlockOrExpr(context: ParseContext): Expr {
+    if (context.peek() === T.LBrace) {
+        const s = context.s
+        context.index++
+        const body: Stmt[] = []
+        while (context.peek() !== T.RBrace) {
+            const next = parseStmt(context)
+            if (next === null) break
+            else body.push(next)
+        }
+        context.take(T.RBrace)
+        return { s, e: context.e, k: "block", v: { label: null, body } }
+    }
+
+    if (
+        context.peek() === T.Ident
+        && context.peekN(1) === T.Colon
+        && context.peekN(2) === T.LBrace
+    ) {
+        const s = context.s
+        const label = parseIdent(context)
+        context.take(T.Colon)
+        context.take(T.LBrace)
+        const body: Stmt[] = []
+        while (context.peek() !== T.RBrace) {
+            const next = parseStmt(context)
+            if (next === null) break
+            else body.push(next)
+        }
+        context.take(T.RBrace)
+        return { s, e: context.e, k: "block", v: { label, body } }
+    }
+
+    return parseExpr(context)
 }
 
 export function parseExpr(context: ParseContext): Expr {}
