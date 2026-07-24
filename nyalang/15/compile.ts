@@ -216,7 +216,7 @@ export function expr(
             if (child === null) return null
 
             if (child.type.k !== "type") {
-                block.raiseAt(v.v.child, `Expected type, found '${typeName(child.type)}'.`)
+                block.raiseAt(v.v.child, `Expected type, found '${typeName(child.type)}'`)
                 return null
             }
 
@@ -331,7 +331,7 @@ export function expr(
             break
     }
 
-    block.raiseAt(v, "Expression type not implemented yet.")
+    block.raiseAt(v, "Expression type not implemented yet")
     return null
 }
 
@@ -353,12 +353,12 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" |
 
         block.raiseAt(
             v.v,
-            `Values of type '${typeName(returnValue.type)}' cannot be silently ignored. Use \`_ = ...\` to explicitly discard the value.`,
+            `Values of type '${typeName(returnValue.type)}' cannot be silently ignored; use \`_ = ...\` to explicitly discard the value`,
         )
 
         return "void"
     }
 
-    block.raiseAt(v, "Statement type not implemented yet.")
+    block.raiseAt(v, "Statement type not implemented yet")
     return "error"
 }
