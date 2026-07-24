@@ -314,42 +314,6 @@ function parseCapture1(context: ParseContext): Ident | null {
     return ident
 }
 
-function parseBlockOrExpr(context: ParseContext): Expr {
-    if (context.peek() === T.LBrace) {
-        const s = context.s
-        context.index++
-        const body: Stmt[] = []
-        while (context.peek() !== T.RBrace) {
-            const next = parseStmt(context)
-            if (next === null) break
-            else body.push(next)
-        }
-        context.take(T.RBrace)
-        return { s, e: context.e, k: "block", v: { label: null, body } }
-    }
-
-    if (
-        context.peek() === T.Ident
-        && context.peekN(1) === T.Colon
-        && context.peekN(2) === T.LBrace
-    ) {
-        const s = context.s
-        const label = parseIdent(context)
-        context.take(T.Colon)
-        context.take(T.LBrace)
-        const body: Stmt[] = []
-        while (context.peek() !== T.RBrace) {
-            const next = parseStmt(context)
-            if (next === null) break
-            else body.push(next)
-        }
-        context.take(T.RBrace)
-        return { s, e: context.e, k: "block", v: { label, body } }
-    }
-
-    return parseExpr(context)
-}
-
 export function parseExpr(context: ParseContext): Expr {}
 
 export function parseDecl(context: ParseContext): Decl {}
