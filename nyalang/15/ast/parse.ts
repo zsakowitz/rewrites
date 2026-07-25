@@ -326,6 +326,7 @@ export function parseStmt(context: ParseContext): Stmt | null {
 
     // TODO: special case `if (2) { ... } + 4` and siblings (for/while/comptime/block)
     const v = parseExpr(context)
+    context.take(T.Semi)
     return { s, e: context.e, k: "expr", v }
 }
 
