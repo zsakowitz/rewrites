@@ -209,7 +209,10 @@ export function expr(
         }
 
         case "lit-string":
-            break
+            return {
+                type: { k: "str", v: null },
+                value: { k: "str", v: v.v },
+            }
 
         case "ty-optional": {
             const child = expr(block, "comptime", used, { k: "type", v: null }, v.v.child)

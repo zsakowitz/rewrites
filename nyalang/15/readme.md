@@ -307,3 +307,14 @@ const InstantArray = struct {
 ```
 
 For now I'm not going to worry about this. We'll have JS interop somehow, eventually.
+
+# Current goal
+
+Get a very basic compiler working, written in JavaScript, which targets JavaScript. Then, we can
+write a proper compiler in the language itself.
+
+This basic compiler will not contain:
+
+- `pub`
+- lazy evaluation of const types and values
+- lazy evaluation of field types

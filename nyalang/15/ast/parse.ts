@@ -1,7 +1,6 @@
-import type { Value } from "../../../math/game/value"
 import { assert, unreachable } from "../assert"
-import type { Frac } from "../frac"
-import { TraceEntry, type Errors } from "./error"
+import { readFrac, type Frac } from "../frac"
+import { Errors, TraceEntry } from "./error"
 import { T, type Tokens } from "./token"
 
 export class ParseContext {
@@ -48,6 +47,14 @@ export class ParseContext {
         if (this.peek() === expected) this.index++
         else this.raise(`Expected ${T[expected]}`)
     }
+
+    /** Assumes a token is available. */
+    peekText() {
+        return this.tokens.file.body.slice(
+            this.tokens.start[this.index]!,
+            this.tokens.end[this.index]!,
+        )
+    }
 }
 
 export type OpPrefix = "!" | "~" | "-" | "/"
@@ -69,8 +76,9 @@ export type TestName =
     | { s: number; e: number; k: "ident"; v: string }
 
 export type Expr = { s: number; e: number } & (
+    | { k: "error"; v: null }
     | { k: "lit-int"; v: /* nonnegative */ bigint }
-    | { k: "lit-float"; v: Frac }
+    | { k: "lit-frac"; v: Frac }
     | { k: "lit-string"; v: string }
     | { k: "ty-optional"; v: { child: Expr } }
     | { k: "ty-array"; v: { len: Expr | null; child: Expr } }
@@ -122,16 +130,16 @@ export type Expr = { s: number; e: number } & (
 export type Decl = { s: number; e: number } & (
     | { k: "field-ident"; v: Ident } // a, (could be a field in a tuple or a field name for an enum)
     | { k: "field-expr"; v: Expr } // Map(i32, i32), (must be some kind of tuple field type)
-    | { k: "field-plain"; v: { name: Ident; type: Expr; default: Value } } // a: i32 = 4,
+    | { k: "field-plain"; v: { name: Ident; type: Expr; default: Expr | null } } // a: i32 = 4,
     | { k: "comptime"; v: Expr }
-    | { k: "test"; v: { name: TestName; body: Expr } }
+    | { k: "test"; v: { name: string; body: Expr } }
     | { k: "const"; v: { name: Ident; type: Expr | null; body: Expr } }
     | { k: "var"; v: { name: Ident; type: Expr | null; body: Expr } }
     | {
           k: "fn"
           v: {
               name: Ident | null
-              args: { comptime: boolean; name: Ident; type: Expr }
+              args: { comptime: boolean; name: Ident; type: Expr }[]
               ret: Expr
               body: Expr
           }
@@ -221,6 +229,23 @@ function parseIdent(context: ParseContext): Ident | null {
     }
 
     return { s, e, raw: false, name: name }
+}
+
+function parseStr(context: ParseContext): string | null {
+    const next = context.peek()
+
+    if (next !== T.Str) {
+        context.raise(`Expected string`)
+        return null
+    }
+
+    const { index, tokens } = context
+    const s = tokens.start[index]!
+    const e = tokens.end[index]!
+    context.index++
+
+    const body = context.tokens.file.body.slice(s + 1, e - 1)
+    return readStr(body)
 }
 
 function parseSemi(context: ParseContext) {
@@ -314,6 +339,131 @@ function parseCapture1(context: ParseContext): Ident | null {
     return ident
 }
 
-export function parseExpr(context: ParseContext): Expr {}
+export function parseDecl(context: ParseContext): Decl {
+    const s = context.s
 
-export function parseDecl(context: ParseContext): Decl {}
+    if (context.peek() === T.Ident && context.peekN(1) === T.Colon) {
+        const name = parseIdent(context)!
+        context.take(T.Colon)
+        const type = parseExpr(context)
+        let defaultValue = null
+        if (context.peek() === T.Eq) {
+            context.index++
+            defaultValue = parseExpr(context)
+        }
+        if (context.peek() !== T.RBrace) {
+            context.take(T.Comma)
+        }
+        return { s, e: context.e, k: "field-plain", v: { name, type, default: defaultValue } }
+    }
+
+    if (context.peek() === T.Ident) {
+        const name = parseIdent(context)!
+        if (context.peek() !== T.RBrace) {
+            context.take(T.Comma)
+        }
+        return { s, e: context.e, k: "field-ident", v: name }
+    }
+
+    if (context.peek() === T.KFn) {
+        context.index++
+        const name = parseIdent(context)
+        context.take(T.LParen)
+        const args = []
+        while (context.peek() === T.Ident || context.peek() === T.KComptime) {
+            const comptime = context.peek() === T.KComptime
+            if (comptime) context.index++
+            const name = parseIdent(context)
+            if (!name) throw new Error("TODO: function name is required")
+            context.take(T.Colon)
+            const type = parseExpr(context)
+            if (context.peek() !== T.RParen) context.take(T.Comma)
+            args.push({ comptime, name, type })
+        }
+        context.take(T.RParen)
+        const returnType = parseExpr(context)
+        if (context.peek() !== T.LBrace) {
+            context.take(T.Eq)
+        }
+        const body = parseExpr(context)
+        return { s, e: context.e, k: "fn", v: { name, args, ret: returnType, body } }
+    }
+
+    if (context.peek() === T.KVar || context.peek() === T.KConst) {
+        const k = context.peek() === T.KVar ? "var" : "const"
+        context.index++
+        const name = parseIdent(context)
+        if (!name) throw new Error("requires name")
+        let type = null
+        if (context.peek() === T.Colon) {
+            context.index++
+            type = parseExpr(context)
+        }
+        context.take(T.Eq)
+        const body = parseExpr(context)
+        context.take(T.Semi)
+        return { s, e: context.e, k, v: { name, type, body } }
+    }
+
+    if (context.peek() === T.KComptime) {
+        context.index++
+        const v = parseExpr(context)
+        context.take(T.Semi)
+        return { s, e: context.e, k: "comptime", v }
+    }
+
+    if (context.peek() === T.KTest) {
+        context.index++
+        const name = parseStr(context)
+        if (!name) throw new Error("Name required for tests")
+        const body = parseExpr(context)
+        context.take(T.Semi)
+        return { s, e: context.e, k: "test", v: { name, body } }
+    }
+
+    const type = parseExpr(context)
+    if (context.peek() !== T.RBrace) {
+        context.take(T.Comma)
+    }
+    return { s, e: context.e, k: "field-expr", v: type }
+}
+
+function parseDeclBlock(context: ParseContext): Decl[] {
+    context.take(T.LBrace)
+    const ret: Decl[] = []
+    while (context.peek() !== T.RBrace && context.peek() !== T.Eof) {
+        const si = context.index
+        ret.push(parseDecl(context))
+        if (si === context.index) {
+            context.raise("Invalid declaration")
+            break
+        }
+    }
+    context.take(T.RBrace)
+    return ret
+}
+
+function parseExprAtom(context: ParseContext): Expr {
+    const s = context.s
+
+    switch (context.peek()) {
+        case T.Int: {
+            const raw = context.peekText()
+            context.index++
+            return { s, e: context.e, k: "lit-int", v: readInt(raw) }
+        }
+
+        case T.Float: {
+            const raw = context.peekText()
+            context.index++
+            return { s, e: context.e, k: "lit-frac", v: readFrac(raw) }
+        }
+    }
+
+    context.raise("Invalid expression")
+    return { s, e: context.e, k: "error", v: null }
+}
+
+export function parseExpr(context: ParseContext): Expr {
+    return parseExprAtom(context)
+}
