@@ -160,7 +160,7 @@ const OPERATORS = new Map([
     ["~", T.Tilde],
 ])
 
-const OPERATOR = /!=|<=|>=|<<|>>|.?|[+\-*]%|[&!|^:,.=>{[(<\-+?}\]);/\*~]/y
+const OPERATOR = /!=|<=|>=|<<|>>|\.\?|[+\-*]%|[&!|^,.=>{[(<\-+?}\]);/\*~:]/y
 
 export function tokenize(errors: Errors, file: File): Tokens {
     const { body } = file
@@ -276,6 +276,7 @@ export function tokenize(errors: Errors, file: File): Tokens {
         if (body.charAt(index) === "\\" && body.charAt(index + 1) === "\\") {
             start.push(index)
             end.push((index = file.lineEnd[file.row(index)]!))
+            kind.push(T.StrPart)
             continue
         }
 

@@ -1,0 +1,5 @@
+2.3,
+var a: 23 = 45;
+fn world(a: 45, b: 78) 94 = 54
+@builtin(2.3,),
+:world

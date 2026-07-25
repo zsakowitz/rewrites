@@ -121,7 +121,7 @@ export type Expr = { s: number; e: number } & (
     | { k: "get-unwrap"; v: { target: Expr } }
     | { k: "block"; v: { label: Label; body: Stmt[] } }
     | { k: "builtin"; v: { name: string; args: Expr[] } }
-    | { k: "ident"; v: string }
+    | { k: "ident"; v: Ident }
     | { k: "underscore"; v: null }
     | { k: "closure"; v: { args: { name: Ident; type: Expr | null }[]; body: Expr } }
     | { k: "paren"; v: Expr }
@@ -374,7 +374,7 @@ export function parseDecl(context: ParseContext): Decl {
             const comptime = context.peek() === T.KComptime
             if (comptime) context.index++
             const name = parseIdent(context)
-            if (!name) throw new Error("TODO: function name is required")
+            if (!name) throw new Error("TODO: argument name is required")
             context.take(T.Colon)
             const type = parseExpr(context)
             if (context.peek() !== T.RParen) context.take(T.Comma)
@@ -430,6 +430,12 @@ export function parseDecl(context: ParseContext): Decl {
 
 function parseDeclBlock(context: ParseContext): Decl[] {
     context.take(T.LBrace)
+    const ret = parseDeclBlockInner(context)
+    context.take(T.RBrace)
+    return ret
+}
+
+function parseDeclBlockInner(context: ParseContext): Decl[] {
     const ret: Decl[] = []
     while (context.peek() !== T.RBrace && context.peek() !== T.Eof) {
         const si = context.index
@@ -439,7 +445,6 @@ function parseDeclBlock(context: ParseContext): Decl[] {
             break
         }
     }
-    context.take(T.RBrace)
     return ret
 }
 
@@ -458,12 +463,186 @@ function parseExprAtom(context: ParseContext): Expr {
             context.index++
             return { s, e: context.e, k: "lit-frac", v: readFrac(raw) }
         }
+
+        case T.Str: {
+            const raw = parseStr(context)!
+            return { s, e: context.e, k: "lit-string", v: raw }
+        }
+
+        case T.Ident: {
+            const raw = parseIdent(context)!
+            return { s, e: context.e, k: "ident", v: raw }
+        }
+
+        case T.DotInt:
+            break
+
+        case T.Builtin: {
+            const name = context.peekText().slice(1)
+            context.index++
+            const args = parseParenthesizedExpressionList(context)
+            return { s, e: context.e, k: "builtin", v: { name, args } }
+        }
+
+        case T.Char:
+            break
+
+        case T.StrPart:
+            break
+
+        case T.KBreak: {
+            context.index++
+            const label = parseLabel(context)
+            const value = parseExprMaybe(context)
+            return { s, e: context.e, k: "cf-break", v: { label, value } }
+        }
+
+        case T.KComptime: {
+            context.index++
+            const v = parseExpr(context)
+            return { s, e: context.e, k: "cf-comptime", v }
+        }
+
+        case T.KContinue: {
+            context.index++
+            const label = parseLabel(context)
+            return { s, e: context.e, k: "cf-continue", v: { label } }
+        }
+
+        case T.KEnum: {
+            context.index++
+            const tag = parseTagType(context)
+            const child = parseDeclBlock(context)
+            return { s, e: context.e, k: "ns-enum", v: { extern: false, tag, child } }
+        }
+
+        case T.KExtern: {
+            context.index++
+            const k =
+                context.peek() === T.KEnum ? "ns-enum"
+                : context.peek() === T.KStruct ? "ns-struct"
+                : null
+            if (k === null) {
+                context.raise("Expected `enum` or `struct`")
+                return { s, e: context.e, k: "error", v: null }
+            }
+            context.index++
+            const tag = k !== "ns-struct" ? parseTagType(context) : null
+            const child = parseDeclBlock(context)
+            if (k === "ns-enum") return { s, e: context.e, k, v: { extern: true, tag, child } }
+            return { s, e: context.e, k, v: { extern: true, child } }
+        }
+
+        case T.KFor:
+        case T.KIf:
+        case T.KOr:
+        case T.KOrelse:
+        case T.KPub:
+        case T.KReturn:
+        case T.KStruct:
+        case T.KSwitch:
+        case T.KTest:
+        case T.KUnion:
+        case T.KUnreachable:
+        case T.KVar:
+        case T.KWhile:
+        case T.Amp:
+        case T.Bang:
+        case T.BangEq:
+        case T.Bar:
+        case T.Carat:
+        case T.Colon:
+        case T.Comma:
+        case T.Dot:
+        case T.DotQues:
+        case T.Eq:
+        case T.EqEq:
+        case T.Gt:
+        case T.GtEq:
+        case T.GtGt:
+        case T.LBrace:
+        case T.LBrack:
+        case T.LParen:
+        case T.Lt:
+        case T.LtEq:
+        case T.LtLt:
+        case T.Minus:
+        case T.MinusPercent:
+        case T.Plus:
+        case T.PlusPercent:
+        case T.Ques:
+        case T.RBrace:
+        case T.RBrack:
+        case T.RParen:
+        case T.Semi:
+        case T.Slash:
+        case T.Star:
+        case T.StarPercent:
+        case T.Tilde:
+        case T.Underscore:
     }
 
     context.raise("Invalid expression")
     return { s, e: context.e, k: "error", v: null }
 }
 
+function parseExprMaybe(context: ParseContext): Expr | null {
+    if (
+        [T.KAnd, T.KOr, T.KOrelse, T.KElse, T.Comma, T.Semi, T.RParen, T.RBrack, T.RBrace].includes(
+            context.peek(),
+        )
+    ) {
+        return null
+    }
+
+    return parseExpr(context)
+}
+
+function parseLabel(context: ParseContext): Ident | null {
+    if (context.peek() !== T.Colon) {
+        return null
+    }
+
+    context.take(T.Colon)
+    const e = context.e
+    if (context.s !== e) {
+        context.raise("Expected identifier to immediately follow `:` in label")
+    }
+    const ident = parseIdent(context)
+    return ident
+}
+
+function parseParenthesizedExpressionList(context: ParseContext): Expr[] {
+    context.take(T.LParen)
+    const ret: Expr[] = []
+    while (context.peek() !== T.RParen && context.peek() !== T.Eof) {
+        const si = context.index
+        ret.push(parseExpr(context))
+        if (context.index === si) throw new Error("Invalid expression")
+        if (context.peek() !== T.RParen) context.take(T.Comma)
+    }
+    context.take(T.RParen)
+    return ret
+}
+
+function parseTagType(context: ParseContext): Expr | null {
+    if (context.peek() !== T.LParen) {
+        return null
+    }
+    context.take(T.LParen)
+    const ret = parseExpr(context)
+    context.take(T.RParen)
+    return ret
+}
+
 export function parseExpr(context: ParseContext): Expr {
     return parseExprAtom(context)
+}
+
+export function parseFile(context: ParseContext): Decl[] {
+    const ret = parseDeclBlockInner(context)
+    if (context.peek() !== T.Eof) {
+        context.raise("Invalid declaration")
+    }
+    return ret
 }
