@@ -69,8 +69,9 @@ export type Ident = { s: number; e: number; raw: boolean; name: string }
 export type Label = { s: number; e: number; name: string } | null
 export type Pat = { s: number; e: number; k: "else"; v: null } | Expr
 export type ForInput =
-    | { s: number; e: number; k: "range"; v: { lhs: Expr; rhs: Expr | null } }
-    | { s: number; e: number; k: "plain"; v: Expr }
+    // | { s: number; e: number; k: "range"; v: { lhs: Expr; rhs: Expr | null } }
+    // | { s: number; e: number; k: "plain"; v: Expr }
+    Expr
 export type TestName =
     | { s: number; e: number; k: "lit-string"; v: string }
     | { s: number; e: number; k: "ident"; v: string }
@@ -85,7 +86,7 @@ export type Expr = { s: number; e: number } & (
     | { k: "ty-fn"; v: { args: Expr[]; ret: Expr } }
     | { k: "ns-struct"; v: { extern: boolean; child: Decl[] } }
     | { k: "ns-enum"; v: { extern: boolean; tag: Expr | null; child: Decl[] } }
-    | { k: "ns-union"; v: { child: Decl[] } }
+    | { k: "ns-union"; v: { tag: Expr | null; child: Decl[] } }
     | { k: "dot-tuple"; v: Expr[] } // .{2, 3}
     | { k: "dot-struct"; v: { name: Ident; value: Expr }[] } // .{a: 2}
     | { k: "dot-field"; v: string } // .a
@@ -339,6 +340,19 @@ function parseCapture1(context: ParseContext): Ident | null {
     return ident
 }
 
+function parseCaptureN(context: ParseContext): Ident[] {
+    context.take(T.Bar)
+    const ret = []
+    while (context.peek() !== T.Bar && context.peek() !== T.Eof) {
+        const i = context.index
+        ret.push(parseIdent(context))
+        if (i === context.index) break
+        if (context.peek() !== T.Bar) context.take(T.Comma)
+    }
+    context.take(T.Bar)
+    return ret.filter((x) => x !== null)
+}
+
 export function parseDecl(context: ParseContext): Decl {
     const s = context.s
 
@@ -471,6 +485,7 @@ function parseExprAtom(context: ParseContext): Expr {
 
         case T.Ident: {
             const raw = parseIdent(context)!
+            // todo: labeled block, for, while, switch
             return { s, e: context.e, k: "ident", v: raw }
         }
 
@@ -533,57 +548,139 @@ function parseExprAtom(context: ParseContext): Expr {
             return { s, e: context.e, k, v: { extern: true, child } }
         }
 
-        case T.KFor:
-        case T.KIf:
-        case T.KOr:
-        case T.KOrelse:
-        case T.KPub:
-        case T.KReturn:
-        case T.KStruct:
+        case T.KFor: {
+            context.index++
+            const args = parseParenthesizedExpressionList(context)
+            const captures = parseCaptureN(context)
+            const body = parseExpr(context)
+            const belse = parseElse(context)
+            return {
+                s,
+                e: context.e,
+                k: "cf-for",
+                v: { label: null, inputs: args, capture: captures, body, else: belse },
+            }
+        }
+
+        case T.KIf: {
+            context.index++
+            context.take(T.LParen)
+            const condition = parseExpr(context)
+            context.take(T.RParen)
+            const capture = parseCapture1(context)
+            const bif = parseExpr(context)
+            const belse = parseElse(context)
+            return {
+                s,
+                e: context.e,
+                k: "cf-if",
+                v: { cond: condition, capture, if: bif, else: belse },
+            }
+        }
+
+        case T.KReturn: {
+            context.index++
+            const value = parseExprMaybe(context)
+            return { s, e: context.e, k: "cf-return", v: { value } }
+        }
+
+        case T.KStruct: {
+            context.index++
+            const child = parseDeclBlock(context)
+            return { s, e: context.e, k: "ns-struct", v: { extern: false, child } }
+        }
+
         case T.KSwitch:
-        case T.KTest:
-        case T.KUnion:
-        case T.KUnreachable:
-        case T.KVar:
-        case T.KWhile:
-        case T.Amp:
-        case T.Bang:
-        case T.BangEq:
-        case T.Bar:
-        case T.Carat:
-        case T.Colon:
-        case T.Comma:
+            break
+
+        case T.KUnion: {
+            context.index++
+            const tag = parseTagType(context)
+            const child = parseDeclBlock(context)
+            return { s, e: context.e, k: "ns-union", v: { tag, child } }
+        }
+
+        case T.KUnreachable: {
+            context.index++
+            return { s, e: context.e, k: "cf-unreachable", v: null }
+        }
+
+        case T.KWhile: {
+            context.index++
+            context.take(T.LParen)
+            const condition = parseExpr(context)
+            context.take(T.RParen)
+            const capture = parseCapture1(context)
+            const body = parseExpr(context)
+            const belse = parseElse(context)
+            return {
+                s,
+                e: context.e,
+                k: "cf-while",
+                v: { label: null, input: condition, capture, body, else: belse },
+            }
+        }
+
         case T.Dot:
-        case T.DotQues:
-        case T.Eq:
-        case T.EqEq:
-        case T.Gt:
-        case T.GtEq:
-        case T.GtGt:
+            break
+
         case T.LBrace:
-        case T.LBrack:
-        case T.LParen:
-        case T.Lt:
-        case T.LtEq:
-        case T.LtLt:
-        case T.Minus:
-        case T.MinusPercent:
-        case T.Plus:
-        case T.PlusPercent:
-        case T.Ques:
-        case T.RBrace:
-        case T.RBrack:
-        case T.RParen:
-        case T.Semi:
-        case T.Slash:
-        case T.Star:
-        case T.StarPercent:
-        case T.Tilde:
+            return parseBlock(context)
+
+        case T.LBrack: {
+            context.index++
+            const len = parseExprMaybe(context)
+            context.take(T.RBrack)
+            const child = parseExpr(context)
+            return { s, e: context.e, k: "ty-array", v: { len, child } }
+        }
+
+        case T.LParen: {
+            context.index++
+            const v = parseExpr(context)
+            context.take(T.RParen)
+            return { s, e: context.e, k: "paren", v }
+        }
+
         case T.Underscore:
+            context.index++
+            return { s, e: context.e, k: "underscore", v: null }
+
+        default:
+            context.raise("Invalid expression")
+            return { s, e: context.e, k: "error", v: null }
     }
 
-    context.raise("Invalid expression")
+    context.raise("Expression type not implemented")
     return { s, e: context.e, k: "error", v: null }
+}
+
+function parseBlock(context: ParseContext): Expr {
+    const s = context.s
+    const ret = parseBlockRaw(context)
+    return { s, e: context.e, k: "block", v: { label: null, body: ret } }
+}
+
+function parseBlockRaw(context: ParseContext): Stmt[] {
+    const s = context.s
+    context.take(T.LBrace)
+    const ret: Stmt[] = []
+    while (context.peek() !== T.RBrace && context.peek() !== T.Eof) {
+        const i = context.index
+        const stmt = parseStmt(context)
+        if (stmt === null) break
+        ret.push(stmt)
+        if (context.index === i) break
+    }
+    context.take(T.RBrace)
+    return ret
+}
+
+function parseElse(context: ParseContext): Expr | null {
+    if (context.peek() !== T.KElse) return null
+
+    context.take(T.KElse)
+    return parseExpr(context)
 }
 
 function parseExprMaybe(context: ParseContext): Expr | null {
