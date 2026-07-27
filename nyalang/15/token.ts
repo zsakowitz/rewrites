@@ -48,6 +48,7 @@ export enum T {
     DotQues,
     Eq,
     EqEq,
+    EqGt,
     Gt,
     GtEq,
     GtGt,
@@ -158,9 +159,10 @@ const OPERATORS = new Map([
     ["*", T.Star],
     ["*%", T.StarPercent],
     ["~", T.Tilde],
+    ["=>", T.EqGt],
 ])
 
-const OPERATOR = /!=|<=|>=|<<|>>|\.\?|[+\-*]%|[&!|^,.=>{[(<\-+?}\]);/\*~:]/y
+const OPERATOR = /!=|=>|<=|>=|<<|>>|\.\?|[+\-*]%|[&!|^,.=>{[(<\-+?}\]);/\*~:]/y
 
 export function tokenize(errors: Errors, file: File): Tokens {
     const { body } = file

@@ -67,7 +67,7 @@ export type OpInfix =
 
 export type Ident = { s: number; e: number; raw: boolean; name: string }
 export type Label = { s: number; e: number; name: string } | null
-export type Pat = { s: number; e: number; k: "else"; v: null } | Expr
+export type SwitchPat = { s: number; e: number; k: "else"; v: null } | Expr
 export type ForInput =
     // | { s: number; e: number; k: "range"; v: { lhs: Expr; rhs: Expr | null } }
     // | { s: number; e: number; k: "plain"; v: Expr }
@@ -75,6 +75,8 @@ export type ForInput =
 export type TestName =
     | { s: number; e: number; k: "lit-string"; v: string }
     | { s: number; e: number; k: "ident"; v: string }
+
+export type ExprDot = { s: number }
 
 export type Expr = { s: number; e: number } & (
     | { k: "error"; v: null }
@@ -88,8 +90,9 @@ export type Expr = { s: number; e: number } & (
     | { k: "ns-enum"; v: { extern: boolean; tag: Expr | null; child: Decl[] } }
     | { k: "ns-union"; v: { tag: Expr | null; child: Decl[] } }
     | { k: "dot-tuple"; v: Expr[] } // .{2, 3}
-    | { k: "dot-struct"; v: { name: Ident; value: Expr }[] } // .{a: 2}
-    | { k: "dot-field"; v: string } // .a
+    | { k: "dot-record"; v: { name: Ident; value: Expr }[] } // .{a: 2}
+    | { k: "dot-empty"; v: null } // .{}
+    | { k: "dot-field"; v: Ident } // .a
     | { k: "dot-method"; v: { name: Ident; args: Expr[] } } // .a(2, 3)
     | { k: "dot-call"; v: Expr[] } // .(2, 3)
     | { k: "op-prefix"; v: { name: OpPrefix; arg: Expr } }
@@ -99,10 +102,7 @@ export type Expr = { s: number; e: number } & (
     | { k: "cf-or"; v: { lhs: Expr; rhs: Expr } }
     | { k: "cf-orelse"; v: { lhs: Expr; rhs: Expr } }
     | { k: "cf-if"; v: { cond: Expr; capture: Ident | null; if: Expr; else: Expr | null } }
-    | {
-          k: "cf-switch"
-          v: { input: Expr; arms: { pat: Pat[]; capture: Ident | null; body: Expr }[] }
-      }
+    | { k: "cf-switch"; v: { input: Expr; arms: SwitchArm[] } }
     | {
           k: "cf-for"
           v: { label: Label; inputs: ForInput[]; capture: Ident[]; body: Expr; else: Expr | null }
@@ -127,6 +127,12 @@ export type Expr = { s: number; e: number } & (
     | { k: "closure"; v: { args: { name: Ident; type: Expr | null }[]; body: Expr } }
     | { k: "paren"; v: Expr }
 )
+
+export interface SwitchArm {
+    pat: SwitchPat[]
+    capture: Ident | null
+    body: Expr
+}
 
 export type Decl = { s: number; e: number } & (
     | { k: "field-ident"; v: Ident } // a, (could be a field in a tuple or a field name for an enum)
@@ -591,8 +597,29 @@ function parseExprAtom(context: ParseContext): Expr {
             return { s, e: context.e, k: "ns-struct", v: { extern: false, child } }
         }
 
-        case T.KSwitch:
-            break
+        case T.KSwitch: {
+            context.index++
+            context.take(T.LParen)
+            const scrutinee = parseExpr(context)
+            context.take(T.RParen)
+            context.take(T.LBrace)
+            const arms: SwitchArm[] = []
+            while (context.peek() !== T.RBrace && context.peek() !== T.Eof) {
+                const pat = [parseSwitchPattern(context)]
+                while (context.peek() === T.Comma) {
+                    context.take(T.Comma)
+                    pat.push(parseSwitchPattern(context))
+                }
+                context.take(T.EqGt)
+                const capture = parseCapture1(context)
+                const body = parseExpr(context)
+                if (context.peek() === T.RBrace) break
+                context.take(T.Comma)
+                arms.push({ pat, capture, body })
+            }
+            context.take(T.RBrace)
+            return { s, e: context.e, k: "cf-switch", v: { input: scrutinee, arms } }
+        }
 
         case T.KUnion: {
             context.index++
@@ -623,7 +650,7 @@ function parseExprAtom(context: ParseContext): Expr {
         }
 
         case T.Dot:
-            break
+            return parseExprAtomDot(context)
 
         case T.LBrace:
             return parseBlock(context)
@@ -654,6 +681,80 @@ function parseExprAtom(context: ParseContext): Expr {
 
     context.raise("Expression type not implemented")
     return { s, e: context.e, k: "error", v: null }
+}
+
+function parseExprAtomDot(context: ParseContext): Expr {
+    const s = context.s
+    context.take(T.Dot)
+
+    switch (context.peek()) {
+        case T.Ident: {
+            const id = parseIdent(context)!
+            if (context.peek() === T.LParen) {
+                const args = parseParenthesizedExpressionList(context)
+                return { s, e: context.e, k: "dot-method", v: { name: id, args } }
+            }
+            return { s, e: context.e, k: "dot-field", v: id }
+        }
+
+        case T.LParen: {
+            const args = parseParenthesizedExpressionList(context)
+            return { s, e: context.e, k: "dot-call", v: args }
+        }
+
+        case T.LBrace: {
+            const args = parseRecordBody(context)
+
+            switch (args.k) {
+                case "tuple":
+                    return { s, e: context.e, k: "dot-tuple", v: args.v }
+
+                case "record":
+                    return { s, e: context.e, k: "dot-record", v: args.v }
+
+                case "empty":
+                    return { s, e: context.e, k: "dot-empty", v: null }
+            }
+        }
+    }
+
+    context.raise("Expected `(`, `{`, or identifier")
+    return { s, e: context.e, k: "error", v: null }
+}
+
+type RecordBody =
+    | { k: "tuple"; v: Expr[] }
+    | { k: "record"; v: { name: Ident; value: Expr }[] }
+    | { k: "empty"; v: null }
+
+function parseRecordBody(context: ParseContext): RecordBody {
+    context.take(T.LBrace)
+    if (context.peek() === T.RBrace) {
+        return { k: "empty", v: null }
+    }
+
+    if (context.peek() === T.Ident && context.peek() === T.Colon) {
+        const v: { name: Ident; value: Expr }[] = []
+        while (context.peek() !== T.RBrace) {
+            const name = parseIdent(context)
+            if (!name) throw new Error("Invalid record literal")
+            context.take(T.Dot)
+            const value = parseExpr(context)
+            if (context.peek() !== T.RBrace) context.take(T.Comma)
+            v.push({ name, value })
+        }
+        context.take(T.RBrace)
+        return { k: "record", v }
+    }
+
+    const v: Expr[] = []
+    while (context.peek() !== T.RBrace) {
+        const value = parseExpr(context)
+        if (context.peek() !== T.RBrace) context.take(T.Comma)
+        v.push(value)
+    }
+    context.take(T.RBrace)
+    return { k: "tuple", v }
 }
 
 function parseBlock(context: ParseContext): Expr {
@@ -743,4 +844,13 @@ export function parseFile(context: ParseContext): Decl[] {
         context.raise("Invalid declaration")
     }
     return ret
+}
+
+function parseSwitchPattern(context: ParseContext): SwitchPat {
+    if (context.peek() === T.KElse) {
+        const s = context.s
+        context.take(T.KElse)
+        return { s, e: context.e, k: "else", v: null }
+    }
+    return parseExpr(context)
 }
