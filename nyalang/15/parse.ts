@@ -1,6 +1,6 @@
-import { assert, unreachable } from "../assert"
-import { readFrac, type Frac } from "../frac"
+import { assert, unreachable } from "./assert"
 import { Errors, TraceEntry } from "./error"
+import { readFrac, type Frac } from "./frac"
 import { T, type Tokens } from "./token"
 
 export class ParseContext {

@@ -1,8 +1,8 @@
 import { assert } from "./assert"
-import { Errors, TraceEntry } from "./ast/error"
-import type { File } from "./ast/file"
-import type { Expr, Stmt } from "./ast/parse"
+import { Errors, TraceEntry } from "./error"
+import type { File } from "./file"
 import type { Frac } from "./frac"
+import type { Expr, Stmt } from "./parse"
 
 export type Lazy<Final, Raw> =
     | { resolved: true; value: Final }

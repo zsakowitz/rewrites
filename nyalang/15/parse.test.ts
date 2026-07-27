@@ -1,8 +1,8 @@
-import fileBody from "./parse.test.txt"
-import { print } from "../debug"
+import { print } from "./debug"
 import { Errors, printErrors } from "./error"
 import { File } from "./file"
 import { ParseContext, parseFile } from "./parse"
+import fileBody from "./parse.test.txt"
 import { tokenize } from "./token"
 
 const errors = new Errors()

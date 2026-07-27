@@ -1,6 +1,6 @@
-import { Errors, printErrors } from "./ast/error"
-import { File } from "./ast/file"
 import { Block, expr } from "./compile"
+import { Errors, printErrors } from "./error"
+import { File } from "./file"
 
 const errors = new Errors()
 
