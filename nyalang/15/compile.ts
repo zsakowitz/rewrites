@@ -1,7 +1,8 @@
-import { assert } from "./assert"
+import { assert, unreachable } from "./assert"
 import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
 import type { Frac } from "./frac"
+import { FLOAT_BIT_SIZES, floatFromFrac, isSafeInt, type FloatBitSize } from "./num"
 import type { Expr, Stmt } from "./parse"
 
 const usize: RType = { k: "u", v: 32 }
@@ -17,7 +18,7 @@ export type RType =
     | { k: "comptime_int"; v: null }
     | { k: "comptime_frac"; v: null }
     | { k: "u" | "i"; v: number }
-    | { k: "f"; v: 32 | 64 }
+    | { k: "f"; v: FloatBitSize }
     | { k: "str"; v: null }
     | { k: "null"; v: null }
     | { k: "optional"; v: RType }
@@ -73,7 +74,7 @@ export type RValue =
     | { k: "struct"; v: Record<string, RValue> }
     | { k: "enum"; v: string }
     | { k: "union"; v: { key: string; value: RValue } }
-    | { k: "runtime"; v: number /* instruction index */ }
+    | { k: "runtime"; v: InstIndex }
 
 export type RContainerDecl =
     | { k: "const"; v: Lazy<RTypedValue, { type: Expr; value: Expr }> }
@@ -97,10 +98,13 @@ export interface Fn {
 
 export type Context = Record<string, RTypedValue>
 
+export type InstIndex = number
+
 export type RuntimeInst =
     | { k: "value"; v: RTypedValue }
     | { k: "var-init"; v: RTypedValue }
     | { k: "var-set"; v: RValue }
+    | { k: "float-extend"; v: { old: FloatBitSize; new: FloatBitSize; value: InstIndex } }
 
 export class Block {
     body: RuntimeInst[] = []
@@ -209,7 +213,7 @@ export function expr(
             const value = v.v
 
             if (type?.k === "f") {
-                return { type, value: { k: "float", v: Number(value.n) / Number(value.d) } }
+                return { type, value: { k: "float", v: floatFromFrac(value) } }
             }
 
             return { type: { k: "comptime_frac", v: null }, value: { k: "frac", v: value } }
@@ -348,9 +352,12 @@ export function expr(
                     return typeAsValue({ k: "i", v: +v.v.name.slice(1) })
                 }
                 if (/^f\d+$/.test(v.v.name)) {
-                    if (v.v.name === "f32") return typeAsValue({ k: "f", v: 32 })
-                    if (v.v.name === "f64") return typeAsValue({ k: "f", v: 64 })
-                    block.raiseAt(v, `'${v.v.name}' is not a valid floating-point type.`)
+                    for (const size of FLOAT_BIT_SIZES) {
+                        if (v.v.name === "f" + size) {
+                            return typeAsValue({ k: "f", v: size })
+                        }
+                    }
+                    block.raiseAt(v, `'${v.v.name}' is not a valid floating-point type`)
                 }
                 if (v.v.name === "false") {
                     return { type: { k: "bool", v: null }, value: { k: "bool", v: false } }
@@ -377,6 +384,7 @@ export function expr(
                 }
             }
             block.raiseAt(v, "Variables are not implemented yet")
+            return null
         }
 
         case "underscore":
@@ -411,45 +419,105 @@ function as(
 ): RTypedValue | null {
     switch (type.k) {
         case "never":
-            break
-
         case "void":
-            break
-
         case "bool":
-            break
-
-        case "comptime_int":
-            break
-
-        case "comptime_frac":
+        case "null":
+        case "comptime_int": // TODO
+        case "comptime_frac": // TODO
+        case "str":
+        case "type":
+            if (value.type.k === type.k) {
+                return value
+            }
             break
 
         case "u":
+            if (
+                (value.type.k === "comptime_int" || value.type.k === "u" || value.type.k === "i")
+                && value.value.k === "int"
+            ) {
+                if (!isSafeInt("u", type.v, value.value.v)) {
+                    block.raiseAt(
+                        range,
+                        `${value.value.v} is outside of the valid range for '${typeName(type)}'`,
+                    )
+                    return null
+                }
+                return { type, value: value.value }
+            }
+
+            if (value.type.k === "u" && value.type.v === type.v) {
+                return value
+            }
+
             break
 
         case "i":
+            if (
+                (value.type.k === "comptime_int" || value.type.k === "u" || value.type.k === "i")
+                && value.value.k === "int"
+            ) {
+                if (!isSafeInt("i", type.v, value.value.v)) {
+                    block.raiseAt(
+                        range,
+                        `${value.value.v} is outside of the valid range for '${typeName(type)}'`,
+                    )
+                    return null
+                }
+                return { type, value: value.value }
+            }
+
+            if (value.type.k === "i" && value.type.v === type.v) {
+                return value
+            }
+
             break
 
         case "f":
-            break
+            if (value.type.k === "comptime_frac" && value.value.k === "frac") {
+                return {
+                    type,
+                    value: { k: "float", v: floatFromFrac(value.value.v) },
+                }
+            }
 
-        case "str":
-            break
+            if (value.type.k === "f") {
+                if (value.type.v === type.v) {
+                    return value
+                }
 
-        case "null":
+                if (value.type.v <= type.v) {
+                    if (value.value.k === "float") {
+                        return { type, value: value.value }
+                    }
+
+                    if (value.value.k === "runtime") {
+                        block.body.push({
+                            k: "float-extend",
+                            v: { old: value.type.v, new: type.v, value: value.value.v },
+                        })
+                        return {
+                            type,
+                            value: { k: "runtime", v: block.body.length - 1 },
+                        }
+                    }
+
+                    unreachable()
+                }
+            }
+
             break
 
         case "optional":
+            if (value.type.k === "null") {
+                return { type, value: { k: "null", v: null } }
+            }
             break
 
         case "array":
             break
 
         case "fn":
-            break
-
-        case "type":
             break
 
         case "struct":
@@ -462,8 +530,111 @@ function as(
             break
     }
 
-    block.raiseAt(range, `Coercions into '${typeName(type)}' are not implemented yet`)
+    block.raiseAt(
+        range,
+        `Expected '${typeName(type)}', but value has type '${typeName(value.type)}'`,
+    )
     return null
+}
+
+function typeEq(a: RType, b: RType): boolean {
+    if (a === b) return true
+    if (a.k !== b.k) return false
+
+    switch (a.k) {
+        case "never":
+        case "void":
+        case "bool":
+        case "comptime_int":
+        case "comptime_frac":
+        case "str":
+        case "null":
+        case "type":
+            return true
+
+        case "u":
+        case "f":
+        case "i":
+            return a.v === b.v
+
+        case "optional":
+            assert(b.k === "optional")
+            return typeEq(a.v, b.v)
+
+        case "array":
+            assert(b.k === "array")
+            return typeEq(a.v.child, b.v.child) && a.v.len === b.v.len
+
+        case "fn":
+            assert(b.k === "fn")
+            return (
+                typeEq(a.v.return, b.v.return)
+                && a.v.args.length === b.v.args.length
+                && a.v.args.every((va, i) => typeEq(va, b.v.args[i]!))
+            )
+
+        case "struct":
+        case "union":
+        case "enum":
+            assert(b.k === a.k)
+            return a.v.id === b.v.id && a.v.captures.every((va, i) => valueEq(va, b.v.captures[i]!))
+    }
+}
+
+/** Only for comptime-known values. Assumes corresponding types are equal. */
+function valueEq(a: RValue, b: RValue): boolean {
+    if (a === b) return true
+    if (a.k !== b.k) return false
+
+    switch (a.k) {
+        case "unreachable":
+        case "void":
+        case "null":
+            return true
+
+        case "bool":
+        case "int":
+        case "float":
+        case "str":
+        case "fn":
+            return a.v === b.v
+
+        case "frac":
+            assert(b.k === "frac")
+            return a.v.n === b.v.n && a.v.d === b.v.d
+
+        case "some":
+            assert(b.k === "some")
+            return valueEq(a.v, b.v)
+
+        case "array":
+            assert(b.k === "array")
+            return a.v.length === b.v.length && a.v.every((va, i) => valueEq(va, b.v[i]!))
+
+        case "type":
+            assert(b.k === "type")
+            return typeEq(a.v, b.v)
+
+        case "struct":
+            assert(b.k === "struct")
+            for (const key in a.v) {
+                if (!valueEq(a.v[key]!, b.v[key]!)) {
+                    return false
+                }
+            }
+            return true
+
+        case "enum":
+            assert(b.k === "enum")
+            return a.v === b.v
+
+        case "union":
+            assert(b.k === "union")
+            return a.v.key === b.v.key && valueEq(a.v.value, b.v.value)
+
+        case "runtime":
+            unreachable()
+    }
 }
 
 function exprAs(block: Block, time: "comptime" | "any", type: RType, v: Expr): RTypedValue | null {

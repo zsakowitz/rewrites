@@ -12,32 +12,20 @@ export class TraceEntry {
         readonly message: string,
     ) {}
 
-    toString() {
+    toString(): string {
         const { message, file, start } = this
 
-        return `${message} @ ${file.name}:${file.row(start) + 1}:${file.col(start, file.row(start)) + 1}`
+        return `${message} (${file.name}:${file.row(start) + 1}:${file.col(start, file.row(start)) + 1})`
     }
 }
 
 export class Error {
-    readonly nativeTrace: string
-
     constructor(
         readonly trace: TraceEntry[], // first entry is where the error started, last entry is the final place it bubbled to
-    ) {
-        this.nativeTrace =
-            (new globalThis.Error().stack ?? "")
-                .split("\n")
-                .slice(1)
-                .find((x) => !/^(?:new Error|raise|take|raiseAt) \(\//.test(x.slice(7)))
-                ?.slice(7)
-                .replace("/Users/sakawi/Documents/Active/rewrites/nyalang/15", "15") ?? "unknown"
-    }
+    ) {}
 
-    toString() {
-        return (
-            `Error at ${this.nativeTrace}` + this.trace.map((x) => "\n    " + x.toString()).join("")
-        )
+    toString(): string {
+        return this.trace.join("\n")
     }
 }
 
