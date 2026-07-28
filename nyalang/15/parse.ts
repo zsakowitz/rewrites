@@ -76,8 +76,6 @@ export type TestName =
     | { s: number; e: number; k: "lit-string"; v: string }
     | { s: number; e: number; k: "ident"; v: string }
 
-export type ExprDot = { s: number }
-
 export type Expr = { s: number; e: number } & (
     | { k: "error"; v: null }
     | { k: "lit-int"; v: /* nonnegative */ bigint }
@@ -496,13 +494,10 @@ function parseExprAtom(context: ParseContext): Expr {
             return { s, e: context.e, k: "ident", v: raw }
         }
 
-        case T.DotInt:
-            break
-
         case T.Builtin: {
             const name = context.peekText().slice(1)
             context.index++
-            const args = parseParenthesizedExpressionList(context)
+            const args = parseArguments(context)
             return { s, e: context.e, k: "builtin", v: { name, args } }
         }
 
@@ -557,7 +552,7 @@ function parseExprAtom(context: ParseContext): Expr {
 
         case T.KFor: {
             context.index++
-            const args = parseParenthesizedExpressionList(context)
+            const args = parseArguments(context)
             const captures = parseCaptureN(context)
             const body = parseExpr(context)
             const belse = parseElse(context)
@@ -683,7 +678,7 @@ function parseExprAtom(context: ParseContext): Expr {
     return { s, e: context.e, k: "error", v: null }
 }
 
-function parseExprAtomDot(context: ParseContext): Expr {
+function parseExprAtomDot(context: ParseContext): ExprDot {
     const s = context.s
     context.take(T.Dot)
 
@@ -691,14 +686,14 @@ function parseExprAtomDot(context: ParseContext): Expr {
         case T.Ident: {
             const id = parseIdent(context)!
             if (context.peek() === T.LParen) {
-                const args = parseParenthesizedExpressionList(context)
+                const args = parseArguments(context)
                 return { s, e: context.e, k: "dot-method", v: { name: id, args } }
             }
             return { s, e: context.e, k: "dot-field", v: id }
         }
 
         case T.LParen: {
-            const args = parseParenthesizedExpressionList(context)
+            const args = parseArguments(context)
             return { s, e: context.e, k: "dot-call", v: args }
         }
 
@@ -811,7 +806,7 @@ function parseLabel(context: ParseContext): Ident | null {
     return ident
 }
 
-function parseParenthesizedExpressionList(context: ParseContext): Expr[] {
+function parseArguments(context: ParseContext): Expr[] {
     context.take(T.LParen)
     const ret: Expr[] = []
     while (context.peek() !== T.RParen && context.peek() !== T.Eof) {
@@ -834,8 +829,58 @@ function parseTagType(context: ParseContext): Expr | null {
     return ret
 }
 
+export function parseExprWithSuffixes(context: ParseContext): Expr {
+    let base = parseExpr(context)
+    let next
+
+    while (
+        ((next = context.peek()),
+        next === T.Dot || next === T.DotQues || next === T.LBrack || next === T.LParen)
+    ) {
+        switch (next) {
+            case T.Dot: {
+                context.index++
+                const name = parseIdent(context)
+                if (!name) throw new Error("Invalid expression")
+                if (context.peek() !== T.LParen) {
+                    base = { s: base.s, e: context.e, k: "get-prop", v: { target: base, name } }
+                    break
+                }
+                const args = parseArguments(context)
+                base = { s: base.s, e: context.e, k: "get-method", v: { target: base, name, args } }
+                break
+            }
+
+            case T.DotQues: {
+                context.index++
+                base = { s: base.s, e: context.e, k: "get-unwrap", v: { target: base } }
+                break
+            }
+
+            case T.LBrack: {
+                context.index++
+                const index = parseExpr(context)
+                context.take(T.RBrack)
+                base = { s: base.s, e: context.e, k: "get-index", v: { target: base, index } }
+                break
+            }
+
+            case T.LParen: {
+                const args = parseArguments(context)
+                base = { s: base.s, e: context.e, k: "get-call", v: { target: base, args } }
+                break
+            }
+
+            default:
+                unreachable()
+        }
+    }
+
+    return base
+}
+
 export function parseExpr(context: ParseContext): Expr {
-    return parseExprAtom(context)
+    return parseExprWithSuffixes(context)
 }
 
 export function parseFile(context: ParseContext): Decl[] {
