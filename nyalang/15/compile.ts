@@ -53,7 +53,7 @@ export type RType =
               name: string
               captures: RValue[]
               tagType: RType & { k: "i" | "u" }
-              fields: Record<string, RValue>
+              fields: Record<string, bigint>
               decls: Record<string, RContainerDecl>
           }
       }
@@ -102,9 +102,26 @@ export type InstIndex = number
 
 export type RuntimeInst =
     | { k: "value"; v: RTypedValue }
-    | { k: "var-init"; v: RTypedValue }
-    | { k: "var-set"; v: RValue }
     | { k: "float-extend"; v: { old: FloatBitSize; new: FloatBitSize; value: InstIndex } }
+    | { k: "optional-unwrap"; v: InstIndex }
+
+    // Anatomy of an if-else instruction:
+    //
+    //     IfBool %cond
+    //     ... // only runs if %cond is true
+    //     IfElse (.int 78) // value returned when the `if` block is taken
+    //     ... // only runs if %cond is false
+    //     IfEnd (.int 32) // value returned when the `else` block is taken
+    //
+    // IfOptional can be used instead of IfBool. In this case, it can be
+    // referenced from the first block to get the unwrapped value.
+    //
+    // Only the `IfEnd` instruction can be referenced to yield a concrete value.
+    //
+    | { k: "if-bool"; v: InstIndex }
+    | { k: "if-optional"; v: InstIndex }
+    | { k: "if-else"; v: RTypedValue }
+    | { k: "if-end"; v: RTypedValue }
 
 export class Block {
     body: RuntimeInst[] = []
@@ -117,6 +134,12 @@ export class Block {
 
     raiseAt(range: { s: number; e: number }, message: string) {
         this.errors.raise(new TraceEntry(this.file, range.s, range.e, message))
+    }
+
+    todo(range: { s: number; e: number }) {
+        const source = new Error().stack?.split("\n")[2]
+
+        this.raiseAt(range, "not implemented yet (" + source?.slice(source.indexOf("(") + 49))
     }
 }
 
@@ -155,6 +178,8 @@ export function typeName(type: RType): string {
     }
 }
 
+const VOID: RTypedValue = { type: { k: "void", v: null }, value: { k: "void", v: null } }
+
 /**
  * If `null` is returned, a fatal error prevented compilation, and the `null` should be bubbled up
  * through the application.
@@ -178,6 +203,9 @@ export function expr(
     switch (v.k) {
         case "error":
             return null
+
+        case "lit-void":
+            return VOID
 
         case "lit-int": {
             const value = v.v
@@ -219,7 +247,7 @@ export function expr(
             return { type: { k: "comptime_frac", v: null }, value: { k: "frac", v: value } }
         }
 
-        case "lit-string":
+        case "lit-str":
             return {
                 type: { k: "str", v: null },
                 value: { k: "str", v: v.v },
@@ -258,25 +286,82 @@ export function expr(
 
         case "ns-enum": {
             if (v.v.extern) {
-                block.raiseAt(v, "'extern enum' is not supported yet")
+                block.todo(v)
+                return null
             }
 
-            if (v.v.tag) {
-                block.raiseAt(v, "'enum' declarations cannot use explicit backing types yet")
+            const tagType: RType | null = v.v.tag ? exprAsType(block, v.v.tag) : { k: "u", v: 32 }
+            if (tagType === null) return null
+
+            if (!(tagType.k === "u" || tagType.k === "i")) {
+                block.raiseAt(v.v.tag!, "enum tag type must be an integer")
+                return null
             }
 
-            const fields: Record<string, RValue> = Object.create(null)
+            const fields: Record<string, bigint> = Object.create(null)
+            const used = new Set<bigint>()
             let nextInt = 0n
             for (const el of v.v.child) {
-                if (el.k === "field-ident") {
-                    if (el.v.name in fields) {
-                        block.raiseAt(el, `Field '${el.v.name}' appears multiple times in enum`)
+                switch (el.k) {
+                    case "field-ident":
+                        if (el.v.name.name in fields) {
+                            block.raiseAt(
+                                el,
+                                `Field '${el.v.name.name}' appears multiple times in enum`,
+                            )
+                            return null
+                        }
+
+                        let value: bigint
+                        if (el.v.default) {
+                            const val = exprAs(block, "comptime", tagType, el.v.default)
+                            if (val === null) return null
+
+                            if (val.value.k !== "int") {
+                                block.raiseAt(
+                                    el.v.default,
+                                    "Unable to resolve value at compile time",
+                                )
+                                return null
+                            }
+                            value = val.value.v
+                            nextInt = value + 1n
+                        } else {
+                            value = nextInt++
+                        }
+
+                        if (!isSafeInt(tagType.k, tagType.v, value)) {
+                            block.raiseAt(
+                                el,
+                                `Field value '${value}' does not fit in tag type '${typeName(tagType)}'`,
+                            )
+                            return null
+                        }
+
+                        if (used.has(value)) {
+                            block.raiseAt(
+                                el,
+                                `Field value '${value}' has already been taken by a different enum field`,
+                            )
+                            return null
+                        }
+
+                        used.add(value)
+                        fields[el.v.name.name] = value
+                        break
+
+                    case "field-expr":
+                    case "field-plain":
+                        block.raiseAt(el, "Invalid field declaration for 'enum'")
                         return null
-                    }
-                    fields[el.v.name] = { k: "int", v: nextInt++ }
-                } else {
-                    block.raiseAt(el, "'enum' declarations only support plain fields for now")
-                    return null
+
+                    case "comptime":
+                    case "test":
+                    case "const":
+                    case "var":
+                    case "fn":
+                        block.todo(el)
+                        return null
                 }
             }
 
@@ -304,7 +389,7 @@ export function expr(
                 block.raiseAt(v, `Expected ${type.v.len} elements, but got 0`)
             }
 
-            block.raiseAt(v, "'.{}' syntax is not supported here yet")
+            block.todo(v)
             return null
         }
 
@@ -322,7 +407,7 @@ export function expr(
                 block.raiseAt(v, `Expected ${type.v.len} elements, but got ${v.v.value.length}`)
             }
 
-            block.raiseAt(v, "'.{a, b}' syntax is not supported here yet")
+            block.todo(v)
             return null
         }
 
@@ -334,7 +419,7 @@ export function expr(
                 return { type, value: { k: "enum", v: v.v.name } }
             }
 
-            block.raiseAt(v, "'.xyz' syntax is not supported here yet")
+            block.todo(v)
             return null
         }
 
@@ -350,8 +435,9 @@ export function expr(
         case "op-infix":
             break
 
-        case "cf-unreachable":
-            break
+        case "cf-unreachable": {
+            return { type: type ?? { k: "never", v: null }, value: { k: "unreachable", v: null } }
+        }
 
         case "cf-and":
             break
@@ -362,8 +448,115 @@ export function expr(
         case "cf-orelse":
             break
 
-        case "cf-if":
-            break
+        case "cf-if": {
+            if (!v.v.capture) {
+                const cond = exprAs(block, time, { k: "bool", v: null }, v.v.cond)
+                if (cond === null) return null
+
+                assert(
+                    cond.value.k === "bool"
+                        || cond.value.k === "runtime"
+                        || cond.value.k === "unreachable",
+                )
+
+                switch (cond.value.k) {
+                    case "unreachable":
+                        return unreachableOf(type)
+
+                    case "bool":
+                        if (cond.value) {
+                            return expr(block, time, type, v.v.if)
+                        } else {
+                            return v.v.else ? expr(block, time, type, v.v.else) : VOID
+                        }
+
+                    case "runtime": {
+                        // TODO how to do type unification (e.g. i32+null -> ?i32) when it might require extra runtime calls that we can't make because it would require adjusting indexes for the IfElse branch?
+                        if (type === null) {
+                            block.todo(v)
+                            return null
+                        }
+
+                        block.body.push({ k: "if-bool", v: cond.value.v })
+                        let rif = exprAs(block, time, type, v.v.if)
+                        if (rif === null) return null
+                        if (type == null) {
+                            type = rif.type
+                        } else {
+                        }
+                        block.body.push({ k: "if-else", v: rif })
+                        const relse = exprAs(
+                            block,
+                            time,
+                            type,
+                            v.v.else ?? { s: v.e, e: v.e, k: "lit-void", v: null },
+                        )
+                        if (relse === null) return null
+                        block.body.push({ k: "if-end", v: relse })
+                        return { type, value: { k: "runtime", v: block.body.length - 1 } }
+                    }
+                }
+            }
+
+            if (v.v.capture.name in block.context) {
+                block.raiseAt(
+                    v.v.capture,
+                    `capture '${v.v.capture.name}' shadows name already in scope`,
+                )
+                return null
+            }
+
+            const cond = expr(block, time, null, v.v.cond)
+            if (cond === null) return null
+
+            if (cond.type.k !== "optional") {
+                block.raiseAt(v.v.cond, "Expected optional value")
+                return null
+            }
+
+            assert(
+                cond.value.k === "unreachable"
+                    || cond.value.k === "null"
+                    || cond.value.k === "some"
+                    || cond.value.k === "runtime",
+            )
+
+            switch (cond.value.k) {
+                case "unreachable":
+                    return unreachableOf(type)
+
+                case "null":
+                    return v.v.else ? expr(block, time, type, v.v.else) : VOID
+
+                case "some": {
+                    block.context[v.v.capture.name] = { type: cond.type.v, value: cond.value.v }
+                    const rv = expr(block, time, type, v.v.if)
+                    delete block.context[v.v.capture.name]
+                    return rv
+                }
+
+                case "runtime": {
+                    if (type === null) {
+                        block.todo(v)
+                        return null
+                    }
+
+                    block.body.push({ k: "if-optional", v: cond.value.v })
+                    const rif = exprAs(block, time, type, v.v.if)
+                    if (rif === null) return null
+                    block.body.push({ k: "if-else", v: rif })
+                    const relse = exprAs(
+                        block,
+                        time,
+                        type,
+                        v.v.else ?? { s: v.e, e: v.e, k: "lit-void", v: null },
+                    )
+                    if (relse === null) return null
+                    block.body.push({ k: "if-end", v: relse })
+                    return { type, value: { k: "runtime", v: block.body.length - 1 } }
+                }
+            }
+        }
 
         case "cf-switch":
             break
@@ -398,11 +591,40 @@ export function expr(
         case "get-call":
             break
 
-        case "get-unwrap":
-            break
+        case "get-unwrap": {
+            const target = expr(block, time, type ? { k: "optional", v: type } : null, v.v.target)
+            if (target?.type.k !== "optional") {
+                block.raiseAt(v.v.target, "Expected optional value")
+                return null
+            }
 
-        case "block":
-            break
+            if (target.value.k === "null") {
+                block.raiseAt(v.v.target, "Cannot unwrap 'null'")
+                return null
+            }
+
+            if (target.value.k === "some") {
+                return { type: target.type.v, value: target.value.v }
+            }
+
+            if (target.value.k === "unreachable") {
+                return { type: target.type.v, value: { k: "unreachable", v: null } }
+            }
+
+            assert(target.value.k === "runtime")
+            block.body.push({ k: "optional-unwrap", v: target.value.v })
+            return { type: target.type.v, value: { k: "runtime", v: target.value.v } }
+        }
+
+        case "block": {
+            // TODO labeled blocks
+            for (const el of v.v.body) {
+                const rv = stmt(block, time, el)
+                if (rv === "error") return null
+                if (rv === "never") return unreachableOf(type)
+            }
+            return { type: { k: "void", v: null }, value: { k: "void", v: null } }
+        }
 
         case "builtin":
             return exprBuiltin(block, time, type, v, v.v.name, v.v.args)
@@ -422,6 +644,7 @@ export function expr(
                         }
                     }
                     block.raiseAt(v, `'${v.v.name}' is not a valid floating-point type`)
+                    return null
                 }
                 if (v.v.name === "false") {
                     return { type: { k: "bool", v: null }, value: { k: "bool", v: false } }
@@ -447,7 +670,7 @@ export function expr(
                     return typeAsValue({ k: v.v.name, v: null })
                 }
             }
-            block.raiseAt(v, "Variables are not implemented yet")
+            block.todo(v)
             return null
         }
 
@@ -465,8 +688,12 @@ export function expr(
             v satisfies never
     }
 
-    block.raiseAt(v, `Expression type '.${v.k}' not implemented yet`)
+    block.todo(v)
     return null
+}
+
+export function unreachableOf(type: RType | null): RTypedValue {
+    return { type: type ?? { k: "never", v: null }, value: { k: "unreachable", v: null } }
 }
 
 /**
@@ -766,9 +993,9 @@ function exprBuiltin(
 ): RTypedValue | null {
     switch (name) {
         // Forces its argument to be evaluated at runtime.
-        case "runtime": {
+        case "blackBox": {
             if (args.length !== 1) {
-                block.raiseAt(v, "'@runtime' expects one argument")
+                block.raiseAt(v, "'@blackBox' expects one argument")
                 return null
             }
 
@@ -793,7 +1020,7 @@ function exprBuiltin(
         }
     }
 
-    block.raiseAt(v, `Builtin '@${name}' not implemented yet`)
+    block.todo(v)
     return null
 }
 
@@ -834,6 +1061,6 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" |
         return "void"
     }
 
-    block.raiseAt(v, "Statement type not implemented yet")
+    block.todo(v)
     return "error"
 }

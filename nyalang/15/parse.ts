@@ -75,14 +75,15 @@ export type ForInput =
     // | { s: number; e: number; k: "plain"; v: Expr }
     Expr
 export type TestName =
-    | { s: number; e: number; k: "lit-string"; v: string }
+    | { s: number; e: number; k: "lit-str"; v: string }
     | { s: number; e: number; k: "ident"; v: string }
 
 export type Expr = { s: number; e: number } & (
     | { k: "error"; v: null }
+    | { k: "lit-void"; v: null } // not expressable in surface syntax, use {}
     | { k: "lit-int"; v: /* nonnegative */ bigint }
     | { k: "lit-frac"; v: Frac }
-    | { k: "lit-string"; v: string }
+    | { k: "lit-str"; v: string }
     | { k: "ty-optional"; v: { child: Expr } }
     | { k: "ty-array"; v: { len: Expr | null; child: Expr } }
     | { k: "ty-fn"; v: { args: Expr[]; ret: Expr } }
@@ -135,7 +136,7 @@ export interface SwitchArm {
 }
 
 export type Decl = { s: number; e: number } & (
-    | { k: "field-ident"; v: Ident } // a, (could be a field in a tuple or a field name for an enum)
+    | { k: "field-ident"; v: { name: Ident; default: Expr | null } } // a, (could be a field in a tuple or a field name for an enum)
     | { k: "field-expr"; v: Expr } // Map(i32, i32), (must be some kind of tuple field type)
     | { k: "field-plain"; v: { name: Ident; type: Expr; default: Expr | null } } // a: i32 = 4,
     | { k: "comptime"; v: Expr }
@@ -380,10 +381,15 @@ export function parseDecl(context: ParseContext): Decl {
 
     if (context.peek() === T.Ident) {
         const name = parseIdent(context)!
+        let defaultValue = null
+        if (context.peek() === T.Eq) {
+            context.index++
+            defaultValue = parseExpr(context)
+        }
         if (context.peek() !== T.RBrace) {
             context.take(T.Comma)
         }
-        return { s, e: context.e, k: "field-ident", v: name }
+        return { s, e: context.e, k: "field-ident", v: { name, default: defaultValue } }
     }
 
     if (context.peek() === T.KFn) {
@@ -486,7 +492,7 @@ function parseExprAtom(context: ParseContext): Expr {
 
         case T.Str: {
             const raw = parseStr(context)!
-            return { s, e: context.e, k: "lit-string", v: raw }
+            return { s, e: context.e, k: "lit-str", v: raw }
         }
 
         case T.Ident: {
