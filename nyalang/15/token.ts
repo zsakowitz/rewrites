@@ -60,6 +60,7 @@ export enum T {
     LtLt,
     Minus,
     MinusPercent,
+    Percent,
     Plus,
     PlusPercent,
     Ques,
@@ -160,9 +161,10 @@ const OPERATORS = new Map([
     ["*%", T.StarPercent],
     ["~", T.Tilde],
     ["=>", T.EqGt],
+    ["%", T.Percent],
 ])
 
-const OPERATOR = /!=|=>|<=|>=|<<|>>|\.\?|[+\-*]%|[&!|^,.=>{[(<\-+?}\]);/\*~:]/y
+const OPERATOR = /!=|=>|<=|>=|<<|>>|\.\?|[+\-*]%|[%&!|^,.=>{[(<\-+?}\]);/\*~:]/y
 
 export function tokenize(errors: Errors, file: File): Tokens {
     const { body } = file

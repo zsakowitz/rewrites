@@ -678,7 +678,7 @@ function parseExprAtom(context: ParseContext): Expr {
     return { s, e: context.e, k: "error", v: null }
 }
 
-function parseExprAtomDot(context: ParseContext): ExprDot {
+function parseExprAtomDot(context: ParseContext): Expr {
     const s = context.s
     context.take(T.Dot)
 
@@ -829,8 +829,8 @@ function parseTagType(context: ParseContext): Expr | null {
     return ret
 }
 
-export function parseExprWithSuffixes(context: ParseContext): Expr {
-    let base = parseExpr(context)
+function parseExprWithSuffixes(context: ParseContext): Expr {
+    let base = parseExprAtom(context)
     let next
 
     while (
@@ -887,7 +887,7 @@ const OP_PREFIX = {
     [T.MinusPercent]: "-%",
 } as const
 
-export function parseExprWithPrefixes(context: ParseContext): Expr {
+function parseExprWithPrefixes(context: ParseContext): Expr {
     const prefixes = []
 
     let next
@@ -920,8 +920,82 @@ export function parseExprWithPrefixes(context: ParseContext): Expr {
     return base
 }
 
+function createInfixParser(
+    base: (context: ParseContext) => Expr,
+    infixes: Partial<Record<T, OpInfix>>,
+) {
+    return (context: ParseContext): Expr => {
+        let lhs = base(context)
+        let next
+        while (((next = context.peek()), Object.hasOwn(infixes, next))) {
+            context.index++
+            const rhs = base(context)
+            lhs = { s: lhs.s, e: rhs.e, k: "op-infix", v: { name: infixes[next]!, lhs, rhs } }
+        }
+        return lhs
+    }
+}
+
+// todo: wgsl operator precedence. it's generally clearer, but I don't care to implement it right now
+
+const iProd = createInfixParser(parseExprWithPrefixes, {
+    [T.Star]: "*",
+    [T.StarPercent]: "*%",
+    [T.Slash]: "/",
+    [T.Percent]: "%",
+})
+
+const iSum = createInfixParser(iProd, {
+    [T.Plus]: "+",
+    [T.PlusPercent]: "+%",
+    [T.Minus]: "-",
+    [T.MinusPercent]: "-%",
+})
+
+const iShift = createInfixParser(iSum, { [T.LtLt]: "<<", [T.GtGt]: ">>" })
+const iBitOp = createInfixParser(iShift, { [T.Tilde]: "~", [T.Amp]: "&", [T.Bar]: "|" })
+
+function iOrelse(context: ParseContext): Expr {
+    let lhs = iBitOp(context)
+    while (context.peek() === T.KOrelse) {
+        context.index++
+        const rhs = iBitOp(context)
+        lhs = { s: lhs.s, e: rhs.e, k: "cf-orelse", v: { lhs, rhs } }
+    }
+    return lhs
+}
+
+const iCmp = createInfixParser(iOrelse, {
+    [T.EqEq]: "==",
+    [T.BangEq]: "!=",
+    [T.Lt]: "<",
+    [T.LtEq]: "<=",
+    [T.Gt]: ">",
+    [T.GtEq]: ">=",
+})
+
+function iAnd(context: ParseContext): Expr {
+    let lhs = iCmp(context)
+    while (context.peek() === T.KAnd) {
+        context.index++
+        const rhs = iCmp(context)
+        lhs = { s: lhs.s, e: rhs.e, k: "cf-and", v: { lhs, rhs } }
+    }
+    return lhs
+}
+
+function iOr(context: ParseContext): Expr {
+    let lhs = iAnd(context)
+    while (context.peek() === T.KAnd) {
+        context.index++
+        const rhs = iAnd(context)
+        lhs = { s: lhs.s, e: rhs.e, k: "cf-or", v: { lhs, rhs } }
+    }
+    return lhs
+}
+
 export function parseExpr(context: ParseContext): Expr {
-    return parseExprWithPrefixes(context)
+    return iOr(context)
 }
 
 export function parseFile(context: ParseContext): Decl[] {
