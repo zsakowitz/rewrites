@@ -57,7 +57,7 @@ export class ParseContext {
     }
 }
 
-export type OpPrefix = "!" | "~" | "-" | "/"
+export type OpPrefix = "!" | "~" | "-" | "/" | "-%"
 
 // prettier-ignore
 export type OpInfix =
@@ -879,8 +879,49 @@ export function parseExprWithSuffixes(context: ParseContext): Expr {
     return base
 }
 
+const OP_PREFIX = {
+    [T.Bang]: "!",
+    [T.Tilde]: "~",
+    [T.Slash]: "/",
+    [T.Minus]: "-",
+    [T.MinusPercent]: "-%",
+} as const
+
+export function parseExprWithPrefixes(context: ParseContext): Expr {
+    const prefixes = []
+
+    let next
+
+    while (
+        (next = context.peek())
+        && (next === T.Ques
+            || next === T.Bang
+            || next === T.Tilde
+            || next === T.Slash
+            || next === T.Minus
+            || next === T.MinusPercent)
+    ) {
+        prefixes.push({ s: context.s, k: next })
+        context.index++
+    }
+
+    let base = parseExprWithSuffixes(context)
+
+    while (prefixes.length) {
+        const { s, k } = prefixes.pop()!
+        if (k === T.Ques) {
+            base = { s, e: base.e, k: "ty-optional", v: { child: base } }
+            continue
+        }
+
+        base = { s, e: base.e, k: "op-prefix", v: { name: OP_PREFIX[k], arg: base } }
+    }
+
+    return base
+}
+
 export function parseExpr(context: ParseContext): Expr {
-    return parseExprWithSuffixes(context)
+    return parseExprWithPrefixes(context)
 }
 
 export function parseFile(context: ParseContext): Decl[] {
