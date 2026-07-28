@@ -256,23 +256,87 @@ export function expr(
         case "ns-struct":
             break
 
-        case "ns-enum":
-            break
+        case "ns-enum": {
+            if (v.v.extern) {
+                block.raiseAt(v, "'extern enum' is not supported yet")
+            }
+
+            if (v.v.tag) {
+                block.raiseAt(v, "'enum' declarations cannot use explicit backing types yet")
+            }
+
+            const fields: Record<string, RValue> = Object.create(null)
+            let nextInt = 0n
+            for (const el of v.v.child) {
+                if (el.k === "field-ident") {
+                    if (el.v.name in fields) {
+                        block.raiseAt(el, `Field '${el.v.name}' appears multiple times in enum`)
+                        return null
+                    }
+                    fields[el.v.name] = { k: "int", v: nextInt++ }
+                } else {
+                    block.raiseAt(el, "'enum' declarations only support plain fields for now")
+                    return null
+                }
+            }
+
+            return typeAsValue({
+                k: "enum",
+                v: {
+                    id: v.v.id,
+                    captures: [],
+                    decls: Object.create(null),
+                    fields,
+                    name: "enum__" + v.v.id,
+                    tagType: { k: "u", v: 32 }, // TODO avoid hardcoding
+                },
+            })
+        }
 
         case "ns-union":
             break
 
-        case "dot-empty":
-            break
+        case "dot-empty": {
+            if (type?.k === "array") {
+                if (type.v.len === null || type.v.len === 0) {
+                    return { type, value: { k: "array", v: [] } }
+                }
+                block.raiseAt(v, `Expected ${type.v.len} elements, but got 0`)
+            }
 
-        case "dot-tuple":
-            break
+            block.raiseAt(v, "'.{}' syntax is not supported here yet")
+            return null
+        }
+
+        case "dot-tuple": {
+            if (type?.k === "array") {
+                if (type.v.len === null || type.v.len === v.v.value.length) {
+                    const ret: RValue[] = []
+                    for (const el of v.v.value) {
+                        const subval = expr(block, time, type.v.child, el)
+                        if (subval === null) return null
+                        ret.push(subval.value)
+                    }
+                    return { type, value: { k: "array", v: ret } }
+                }
+                block.raiseAt(v, `Expected ${type.v.len} elements, but got ${v.v.value.length}`)
+            }
+
+            block.raiseAt(v, "'.{a, b}' syntax is not supported here yet")
+            return null
+        }
 
         case "dot-record":
             break
 
-        case "dot-field":
-            break
+        case "dot-field": {
+            if (type?.k === "enum" && v.v.name in type.v.fields) {
+                return { type, value: { k: "enum", v: v.v.name } }
+            }
+
+            block.raiseAt(v, "'.xyz' syntax is not supported here yet")
+            return null
+        }
 
         case "dot-method":
             break
@@ -512,22 +576,55 @@ function as(
             if (value.type.k === "null") {
                 return { type, value: { k: "null", v: null } }
             }
+
+            if (value.type.k !== "optional") {
+                const valueAsChild = as(block, type.v, range, value)
+                if (valueAsChild === null) return null
+
+                return { type, value: { k: "some", v: valueAsChild.value } }
+            }
+
+            const depthTarget = countOptionalNestingDepth(type)
+            const depthSource = countOptionalNestingDepth(value.type)
+
+            // e.g. coercing ?i32 into ?i32
+            if (depthTarget === depthSource) {
+                if (!typeEq(type, value.type)) {
+                    break
+                }
+                return value
+            }
+
+            // e.g. coercing ?i32 into ???i32
+            if (depthTarget > depthSource) {
+                let targetUnwrapped: RType = type
+                for (let i = 0; i < depthTarget - depthSource; i++) {
+                    assert(targetUnwrapped.k === "optional")
+                    targetUnwrapped = targetUnwrapped.v
+                }
+
+                const inner = as(block, targetUnwrapped, range, value)
+                if (inner === null) return null
+
+                let retval = inner.value
+                for (let i = 0; i < depthTarget - depthSource; i++) {
+                    retval = { k: "some", v: retval }
+                }
+
+                return { type, value: retval }
+            }
+
             break
 
         case "array":
-            break
-
         case "fn":
-            break
-
         case "struct":
-            break
-
         case "union":
-            break
-
         case "enum":
-            break
+            if (!typeEq(type, value.type)) {
+                break
+            }
+            return value
     }
 
     block.raiseAt(
@@ -535,6 +632,17 @@ function as(
         `Expected '${typeName(type)}', but value has type '${typeName(value.type)}'`,
     )
     return null
+}
+
+function countOptionalNestingDepth(type: RType): number {
+    let count = 0
+
+    while (type.k === "optional") {
+        type = type.v
+        count++
+    }
+
+    return count
 }
 
 function typeEq(a: RType, b: RType): boolean {

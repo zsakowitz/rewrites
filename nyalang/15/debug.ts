@@ -1,5 +1,6 @@
 import { blue, cyan, dim, green, red, reset, yellow } from "../2/ansi"
 import { assert } from "./assert"
+import { typeName } from "./compile"
 import { Error, Errors } from "./error"
 
 export function debug(value: unknown): string {
@@ -12,7 +13,7 @@ export function debug(value: unknown): string {
     }
 
     if (value instanceof Errors) {
-        return blue + "Errors " + reset + "{" + debug(value.errors).slice(1, -1) + "}"
+        return "Errors " + reset + debug(value.errors)
     }
 
     if (typeof value === "boolean" || typeof value === "number" || value === null) {
@@ -59,25 +60,32 @@ export function debug(value: unknown): string {
         return "<unknown>"
     }
 
+    if ("type" in value && "value" in value && Object.keys(value).length === 2) {
+        return blue + typeName(value.type as any) + " " + reset + debug(value.value)
+    }
+
+    assert(typeof value === "object" && value !== null)
+
     if (
         "s" in value
         && typeof value.s === "number"
         && "e" in value
         && typeof value.e === "number"
-        && "k" in value
-        && typeof value.k === "string"
-        && "v" in value
-        && Object.keys(value).length === 4
     ) {
-        return `${cyan}.${value.k}${reset} ${debug(value.v)}`
-    }
-
-    if ("s" in value && "e" in value) {
         let s, e
         ;({ s, e, ...value } = value)
     }
 
     assert(typeof value === "object" && value !== null)
+
+    if (
+        "k" in value
+        && typeof value.k === "string"
+        && "v" in value
+        && Object.keys(value).length === 2
+    ) {
+        return `${cyan}.${value.k}${reset} ${debug(value.v)}`
+    }
 
     if (Object.keys(value).length === 0) return "[]"
 

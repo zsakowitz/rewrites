@@ -3,6 +3,8 @@ import { Errors, TraceEntry } from "./error"
 import { readFrac, type Frac } from "./frac"
 import { T, type Tokens } from "./token"
 
+let nextId = 0
+
 export class ParseContext {
     index = 0
 
@@ -84,12 +86,12 @@ export type Expr = { s: number; e: number } & (
     | { k: "ty-optional"; v: { child: Expr } }
     | { k: "ty-array"; v: { len: Expr | null; child: Expr } }
     | { k: "ty-fn"; v: { args: Expr[]; ret: Expr } }
-    | { k: "ns-struct"; v: { extern: boolean; child: Decl[] } }
-    | { k: "ns-enum"; v: { extern: boolean; tag: Expr | null; child: Decl[] } }
-    | { k: "ns-union"; v: { tag: Expr | null; child: Decl[] } }
-    | { k: "dot-tuple"; v: Expr[] } // .{2, 3}
-    | { k: "dot-record"; v: { name: Ident; value: Expr }[] } // .{a: 2}
-    | { k: "dot-empty"; v: null } // .{}
+    | { k: "ns-struct"; v: { id: number; extern: boolean; child: Decl[] } }
+    | { k: "ns-enum"; v: { id: number; extern: boolean; tag: Expr | null; child: Decl[] } }
+    | { k: "ns-union"; v: { id: number; tag: Expr | null; child: Decl[] } }
+    | { k: "dot-tuple"; v: { id: number; value: Expr[] } } // .{2, 3}
+    | { k: "dot-record"; v: { id: number; value: { name: Ident; value: Expr }[] } } // .{a: 2}
+    | { k: "dot-empty"; v: { id: number } } // .{}
     | { k: "dot-field"; v: Ident } // .a
     | { k: "dot-method"; v: { name: Ident; args: Expr[] } } // .a(2, 3)
     | { k: "dot-call"; v: Expr[] } // .(2, 3)
@@ -529,7 +531,7 @@ function parseExprAtom(context: ParseContext): Expr {
             context.index++
             const tag = parseTagType(context)
             const child = parseDeclBlock(context)
-            return { s, e: context.e, k: "ns-enum", v: { extern: false, tag, child } }
+            return { s, e: context.e, k: "ns-enum", v: { id: nextId++, extern: false, tag, child } }
         }
 
         case T.KExtern: {
@@ -545,8 +547,9 @@ function parseExprAtom(context: ParseContext): Expr {
             context.index++
             const tag = k !== "ns-struct" ? parseTagType(context) : null
             const child = parseDeclBlock(context)
-            if (k === "ns-enum") return { s, e: context.e, k, v: { extern: true, tag, child } }
-            return { s, e: context.e, k, v: { extern: true, child } }
+            if (k === "ns-enum")
+                return { s, e: context.e, k, v: { id: nextId++, extern: true, tag, child } }
+            return { s, e: context.e, k, v: { id: nextId++, extern: true, child } }
         }
 
         case T.KFor: {
@@ -588,7 +591,7 @@ function parseExprAtom(context: ParseContext): Expr {
         case T.KStruct: {
             context.index++
             const child = parseDeclBlock(context)
-            return { s, e: context.e, k: "ns-struct", v: { extern: false, child } }
+            return { s, e: context.e, k: "ns-struct", v: { id: nextId++, extern: false, child } }
         }
 
         case T.KSwitch: {
@@ -621,7 +624,7 @@ function parseExprAtom(context: ParseContext): Expr {
             context.index++
             const tag = parseTagType(context)
             const child = parseDeclBlock(context)
-            return { s, e: context.e, k: "ns-union", v: { tag, child } }
+            return { s, e: context.e, k: "ns-union", v: { id: nextId++, tag, child } }
         }
 
         case T.KUnreachable: {
@@ -703,13 +706,13 @@ function parseExprAtomDot(context: ParseContext): Expr {
 
             switch (args.k) {
                 case "tuple":
-                    return { s, e: context.e, k: "dot-tuple", v: args.v }
+                    return { s, e: context.e, k: "dot-tuple", v: { id: nextId++, value: args.v } }
 
                 case "record":
-                    return { s, e: context.e, k: "dot-record", v: args.v }
+                    return { s, e: context.e, k: "dot-record", v: { id: nextId++, value: args.v } }
 
                 case "empty":
-                    return { s, e: context.e, k: "dot-empty", v: null }
+                    return { s, e: context.e, k: "dot-empty", v: { id: nextId++ } }
             }
         }
     }
@@ -727,6 +730,7 @@ type RecordBody =
 function parseRecordBody(context: ParseContext): RecordBody {
     context.take(T.LBrace)
     if (context.peek() === T.RBrace) {
+        context.index++
         return { k: "empty", v: null }
     }
 
