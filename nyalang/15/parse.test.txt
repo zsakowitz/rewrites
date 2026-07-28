@@ -1,3 +1,1 @@
-fn Array(T: type) type {
-    return struct { a: i32 };
-}
+@as(f32, 3)

@@ -4,6 +4,8 @@ import type { File } from "./file"
 import type { Frac } from "./frac"
 import type { Expr, Stmt } from "./parse"
 
+const usize: RType = { k: "u", v: 32 }
+
 export type Lazy<Final, Raw> =
     | { resolved: true; value: Final }
     | { resolved: false; value: { context: Context; input: Raw } }
@@ -15,7 +17,7 @@ export type RType =
     | { k: "comptime_int"; v: null }
     | { k: "comptime_frac"; v: null }
     | { k: "u" | "i"; v: number }
-    | { k: "f" | "r"; v: 32 | 64 }
+    | { k: "f"; v: 32 | 64 }
     | { k: "str"; v: null }
     | { k: "null"; v: null }
     | { k: "optional"; v: RType }
@@ -128,7 +130,6 @@ export function typeName(type: RType): string {
         case "u":
         case "i":
         case "f":
-        case "r":
             return type.k + type.v
 
         case "null":
@@ -151,23 +152,29 @@ export function typeName(type: RType): string {
 }
 
 /**
- * @param block Script block. `block.file` must match the file `expr` is from.
- * @param used Whether the return value is used. If `false`, the return `.value` must not be
- *   examined or used, and it may be syntactically invalid.
- * @param type The expected result type, if one exists. The expression does not necessarily need to
- *   evaluate to this type; if the caller requires a specific type, it should check it upon
- *   returning.
- * @returns `null` if there was a compile error preventing evaluation, otherwise the returned value.
- *   If it is not possible to return from this expression, use `.value.k === "unreachable"`.
+ * If `null` is returned, a fatal error prevented compilation, and the `null` should be bubbled up
+ * through the application.
+ *
+ * Assumptions:
+ *
+ * - If `time == "comptime"`, the returned value must is fully known at comptime.
+ * - `block.file` is set to the file `expr` is from.
+ *
+ * Non-assumptions:
+ *
+ * - The return value is assignable to `type`.
+ * - The return value has been coerced into `type`.
  */
 export function expr(
     block: Block,
     time: "comptime" | "any",
-    used: boolean,
     type: RType | null,
     v: Expr,
 ): RTypedValue | null {
     switch (v.k) {
+        case "error":
+            return null
+
         case "lit-int": {
             const value = v.v
 
@@ -198,7 +205,7 @@ export function expr(
             return { type: { k: "comptime_int", v: null }, value: { k: "int", v: value } }
         }
 
-        case "lit-float": {
+        case "lit-frac": {
             const value = v.v
 
             if (type?.k === "f") {
@@ -215,24 +222,29 @@ export function expr(
             }
 
         case "ty-optional": {
-            const child = expr(block, "comptime", used, { k: "type", v: null }, v.v.child)
+            const child = exprAsType(block, v.v.child)
             if (child === null) return null
 
-            if (child.type.k !== "type") {
-                block.raiseAt(v.v.child, `Expected type, found '${typeName(child.type)}'`)
-                return null
-            }
-
-            assert(child.value.k === "type")
-
-            return {
-                type: { k: "type", v: null },
-                value: { k: "type", v: { k: "optional", v: child.value.v } },
-            }
+            return typeAsValue({ k: "optional", v: child })
         }
 
-        case "ty-array":
-            break
+        case "ty-array": {
+            if (v.v.len === null) {
+                const child = exprAsType(block, v.v.child)
+                if (child === null) return null
+
+                return typeAsValue({ k: "array", v: { len: null, child } })
+            }
+
+            const len = exprAs(block, "comptime", usize, v.v.len)
+            if (len === null) return null
+            assert(len.value.k === "int")
+
+            const child = exprAsType(block, v.v.child)
+            if (child === null) return null
+
+            return typeAsValue({ k: "array", v: { len: Number(len.value.v), child } })
+        }
 
         case "ty-fn":
             break
@@ -246,10 +258,13 @@ export function expr(
         case "ns-union":
             break
 
+        case "dot-empty":
+            break
+
         case "dot-tuple":
             break
 
-        case "dot-struct":
+        case "dot-record":
             break
 
         case "dot-field":
@@ -301,7 +316,7 @@ export function expr(
             break
 
         case "cf-comptime":
-            break
+            return expr(block, "comptime", type, v)
 
         case "get-prop":
             break
@@ -322,25 +337,203 @@ export function expr(
             break
 
         case "builtin":
-            break
+            return exprBuiltin(block, time, type, v, v.v.name, v.v.args)
 
-        case "ident":
-            break
+        case "ident": {
+            if (!v.v.raw) {
+                if (/^u\d+$/.test(v.v.name)) {
+                    return typeAsValue({ k: "u", v: +v.v.name.slice(1) })
+                }
+                if (/^i\d+$/.test(v.v.name)) {
+                    return typeAsValue({ k: "i", v: +v.v.name.slice(1) })
+                }
+                if (/^f\d+$/.test(v.v.name)) {
+                    if (v.v.name === "f32") return typeAsValue({ k: "f", v: 32 })
+                    if (v.v.name === "f64") return typeAsValue({ k: "f", v: 64 })
+                    block.raiseAt(v, `'${v.v.name}' is not a valid floating-point type.`)
+                }
+                if (v.v.name === "false") {
+                    return { type: { k: "bool", v: null }, value: { k: "bool", v: false } }
+                }
+                if (v.v.name === "true") {
+                    return { type: { k: "bool", v: null }, value: { k: "bool", v: true } }
+                }
+                if (v.v.name === "null") {
+                    if (type?.k === "optional") {
+                        return { type, value: { k: "null", v: null } }
+                    }
+                    return { type: { k: "null", v: null }, value: { k: "null", v: null } }
+                }
+                if (
+                    v.v.name === "comptime_int"
+                    || v.v.name === "comptime_frac"
+                    || v.v.name === "bool"
+                    || v.v.name === "never"
+                    || v.v.name === "type"
+                    || v.v.name === "void"
+                    || v.v.name === "str"
+                ) {
+                    return typeAsValue({ k: v.v.name, v: null })
+                }
+            }
+            block.raiseAt(v, "Variables are not implemented yet")
+        }
 
         case "underscore":
-            break
+            block.raiseAt(v, "`_` cannot be used as a value")
+            return null
 
         case "closure":
             break
+
+        case "paren":
+            return expr(block, time, type, v.v)
+
+        default:
+            v satisfies never
     }
 
-    block.raiseAt(v, "Expression type not implemented yet")
+    block.raiseAt(v, `Expression type '.${v.k}' not implemented yet`)
     return null
+}
+
+/**
+ * Coerces a value to have a given type. If the coercion fails, an error is issued and `null` is
+ * returned.
+ *
+ * Assumes `range` comes from `block.file`.
+ */
+function as(
+    block: Block,
+    type: RType,
+    range: { s: number; e: number },
+    value: RTypedValue,
+): RTypedValue | null {
+    switch (type.k) {
+        case "never":
+            break
+
+        case "void":
+            break
+
+        case "bool":
+            break
+
+        case "comptime_int":
+            break
+
+        case "comptime_frac":
+            break
+
+        case "u":
+            break
+
+        case "i":
+            break
+
+        case "f":
+            break
+
+        case "str":
+            break
+
+        case "null":
+            break
+
+        case "optional":
+            break
+
+        case "array":
+            break
+
+        case "fn":
+            break
+
+        case "type":
+            break
+
+        case "struct":
+            break
+
+        case "union":
+            break
+
+        case "enum":
+            break
+    }
+
+    block.raiseAt(range, `Coercions into '${typeName(type)}' are not implemented yet`)
+    return null
+}
+
+function exprAs(block: Block, time: "comptime" | "any", type: RType, v: Expr): RTypedValue | null {
+    const value = expr(block, time, type, v)
+    if (value === null) return null
+
+    return as(block, type, v, value)
+}
+
+function typeAsValue(type: RType): RTypedValue {
+    return { type: { k: "type", v: null }, value: { k: "type", v: type } }
+}
+
+function exprBuiltin(
+    block: Block,
+    time: "comptime" | "any",
+    type: RType | null,
+    v: Expr,
+    name: string,
+    args: Expr[],
+): RTypedValue | null {
+    switch (name) {
+        // Forces its argument to be evaluated at runtime.
+        case "runtime": {
+            if (args.length !== 1) {
+                block.raiseAt(v, "'@runtime' expects one argument")
+                return null
+            }
+
+            const value = expr(block, time, type, args[0]!)
+            if (value === null) return null
+
+            block.body.push({ k: "value", v: value })
+            return { type: value.type, value: { k: "runtime", v: block.body.length - 1 } }
+        }
+
+        // Sets the expected type without forcing it to match.
+        case "as": {
+            if (args.length !== 2) {
+                block.raiseAt(v, "'@as' expects two arguments")
+                return null
+            }
+
+            const type = exprAsType(block, args[0]!)
+            if (type === null) return null
+
+            return exprAs(block, time, type, args[1]!)
+        }
+    }
+
+    block.raiseAt(v, `Builtin '@${name}' not implemented yet`)
+    return null
+}
+
+function exprAsType(block: Block, v: Expr): RType | null {
+    const value = expr(block, "comptime", { k: "type", v: null }, v)
+    if (value === null) return null
+
+    if (value.type.k !== "type") {
+        block.raiseAt(v, `Expected 'type', found '${typeName(value.type)}'`)
+        return null
+    }
+
+    assert(value.value.k === "type")
+    return value.value.v
 }
 
 export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" | "never" | "void" {
     if (v.k === "expr") {
-        const returnValue = expr(block, time, false, { k: "void", v: null }, v.v)
+        const returnValue = expr(block, time, { k: "void", v: null }, v.v)
 
         if (returnValue === null) {
             return "error"

@@ -390,6 +390,7 @@ export function parseDecl(context: ParseContext): Decl {
         context.take(T.LParen)
         const args = []
         while (context.peek() === T.Ident || context.peek() === T.KComptime) {
+            const i = context.index
             const comptime = context.peek() === T.KComptime
             if (comptime) context.index++
             const name = parseIdent(context)
@@ -398,6 +399,7 @@ export function parseDecl(context: ParseContext): Decl {
             const type = parseExpr(context)
             if (context.peek() !== T.RParen) context.take(T.Comma)
             args.push({ comptime, name, type })
+            if (i === context.index) break
         }
         context.take(T.RParen)
         const returnType = parseExpr(context)
@@ -457,12 +459,9 @@ function parseDeclBlock(context: ParseContext): Decl[] {
 function parseDeclBlockInner(context: ParseContext): Decl[] {
     const ret: Decl[] = []
     while (context.peek() !== T.RBrace && context.peek() !== T.Eof) {
-        const si = context.index
+        const i = context.index
         ret.push(parseDecl(context))
-        if (si === context.index) {
-            context.raise("Invalid declaration")
-            break
-        }
+        if (i === context.index) break
     }
     return ret
 }
@@ -600,9 +599,10 @@ function parseExprAtom(context: ParseContext): Expr {
             context.take(T.LBrace)
             const arms: SwitchArm[] = []
             while (context.peek() !== T.RBrace && context.peek() !== T.Eof) {
+                const i = context.index
                 const pat = [parseSwitchPattern(context)]
                 while (context.peek() === T.Comma) {
-                    context.take(T.Comma)
+                    context.index++
                     pat.push(parseSwitchPattern(context))
                 }
                 context.take(T.EqGt)
@@ -611,6 +611,7 @@ function parseExprAtom(context: ParseContext): Expr {
                 if (context.peek() === T.RBrace) break
                 context.take(T.Comma)
                 arms.push({ pat, capture, body })
+                if (context.index === i) break
             }
             context.take(T.RBrace)
             return { s, e: context.e, k: "cf-switch", v: { input: scrutinee, arms } }
@@ -670,7 +671,7 @@ function parseExprAtom(context: ParseContext): Expr {
             return { s, e: context.e, k: "underscore", v: null }
 
         default:
-            context.raise("Invalid expression")
+            context.raise("Expected expression")
             return { s, e: context.e, k: "error", v: null }
     }
 
@@ -721,6 +722,7 @@ type RecordBody =
     | { k: "tuple"; v: Expr[] }
     | { k: "record"; v: { name: Ident; value: Expr }[] }
     | { k: "empty"; v: null }
+    | { k: "error"; v: null }
 
 function parseRecordBody(context: ParseContext): RecordBody {
     context.take(T.LBrace)
@@ -728,12 +730,17 @@ function parseRecordBody(context: ParseContext): RecordBody {
         return { k: "empty", v: null }
     }
 
-    if (context.peek() === T.Ident && context.peek() === T.Colon) {
+    if (context.peek() === T.Dot && context.peekN(1) === T.Ident && context.peekN(2) === T.Eq) {
         const v: { name: Ident; value: Expr }[] = []
         while (context.peek() !== T.RBrace) {
-            const name = parseIdent(context)
-            if (!name) throw new Error("Invalid record literal")
             context.take(T.Dot)
+            const name = parseIdent(context)
+            if (!name) {
+                context.raise("Expected identifier")
+                return { k: "error", v: null }
+            }
+            context.take(T.Eq)
+
             const value = parseExpr(context)
             if (context.peek() !== T.RBrace) context.take(T.Comma)
             v.push({ name, value })
@@ -744,9 +751,11 @@ function parseRecordBody(context: ParseContext): RecordBody {
 
     const v: Expr[] = []
     while (context.peek() !== T.RBrace) {
+        const i = context.index
         const value = parseExpr(context)
         if (context.peek() !== T.RBrace) context.take(T.Comma)
         v.push(value)
+        if (context.index === i) break
     }
     context.take(T.RBrace)
     return { k: "tuple", v }
@@ -759,7 +768,6 @@ function parseBlock(context: ParseContext): Expr {
 }
 
 function parseBlockRaw(context: ParseContext): Stmt[] {
-    const s = context.s
     context.take(T.LBrace)
     const ret: Stmt[] = []
     while (context.peek() !== T.RBrace && context.peek() !== T.Eof) {
@@ -810,9 +818,9 @@ function parseArguments(context: ParseContext): Expr[] {
     context.take(T.LParen)
     const ret: Expr[] = []
     while (context.peek() !== T.RParen && context.peek() !== T.Eof) {
-        const si = context.index
+        const i = context.index
         ret.push(parseExpr(context))
-        if (context.index === si) throw new Error("Invalid expression")
+        if (context.index === i) break
         if (context.peek() !== T.RParen) context.take(T.Comma)
     }
     context.take(T.RParen)

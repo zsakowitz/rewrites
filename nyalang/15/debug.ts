@@ -1,7 +1,20 @@
-import { blue, cyan, dim, green, reset, yellow } from "../2/ansi"
+import { blue, cyan, dim, green, red, reset, yellow } from "../2/ansi"
 import { assert } from "./assert"
+import { Error, Errors } from "./error"
 
 export function debug(value: unknown): string {
+    if (value instanceof Error) {
+        return value
+            .toString()
+            .split("\n")
+            .map((x) => red + dim + "\\\\" + reset + red + x.toString() + reset)
+            .join("\n")
+    }
+
+    if (value instanceof Errors) {
+        return blue + "Errors " + reset + "{" + debug(value.errors).slice(1, -1) + "}"
+    }
+
     if (typeof value === "boolean" || typeof value === "number" || value === null) {
         return yellow + value + reset
     }
