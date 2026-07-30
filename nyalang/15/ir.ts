@@ -113,20 +113,6 @@ export type Name =
     // can't access the value of the outer `a`.
     | { s: number; e: number; k: "reserved"; v: null }
 
-function contextCloneForDeclaration(context: Names): Names {
-    const next: Names = Object.create(null)
-
-    for (const name in context) {
-        const { s, e, k, v } = context[name]!
-        next[name] =
-            k === "comptime-const" ? { s, e, k, v }
-            : k === "fn" ? { s, e, k, v }
-            : { s, e, k: "reserved", v: null }
-    }
-
-    return next
-}
-
 export type RuntimeExpr =
     | { k: "value"; v: RTypedValue }
     | { k: "float-extend"; v: { old: FloatBitSize; new: FloatBitSize; value: RuntimeExpr } }
