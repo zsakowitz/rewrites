@@ -2,4 +2,6 @@ if (@runtime(true)) {
     var a = 23;
 } else {
     var a = 45;
+    unreachable;
+    var c = 93;
 }

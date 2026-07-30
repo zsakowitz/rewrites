@@ -123,7 +123,7 @@ const nextRII = (() => {
 
 type RuntimeInst =
     | { n: RII; k: "lit"; v: RTypedValue }
-    | { n: RII; k: "cf-if"; v: { cond: RII; if: RuntimeBlock; else: RuntimeBlock } }
+    | { n: RII; k: "cf-if"; v: { cond: RII; type: RType; if: RuntimeBlock; else: RuntimeBlock } }
     | { n: RII; k: "cf-unreachable"; v: null }
     | { n: RII; k: "get-unwrap"; v: RII }
     | { n: RII; k: "var-init"; v: RTypedValue }
@@ -131,7 +131,7 @@ type RuntimeInst =
 // For `if`, `else`, `while`, etc.
 interface RuntimeBlock {
     body: RuntimeInst[]
-    value: RTypedValue
+    value: RTypedValue | null // `null` means the end of this block is unreachable
 }
 
 export class Block {
@@ -206,6 +206,21 @@ export function typeName(type: RType): string {
 
 const VOID: RTypedValue = { type: { k: "void", v: null }, value: { k: "void", v: null } }
 
+export type Result<T> =
+    | ResultPlain<T>
+    | { k: "break"; v: { n: RII; value: RTypedValue } }
+    | { k: "unreachable"; v: null }
+
+export type ResultPlain<T> = { k: "normal"; v: T } | { k: "error"; v: null }
+
+function normal<T>(value: T): ResultPlain<T> {
+    return { k: "normal", v: value }
+}
+
+function normalRuntime(type: RType, value: RII): Result<RTypedValue> {
+    return normal({ type, value: { k: "runtime", v: value } })
+}
+
 /**
  * If `null` is returned, a fatal error prevented compilation, and the `null` should be bubbled up
  * through the application.
@@ -225,13 +240,13 @@ export function expr(
     time: "comptime" | "any",
     type: RType | null,
     v: Expr,
-): RTypedValue | null {
+): Result<RTypedValue> {
     switch (v.k) {
         case "error":
-            return null
+            return ERROR
 
         case "lit-void":
-            return VOID
+            return normal(VOID)
 
         case "lit-int": {
             const value = v.v
@@ -242,10 +257,10 @@ export function expr(
                         v,
                         `Integer type '${typeName(type)}' cannot contain value '${value}'`,
                     )
-                    return null
+                    return ERROR
                 }
 
-                return { type, value: { k: "int", v: value } }
+                return normal({ type, value: { k: "int", v: value } })
             }
 
             if (type?.k === "i") {
@@ -254,69 +269,72 @@ export function expr(
                         v,
                         `Integer type '${typeName(type)}' cannot contain value '${value}'`,
                     )
-                    return null
+                    return ERROR
                 }
 
-                return { type, value: { k: "int", v: value } }
+                return normal({ type, value: { k: "int", v: value } })
             }
 
-            return { type: { k: "comptime_int", v: null }, value: { k: "int", v: value } }
+            return normal({ type: { k: "comptime_int", v: null }, value: { k: "int", v: value } })
         }
 
         case "lit-float": {
             const value = v.v
 
             if (type?.k === "f") {
-                return { type, value: { k: "float", v: value } }
+                return normal({ type, value: { k: "float", v: value } })
             }
 
-            return { type: { k: "comptime_float", v: null }, value: { k: "float", v: value } }
+            return normal({
+                type: { k: "comptime_float", v: null },
+                value: { k: "float", v: value },
+            })
         }
 
         case "lit-str":
-            return {
+            return normal({
                 type: { k: "str", v: null },
                 value: { k: "str", v: v.v },
-            }
+            })
 
         case "ty-optional": {
             const child = exprAsType(block, v.v.child)
-            if (child === null) return null
+            if (child.k !== "normal") return child
 
-            return typeAsValue({ k: "optional", v: child })
+            return resultFromType({ k: "optional", v: child.v })
         }
 
         case "ty-array": {
             if (v.v.len === null) {
                 const child = exprAsType(block, v.v.child)
-                if (child === null) return null
+                if (child.k !== "normal") return child
 
-                return typeAsValue({ k: "array", v: { len: null, child } })
+                return resultFromType({ k: "array", v: { len: null, child: child.v } })
             }
 
             const len = exprAs(block, "comptime", usize, v.v.len)
-            if (len === null) return null
-            assert(len.value.k === "int")
+            if (len.k !== "normal") return len
+            assert(len.v.value.k === "int")
 
             const child = exprAsType(block, v.v.child)
-            if (child === null) return null
+            if (child.k !== "normal") return child
 
-            return typeAsValue({ k: "array", v: { len: Number(len.value.v), child } })
+            return resultFromType({ k: "array", v: { len: Number(len.v.value.v), child: child.v } })
         }
 
         case "ty-fn": {
             const args: RType[] = []
             for (const arg of v.v.args) {
                 const type = exprAsType(block, arg)
-                if (type === null) return null
+                if (type.k !== "normal") return type
 
-                args.push(type)
+                args.push(type.v)
             }
 
             const ret = exprAsType(block, v.v.ret)
-            if (ret === null) return null
+            if (ret.k !== "normal") return ret
 
-            return typeAsValue({ k: "fn", v: { args, return: ret } })
+            return resultFromType({ k: "fn", v: { args, return: ret.v } })
         }
 
         case "ns-struct":
@@ -331,13 +349,13 @@ export function expr(
         case "dot-empty": {
             if (type?.k === "array") {
                 if (type.v.len === null || type.v.len === 0) {
-                    return { type, value: { k: "array", v: [] } }
+                    return normal({ type, value: { k: "array", v: [] } })
                 }
                 block.raiseAt(v, `Expected ${type.v.len} elements, but got 0`)
             }
 
             block.todo(v)
-            return null
+            return ERROR
         }
 
         case "dot-tuple": {
@@ -346,16 +364,16 @@ export function expr(
                     const ret: RValue[] = []
                     for (const el of v.v.value) {
                         const subval = expr(block, time, type.v.child, el)
-                        if (subval === null) return null
-                        ret.push(subval.value)
+                        if (subval.k !== "normal") return subval
+                        ret.push(subval.v.value)
                     }
-                    return { type, value: { k: "array", v: ret } }
+                    return normal({ type, value: { k: "array", v: ret } })
                 }
                 block.raiseAt(v, `Expected ${type.v.len} elements, but got ${v.v.value.length}`)
             }
 
             block.todo(v)
-            return null
+            return ERROR
         }
 
         case "dot-record":
@@ -379,11 +397,11 @@ export function expr(
         case "cf-unreachable":
             if (time === "comptime") {
                 block.raiseAt(v, "Encountered 'unreachable' at comptime")
-                return null
+                return ERROR
             }
 
             block.push("cf-unreachable", null)
-            return unreachableOf(type)
+            return UNREACHABLE
 
         case "cf-and":
             break
@@ -397,40 +415,67 @@ export function expr(
         case "cf-if": {
             if (v.v.capture) {
                 block.todo(v.v.capture)
-                return null
+                return ERROR
             }
 
             const cond = exprAs(block, time, { k: "bool", v: null }, v.v.cond)
-            if (cond === null) return null
-            if (cond.value.k === "unreachable") return unreachableOf(type)
+            if (cond.k !== "normal") return cond
+            if (cond.v.value.k === "unreachable") return UNREACHABLE
 
-            if (cond.value.k === "bool") {
-                if (cond.value.v) {
+            if (cond.v.value.k === "bool") {
+                if (cond.v.value.v) {
                     return expr(block, time, type, v.v.if)
                 } else {
-                    return v.v.else ? expr(block, time, type, v.v.else) : VOID
+                    return v.v.else ? expr(block, time, type, v.v.else) : normal(VOID)
                 }
             }
 
-            assert(cond.value.k === "runtime")
+            assert(cond.v.value.k === "runtime")
 
             const blockIf = block.fork()
             const blockElse = block.fork()
 
             const valueIf = expr(blockIf, time, type, v.v.if)
-            const valueElse = v.v.else ? expr(blockElse, time, type, v.v.else) : VOID
-            if (valueIf === null || valueElse === null) return null
+            if (valueIf.k === "error") return valueIf
 
-            const joined = join(block, v, valueIf, valueElse)
-            if (joined === null) return null
+            const valueElse = v.v.else ? expr(blockElse, time, type, v.v.else) : normal(VOID)
+            if (valueElse.k === "error") return valueElse
+
+            if (valueIf.k === "normal" && valueElse.k === "normal") {
+                const joined = join(block, v, valueIf.v, valueElse.v)
+                if (joined === null) return ERROR
+
+                const rii = block.push("cf-if", {
+                    cond: cond.v.value.v,
+                    type: joined[0].type,
+                    if: { body: blockIf.body, value: joined[0] },
+                    else: { body: blockElse.body, value: joined[1] },
+                })
+
+                return normal({ type: joined[0].type, value: { k: "runtime", v: rii } })
+            }
 
             const rii = block.push("cf-if", {
-                cond: cond.value.v,
-                if: { body: blockIf.body, value: joined[0] },
-                else: { body: blockElse.body, value: joined[1] },
+                cond: cond.v.value.v,
+                type:
+                    valueIf.k === "normal" ? valueIf.v.type
+                    : valueElse.k === "normal" ? valueElse.v.type
+                    : { k: "never", v: null },
+                if: {
+                    body: blockIf.body,
+                    value: valueIf.k === "normal" ? valueIf.v : null,
+                },
+                else: {
+                    body: blockElse.body,
+                    value: valueElse.k === "normal" ? valueElse.v : null,
+                },
             })
 
-            return { type: joined[0].type, value: { k: "runtime", v: rii } }
+            return (
+                valueIf.k === "normal" ? normalRuntime(valueIf.v.type, rii)
+                : valueElse.k === "normal" ? normalRuntime(valueElse.v.type, rii)
+                : UNREACHABLE
+            )
         }
 
         case "cf-switch":
@@ -467,33 +512,40 @@ export function expr(
             break
 
         case "get-unwrap": {
-            const target = expr(block, time, type ? { k: "optional", v: type } : null, v.v.target)
-            if (target === null) return null
+            const targetRaw = expr(
+                block,
+                time,
+                type ? { k: "optional", v: type } : null,
+                v.v.target,
+            )
+            if (targetRaw.k !== "normal") return ERROR
+
+            const target = targetRaw.v
 
             if (target.type.k !== "optional") {
                 block.raiseAt(v.v.target, "Expected optional value")
-                return null
+                return ERROR
             }
 
             if (target.value.k === "null") {
                 block.raiseAt(v.v.target, "Cannot unwrap 'null'")
-                return null
+                return ERROR
             }
 
             if (target.value.k === "some") {
-                return { type: target.type.v, value: target.value.v }
+                return normal({ type: target.type.v, value: target.value.v })
             }
 
             if (target.value.k === "unreachable") {
-                return { type: target.type.v, value: { k: "unreachable", v: null } }
+                return UNREACHABLE
             }
 
             assert(target.value.k === "runtime")
 
-            return {
+            return normal({
                 type: target.type.v,
                 value: { k: "runtime", v: block.push("get-unwrap", target.value.v) },
-            }
+            })
         }
 
         case "block": {
@@ -507,13 +559,14 @@ export function expr(
 
             for (const el of v.v.body) {
                 const rv = stmt(innerBlock, time, el)
-                if (rv === "error") return null
-                if (rv === "never") return unreachableOf(type)
+                if (rv.k !== "normal") {
+                    block.body.push(...innerBlock.body)
+                    return rv
+                }
             }
 
             block.body.push(...innerBlock.body)
-
-            return VOID
+            return normal(VOID)
         }
 
         case "builtin":
@@ -522,31 +575,31 @@ export function expr(
         case "ident": {
             if (!v.v.raw) {
                 if (/^u\d+$/.test(v.v.name)) {
-                    return typeAsValue({ k: "u", v: +v.v.name.slice(1) })
+                    return resultFromType({ k: "u", v: +v.v.name.slice(1) })
                 }
                 if (/^i\d+$/.test(v.v.name)) {
-                    return typeAsValue({ k: "i", v: +v.v.name.slice(1) })
+                    return resultFromType({ k: "i", v: +v.v.name.slice(1) })
                 }
                 if (/^f\d+$/.test(v.v.name)) {
                     for (const size of FLOAT_BIT_SIZES) {
                         if (v.v.name === "f" + size) {
-                            return typeAsValue({ k: "f", v: size })
+                            return resultFromType({ k: "f", v: size })
                         }
                     }
                     block.raiseAt(v, `'${v.v.name}' is not a valid floating-point type`)
-                    return null
+                    return ERROR
                 }
                 if (v.v.name === "false") {
-                    return { type: { k: "bool", v: null }, value: { k: "bool", v: false } }
+                    return normal({ type: { k: "bool", v: null }, value: { k: "bool", v: false } })
                 }
                 if (v.v.name === "true") {
-                    return { type: { k: "bool", v: null }, value: { k: "bool", v: true } }
+                    return normal({ type: { k: "bool", v: null }, value: { k: "bool", v: true } })
                 }
                 if (v.v.name === "null") {
                     if (type?.k === "optional") {
-                        return { type, value: { k: "null", v: null } }
+                        return normal({ type, value: { k: "null", v: null } })
                     }
-                    return { type: { k: "null", v: null }, value: { k: "null", v: null } }
+                    return normal({ type: { k: "null", v: null }, value: { k: "null", v: null } })
                 }
                 if (
                     v.v.name === "comptime_int"
@@ -557,35 +610,35 @@ export function expr(
                     || v.v.name === "void"
                     || v.v.name === "str"
                 ) {
-                    return typeAsValue({ k: v.v.name, v: null })
+                    return resultFromType({ k: v.v.name, v: null })
                 }
             }
 
             if (!(v.v.name in block.names)) {
                 block.raiseAt(v, `'${v.v.name}' is not defined in this scope`)
-                return null
+                return ERROR
             }
 
             const value = block.names[v.v.name]!
             switch (value.k) {
                 case "reserved":
                     block.raiseAt(v, `'${v.v.name}' is not accessible from this scope`)
-                    return null
+                    return ERROR
 
                 case "comptime-const":
-                    return value.v
+                    return normal(value.v)
 
                 case "fn":
                 case "const":
                 case "var":
                     block.todo(v)
-                    return null
+                    return ERROR
             }
         }
 
         case "underscore":
             block.raiseAt(v, "`_` cannot be used as a value")
-            return null
+            return ERROR
 
         case "closure":
             break
@@ -598,12 +651,10 @@ export function expr(
     }
 
     block.todo(v)
-    return null
+    return ERROR
 }
 
-export function unreachableOf(type: RType | null): RTypedValue {
-    return { type: type ?? { k: "never", v: null }, value: { k: "unreachable", v: null } }
-}
+const UNREACHABLE: Result<RTypedValue> = { k: "unreachable", v: null }
 
 // Properties of the typesystem. "is equivalent to" denotes that either both
 // segments result in an error, or both result in identically-functioning code.
@@ -629,7 +680,7 @@ export function unreachableOf(type: RType | null): RTypedValue {
  */
 function as(block: Block, type: RType, range: Range, value: RTypedValue): RTypedValue | null {
     if (value.value.k === "unreachable") {
-        return unreachableOf(type)
+        return { type, value: { k: "unreachable", v: null } }
     }
 
     switch (type.k) {
@@ -778,8 +829,8 @@ function join(
     b: RTypedValue,
 ): [RTypedValue, RTypedValue] | null {
     // never
-    if (a.type.k === "never") return [unreachableOf(b.type), b]
-    if (b.type.k === "never") return [a, unreachableOf(a.type)]
+    if (a.type.k === "never") return [{ type: b.type, value: { k: "unreachable", v: null } }, b]
+    if (b.type.k === "never") return [a, { type: a.type, value: { k: "unreachable", v: null } }]
 
     // null
     if (a.type.k === "null") {
@@ -920,15 +971,18 @@ function valueEq(a: RValue, b: RValue): boolean {
     }
 }
 
-function exprAs(block: Block, time: "comptime" | "any", type: RType, v: Expr): RTypedValue | null {
-    const value = expr(block, time, type, v)
-    if (value === null) return null
+function exprAs(block: Block, time: "comptime" | "any", type: RType, v: Expr): Result<RTypedValue> {
+    const result = expr(block, time, type, v)
+    if (result.k !== "normal") return result
 
-    return as(block, type, v, value)
+    const coerced = as(block, type, v, result.v)
+    if (coerced === null) return { k: "error", v: null }
+
+    return { k: "normal", v: coerced }
 }
 
-function typeAsValue(type: RType): RTypedValue {
-    return { type: { k: "type", v: null }, value: { k: "type", v: type } }
+function resultFromType(type: RType): Result<RTypedValue> {
+    return normal({ type: { k: "type", v: null }, value: { k: "type", v: type } })
 }
 
 function exprBuiltin(
@@ -938,154 +992,137 @@ function exprBuiltin(
     v: Expr,
     name: string,
     args: Expr[],
-): RTypedValue | null {
+): Result<RTypedValue> {
     switch (name) {
         case "as": {
             if (args.length !== 2) {
                 block.raiseAt(v, "'@as' expects two arguments")
-                return null
+                return ERROR
             }
 
             const type = exprAsType(block, args[0]!)
-            if (type === null) return null
+            if (type.k !== "normal") return type
 
-            return exprAs(block, time, type, args[1]!)
+            return exprAs(block, time, type.v, args[1]!)
         }
 
         case "compileError": {
             if (args.length !== 1) {
                 block.raiseAt(v, "'@compileError' expects one argument")
-                return null
+                return ERROR
             }
 
             const message = exprAs(block, "comptime", { k: "str", v: null }, v)
-            if (message === null) return null
+            if (message.k !== "normal") return ERROR
 
-            assert(message.value.k === "str")
-            block.raiseAt(v, message.value.v)
-            return null
+            assert(message.v.value.k === "str")
+            block.raiseAt(v, message.v.value.v)
+            return ERROR
         }
 
         case "runtime": {
             if (time == "comptime") {
                 block.raiseAt(v, "'@runtime' cannot be called from comptime")
-                return null
+                return ERROR
             }
 
             if (args.length !== 1) {
                 block.raiseAt(v, "'@runtime' expects one argument")
-                return null
+                return ERROR
             }
 
             const value = expr(block, "any", type, args[0]!)
-            if (value === null) return null
+            if (value.k !== "normal") return ERROR
 
-            return {
-                type: value.type,
-                value: { k: "runtime", v: block.push("lit", value) },
-            }
+            return normal({
+                type: value.v.type,
+                value: { k: "runtime", v: block.push("lit", value.v) },
+            })
         }
 
         case "TypeOf": {
             if (args.length !== 1) {
                 block.raiseAt(v, "'@TypeOf' expects one argument")
-                return null
+                return ERROR
             }
 
             const value = expr(block, time, type, args[0]!)
-            if (value === null) return null
+            if (value.k !== "normal") return ERROR
 
-            return typeAsValue(value.type)
-        }
-
-        // todo remove
-        case "join0":
-        case "join1": {
-            if (args.length !== 2) {
-                block.raiseAt(v, "'@joinN' expects two arguments")
-                return null
-            }
-
-            const v0 = expr(block, time, type, args[0]!)
-            if (v0 === null) return null
-
-            const v1 = expr(block, time, type, args[1]!)
-            if (v1 === null) return null
-
-            const joined = join(block, v, v0, v1)
-            if (joined === null) return null
-
-            return name === "join0" ? joined[0] : joined[1]
+            return resultFromType(value.v.type)
         }
     }
 
     block.todo(v)
-    return null
+    return ERROR
 }
 
-function exprAsType(block: Block, v: Expr): RType | null {
-    const value = expr(block, "comptime", { k: "type", v: null }, v)
-    if (value === null) return null
+const ERROR: Result<never> = { k: "error", v: null }
 
-    if (value.type.k !== "type") {
-        block.raiseAt(v, `Expected 'type', found '${typeName(value.type)}'`)
-        return null
+function exprAsType(block: Block, v: Expr): Result<RType> {
+    const value = expr(block, "comptime", { k: "type", v: null }, v)
+    if (value.k !== "normal") return ERROR
+
+    if (value.v.type.k !== "type") {
+        block.raiseAt(v, `Expected 'type', found '${typeName(value.v.type)}'`)
+        return ERROR
     }
 
-    assert(value.value.k === "type")
-    return value.value.v
+    assert(value.v.value.k === "type")
+    return normal(value.v.value.v)
 }
 
-export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" | "never" | "void" {
+export function stmt(
+    block: Block,
+    time: "comptime" | "any",
+    v: Stmt,
+): Result<"unreachable" | "void"> {
     if (v.k === "expr") {
-        const returnValue = expr(block, time, { k: "void", v: null }, v.v)
+        const value = expr(block, time, { k: "void", v: null }, v.v)
+        if (value.k !== "normal") return value
 
-        if (returnValue === null) {
-            return "error"
+        if (value.v.type.k === "never" || value.v.value.k === "unreachable") {
+            return normal("unreachable")
         }
 
-        if (returnValue.type.k === "never" || returnValue.value.k === "unreachable") {
-            return "never"
-        }
-
-        if (returnValue.type.k === "void") {
-            return "void"
+        if (value.v.type.k === "void") {
+            return normal("void")
         }
 
         block.raiseAt(
             v.v,
-            `Values of type '${typeName(returnValue.type)}' cannot be silently ignored; use \`_ = ...\` to explicitly discard the value`,
+            `Values of type '${typeName(value.v.type)}' cannot be silently ignored; use \`_ = ...\` to explicitly discard the value`,
         )
-
-        return "void"
+        return normal("void")
     }
 
     const { lhs: lhsRaw, rhs: rhsRaw } = v.v
     if (lhsRaw.length !== 1) {
         block.raiseAt(v, "Only one left-hand-side is supported on assignments for now.")
-        return "error"
+        return ERROR
     }
 
     const lhs = lhsRaw[0]!
     if (lhs.k === "expr") {
         if (lhs.v.k === "underscore") {
             const rhs = expr(block, time, null, rhsRaw)
-            if (rhs === null) return "error"
-            if (rhs.type.k === "never" || rhs.value.k === "unreachable") return "never"
-            return "void"
+            if (rhs.k !== "normal") return rhs
+            if (rhs.v.type.k === "never" || rhs.v.value.k === "unreachable")
+                return normal("unreachable")
+            return normal("void")
         }
 
         block.raiseAt(v, "TODO: Only `_` can be assigned to")
-        return "error"
+        return ERROR
     }
 
     if (!lhs.v.name.raw && isReservedIdent(lhs.v.name.name)) {
         block.raiseAt(lhs.v.name, "Identifier shadows a builtin")
-        return "error"
+        return ERROR
     }
     if (lhs.v.name.name in block.names) {
         block.raiseAt(lhs.v.name, "Identifier shadows another declaration")
-        return "error"
+        return ERROR
     }
 
     if (lhs.k === "comptime-const") time = "comptime"
@@ -1093,27 +1130,24 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" |
     let value
     if (lhs.v.type) {
         const expectedType = exprAsType(block, lhs.v.type)
-        if (expectedType === null) return "error"
+        if (expectedType.k !== "normal") return expectedType
 
-        value = exprAs(block, time, expectedType, rhsRaw)
+        value = exprAs(block, time, expectedType.v, rhsRaw)
     } else {
         value = expr(block, time, null, rhsRaw)
     }
-    if (value === null) return "error"
+    if (value.k !== "normal") return value
 
     if (lhs.k === "comptime-const") {
-        block.names[lhs.v.name.name] = { k: "comptime-const", v: value }
+        block.names[lhs.v.name.name] = { k: "comptime-const", v: value.v }
     } else {
         block.names[lhs.v.name.name] = {
             k: lhs.k,
-            v: {
-                n: block.push("var-init", value),
-                type: value.type,
-            },
+            v: { n: block.push("var-init", value.v), type: value.v.type },
         }
     }
 
-    return "void"
+    return normal("void")
 }
 
 const RESERVED =
