@@ -1,4 +1,4 @@
-a: {
-    break :a 57;
-    break :a null;
+{
+    var a = 3;
+    a = 4;
 }

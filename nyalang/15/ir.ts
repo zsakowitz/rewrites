@@ -139,6 +139,7 @@ type RuntimeInst =
     | { n: RII; k: "cf-block"; v: RuntimeBlock }
     | { n: RII; k: "get-unwrap"; v: RII }
     | { n: RII; k: "var-init"; v: RTypedValue }
+    | { n: RII; k: "var-assign"; v: { target: RII; value: RTypedValue } }
     | { n: RII; k: "side-effect"; v: null }
 
 type RuntimeCompletion = Exclude<Result<RTypedValue>, { k: "error" }>
@@ -797,6 +798,7 @@ function collectBlocks(ret: RuntimeBlock[], rv: RuntimeInst): void {
         case "cf-unreachable":
         case "get-unwrap":
         case "var-init":
+        case "var-assign":
         case "side-effect":
             break
 
@@ -1210,7 +1212,13 @@ function exprBuiltin(
             return ERROR
         }
 
+        // TODO remove this. it's an arbitrary side effect that the comptime compiler cannot optimize away
         case "sideEffect": {
+            if (time === "comptime") {
+                block.raiseAt(v, "'@sideEffect' cannot be used at comptime")
+                return ERROR
+            }
+
             if (args.length !== 0) {
                 block.raiseAt(v, "'@sideEffect' expects zero arguments")
                 return ERROR
@@ -1294,7 +1302,7 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): Result<nu
 
     const { lhs: lhsRaw, rhs: rhsRaw } = v.v
     if (lhsRaw.length !== 1) {
-        block.raiseAt(v, "Only one left-hand-side is supported on assignments for now.")
+        block.todo(v, "Only one left-hand-side is supported on assignments for now")
         return ERROR
     }
 
@@ -1303,11 +1311,39 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): Result<nu
         if (lhs.v.k === "underscore") {
             const rhs = expr(block, time, null, rhsRaw)
             if (rhs.k !== "normal") return rhs
-            if (rhs.v.type.k === "never" || rhs.v.value.k === "unreachable") return UNREACHABLE
+
             return normal(null)
         }
 
-        block.raiseAt(v, "TODO: Only `_` can be assigned to")
+        if (lhs.v.k === "ident") {
+            if (!lhs.v.v.raw && isReservedIdent(lhs.v.v.name)) {
+                block.raiseAt(lhs.v.v, `Cannot assign to reserved identifier '${lhs.v.v.name}'`)
+                return ERROR
+            }
+
+            if (!(lhs.v.v.name in block.names)) {
+                block.raiseAt(lhs.v.v, `'${lhs.v.v.name}' is not defined in this scope`)
+                return ERROR
+            }
+
+            const name = block.names[lhs.v.v.name]!
+            if (name.k === "reserved") {
+                block.raiseAt(lhs.v.v, `'${lhs.v.v.name}' is not accessible from this scope`)
+                return ERROR
+            }
+            if (name.k !== "var") {
+                block.raiseAt(lhs.v.v, `'${lhs.v.v.name}' is not a variable`)
+                return ERROR
+            }
+
+            const rhs = exprAs(block, time, name.v.type, v.v.rhs)
+            if (rhs.k !== "normal") return rhs
+
+            block.push("var-assign", { target: name.v.n, value: rhs.v })
+            return normal(null)
+        }
+
+        block.todo(v, "Only `_` and identifiers can be assigned to")
         return ERROR
     }
 
