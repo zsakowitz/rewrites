@@ -237,7 +237,8 @@ const VOID: RTypedValue = { type: { k: "void", v: null }, value: { k: "void", v:
 
 export type Result<T> =
     | ResultPlain<T>
-    | { k: "break" | "continue"; v: { n: RII; value: RTypedValue } }
+    | { k: "break"; v: { n: RII; value: RTypedValue } }
+    | { k: "continue"; v: { n: RII; value: RTypedValue } }
     | { k: "unreachable"; v: null }
 
 export type ResultPlain<T> = { k: "normal"; v: T } | { k: "error"; v: null }
@@ -534,8 +535,7 @@ export function expr(
             }
 
             if (label[kind] === null) {
-                block.todo(v, "'break' and 'continue' only work when an expected type is known")
-                return ERROR
+                return { k: kind, v: { n: label.n, value: value.v } }
             }
 
             const coerced = as(block, label[kind], v, value.v)
@@ -620,11 +620,6 @@ export function expr(
                 return ERROR
             }
 
-            if (type === null) {
-                block.todo(v, "Use '@as' to set the expected type of labeled blocks")
-                return ERROR
-            }
-
             const n = nextRII()
             innerBlock.labels[v.v.label.name] = { n, break: type, continue: false }
 
@@ -633,23 +628,19 @@ export function expr(
 
             if (time === "comptime") {
                 if (result.k === "normal") {
-                    if (type.k !== "void") {
-                        block.raiseAt(
-                            v,
-                            `Expected to break with '${typeName(type)}' at end of block`,
-                        )
-                        return ERROR
-                    }
                     return normal(VOID)
                 }
                 return result
             }
 
+            const rv = innerBlock.completeWith(result.k === "normal" ? normal(VOID) : result)
+            if (type === null) {
+                type = unifyTerminators(block, v, rv, "break", n)
+                if (type === null) return ERROR
+            }
+
             const allBlocks: RuntimeBlock[] = []
-            collectBlocksIn(
-                allBlocks,
-                innerBlock.completeWith(result.k === "normal" ? normal(VOID) : result),
-            )
+            collectBlocksIn(allBlocks, rv)
 
             const uses = allBlocks.filter((x) => x.value.k === "break" && x.value.v.n === n)
             if (uses.length === 0) {
@@ -827,6 +818,38 @@ function collectBlocks(ret: RuntimeBlock[], rv: RuntimeInst): void {
 function collectBlocksIn(ret: RuntimeBlock[], rv: RuntimeBlock): void {
     for (const el of rv.body) collectBlocks(ret, el)
     ret.push(rv)
+}
+
+function unifyTerminators(
+    block: Block,
+    range: Range,
+    rv: RuntimeBlock,
+    kind: "break" | "continue",
+    n: RII,
+): RType | null {
+    const subBlocks: RuntimeBlock[] = []
+    collectBlocksIn(subBlocks, rv)
+
+    const terminators = subBlocks
+        .map((x) => x.value)
+        .filter((x): x is Extract<typeof x, { k: "break" | "continue" }> => x.k === kind)
+        .filter((x) => x.v.n === n)
+        .map((x) => x.v)
+
+    const type = join(
+        block,
+        range,
+        terminators.map((x) => x.value),
+    )
+    if (type === null) return null
+
+    for (const el of terminators) {
+        const coerced = as(block, type, range, el.value)
+        assert(coerced !== null)
+        el.value = coerced
+    }
+
+    return type
 }
 
 const UNREACHABLE = { k: "unreachable", v: null } as const
