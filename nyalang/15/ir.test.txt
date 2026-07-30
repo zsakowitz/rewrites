@@ -1,4 +1,7 @@
-{
+x: {
     var a = 3;
-    a = 4;
+    maybe {
+        a = 4;
+    };
+    break :x a;
 }

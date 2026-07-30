@@ -139,7 +139,8 @@ type RuntimeInst =
     | { n: RII; k: "cf-block"; v: RuntimeBlock }
     | { n: RII; k: "get-unwrap"; v: RII }
     | { n: RII; k: "var-init"; v: RTypedValue }
-    | { n: RII; k: "var-assign"; v: { target: RII; value: RTypedValue } }
+    | { n: RII; k: "var-store"; v: { target: RII; value: RTypedValue } }
+    | { n: RII; k: "var-load"; v: RII }
     | { n: RII; k: "side-effect"; v: null }
 
 type RuntimeCompletion = Exclude<Result<RTypedValue>, { k: "error" }>
@@ -744,7 +745,7 @@ export function expr(
             }
 
             if (!(v.v.name in block.names)) {
-                block.raiseAt(v, `'${v.v.name}' is not defined in this scope`)
+                block.raiseAt(v, `'${v.v.name}' is not defined`)
                 return ERROR
             }
 
@@ -757,9 +758,14 @@ export function expr(
                 case "comptime-const":
                     return normal(value.v)
 
-                case "fn":
                 case "const":
                 case "var":
+                    return normal({
+                        type: value.v.type,
+                        value: { k: "runtime", v: block.push("var-load", value.v.n) },
+                    })
+
+                case "fn":
                     block.todo(v)
                     return ERROR
             }
@@ -794,12 +800,13 @@ function stmtList(block: Block, time: "comptime" | "any", stmts: Stmt[]): Result
 
 function collectBlocks(ret: RuntimeBlock[], rv: RuntimeInst): void {
     switch (rv.k) {
-        case "lit":
         case "cf-unreachable":
         case "get-unwrap":
-        case "var-init":
-        case "var-assign":
+        case "lit":
         case "side-effect":
+        case "var-init":
+        case "var-load":
+        case "var-store":
             break
 
         case "cf-if":
@@ -1339,7 +1346,7 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): Result<nu
             const rhs = exprAs(block, time, name.v.type, v.v.rhs)
             if (rhs.k !== "normal") return rhs
 
-            block.push("var-assign", { target: name.v.n, value: rhs.v })
+            block.push("var-store", { target: name.v.n, value: rhs.v })
             return normal(null)
         }
 
