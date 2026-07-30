@@ -1,1 +1,1 @@
-@as(u8, if (@as(?i32, if (@blackBox(true)) 23 else null)) |x| 45 else 98)
+@runtime(@as(?u8, 32)).?

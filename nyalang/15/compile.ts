@@ -3,7 +3,7 @@ import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
 import type { Frac } from "./frac"
 import { FLOAT_BIT_SIZES, floatFromFrac, isSafeInt, type FloatBitSize } from "./num"
-import type { Expr, Stmt } from "./parse"
+import type { Expr, Range, Stmt } from "./parse"
 
 const usize: RType = { k: "u", v: 32 }
 
@@ -68,26 +68,24 @@ export type RValue =
     | { k: "str"; v: string }
     | { k: "null"; v: null }
     | { k: "some"; v: RValue }
-    | { k: "array"; v: RValue[] }
+    | { k: "array"; v: RValue[] } // evaluation order: first to last
     | { k: "fn"; v: Fn }
     | { k: "type"; v: RType }
-    | { k: "struct"; v: Record<string, RValue> }
+    | { k: "struct"; v: Record<string, RValue> } // evaluation order: first key to last key (not necessarily struct field order!)
     | { k: "enum"; v: string }
     | { k: "union"; v: { key: string; value: RValue } }
-    | { k: "runtime"; v: InstIndex }
+    | { k: "runtime"; v: RuntimeExpr }
 
 export type RContainerDecl =
     | { k: "const"; v: Lazy<RTypedValue, { type: Expr; value: Expr }> }
     | { k: "var"; v: Lazy<RTypedValue, { type: Expr; value: Expr }> }
     | { k: "fn"; v: Fn }
 
-// `.type` and `.value` must match.
+// Validity:
 //
-// `.value.k === "runtime"` is valid for most types, where `.v` describes a runtime value
-//
-// `.value.k === "error"` is valid for all types, and describes a value
-// resulting from a compile error. This lets us continue gathering errors
-// for the user, even though codegen is impossible.
+// - `.value.k == "unreachable"` is valid for all types
+// - `.value.k == "runtime"` is valid for runtime values (i.e. excludes `type`, `?type`, etc.) (this is not defined specifically because this is not a specification)
+// - in general, the `value.k` and `type.k` must match, although this does not necessarily mean their string values are directly equal. for instance, for `type.k == "optional"`, `value.k == "null"` and `value.k == "some"` are both valid
 export type RTypedValue = { type: RType; value: RValue }
 
 export interface Fn {
@@ -98,33 +96,16 @@ export interface Fn {
 
 export type Context = Record<string, RTypedValue>
 
-export type InstIndex = number
-
-export type RuntimeInst =
+export type RuntimeExpr =
     | { k: "value"; v: RTypedValue }
-    | { k: "float-extend"; v: { old: FloatBitSize; new: FloatBitSize; value: InstIndex } }
-    | { k: "optional-unwrap"; v: InstIndex }
+    | { k: "float-extend"; v: { old: FloatBitSize; new: FloatBitSize; value: RuntimeExpr } }
+    | { k: "optional-unwrap"; v: RuntimeExpr }
+    | { k: "block"; v: RuntimeStmt[] }
 
-    // Anatomy of an if-else instruction:
-    //
-    //     IfBool %cond
-    //     ... // only runs if %cond is true
-    //     IfElse (.int 78) // value returned when the `if` block is taken
-    //     ... // only runs if %cond is false
-    //     IfEnd (.int 32) // value returned when the `else` block is taken
-    //
-    // IfOptional can be used instead of IfBool. In this case, it can be
-    // referenced from the first block to get the unwrapped value.
-    //
-    // Only the `IfEnd` instruction can be referenced to yield a concrete value.
-    //
-    | { k: "if-bool"; v: InstIndex }
-    | { k: "if-optional"; v: InstIndex }
-    | { k: "if-else"; v: RTypedValue }
-    | { k: "if-end"; v: RTypedValue }
+export type RuntimeStmt = never
 
 export class Block {
-    body: RuntimeInst[] = []
+    body: RuntimeStmt[] = []
 
     constructor(
         readonly errors: Errors,
@@ -132,11 +113,11 @@ export class Block {
         readonly context: Context,
     ) {}
 
-    raiseAt(range: { s: number; e: number }, message: string) {
+    raiseAt(range: Range, message: string) {
         this.errors.raise(new TraceEntry(this.file, range.s, range.e, message))
     }
 
-    todo(range: { s: number; e: number }) {
+    todo(range: Range) {
         const source = new Error().stack?.split("\n")[2]
 
         this.raiseAt(range, "not implemented yet (" + source?.slice(source.indexOf("(") + 49))
@@ -449,113 +430,12 @@ export function expr(
             break
 
         case "cf-if": {
-            if (!v.v.capture) {
-                const cond = exprAs(block, time, { k: "bool", v: null }, v.v.cond)
-                if (cond === null) return null
-
-                assert(
-                    cond.value.k === "bool"
-                        || cond.value.k === "runtime"
-                        || cond.value.k === "unreachable",
-                )
-
-                switch (cond.value.k) {
-                    case "unreachable":
-                        return unreachableOf(type)
-
-                    case "bool":
-                        if (cond.value) {
-                            return expr(block, time, type, v.v.if)
-                        } else {
-                            return v.v.else ? expr(block, time, type, v.v.else) : VOID
-                        }
-
-                    case "runtime": {
-                        // TODO how to do type unification (e.g. i32+null -> ?i32) when it might require extra runtime calls that we can't make because it would require adjusting indexes for the IfElse branch?
-                        if (type === null) {
-                            block.todo(v)
-                            return null
-                        }
-
-                        block.body.push({ k: "if-bool", v: cond.value.v })
-                        let rif = exprAs(block, time, type, v.v.if)
-                        if (rif === null) return null
-                        if (type == null) {
-                            type = rif.type
-                        } else {
-                        }
-                        block.body.push({ k: "if-else", v: rif })
-                        const relse = exprAs(
-                            block,
-                            time,
-                            type,
-                            v.v.else ?? { s: v.e, e: v.e, k: "lit-void", v: null },
-                        )
-                        if (relse === null) return null
-                        block.body.push({ k: "if-end", v: relse })
-                        return { type, value: { k: "runtime", v: block.body.length - 1 } }
-                    }
-                }
-            }
-
-            if (v.v.capture.name in block.context) {
-                block.raiseAt(
-                    v.v.capture,
-                    `capture '${v.v.capture.name}' shadows name already in scope`,
-                )
+            if (v.v.capture) {
+                block.todo(v.v.capture)
                 return null
             }
 
-            const cond = expr(block, time, null, v.v.cond)
-            if (cond === null) return null
-
-            if (cond.type.k !== "optional") {
-                block.raiseAt(v.v.cond, "Expected optional value")
-                return null
-            }
-
-            assert(
-                cond.value.k === "unreachable"
-                    || cond.value.k === "null"
-                    || cond.value.k === "some"
-                    || cond.value.k === "runtime",
-            )
-
-            switch (cond.value.k) {
-                case "unreachable":
-                    return unreachableOf(type)
-
-                case "null":
-                    return v.v.else ? expr(block, time, type, v.v.else) : VOID
-
-                case "some": {
-                    block.context[v.v.capture.name] = { type: cond.type.v, value: cond.value.v }
-                    const rv = expr(block, time, type, v.v.if)
-                    delete block.context[v.v.capture.name]
-                    return rv
-                }
-
-                case "runtime": {
-                    if (type === null) {
-                        block.todo(v)
-                        return null
-                    }
-
-                    block.body.push({ k: "if-optional", v: cond.value.v })
-                    const rif = exprAs(block, time, type, v.v.if)
-                    if (rif === null) return null
-                    block.body.push({ k: "if-else", v: rif })
-                    const relse = exprAs(
-                        block,
-                        time,
-                        type,
-                        v.v.else ?? { s: v.e, e: v.e, k: "lit-void", v: null },
-                    )
-                    if (relse === null) return null
-                    block.body.push({ k: "if-end", v: relse })
-                    return { type, value: { k: "runtime", v: block.body.length - 1 } }
-                }
-            }
+            break
         }
 
         case "cf-switch":
@@ -577,7 +457,7 @@ export function expr(
             break
 
         case "cf-comptime":
-            return expr(block, "comptime", type, v)
+            return expr(block, "comptime", type, v.v)
 
         case "get-prop":
             break
@@ -593,7 +473,9 @@ export function expr(
 
         case "get-unwrap": {
             const target = expr(block, time, type ? { k: "optional", v: type } : null, v.v.target)
-            if (target?.type.k !== "optional") {
+            if (target === null) return null
+
+            if (target.type.k !== "optional") {
                 block.raiseAt(v.v.target, "Expected optional value")
                 return null
             }
@@ -612,8 +494,10 @@ export function expr(
             }
 
             assert(target.value.k === "runtime")
-            block.body.push({ k: "optional-unwrap", v: target.value.v })
-            return { type: target.type.v, value: { k: "runtime", v: target.value.v } }
+            return {
+                type: target.type.v,
+                value: { k: "runtime", v: { k: "optional-unwrap", v: target.value.v } },
+            }
         }
 
         case "block": {
@@ -696,18 +580,33 @@ export function unreachableOf(type: RType | null): RTypedValue {
     return { type: type ?? { k: "never", v: null }, value: { k: "unreachable", v: null } }
 }
 
+// Properties of the typesystem. "is equivalent to" denotes that either both
+// segments result in an error, or both result in identically-functioning code.
+//
+// These properties encode that values and types form a kind of partial
+// semilattice.
+//
+// - `@as(C, @as(B, a))` is equivalent to `@as(C, a)`.
+// - `%%join%%(a, b)` is equivalent to `@as(@TypeOf(%%join%%(a, b)), a)` and `@as(@TypeOf(%%join%%(a, b)), b)`.
+// - `@as(@TypeOf(a), a)` is equivalent to `a`.
+//
+// Note that `%%join%%` denotes the internal partial operator which finds a
+// common supertype of two values. It does not always succeed, even if some type
+// exists which both values coerce to. In the future, our goal is that it always
+// finds the common supertype when it exists, but this is a prototype compiler,
+// so it does not matter enough.
+
 /**
  * Coerces a value to have a given type. If the coercion fails, an error is issued and `null` is
  * returned.
  *
  * Assumes `range` comes from `block.file`.
  */
-function as(
-    block: Block,
-    type: RType,
-    range: { s: number; e: number },
-    value: RTypedValue,
-): RTypedValue | null {
+function as(block: Block, type: RType, range: Range, value: RTypedValue): RTypedValue | null {
+    if (value.value.k === "unreachable") {
+        return { type, value: { k: "unreachable", v: null } }
+    }
+
     switch (type.k) {
         case "never":
         case "void":
@@ -783,13 +682,15 @@ function as(
                     }
 
                     if (value.value.k === "runtime") {
-                        block.body.push({
-                            k: "float-extend",
-                            v: { old: value.type.v, new: type.v, value: value.value.v },
-                        })
                         return {
                             type,
-                            value: { k: "runtime", v: block.body.length - 1 },
+                            value: {
+                                k: "runtime",
+                                v: {
+                                    k: "float-extend",
+                                    v: { old: value.type.v, new: type.v, value: value.value.v },
+                                },
+                            },
                         }
                     }
 
@@ -860,6 +761,19 @@ function as(
     )
     return null
 }
+
+/**
+ * Coerces two values into a common supertype, or returns `null` if this is not possible.
+ *
+ * This operates on values instead of types because values of `comptime_int` can coerce into
+ * different `uN` and `iN` types depending on their exact values.
+ */
+function join(
+    block: Block,
+    range: Range,
+    a: RTypedValue,
+    b: RTypedValue,
+): [RTypedValue, RTypedValue] | null {}
 
 function countOptionalNestingDepth(type: RType): number {
     let count = 0
@@ -992,18 +906,25 @@ function exprBuiltin(
     args: Expr[],
 ): RTypedValue | null {
     switch (name) {
-        // Forces its argument to be evaluated at runtime.
-        case "blackBox": {
-            if (args.length !== 1) {
-                block.raiseAt(v, "'@blackBox' expects one argument")
+        // Prevents comptime evaluation from seeing into this value.
+        case "runtime": {
+            if (time == "comptime") {
+                block.raiseAt(v, "'@runtime' cannot be called from comptime")
                 return null
             }
 
-            const value = expr(block, time, type, args[0]!)
+            if (args.length !== 1) {
+                block.raiseAt(v, "'@runtime' expects one argument")
+                return null
+            }
+
+            const value = expr(block, "any", type, args[0]!)
             if (value === null) return null
 
-            block.body.push({ k: "value", v: value })
-            return { type: value.type, value: { k: "runtime", v: block.body.length - 1 } }
+            return {
+                type: value.type,
+                value: { k: "runtime", v: { k: "value", v: value } },
+            }
         }
 
         // Sets the expected type without forcing it to match.

@@ -78,56 +78,66 @@ export type TestName =
     | { s: number; e: number; k: "lit-str"; v: string }
     | { s: number; e: number; k: "ident"; v: string }
 
-export type Expr = { s: number; e: number } & (
-    | { k: "error"; v: null }
-    | { k: "lit-void"; v: null } // not expressable in surface syntax, use {}
-    | { k: "lit-int"; v: /* nonnegative */ bigint }
-    | { k: "lit-frac"; v: Frac }
-    | { k: "lit-str"; v: string }
-    | { k: "ty-optional"; v: { child: Expr } }
-    | { k: "ty-array"; v: { len: Expr | null; child: Expr } }
-    | { k: "ty-fn"; v: { args: Expr[]; ret: Expr } }
-    | { k: "ns-struct"; v: { id: number; extern: boolean; child: Decl[] } }
-    | { k: "ns-enum"; v: { id: number; extern: boolean; tag: Expr | null; child: Decl[] } }
-    | { k: "ns-union"; v: { id: number; tag: Expr | null; child: Decl[] } }
-    | { k: "dot-tuple"; v: { id: number; value: Expr[] } } // .{2, 3}
-    | { k: "dot-record"; v: { id: number; value: { name: Ident; value: Expr }[] } } // .{a: 2}
-    | { k: "dot-empty"; v: { id: number } } // .{}
-    | { k: "dot-field"; v: Ident } // .a
-    | { k: "dot-method"; v: { name: Ident; args: Expr[] } } // .a(2, 3)
-    | { k: "dot-call"; v: Expr[] } // .(2, 3)
-    | { k: "op-prefix"; v: { name: OpPrefix; arg: Expr } }
-    | { k: "op-infix"; v: { name: OpInfix; lhs: Expr; rhs: Expr } }
-    | { k: "cf-unreachable"; v: null }
-    | { k: "cf-and"; v: { lhs: Expr; rhs: Expr } }
-    | { k: "cf-or"; v: { lhs: Expr; rhs: Expr } }
-    | { k: "cf-orelse"; v: { lhs: Expr; rhs: Expr } }
-    | { k: "cf-if"; v: { cond: Expr; capture: Ident | null; if: Expr; else: Expr | null } }
-    | { k: "cf-switch"; v: { input: Expr; arms: SwitchArm[] } }
-    | {
-          k: "cf-for"
-          v: { label: Label; inputs: ForInput[]; capture: Ident[]; body: Expr; else: Expr | null }
-      }
-    | {
-          k: "cf-while"
-          v: { label: Label; input: Expr; capture: Ident | null; body: Expr; else: Expr | null }
-      }
-    | { k: "cf-break"; v: { label: Label; value: Expr | null } }
-    | { k: "cf-continue"; v: { label: Label } }
-    | { k: "cf-return"; v: { value: Expr | null } }
-    | { k: "cf-comptime"; v: Expr }
-    | { k: "get-prop"; v: { target: Expr; name: Ident } }
-    | { k: "get-method"; v: { target: Expr; name: Ident; args: Expr[] } }
-    | { k: "get-index"; v: { target: Expr; index: Expr } }
-    | { k: "get-call"; v: { target: Expr; args: Expr[] } }
-    | { k: "get-unwrap"; v: { target: Expr } }
-    | { k: "block"; v: { label: Label; body: Stmt[] } }
-    | { k: "builtin"; v: { name: string; args: Expr[] } }
-    | { k: "ident"; v: Ident }
-    | { k: "underscore"; v: null }
-    | { k: "closure"; v: { args: { name: Ident; type: Expr | null }[]; body: Expr } }
-    | { k: "paren"; v: Expr }
-)
+/** If a `block` parameter is nearby, `block.file` should be set to the file which owns this range. */
+export type Range = { s: number; e: number }
+
+export type Expr = Range
+    & (
+        | { k: "error"; v: null }
+        | { k: "lit-void"; v: null } // not expressable in surface syntax, use {}
+        | { k: "lit-int"; v: /* nonnegative */ bigint }
+        | { k: "lit-frac"; v: Frac }
+        | { k: "lit-str"; v: string }
+        | { k: "ty-optional"; v: { child: Expr } }
+        | { k: "ty-array"; v: { len: Expr | null; child: Expr } }
+        | { k: "ty-fn"; v: { args: Expr[]; ret: Expr } }
+        | { k: "ns-struct"; v: { id: number; extern: boolean; child: Decl[] } }
+        | { k: "ns-enum"; v: { id: number; extern: boolean; tag: Expr | null; child: Decl[] } }
+        | { k: "ns-union"; v: { id: number; tag: Expr | null; child: Decl[] } }
+        | { k: "dot-tuple"; v: { id: number; value: Expr[] } } // .{2, 3}
+        | { k: "dot-record"; v: { id: number; value: { name: Ident; value: Expr }[] } } // .{a: 2}
+        | { k: "dot-empty"; v: { id: number } } // .{}
+        | { k: "dot-field"; v: Ident } // .a
+        | { k: "dot-method"; v: { name: Ident; args: Expr[] } } // .a(2, 3)
+        | { k: "dot-call"; v: Expr[] } // .(2, 3)
+        | { k: "op-prefix"; v: { name: OpPrefix; arg: Expr } }
+        | { k: "op-infix"; v: { name: OpInfix; lhs: Expr; rhs: Expr } }
+        | { k: "cf-unreachable"; v: null }
+        | { k: "cf-and"; v: { lhs: Expr; rhs: Expr } }
+        | { k: "cf-or"; v: { lhs: Expr; rhs: Expr } }
+        | { k: "cf-orelse"; v: { lhs: Expr; rhs: Expr } }
+        | { k: "cf-if"; v: { cond: Expr; capture: Ident | null; if: Expr; else: Expr | null } }
+        | { k: "cf-switch"; v: { input: Expr; arms: SwitchArm[] } }
+        | {
+              k: "cf-for"
+              v: {
+                  label: Label
+                  inputs: ForInput[]
+                  capture: Ident[]
+                  body: Expr
+                  else: Expr | null
+              }
+          }
+        | {
+              k: "cf-while"
+              v: { label: Label; input: Expr; capture: Ident | null; body: Expr; else: Expr | null }
+          }
+        | { k: "cf-break"; v: { label: Label; value: Expr | null } }
+        | { k: "cf-continue"; v: { label: Label } }
+        | { k: "cf-return"; v: { value: Expr | null } }
+        | { k: "cf-comptime"; v: Expr }
+        | { k: "get-prop"; v: { target: Expr; name: Ident } }
+        | { k: "get-method"; v: { target: Expr; name: Ident; args: Expr[] } }
+        | { k: "get-index"; v: { target: Expr; index: Expr } }
+        | { k: "get-call"; v: { target: Expr; args: Expr[] } }
+        | { k: "get-unwrap"; v: { target: Expr } }
+        | { k: "block"; v: { label: Label; body: Stmt[] } }
+        | { k: "builtin"; v: { name: string; args: Expr[] } }
+        | { k: "ident"; v: Ident }
+        | { k: "underscore"; v: null }
+        | { k: "closure"; v: { args: { name: Ident; type: Expr | null }[]; body: Expr } }
+        | { k: "paren"; v: Expr }
+    )
 
 export interface SwitchArm {
     pat: SwitchPat[]
@@ -135,34 +145,31 @@ export interface SwitchArm {
     body: Expr
 }
 
-export type Decl = { s: number; e: number } & (
-    | { k: "field-ident"; v: { name: Ident; default: Expr | null } } // a, (could be a field in a tuple or a field name for an enum)
-    | { k: "field-expr"; v: Expr } // Map(i32, i32), (must be some kind of tuple field type)
-    | { k: "field-plain"; v: { name: Ident; type: Expr; default: Expr | null } } // a: i32 = 4,
-    | { k: "comptime"; v: Expr }
-    | { k: "test"; v: { name: string; body: Expr } }
-    | { k: "const"; v: { name: Ident; type: Expr | null; body: Expr } }
-    | { k: "var"; v: { name: Ident; type: Expr | null; body: Expr } }
-    | {
-          k: "fn"
-          v: {
-              name: Ident | null
-              args: { comptime: boolean; name: Ident; type: Expr }[]
-              ret: Expr
-              body: Expr
+export type Decl = Range
+    & (
+        | { k: "field-ident"; v: { name: Ident; default: Expr | null } } // a, (could be a field in a tuple or a field name for an enum)
+        | { k: "field-expr"; v: Expr } // Map(i32, i32), (must be some kind of tuple field type)
+        | { k: "field-plain"; v: { name: Ident; type: Expr; default: Expr | null } } // a: i32 = 4,
+        | { k: "comptime"; v: Expr }
+        | { k: "test"; v: { name: string; body: Expr } }
+        | { k: "const"; v: { name: Ident; type: Expr | null; body: Expr } }
+        | { k: "var"; v: { name: Ident; type: Expr | null; body: Expr } }
+        | {
+              k: "fn"
+              v: {
+                  name: Ident | null
+                  args: { comptime: boolean; name: Ident; type: Expr }[]
+                  ret: Expr
+                  body: Expr
+              }
           }
-      }
-)
+    )
 
-export type Stmt = { s: number; e: number } & (
-    | { k: "expr"; v: Expr }
-    | { k: "assign"; v: { lhs: AssignTarget[]; rhs: Expr } }
-)
+export type Stmt = Range
+    & ({ k: "expr"; v: Expr } | { k: "assign"; v: { lhs: AssignTarget[]; rhs: Expr } })
 
-export type AssignTarget = { s: number; e: number } & (
-    | { k: "var" | "const"; v: { name: Ident; type: Expr | null } }
-    | { k: "expr"; v: Expr }
-)
+export type AssignTarget = Range
+    & ({ k: "var" | "const"; v: { name: Ident; type: Expr | null } } | { k: "expr"; v: Expr })
 
 /** @param body Excludes quotes. */
 function readStr(body: string): string {
