@@ -1,8 +1,7 @@
 import { assert, unreachable } from "./assert"
 import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
-import type { Frac } from "./frac"
-import { FLOAT_BIT_SIZES, floatFromFrac, isSafeInt, type FloatBitSize } from "./num"
+import { FLOAT_BIT_SIZES, intIsSafe, type FloatBitSize } from "./num"
 import type { Expr, Range, Stmt } from "./parse"
 
 const usize: RType = { k: "u", v: 32 }
@@ -16,7 +15,7 @@ export type RType =
     | { k: "void"; v: null }
     | { k: "bool"; v: null }
     | { k: "comptime_int"; v: null }
-    | { k: "comptime_frac"; v: null }
+    | { k: "comptime_float"; v: null }
     | { k: "u" | "i"; v: number }
     | { k: "f"; v: FloatBitSize }
     | { k: "str"; v: null }
@@ -64,7 +63,6 @@ export type RValue =
     | { k: "bool"; v: boolean }
     | { k: "int"; v: bigint }
     | { k: "float"; v: number }
-    | { k: "frac"; v: Frac }
     | { k: "str"; v: string }
     | { k: "null"; v: null }
     | { k: "some"; v: RValue }
@@ -131,7 +129,7 @@ export function typeName(type: RType): string {
         case "bool":
         case "str":
         case "comptime_int":
-        case "comptime_frac":
+        case "comptime_float":
         case "type":
             return type.k
 
@@ -218,14 +216,14 @@ export function expr(
             return { type: { k: "comptime_int", v: null }, value: { k: "int", v: value } }
         }
 
-        case "lit-frac": {
+        case "lit-float": {
             const value = v.v
 
             if (type?.k === "f") {
-                return { type, value: { k: "float", v: floatFromFrac(value) } }
+                return { type, value: { k: "float", v: value } }
             }
 
-            return { type: { k: "comptime_frac", v: null }, value: { k: "frac", v: value } }
+            return { type: { k: "comptime_float", v: null }, value: { k: "float", v: value } }
         }
 
         case "lit-str":
@@ -311,7 +309,7 @@ export function expr(
                             value = nextInt++
                         }
 
-                        if (!isSafeInt(tagType.k, tagType.v, value)) {
+                        if (!intIsSafe(tagType.k, tagType.v, value)) {
                             block.raiseAt(
                                 el,
                                 `Field value '${value}' does not fit in tag type '${typeName(tagType)}'`,
@@ -544,7 +542,7 @@ export function expr(
                 }
                 if (
                     v.v.name === "comptime_int"
-                    || v.v.name === "comptime_frac"
+                    || v.v.name === "comptime_float"
                     || v.v.name === "bool"
                     || v.v.name === "never"
                     || v.v.name === "type"
@@ -613,7 +611,7 @@ function as(block: Block, type: RType, range: Range, value: RTypedValue): RTyped
         case "bool":
         case "null":
         case "comptime_int": // TODO
-        case "comptime_frac": // TODO
+        case "comptime_float": // TODO
         case "str":
         case "type":
             if (value.type.k === type.k) {
@@ -626,7 +624,7 @@ function as(block: Block, type: RType, range: Range, value: RTypedValue): RTyped
                 (value.type.k === "comptime_int" || value.type.k === "u" || value.type.k === "i")
                 && value.value.k === "int"
             ) {
-                if (!isSafeInt("u", type.v, value.value.v)) {
+                if (!intIsSafe("u", type.v, value.value.v)) {
                     block.raiseAt(
                         range,
                         `${value.value.v} is outside of the valid range for '${typeName(type)}'`,
@@ -647,7 +645,7 @@ function as(block: Block, type: RType, range: Range, value: RTypedValue): RTyped
                 (value.type.k === "comptime_int" || value.type.k === "u" || value.type.k === "i")
                 && value.value.k === "int"
             ) {
-                if (!isSafeInt("i", type.v, value.value.v)) {
+                if (!intIsSafe("i", type.v, value.value.v)) {
                     block.raiseAt(
                         range,
                         `${value.value.v} is outside of the valid range for '${typeName(type)}'`,
@@ -664,10 +662,10 @@ function as(block: Block, type: RType, range: Range, value: RTypedValue): RTyped
             break
 
         case "f":
-            if (value.type.k === "comptime_frac" && value.value.k === "frac") {
+            if (value.type.k === "comptime_float" && value.value.k === "float") {
                 return {
                     type,
-                    value: { k: "float", v: floatFromFrac(value.value.v) },
+                    value: { k: "float", v: value.value.v },
                 }
             }
 
@@ -795,7 +793,7 @@ function typeEq(a: RType, b: RType): boolean {
         case "void":
         case "bool":
         case "comptime_int":
-        case "comptime_frac":
+        case "comptime_float":
         case "str":
         case "null":
         case "type":
@@ -847,10 +845,6 @@ function valueEq(a: RValue, b: RValue): boolean {
         case "str":
         case "fn":
             return a.v === b.v
-
-        case "frac":
-            assert(b.k === "frac")
-            return a.v.n === b.v.n && a.v.d === b.v.d
 
         case "some":
             assert(b.k === "some")

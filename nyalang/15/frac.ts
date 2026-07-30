@@ -1,4 +1,4 @@
-export interface Frac {
+interface Frac {
     n: bigint
 
     /** Must be positive. */
@@ -19,9 +19,11 @@ function gcd(a: bigint, b: bigint): bigint {
  * Assumes `body` matches one of these regular expressions:
  *
  * - `/^[0-9]+(\.[0-9]+)?(e[+-]?[0-9]+)?$/i`
- * - `/^0x[0-9a-f]+(\.[0-9a-f]+)?(e[+-]?[0-9a-f]+)?$/i`
+ * - `/^0x[0-9a-f]+(\.[0-9a-f]+)?(p[+-]?[0-9]+)?$/i`
  */
-export function readFrac(body: string): Frac {
+export function readFloat(body: string): number {
+    // TODO: validate that this round-trips typically printed floats
+
     body = body.toLowerCase().replaceAll("_", "")
 
     let base: 10 | 16 = 10
@@ -43,13 +45,15 @@ export function readFrac(body: string): Frac {
     if (e === 16) exponent -= 4n * mantissaDecimalPlaces
     else exponent -= mantissaDecimalPlaces
 
-    return simplify({
+    const { n, d } = simplify({
         n: mantissa * (exponent > 0n ? BigInt(base) ** exponent : 1n),
         d: exponent < 0n ? BigInt(base) ** -exponent : 1n,
     })
+
+    return Number(n) / Number(d)
 }
 
-export function simplify(f: Frac): Frac {
+function simplify(f: Frac): Frac {
     const g = gcd(f.n, f.d)
     return { n: f.n / g, d: f.d / g }
 }

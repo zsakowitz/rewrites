@@ -1,7 +1,3 @@
-// TODO: validate that all fractions to float conversions are valid
-
-import type { Frac } from "./frac"
-
 export type FloatBitSize = 32 | 64
 export const FLOAT_BIT_SIZES: FloatBitSize[] = [32, 64]
 
@@ -19,11 +15,7 @@ export function floatMaxSafeInteger(bits: FloatBitSize): bigint {
     }[bits]
 }
 
-export function floatFromFrac(frac: Frac): number {
-    return Number(frac.n) / Number(frac.d)
-}
-
-export function isSafeInt(kind: "u" | "i", bits: number, value: bigint): boolean {
+export function intIsSafe(kind: "u" | "i", bits: number, value: bigint): boolean {
     if (kind === "u") {
         return 0n <= value && value < 2n ** BigInt(bits)
     }
@@ -33,4 +25,14 @@ export function isSafeInt(kind: "u" | "i", bits: number, value: bigint): boolean
     }
 
     return -(2n ** BigInt(bits - 1)) <= value && value < 2n ** BigInt(bits - 1)
+}
+
+export function floatTruncate(bits: FloatBitSize, value: number): number {
+    switch (bits) {
+        case 32:
+            return Math.fround(value)
+
+        case 64:
+            return value
+    }
 }

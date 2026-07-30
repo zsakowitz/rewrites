@@ -1,6 +1,6 @@
 import { assert, unreachable } from "./assert"
 import { Errors, TraceEntry } from "./error"
-import { readFrac, type Frac } from "./frac"
+import { readFloat } from "./frac"
 import { T, type Tokens } from "./token"
 
 let nextId = 0
@@ -86,7 +86,7 @@ export type Expr = Range
         | { k: "error"; v: null }
         | { k: "lit-void"; v: null } // not expressable in surface syntax, use {}
         | { k: "lit-int"; v: /* nonnegative */ bigint }
-        | { k: "lit-frac"; v: Frac }
+        | { k: "lit-float"; v: number }
         | { k: "lit-str"; v: string }
         | { k: "ty-optional"; v: { child: Expr } }
         | { k: "ty-array"; v: { len: Expr | null; child: Expr } }
@@ -494,7 +494,7 @@ function parseExprAtom(context: ParseContext): Expr {
         case T.Float: {
             const raw = context.peekText()
             context.index++
-            return { s, e: context.e, k: "lit-frac", v: readFrac(raw) }
+            return { s, e: context.e, k: "lit-float", v: readFloat(raw) }
         }
 
         case T.Str: {
