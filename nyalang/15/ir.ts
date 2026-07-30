@@ -98,7 +98,11 @@ export type RuntimeExpr =
     | { k: "value"; v: RTypedValue }
     | { k: "float-extend"; v: { old: FloatBitSize; new: FloatBitSize; value: RuntimeExpr } }
     | { k: "optional-unwrap"; v: RuntimeExpr }
-    | { k: "block"; v: RuntimeStmt[] }
+    | { k: "optional-orelse"; v: { lhs: RuntimeExpr; rhs: RTypedValue } } // eval order: .lhs, then .rhs if .lhs was null
+    | { k: "block"; v: RuntimeStmt[] } // eval order: [0], then [1], and so on
+    | { k: "if-bool"; v: { cond: RuntimeExpr; if: RTypedValue; else: RTypedValue } }
+    | { k: "and"; v: { lhs: RTypedValue; rhs: RTypedValue } } // eval order: .lhs, then .rhs (only if .lhs == true)
+    | { k: "or"; v: { lhs: RTypedValue; rhs: RTypedValue } } // eval order: .lhs, then .rhs (only if .lhs == false)
 
 export type RuntimeStmt = never
 
@@ -257,8 +261,20 @@ export function expr(
             return typeAsValue({ k: "array", v: { len: Number(len.value.v), child } })
         }
 
-        case "ty-fn":
-            break
+        case "ty-fn": {
+            const args: RType[] = []
+            for (const arg of v.v.args) {
+                const type = exprAsType(block, arg)
+                if (type === null) return null
+
+                args.push(type)
+            }
+
+            const ret = exprAsType(block, v.v.ret)
+            if (ret === null) return null
+
+            return typeAsValue({ k: "fn", v: { args, return: ret } })
+        }
 
         case "ns-struct":
             break
@@ -414,18 +430,85 @@ export function expr(
         case "op-infix":
             break
 
-        case "cf-unreachable": {
-            return { type: type ?? { k: "never", v: null }, value: { k: "unreachable", v: null } }
+        case "cf-unreachable":
+            if (time === "comptime") {
+                block.raiseAt(v, "Encountered 'unreachable' at comptime")
+                return null
+            }
+
+            return unreachableOf(type)
+
+        case "cf-and": {
+            // TODO: optimize `@runtime(x) and false` to `comptime false` but with side effects
+
+            const lhs = exprAs(block, time, { k: "bool", v: null }, v.v.lhs)
+            if (lhs === null) return null
+
+            if (lhs.value.k === "unreachable") return unreachableOf(type)
+
+            if (lhs.value.k === "bool") {
+                if (!lhs.value.v) return lhs
+                return expr(block, time, type, v.v.rhs)
+            }
+
+            assert(lhs.value.k === "runtime")
+
+            const rhs = exprAs(block, time, { k: "bool", v: null }, v.v.rhs)
+            if (rhs === null) return null
+
+            return {
+                type: { k: "bool", v: null },
+                value: { k: "runtime", v: { k: "and", v: { lhs, rhs } } },
+            }
         }
 
-        case "cf-and":
-            break
+        case "cf-or": {
+            // TODO: optimize `@runtime(x) or true` to `comptime true` but with side effects
 
-        case "cf-or":
-            break
+            const lhs = exprAs(block, time, { k: "bool", v: null }, v.v.lhs)
+            if (lhs === null) return null
+            if (lhs.value.k === "unreachable") return unreachableOf(type)
 
-        case "cf-orelse":
-            break
+            if (lhs.value.k === "bool") {
+                if (lhs.value.v) return lhs
+                return expr(block, time, type, v.v.rhs)
+            }
+
+            assert(lhs.value.k === "runtime")
+
+            const rhs = exprAs(block, time, { k: "bool", v: null }, v.v.rhs)
+            if (rhs === null) return null
+
+            return {
+                type: { k: "bool", v: null },
+                value: { k: "runtime", v: { k: "or", v: { lhs, rhs } } },
+            }
+        }
+
+        case "cf-orelse": {
+            const lhs = expr(block, time, type ? { k: "optional", v: type } : null, v.v.lhs)
+            if (lhs === null) return null
+            if (lhs.value.k === "unreachable") return unreachableOf(type)
+            if (lhs.type.k === "never") return unreachableOf(type)
+            if (lhs.type.k === "null") return expr(block, time, type, v.v.rhs)
+            if (lhs.type.k !== "optional") {
+                block.raiseAt(v.v.lhs, "Expected optional")
+                return null
+            }
+
+            if (lhs.value.k === "null") return expr(block, time, type, v.v.rhs)
+            if (lhs.value.k === "some") return { type: lhs.type.v, value: lhs.value.v }
+            assert(lhs.value.k === "runtime")
+
+            // TODO: `?u8 orelse u64`
+            const rhs = exprAs(block, time, lhs.type.v, v.v.rhs)
+            if (rhs === null) return null
+
+            return {
+                type: lhs.type.v,
+                value: { k: "runtime", v: { k: "optional-orelse", v: { lhs: lhs.value.v, rhs } } },
+            }
+        }
 
         case "cf-if": {
             if (v.v.capture) {
@@ -433,7 +516,7 @@ export function expr(
                 return null
             }
 
-            break
+            return exprIfBool(block, time, type, v, v.v.cond, v.v.if, v.v.else)
         }
 
         case "cf-switch":
@@ -572,6 +655,51 @@ export function expr(
 
     block.todo(v)
     return null
+}
+
+function exprIfBool(
+    block: Block,
+    time: "comptime" | "any",
+    type: RType | null,
+    range: { s: number; e: number },
+    rawCond: Expr,
+    rawIf: Expr,
+    rawElse: Expr | null,
+): RTypedValue | null {
+    const cond = exprAs(block, time, { k: "bool", v: null }, rawCond)
+    if (cond === null) return null
+
+    if (cond.value.k === "unreachable") return unreachableOf(type)
+
+    if (cond.value.k === "bool") {
+        return (
+            cond.value.v ? expr(block, time, type, rawIf)
+            : rawElse ? expr(block, time, type, rawElse)
+            : VOID
+        )
+    }
+
+    assert(cond.value.k === "runtime")
+
+    const bif = expr(block, time, type, rawIf)
+    if (bif === null) return null
+
+    const belse = rawElse ? expr(block, time, type, rawElse) : VOID
+    if (belse === null) return null
+
+    const joined = join(block, range, bif, belse)
+    if (joined === null) return null
+
+    return {
+        type: joined[0].type,
+        value: {
+            k: "runtime",
+            v: {
+                k: "if-bool",
+                v: { cond: cond.value.v, if: bif, else: belse },
+            },
+        },
+    }
 }
 
 export function unreachableOf(type: RType | null): RTypedValue {
@@ -771,7 +899,42 @@ function join(
     range: Range,
     a: RTypedValue,
     b: RTypedValue,
-): [RTypedValue, RTypedValue] | null {}
+): [RTypedValue, RTypedValue] | null {
+    // never
+    if (a.type.k === "never") return [unreachableOf(b.type), b]
+    if (b.type.k === "never") return [a, unreachableOf(a.type)]
+
+    // null
+    if (a.type.k === "null") {
+        if (b.type.k === "optional") return [{ type: b.type, value: { k: "null", v: null } }, b]
+        if (b.type.k === "null") return [a, b]
+
+        const type: RType = { k: "optional", v: b.type }
+        return [
+            { type, value: { k: "null", v: null } },
+            { type, value: { k: "some", v: b.value } },
+        ]
+    }
+    if (b.type.k === "null") {
+        if (a.type.k === "optional") return [a, { type: a.type, value: { k: "null", v: null } }]
+
+        const type: RType = { k: "optional", v: a.type }
+        return [
+            { type, value: { k: "some", v: a.value } },
+            { type, value: { k: "null", v: null } },
+        ]
+    }
+
+    if (!typeEq(a.type, b.type)) {
+        block.raiseAt(
+            range,
+            `Unable to unify types '${typeName(a.type)}' and '${typeName(b.type)}'. Use '@as' to specify an explicit supertype if the compiler cannot detect it.`,
+        )
+        return null
+    }
+
+    return [a, b]
+}
 
 function countOptionalNestingDepth(type: RType): number {
     let count = 0
@@ -900,7 +1063,18 @@ function exprBuiltin(
     args: Expr[],
 ): RTypedValue | null {
     switch (name) {
-        // Prevents comptime evaluation from seeing into this value.
+        case "as": {
+            if (args.length !== 2) {
+                block.raiseAt(v, "'@as' expects two arguments")
+                return null
+            }
+
+            const type = exprAsType(block, args[0]!)
+            if (type === null) return null
+
+            return exprAs(block, time, type, args[1]!)
+        }
+
         case "runtime": {
             if (time == "comptime") {
                 block.raiseAt(v, "'@runtime' cannot be called from comptime")
@@ -921,17 +1095,36 @@ function exprBuiltin(
             }
         }
 
-        // Sets the expected type without forcing it to match.
-        case "as": {
-            if (args.length !== 2) {
-                block.raiseAt(v, "'@as' expects two arguments")
+        case "TypeOf": {
+            if (args.length !== 1) {
+                block.raiseAt(v, "'@TypeOf' expects one argument")
                 return null
             }
 
-            const type = exprAsType(block, args[0]!)
-            if (type === null) return null
+            const value = expr(block, time, type, args[0]!)
+            if (value === null) return null
 
-            return exprAs(block, time, type, args[1]!)
+            return typeAsValue(value.type)
+        }
+
+        // todo remove
+        case "join0":
+        case "join1": {
+            if (args.length !== 2) {
+                block.raiseAt(v, "'@joinN' expects two arguments")
+                return null
+            }
+
+            const v0 = expr(block, time, type, args[0]!)
+            if (v0 === null) return null
+
+            const v1 = expr(block, time, type, args[1]!)
+            if (v1 === null) return null
+
+            const joined = join(block, v, v0, v1)
+            if (joined === null) return null
+
+            return name === "join0" ? joined[0] : joined[1]
         }
     }
 

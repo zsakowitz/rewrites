@@ -565,6 +565,13 @@ function parseExprAtom(context: ParseContext): Expr {
             return { s, e: context.e, k, v: { id: nextId++, extern: true, child } }
         }
 
+        case T.KFn: {
+            context.index++
+            const args = parseArguments(context)
+            const ret = parseExpr(context)
+            return { s, e: context.e, k: "ty-fn", v: { args, ret } }
+        }
+
         case T.KFor: {
             context.index++
             const args = parseArguments(context)
@@ -1011,7 +1018,7 @@ function iAnd(context: ParseContext): Expr {
 
 function iOr(context: ParseContext): Expr {
     let lhs = iAnd(context)
-    while (context.peek() === T.KAnd) {
+    while (context.peek() === T.KOr) {
         context.index++
         const rhs = iAnd(context)
         lhs = { s: lhs.s, e: rhs.e, k: "cf-or", v: { lhs, rhs } }

@@ -1,7 +1,7 @@
 import { blue, cyan, dim, green, red, reset, yellow } from "../2/ansi"
 import { assert } from "./assert"
-import { typeName } from "./compile"
 import { Error, Errors } from "./error"
+import { typeName } from "./ir"
 
 export function debug(value: unknown): string {
     if (value instanceof Error) {

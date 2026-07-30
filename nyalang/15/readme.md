@@ -318,3 +318,38 @@ This basic compiler will not contain:
 - `pub`
 - lazy evaluation of const types and values
 - lazy evaluation of field types
+
+# Coercions
+
+Eventually, our goal is to support the following coercions unconditionally. None of these are
+supported recursively, except that `?T` coerces into `?????T` for arbitrarily many instances of `?`.
+For instance, `?i32` will not coerce into `?i64`.
+
+```
+never -> T
+
+uN -> uM        when N <= M
+iN -> iM        when N <= M
+uN -> iM        when N < M
+uN -> fM        when the entire range maps injectively into fM
+iN -> fM        when the entire range maps injectively into fM
+fN -> fM        when N <= M
+
+null -> ?T
+T -> ?T
+
+[N]T -> []T
+
+T -> @typeInto(T).union.TagType     when T is a union
+```
+
+Coercions from all numeric types into all other numeric types will also be allowed, so long as the
+input is known at comptime and fits without loss of precision into the target type. For instance,
+`@as(i8, @as(f32, 5.0))` should succeed, because `@as(f32, 5.0)` is known at comptime to be exactly
+`5.0`, which fits without truncation into `i8`.
+
+`comptime_float` will also coerce into all float types, even though it may incur loss of precision.
+
+# Conventions
+
+Eventually, error messages will be lowercase with no trailing punctuation.
