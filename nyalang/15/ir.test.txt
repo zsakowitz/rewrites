@@ -1,1 +1,5 @@
-(@as(?????i39, 45)).?.?.?.?.?
+if (@runtime(true)) {
+    var a = 23;
+} else {
+    var a = 45;
+}

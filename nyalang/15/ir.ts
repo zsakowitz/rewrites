@@ -66,10 +66,10 @@ export type RValue =
     | { k: "str"; v: string }
     | { k: "null"; v: null }
     | { k: "some"; v: RValue }
-    | { k: "array"; v: RValue[] } // evaluation order: first to last
+    | { k: "array"; v: RValue[] }
     | { k: "fn"; v: Fn }
     | { k: "type"; v: RType }
-    | { k: "struct"; v: Record<string, RValue> } // evaluation order: first key to last key (not necessarily struct field order!)
+    | { k: "struct"; v: Record<string, RValue> }
     | { k: "enum"; v: string }
     | { k: "union"; v: { key: string; value: RValue } }
     | { k: "runtime"; v: RII }
@@ -87,7 +87,7 @@ export type RContainerDecl =
 export type RTypedValue = { type: RType; value: RValue }
 
 export interface Fn {
-    context: Names
+    names: Names
     args: { comptime: boolean; name: string; type: Expr }[]
     return: Expr
     exec(block: Block | null /** `null` for comptime */, args: RTypedValue[]): RTypedValue
@@ -123,6 +123,7 @@ const nextRII = (() => {
 
 type RuntimeInst =
     | { n: RII; k: "lit"; v: RTypedValue }
+    | { n: RII; k: "cf-if"; v: { cond: RII; if: RuntimeBlock; else: RuntimeBlock } }
     | { n: RII; k: "cf-unreachable"; v: null }
     | { n: RII; k: "get-unwrap"; v: RII }
     | { n: RII; k: "var-init"; v: RTypedValue }
@@ -134,6 +135,10 @@ interface RuntimeBlock {
 }
 
 export class Block {
+    /**
+     * Contains all instructions with potential side effects, including `unreachable`, control flow,
+     * and extern functions.
+     */
     body: RuntimeInst[] = []
 
     constructor(
@@ -141,6 +146,11 @@ export class Block {
         public file: File,
         readonly names: Names,
     ) {}
+
+    /** Forks this block into another one with a separate `.body` array. */
+    fork() {
+        return new Block(this.errors, this.file, this.names)
+    }
 
     raiseAt(range: Range, message: string) {
         this.errors.raise(new TraceEntry(this.file, range.s, range.e, message))
@@ -390,7 +400,37 @@ export function expr(
                 return null
             }
 
-            break
+            const cond = exprAs(block, time, { k: "bool", v: null }, v.v.cond)
+            if (cond === null) return null
+            if (cond.value.k === "unreachable") return unreachableOf(type)
+
+            if (cond.value.k === "bool") {
+                if (cond.value.v) {
+                    return expr(block, time, type, v.v.if)
+                } else {
+                    return v.v.else ? expr(block, time, type, v.v.else) : VOID
+                }
+            }
+
+            assert(cond.value.k === "runtime")
+
+            const blockIf = block.fork()
+            const blockElse = block.fork()
+
+            const valueIf = expr(blockIf, time, type, v.v.if)
+            const valueElse = v.v.else ? expr(blockElse, time, type, v.v.else) : VOID
+            if (valueIf === null || valueElse === null) return null
+
+            const joined = join(block, v, valueIf, valueElse)
+            if (joined === null) return null
+
+            const rii = block.push("cf-if", {
+                cond: cond.value.v,
+                if: { body: blockIf.body, value: joined[0] },
+                else: { body: blockElse.body, value: joined[1] },
+            })
+
+            return { type: joined[0].type, value: { k: "runtime", v: rii } }
         }
 
         case "cf-switch":
@@ -727,6 +767,9 @@ function as(block: Block, type: RType, range: Range, value: RTypedValue): RTyped
  *
  * This operates on values instead of types because values of `comptime_int` can coerce into
  * different `uN` and `iN` types depending on their exact values.
+ *
+ * The `block` will not have any new runtime instructions appended. It is used exclusively for error
+ * reporting.
  */
 function join(
     block: Block,
@@ -907,6 +950,20 @@ function exprBuiltin(
             if (type === null) return null
 
             return exprAs(block, time, type, args[1]!)
+        }
+
+        case "compileError": {
+            if (args.length !== 1) {
+                block.raiseAt(v, "'@compileError' expects one argument")
+                return null
+            }
+
+            const message = exprAs(block, "comptime", { k: "str", v: null }, v)
+            if (message === null) return null
+
+            assert(message.value.k === "str")
+            block.raiseAt(v, message.value.v)
+            return null
         }
 
         case "runtime": {
