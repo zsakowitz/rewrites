@@ -1,7 +1,9 @@
-x: {
-    var a = 3;
-    maybe {
-        a = 4;
+{
+    var a: ?u8 = 3;
+    _ = b: {
+        maybe { a = 78; };
+        maybe break :b 89;
+        break :b null;
     };
-    break :x a;
+    a = null;
 }

@@ -136,7 +136,7 @@ type RuntimeInst =
     | { n: RII; k: "cf-if"; v: { cond: RII; type: RType; if: RuntimeBlock; else: RuntimeBlock } }
     | { n: RII; k: "cf-maybe"; v: RuntimeBlock }
     | { n: RII; k: "cf-unreachable"; v: null }
-    | { n: RII; k: "cf-block"; v: RuntimeBlock }
+    | { n: RII; k: "cf-block"; v: { type: RType; body: RuntimeBlock } }
     | { n: RII; k: "get-unwrap"; v: RII }
     | { n: RII; k: "var-init"; v: RTypedValue }
     | { n: RII; k: "var-store"; v: { target: RII; value: RTypedValue } }
@@ -659,7 +659,7 @@ export function expr(
                 block.body.push({
                     n,
                     k: "cf-block",
-                    v: innerBlock.completeWith(normal(result.v.value)),
+                    v: { type, body: innerBlock.completeWith(normal(result.v.value)) },
                 })
                 return normal({ type, value: { k: "runtime", v: n } })
             }
@@ -672,7 +672,7 @@ export function expr(
                 block.body.push({
                     n,
                     k: "cf-block",
-                    v: innerBlock.completeWith(normal(VOID)),
+                    v: { type, body: innerBlock.completeWith(normal(VOID)) },
                 })
                 return normal(VOID)
             }
@@ -680,7 +680,7 @@ export function expr(
             block.body.push({
                 n,
                 k: "cf-block",
-                v: innerBlock.completeWith(result),
+                v: { type, body: innerBlock.completeWith(result) },
             })
 
             return normal({ type, value: { k: "runtime", v: n } })
@@ -815,6 +815,9 @@ function collectBlocks(ret: RuntimeBlock[], rv: RuntimeInst): void {
             break
 
         case "cf-block":
+            collectBlocksIn(ret, rv.v.body)
+            break
+
         case "cf-maybe":
             collectBlocksIn(ret, rv.v)
             break
