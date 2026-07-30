@@ -339,7 +339,12 @@ export function parseStmt(context: ParseContext): Stmt | null {
     }
 
     // TODO: special case `if (2) { ... } + 4` and siblings (for/while/comptime/block)
+
     const v = parseExpr(context)
+    if (context.peek() === T.Comma || context.peek() === T.Eq) {
+        return parseStmtAssign(context, s, "punctuation", [{ s, e: v.e, k: "expr", v }])
+    }
+
     context.take(T.Semi)
     return { s, e: context.e, k: "expr", v }
 }

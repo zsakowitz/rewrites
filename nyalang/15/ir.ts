@@ -92,7 +92,33 @@ export interface Fn {
     exec(block: Block | null /** `null` for comptime */, args: RTypedValue[]): RTypedValue
 }
 
-export type Context = Record<string, RTypedValue>
+export type Context = Record<string, ContextEntry>
+
+export type ContextEntry =
+    // Constant which can be captured by inner types and functions.
+    | { s: number; e: number; k: "comptime-const"; v: RTypedValue }
+
+    // Constant or variable which is local to some block.
+    | { s: number; e: number; k: "const" | "var"; v: RType }
+
+    // A name which is used in an earlier scope but which can no longer be
+    // accessed.
+    //
+    // Example: `var a; _ = struct { var a; }` errors because the `var a`
+    // declaration in the struct shadows the outer `a`, but the inner struct
+    // can't access the value of the outer `a`.
+    | { s: number; e: number; k: "reserved"; v: null }
+
+function makeReserved(context: Context): Context {
+    const next: Context = Object.create(null)
+
+    for (const name in context) {
+        const { s, e, k, v } = context[name]!
+        next[name] = k === "comptime-const" ? { s, e, k, v } : { s, e, k: "reserved", v: null }
+    }
+
+    return next
+}
 
 export type RuntimeExpr =
     | { k: "value"; v: RTypedValue }

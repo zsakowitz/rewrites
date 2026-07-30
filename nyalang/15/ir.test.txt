@@ -1,1 +1,3 @@
-fn (i8, i16) comptime_int
+{
+    _ = 2;
+}
