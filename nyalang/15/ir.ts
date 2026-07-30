@@ -139,6 +139,7 @@ type RuntimeInst =
     | { n: RII; k: "cf-block"; v: RuntimeBlock }
     | { n: RII; k: "get-unwrap"; v: RII }
     | { n: RII; k: "var-init"; v: RTypedValue }
+    | { n: RII; k: "side-effect"; v: null }
 
 type RuntimeCompletion = Exclude<Result<RTypedValue>, { k: "error" }>
 
@@ -644,22 +645,24 @@ export function expr(
                 return result
             }
 
-            {
-                const ret: RuntimeBlock[] = []
-                collectBlocksIn(
-                    ret,
-                    innerBlock.completeWith(result.k === "normal" ? normal(VOID) : result),
-                )
+            const allBlocks: RuntimeBlock[] = []
+            collectBlocksIn(
+                allBlocks,
+                innerBlock.completeWith(result.k === "normal" ? normal(VOID) : result),
+            )
 
-                const used = ret.some((x) => x.value.k === "break" && x.value.v.n === n)
-                if (!used) {
-                    block.raiseAt(v, `Block label ':${v.v.label.name}' is never referenced`)
-                    return ERROR
-                }
+            const uses = allBlocks.filter((x) => x.value.k === "break" && x.value.v.n === n)
+            if (uses.length === 0) {
+                block.raiseAt(v, `Block label ':${v.v.label.name}' is never referenced`)
+                return ERROR
             }
 
             if (result.k === "break" && result.v.n === n) {
-                assert(time === "any")
+                if (uses.length === 1) {
+                    block.body.push(...innerBlock.body)
+                    return normal(result.v.value)
+                }
+
                 block.body.push({
                     n,
                     k: "cf-block",
@@ -803,6 +806,7 @@ function collectBlocks(ret: RuntimeBlock[], rv: RuntimeInst): void {
         case "cf-unreachable":
         case "get-unwrap":
         case "var-init":
+        case "side-effect":
             break
 
         case "cf-if":
@@ -1181,6 +1185,16 @@ function exprBuiltin(
             assert(message.v.value.k === "str")
             block.raiseAt(v, message.v.value.v)
             return ERROR
+        }
+
+        case "sideEffect": {
+            if (args.length !== 0) {
+                block.raiseAt(v, "'@sideEffect' expects zero arguments")
+                return ERROR
+            }
+
+            block.push("side-effect", null)
+            return normal(VOID)
         }
 
         case "runtime": {

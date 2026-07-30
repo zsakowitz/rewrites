@@ -1,7 +1,4 @@
 @as(?i32, a: {
-    b: {
-        maybe break :b;
-        break :a 23;
-    };
-    break :a null;
+    @sideEffect();
+    break :a 57;
 })
