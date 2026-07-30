@@ -169,7 +169,10 @@ export type Stmt = Range
     & ({ k: "expr"; v: Expr } | { k: "assign"; v: { lhs: AssignTarget[]; rhs: Expr } })
 
 export type AssignTarget = Range
-    & ({ k: "var" | "const"; v: { name: Ident; type: Expr | null } } | { k: "expr"; v: Expr })
+    & (
+        | { k: "var" | "const" | "comptime-const"; v: { name: Ident; type: Expr | null } }
+        | { k: "expr"; v: Expr }
+    )
 
 /** @param body Excludes quotes. */
 function readStr(body: string): string {
@@ -305,9 +308,17 @@ function parseStmtAssign(
 function parseAssignTarget(context: ParseContext): AssignTarget {
     const next = context.peek()
 
-    if (next === T.KVar || next === T.KConst) {
+    if (
+        next === T.KVar
+        || next === T.KConst
+        || (next === T.KComptime && context.peekN(1) === T.KConst)
+    ) {
         const s = context.s
-        const kind = next === T.KVar ? "var" : "const"
+        const kind =
+            next === T.KVar ? "var"
+            : next === T.KComptime ? "comptime-const"
+            : "const"
+        if (kind === "comptime-const") context.index++
         context.index++
 
         const name = parseIdent(context)
@@ -334,7 +345,11 @@ export function parseStmt(context: ParseContext): Stmt | null {
     const s = context.s
     const next = context.peek()
 
-    if (next === T.KVar || next === T.KConst) {
+    if (
+        next === T.KVar
+        || next === T.KConst
+        || (next === T.KComptime && context.peekN(1) === T.KConst)
+    ) {
         return parseStmtAssign(context, s, "target", [])
     }
 

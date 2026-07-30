@@ -1,5 +1,5 @@
 import { print } from "./debug"
-import { Errors, TraceEntry } from "./error"
+import { Errors } from "./error"
 import { File } from "./file"
 import { Block, expr } from "./ir"
 import fileBody from "./ir.test.txt"
@@ -20,4 +20,4 @@ if (context.index !== tokens.length) {
 const block = new Block(errors, file, Object.create(null))
 const ret = expr(block, "any", null, body)
 
-print({ errors, ast: body, block: { body: block.body, context: block.context }, ret })
+print({ errors, block: { body: block.body, context: block.names }, ret })

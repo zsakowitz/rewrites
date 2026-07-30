@@ -8,7 +8,7 @@ const usize: RType = { k: "u", v: 32 }
 
 export type Lazy<Final, Raw> =
     | { resolved: true; value: Final }
-    | { resolved: false; value: { context: Context; input: Raw } }
+    | { resolved: false; value: { context: Names; input: Raw } }
 
 export type RType =
     | { k: "never"; v: null }
@@ -87,16 +87,20 @@ export type RContainerDecl =
 export type RTypedValue = { type: RType; value: RValue }
 
 export interface Fn {
+    context: Names
     args: { comptime: boolean; name: string; type: Expr }[]
     return: Expr
     exec(block: Block | null /** `null` for comptime */, args: RTypedValue[]): RTypedValue
 }
 
-export type Context = Record<string, ContextEntry>
+export type Names = Record<string, Name>
 
-export type ContextEntry =
-    // Constant which can be captured by inner types and functions.
+export type Name =
+    // Constant which can be captured by other declarations.
     | { s: number; e: number; k: "comptime-const"; v: RTypedValue }
+
+    // Function.
+    | { s: number; e: number; k: "fn"; v: Fn }
 
     // Constant or variable which is local to some block.
     | { s: number; e: number; k: "const" | "var"; v: RType }
@@ -109,12 +113,15 @@ export type ContextEntry =
     // can't access the value of the outer `a`.
     | { s: number; e: number; k: "reserved"; v: null }
 
-function makeReserved(context: Context): Context {
-    const next: Context = Object.create(null)
+function contextCloneForDeclaration(context: Names): Names {
+    const next: Names = Object.create(null)
 
     for (const name in context) {
         const { s, e, k, v } = context[name]!
-        next[name] = k === "comptime-const" ? { s, e, k, v } : { s, e, k: "reserved", v: null }
+        next[name] =
+            k === "comptime-const" ? { s, e, k, v }
+            : k === "fn" ? { s, e, k, v }
+            : { s, e, k: "reserved", v: null }
     }
 
     return next
@@ -129,8 +136,11 @@ export type RuntimeExpr =
     | { k: "if-bool"; v: { cond: RuntimeExpr; if: RTypedValue; else: RTypedValue } }
     | { k: "and"; v: { lhs: RTypedValue; rhs: RTypedValue } } // eval order: .lhs, then .rhs (only if .lhs == true)
     | { k: "or"; v: { lhs: RTypedValue; rhs: RTypedValue } } // eval order: .lhs, then .rhs (only if .lhs == false)
+    | { k: "var-load"; v: string }
 
-export type RuntimeStmt = never
+export type RuntimeStmt =
+    | { k: "discard"; v: RTypedValue }
+    | { k: "var-init"; v: { name: string; value: RTypedValue } }
 
 export class Block {
     body: RuntimeStmt[] = []
@@ -138,7 +148,7 @@ export class Block {
     constructor(
         readonly errors: Errors,
         public file: File,
-        readonly context: Context,
+        readonly names: Names,
     ) {}
 
     raiseAt(range: Range, message: string) {
@@ -608,13 +618,31 @@ export function expr(
         }
 
         case "block": {
+            if (time === "comptime") {
+                block.raiseAt(
+                    v,
+                    "TODO: haven't figured out how to represent block contents without runtime",
+                )
+                return null
+            }
+
+            const innerBlock = new Block(
+                block.errors,
+                block.file,
+                Object.assign(Object.create(null), block.names),
+            )
+
             // TODO labeled blocks
             for (const el of v.v.body) {
-                const rv = stmt(block, time, el)
+                const rv = stmt(innerBlock, time, el)
                 if (rv === "error") return null
                 if (rv === "never") return unreachableOf(type)
             }
-            return { type: { k: "void", v: null }, value: { k: "void", v: null } }
+
+            return {
+                type: { k: "void", v: null },
+                value: { k: "runtime", v: { k: "block", v: innerBlock.body } },
+            }
         }
 
         case "builtin":
@@ -661,8 +689,27 @@ export function expr(
                     return typeAsValue({ k: v.v.name, v: null })
                 }
             }
-            block.todo(v)
-            return null
+
+            if (!(v.v.name in block.names)) {
+                block.raiseAt(v, `'${v.v.name}' is not defined in this scope`)
+                return null
+            }
+
+            const value = block.names[v.v.name]!
+            switch (value.k) {
+                case "reserved":
+                    block.raiseAt(v, `'${v.v.name}' is not accessible from this scope`)
+                    return null
+
+                case "comptime-const":
+                    return value.v
+
+                case "fn":
+                case "const":
+                case "var":
+                    block.todo(v)
+                    return null
+            }
         }
 
         case "underscore":
@@ -1195,6 +1242,71 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" |
         return "void"
     }
 
-    block.todo(v)
-    return "error"
+    const { lhs: lhsRaw, rhs: rhsRaw } = v.v
+    if (lhsRaw.length !== 1) {
+        block.raiseAt(v, "Only one left-hand-side is supported on assignments for now.")
+        return "error"
+    }
+
+    const lhs = lhsRaw[0]!
+    if (lhs.k === "expr") {
+        if (lhs.v.k === "underscore") {
+            const rhs = expr(block, time, null, rhsRaw)
+            if (rhs === null) return "error"
+            if (rhs.type.k === "never" || rhs.value.k === "unreachable") return "never"
+            block.body.push({ k: "discard", v: rhs })
+            return "void"
+        }
+
+        block.raiseAt(v, "TODO: Only `_` can be assigned to")
+        return "error"
+    }
+
+    if (!lhs.v.name.raw && isReservedIdent(lhs.v.name.name)) {
+        block.raiseAt(lhs.v.name, "Identifier shadows a builtin")
+        return "error"
+    }
+    if (lhs.v.name.name in block.names) {
+        block.raiseAt(lhs.v.name, "Identifier shadows another declaration")
+        return "error"
+    }
+
+    if (lhs.k === "comptime-const") time = "comptime"
+
+    let value
+    if (lhs.v.type) {
+        const expectedType = exprAsType(block, lhs.v.type)
+        if (expectedType === null) return "error"
+
+        value = exprAs(block, time, expectedType, rhsRaw)
+    } else {
+        value = expr(block, time, null, rhsRaw)
+    }
+    if (value === null) return "error"
+
+    if (lhs.k === "comptime-const") {
+        block.names[lhs.v.name.name] = {
+            s: lhs.v.name.s,
+            e: lhs.v.name.e,
+            k: "comptime-const",
+            v: value,
+        }
+    } else {
+        block.body.push({ k: "var-init", v: { name: lhs.v.name.name, value } })
+        block.names[lhs.v.name.name] = {
+            s: lhs.v.name.s,
+            e: lhs.v.name.e,
+            k: lhs.k,
+            v: value.type,
+        }
+    }
+
+    return "void"
+}
+
+const RESERVED =
+    /^(?:comptime_int|comptime_float|bool|never|type|void|str|true|false|null|[uif]\d+)$/
+
+function isReservedIdent(name: string) {
+    return RESERVED.test(name)
 }
