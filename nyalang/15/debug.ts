@@ -61,7 +61,7 @@ export function debug(value: unknown): string {
     }
 
     if ("type" in value && "value" in value && Object.keys(value).length === 2) {
-        return blue + typeName(value.type as any) + " " + reset + debug(value.value)
+        return `@as(${blue}${typeName(value.type as any)}${reset}, ${debug(value.value)})`
     }
 
     assert(typeof value === "object" && value !== null)
@@ -79,11 +79,26 @@ export function debug(value: unknown): string {
     assert(typeof value === "object" && value !== null)
 
     if (
+        "n" in value
+        && typeof value.n === "number"
+        && "k" in value
+        && typeof value.k === "string"
+        && "v" in value
+        && Object.keys(value).length === 3
+    ) {
+        return `${yellow}%${value.n}${reset} = ${cyan}.${value.k}${reset} ${debug(value.v)}`
+    }
+
+    if (
         "k" in value
         && typeof value.k === "string"
         && "v" in value
         && Object.keys(value).length === 2
     ) {
+        if (value.k === "runtime" && typeof value.v == "number") {
+            return `${yellow}%${value.v}${reset}`
+        }
+
         return `${cyan}.${value.k}${reset} ${debug(value.v)}`
     }
 

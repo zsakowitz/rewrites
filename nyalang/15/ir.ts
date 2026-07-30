@@ -72,7 +72,7 @@ export type RValue =
     | { k: "struct"; v: Record<string, RValue> } // evaluation order: first key to last key (not necessarily struct field order!)
     | { k: "enum"; v: string }
     | { k: "union"; v: { key: string; value: RValue } }
-    | { k: "runtime"; v: RuntimeExpr }
+    | { k: "runtime"; v: RII }
 
 export type RContainerDecl =
     | { k: "const"; v: Lazy<RTypedValue, { type: Expr; value: Expr }> }
@@ -97,13 +97,13 @@ export type Names = Record<string, Name>
 
 export type Name =
     // Constant which can be captured by other declarations.
-    | { s: number; e: number; k: "comptime-const"; v: RTypedValue }
+    | { k: "comptime-const"; v: RTypedValue }
 
     // Function.
-    | { s: number; e: number; k: "fn"; v: Fn }
+    | { k: "fn"; v: Fn }
 
     // Constant or variable which is local to some block.
-    | { s: number; e: number; k: "const" | "var"; v: RType }
+    | { k: "const" | "var"; v: { n: RII; type: RType } }
 
     // A name which is used in an earlier scope but which can no longer be
     // accessed.
@@ -111,25 +111,30 @@ export type Name =
     // Example: `var a; _ = struct { var a; }` errors because the `var a`
     // declaration in the struct shadows the outer `a`, but the inner struct
     // can't access the value of the outer `a`.
-    | { s: number; e: number; k: "reserved"; v: null }
+    | { k: "reserved"; v: null }
 
-export type RuntimeExpr =
-    | { k: "value"; v: RTypedValue }
-    | { k: "float-extend"; v: { old: FloatBitSize; new: FloatBitSize; value: RuntimeExpr } }
-    | { k: "optional-unwrap"; v: RuntimeExpr }
-    | { k: "optional-orelse"; v: { lhs: RuntimeExpr; rhs: RTypedValue } } // eval order: .lhs, then .rhs if .lhs was null
-    | { k: "block"; v: RuntimeStmt[] } // eval order: [0], then [1], and so on
-    | { k: "if-bool"; v: { cond: RuntimeExpr; if: RTypedValue; else: RTypedValue } }
-    | { k: "and"; v: { lhs: RTypedValue; rhs: RTypedValue } } // eval order: .lhs, then .rhs (only if .lhs == true)
-    | { k: "or"; v: { lhs: RTypedValue; rhs: RTypedValue } } // eval order: .lhs, then .rhs (only if .lhs == false)
-    | { k: "var-load"; v: string }
+/** Runtime instruction index. Used to reference outputs of runtime instructions. */
+type RII = number & { __rii: never }
 
-export type RuntimeStmt =
-    | { k: "discard"; v: RTypedValue }
-    | { k: "var-init"; v: { name: string; value: RTypedValue } }
+const nextRII = (() => {
+    let next = 0
+    return () => next++ as RII
+})()
+
+type RuntimeInst =
+    | { n: RII; k: "lit"; v: RTypedValue }
+    | { n: RII; k: "cf-unreachable"; v: null }
+    | { n: RII; k: "get-unwrap"; v: RII }
+    | { n: RII; k: "var-init"; v: RTypedValue }
+
+// For `if`, `else`, `while`, etc.
+interface RuntimeBlock {
+    body: RuntimeInst[]
+    value: RTypedValue
+}
 
 export class Block {
-    body: RuntimeStmt[] = []
+    body: RuntimeInst[] = []
 
     constructor(
         readonly errors: Errors,
@@ -145,6 +150,12 @@ export class Block {
         const source = new Error().stack?.split("\n")[2]
 
         this.raiseAt(range, "not implemented yet (" + source?.slice(source.indexOf("(") + 49))
+    }
+
+    push<K extends RuntimeInst["k"]>(k: K, v: Extract<RuntimeInst, { k: K }>["v"]): RII {
+        const rii = nextRII()
+        this.body.push({ n: rii, k, v } as RuntimeInst)
+        return rii
     }
 }
 
@@ -301,99 +312,8 @@ export function expr(
         case "ns-struct":
             break
 
-        case "ns-enum": {
-            if (v.v.extern) {
-                block.todo(v)
-                return null
-            }
-
-            const tagType: RType | null = v.v.tag ? exprAsType(block, v.v.tag) : { k: "u", v: 32 }
-            if (tagType === null) return null
-
-            if (!(tagType.k === "u" || tagType.k === "i")) {
-                block.raiseAt(v.v.tag!, "enum tag type must be an integer")
-                return null
-            }
-
-            const fields: Record<string, bigint> = Object.create(null)
-            const used = new Set<bigint>()
-            let nextInt = 0n
-            for (const el of v.v.child) {
-                switch (el.k) {
-                    case "field-ident":
-                        if (el.v.name.name in fields) {
-                            block.raiseAt(
-                                el,
-                                `Field '${el.v.name.name}' appears multiple times in enum`,
-                            )
-                            return null
-                        }
-
-                        let value: bigint
-                        if (el.v.default) {
-                            const val = exprAs(block, "comptime", tagType, el.v.default)
-                            if (val === null) return null
-
-                            if (val.value.k !== "int") {
-                                block.raiseAt(
-                                    el.v.default,
-                                    "Unable to resolve value at compile time",
-                                )
-                                return null
-                            }
-                            value = val.value.v
-                            nextInt = value + 1n
-                        } else {
-                            value = nextInt++
-                        }
-
-                        if (!intIsSafe(tagType.k, tagType.v, value)) {
-                            block.raiseAt(
-                                el,
-                                `Field value '${value}' does not fit in tag type '${typeName(tagType)}'`,
-                            )
-                            return null
-                        }
-
-                        if (used.has(value)) {
-                            block.raiseAt(
-                                el,
-                                `Field value '${value}' has already been taken by a different enum field`,
-                            )
-                            return null
-                        }
-
-                        used.add(value)
-                        fields[el.v.name.name] = value
-                        break
-
-                    case "field-expr":
-                    case "field-plain":
-                        block.raiseAt(el, "Invalid field declaration for 'enum'")
-                        return null
-
-                    case "comptime":
-                    case "test":
-                    case "const":
-                    case "var":
-                    case "fn":
-                        block.todo(el)
-                        return null
-                }
-            }
-
-            return typeAsValue({
-                k: "enum",
-                v: {
-                    id: v.v.id,
-                    captures: [],
-                    decls: Object.create(null),
-                    fields,
-                    name: "enum__" + v.v.id,
-                    tagType: { k: "u", v: 32 }, // TODO avoid hardcoding
-                },
-            })
-        }
+        case "ns-enum":
+            break
 
         case "ns-union":
             break
@@ -431,14 +351,8 @@ export function expr(
         case "dot-record":
             break
 
-        case "dot-field": {
-            if (type?.k === "enum" && v.v.name in type.v.fields) {
-                return { type, value: { k: "enum", v: v.v.name } }
-            }
-
-            block.todo(v)
-            return null
-        }
+        case "dot-field":
+            break
 
         case "dot-method":
             break
@@ -458,79 +372,17 @@ export function expr(
                 return null
             }
 
+            block.push("cf-unreachable", null)
             return unreachableOf(type)
 
-        case "cf-and": {
-            // TODO: optimize `@runtime(x) and false` to `comptime false` but with side effects
+        case "cf-and":
+            break
 
-            const lhs = exprAs(block, time, { k: "bool", v: null }, v.v.lhs)
-            if (lhs === null) return null
+        case "cf-or":
+            break
 
-            if (lhs.value.k === "unreachable") return unreachableOf(type)
-
-            if (lhs.value.k === "bool") {
-                if (!lhs.value.v) return lhs
-                return expr(block, time, type, v.v.rhs)
-            }
-
-            assert(lhs.value.k === "runtime")
-
-            const rhs = exprAs(block, time, { k: "bool", v: null }, v.v.rhs)
-            if (rhs === null) return null
-
-            return {
-                type: { k: "bool", v: null },
-                value: { k: "runtime", v: { k: "and", v: { lhs, rhs } } },
-            }
-        }
-
-        case "cf-or": {
-            // TODO: optimize `@runtime(x) or true` to `comptime true` but with side effects
-
-            const lhs = exprAs(block, time, { k: "bool", v: null }, v.v.lhs)
-            if (lhs === null) return null
-            if (lhs.value.k === "unreachable") return unreachableOf(type)
-
-            if (lhs.value.k === "bool") {
-                if (lhs.value.v) return lhs
-                return expr(block, time, type, v.v.rhs)
-            }
-
-            assert(lhs.value.k === "runtime")
-
-            const rhs = exprAs(block, time, { k: "bool", v: null }, v.v.rhs)
-            if (rhs === null) return null
-
-            return {
-                type: { k: "bool", v: null },
-                value: { k: "runtime", v: { k: "or", v: { lhs, rhs } } },
-            }
-        }
-
-        case "cf-orelse": {
-            const lhs = expr(block, time, type ? { k: "optional", v: type } : null, v.v.lhs)
-            if (lhs === null) return null
-            if (lhs.value.k === "unreachable") return unreachableOf(type)
-            if (lhs.type.k === "never") return unreachableOf(type)
-            if (lhs.type.k === "null") return expr(block, time, type, v.v.rhs)
-            if (lhs.type.k !== "optional") {
-                block.raiseAt(v.v.lhs, "Expected optional")
-                return null
-            }
-
-            if (lhs.value.k === "null") return expr(block, time, type, v.v.rhs)
-            if (lhs.value.k === "some") return { type: lhs.type.v, value: lhs.value.v }
-            assert(lhs.value.k === "runtime")
-
-            // TODO: `?u8 orelse u64`
-            const rhs = exprAs(block, time, lhs.type.v, v.v.rhs)
-            if (rhs === null) return null
-
-            return {
-                type: lhs.type.v,
-                value: { k: "runtime", v: { k: "optional-orelse", v: { lhs: lhs.value.v, rhs } } },
-            }
-        }
+        case "cf-orelse":
+            break
 
         case "cf-if": {
             if (v.v.capture) {
@@ -538,7 +390,7 @@ export function expr(
                 return null
             }
 
-            return exprIfBool(block, time, type, v, v.v.cond, v.v.if, v.v.else)
+            break
         }
 
         case "cf-switch":
@@ -597,20 +449,15 @@ export function expr(
             }
 
             assert(target.value.k === "runtime")
+
             return {
                 type: target.type.v,
-                value: { k: "runtime", v: { k: "optional-unwrap", v: target.value.v } },
+                value: { k: "runtime", v: block.push("get-unwrap", target.value.v) },
             }
         }
 
         case "block": {
-            if (time === "comptime") {
-                block.raiseAt(
-                    v,
-                    "TODO: haven't figured out how to represent block contents without runtime",
-                )
-                return null
-            }
+            // TODO labeled blocks
 
             const innerBlock = new Block(
                 block.errors,
@@ -618,17 +465,15 @@ export function expr(
                 Object.assign(Object.create(null), block.names),
             )
 
-            // TODO labeled blocks
             for (const el of v.v.body) {
                 const rv = stmt(innerBlock, time, el)
                 if (rv === "error") return null
                 if (rv === "never") return unreachableOf(type)
             }
 
-            return {
-                type: { k: "void", v: null },
-                value: { k: "runtime", v: { k: "block", v: innerBlock.body } },
-            }
+            block.body.push(...innerBlock.body)
+
+            return VOID
         }
 
         case "builtin":
@@ -716,51 +561,6 @@ export function expr(
     return null
 }
 
-function exprIfBool(
-    block: Block,
-    time: "comptime" | "any",
-    type: RType | null,
-    range: { s: number; e: number },
-    rawCond: Expr,
-    rawIf: Expr,
-    rawElse: Expr | null,
-): RTypedValue | null {
-    const cond = exprAs(block, time, { k: "bool", v: null }, rawCond)
-    if (cond === null) return null
-
-    if (cond.value.k === "unreachable") return unreachableOf(type)
-
-    if (cond.value.k === "bool") {
-        return (
-            cond.value.v ? expr(block, time, type, rawIf)
-            : rawElse ? expr(block, time, type, rawElse)
-            : VOID
-        )
-    }
-
-    assert(cond.value.k === "runtime")
-
-    const bif = expr(block, time, type, rawIf)
-    if (bif === null) return null
-
-    const belse = rawElse ? expr(block, time, type, rawElse) : VOID
-    if (belse === null) return null
-
-    const joined = join(block, range, bif, belse)
-    if (joined === null) return null
-
-    return {
-        type: joined[0].type,
-        value: {
-            k: "runtime",
-            v: {
-                k: "if-bool",
-                v: { cond: cond.value.v, if: bif, else: belse },
-            },
-        },
-    }
-}
-
 export function unreachableOf(type: RType | null): RTypedValue {
     return { type: type ?? { k: "never", v: null }, value: { k: "unreachable", v: null } }
 }
@@ -789,7 +589,7 @@ export function unreachableOf(type: RType | null): RTypedValue {
  */
 function as(block: Block, type: RType, range: Range, value: RTypedValue): RTypedValue | null {
     if (value.value.k === "unreachable") {
-        return { type, value: { k: "unreachable", v: null } }
+        return unreachableOf(type)
     }
 
     switch (type.k) {
@@ -801,9 +601,7 @@ function as(block: Block, type: RType, range: Range, value: RTypedValue): RTyped
         case "comptime_float": // TODO
         case "str":
         case "type":
-            if (value.type.k === type.k) {
-                return value
-            }
+            if (value.type.k === type.k) return value
             break
 
         case "u":
@@ -856,31 +654,8 @@ function as(block: Block, type: RType, range: Range, value: RTypedValue): RTyped
                 }
             }
 
-            if (value.type.k === "f") {
-                if (value.type.v === type.v) {
-                    return value
-                }
-
-                if (value.type.v <= type.v) {
-                    if (value.value.k === "float") {
-                        return { type, value: value.value }
-                    }
-
-                    if (value.value.k === "runtime") {
-                        return {
-                            type,
-                            value: {
-                                k: "runtime",
-                                v: {
-                                    k: "float-extend",
-                                    v: { old: value.type.v, new: type.v, value: value.value.v },
-                                },
-                            },
-                        }
-                    }
-
-                    unreachable()
-                }
+            if (value.type.k === "f" && value.type.v === type.v) {
+                return value
             }
 
             break
@@ -1150,7 +925,7 @@ function exprBuiltin(
 
             return {
                 type: value.type,
-                value: { k: "runtime", v: { k: "value", v: value } },
+                value: { k: "runtime", v: block.push("lit", value) },
             }
         }
 
@@ -1240,7 +1015,6 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" |
             const rhs = expr(block, time, null, rhsRaw)
             if (rhs === null) return "error"
             if (rhs.type.k === "never" || rhs.value.k === "unreachable") return "never"
-            block.body.push({ k: "discard", v: rhs })
             return "void"
         }
 
@@ -1271,19 +1045,14 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): "error" |
     if (value === null) return "error"
 
     if (lhs.k === "comptime-const") {
-        block.names[lhs.v.name.name] = {
-            s: lhs.v.name.s,
-            e: lhs.v.name.e,
-            k: "comptime-const",
-            v: value,
-        }
+        block.names[lhs.v.name.name] = { k: "comptime-const", v: value }
     } else {
-        block.body.push({ k: "var-init", v: { name: lhs.v.name.name, value } })
         block.names[lhs.v.name.name] = {
-            s: lhs.v.name.s,
-            e: lhs.v.name.e,
             k: lhs.k,
-            v: value.type,
+            v: {
+                n: block.push("var-init", value),
+                type: value.type,
+            },
         }
     }
 

@@ -20,4 +20,4 @@ if (context.index !== tokens.length) {
 const block = new Block(errors, file, Object.create(null))
 const ret = expr(block, "any", null, body)
 
-print({ errors, block: { body: block.body, context: block.names }, ret })
+print({ errors, body: block.body, ret })
