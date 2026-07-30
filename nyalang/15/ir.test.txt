@@ -1,7 +1,7 @@
-if (@runtime(true)) {
-    var a = 23;
-} else {
-    var a = 45;
-    unreachable;
-    var c = 93;
-}
+@as(?i32, a: {
+    b: {
+        maybe break :b;
+        break :a 23;
+    };
+    break :a null;
+})

@@ -17,7 +17,7 @@ if (context.index !== tokens.length) {
     context.raise("Expected end of expression")
 }
 
-const block = new Block(errors, file, Object.create(null))
+const block = new Block(errors, file, Object.create(null), Object.create(null), null, false)
 const ret = expr(block, "any", null, body)
 
 print({ errors, body: block.body, ret })

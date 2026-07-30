@@ -68,7 +68,6 @@ export type OpInfix =
     | "==" | "!=" | "<" | ">"  | "<=" | ">=" | "==" | "!="
 
 export type Ident = { s: number; e: number; raw: boolean; name: string }
-export type Label = { s: number; e: number; name: string } | null
 export type SwitchPat = { s: number; e: number; k: "else"; v: null } | Expr
 export type ForInput =
     // | { s: number; e: number; k: "range"; v: { lhs: Expr; rhs: Expr | null } }
@@ -106,12 +105,13 @@ export type Expr = Range
         | { k: "cf-and"; v: { lhs: Expr; rhs: Expr } }
         | { k: "cf-or"; v: { lhs: Expr; rhs: Expr } }
         | { k: "cf-orelse"; v: { lhs: Expr; rhs: Expr } }
+        | { k: "cf-maybe"; v: Expr }
         | { k: "cf-if"; v: { cond: Expr; capture: Ident | null; if: Expr; else: Expr | null } }
-        | { k: "cf-switch"; v: { input: Expr; arms: SwitchArm[] } }
+        | { k: "cf-switch"; v: { label: Ident | null; input: Expr; arms: SwitchArm[] } }
         | {
               k: "cf-for"
               v: {
-                  label: Label
+                  label: Ident | null
                   inputs: ForInput[]
                   capture: Ident[]
                   body: Expr
@@ -120,10 +120,16 @@ export type Expr = Range
           }
         | {
               k: "cf-while"
-              v: { label: Label; input: Expr; capture: Ident | null; body: Expr; else: Expr | null }
+              v: {
+                  label: Ident | null
+                  input: Expr
+                  capture: Ident | null
+                  body: Expr
+                  else: Expr | null
+              }
           }
-        | { k: "cf-break"; v: { label: Label; value: Expr | null } }
-        | { k: "cf-continue"; v: { label: Label } }
+        | { k: "cf-break"; v: { label: Ident | null; value: Expr | null } }
+        | { k: "cf-continue"; v: { label: Ident | null; value: Expr | null } }
         | { k: "cf-return"; v: { value: Expr | null } }
         | { k: "cf-comptime"; v: Expr }
         | { k: "get-prop"; v: { target: Expr; name: Ident } }
@@ -131,7 +137,7 @@ export type Expr = Range
         | { k: "get-index"; v: { target: Expr; index: Expr } }
         | { k: "get-call"; v: { target: Expr; args: Expr[] } }
         | { k: "get-unwrap"; v: { target: Expr } }
-        | { k: "block"; v: { label: Label; body: Stmt[] } }
+        | { k: "block"; v: { label: Ident | null; body: Stmt[] } }
         | { k: "builtin"; v: { name: string; args: Expr[] } }
         | { k: "ident"; v: Ident }
         | { k: "underscore"; v: null }
@@ -523,9 +529,35 @@ function parseExprAtom(context: ParseContext): Expr {
         }
 
         case T.Ident: {
-            const raw = parseIdent(context)!
+            const ident = parseIdent(context)!
+
+            if (context.peek() === T.Colon) {
+                context.index++
+
+                const inner = parseExprAtom(context)
+                if (
+                    inner.k === "cf-for"
+                    || inner.k === "cf-switch"
+                    || inner.k === "cf-while"
+                    || inner.k === "block"
+                ) {
+                    inner.v.label = ident
+                    return inner
+                }
+
+                context.errors.raise(
+                    new TraceEntry(
+                        context.tokens.file,
+                        inner.s,
+                        inner.e,
+                        "Only `for`, `switch`, `while`, and blocks can be labeled",
+                    ),
+                )
+                return inner
+            }
+
             // todo: labeled block, for, while, switch
-            return { s, e: context.e, k: "ident", v: raw }
+            return { s, e: context.e, k: "ident", v: ident }
         }
 
         case T.Builtin: {
@@ -557,7 +589,8 @@ function parseExprAtom(context: ParseContext): Expr {
         case T.KContinue: {
             context.index++
             const label = parseLabel(context)
-            return { s, e: context.e, k: "cf-continue", v: { label } }
+            const value = parseExprMaybe(context)
+            return { s, e: context.e, k: "cf-continue", v: { label, value } }
         }
 
         case T.KEnum: {
@@ -622,6 +655,12 @@ function parseExprAtom(context: ParseContext): Expr {
             }
         }
 
+        case T.KMaybe: {
+            context.index++
+            const v = parseExpr(context)
+            return { s, e: context.e, k: "cf-maybe", v }
+        }
+
         case T.KReturn: {
             context.index++
             const value = parseExprMaybe(context)
@@ -657,7 +696,7 @@ function parseExprAtom(context: ParseContext): Expr {
                 if (context.index === i) break
             }
             context.take(T.RBrace)
-            return { s, e: context.e, k: "cf-switch", v: { input: scrutinee, arms } }
+            return { s, e: context.e, k: "cf-switch", v: { label: null, input: scrutinee, arms } }
         }
 
         case T.KUnion: {
@@ -850,12 +889,7 @@ function parseLabel(context: ParseContext): Ident | null {
     }
 
     context.take(T.Colon)
-    const e = context.e
-    if (context.s !== e) {
-        context.raise("Expected identifier to immediately follow `:` in label")
-    }
-    const ident = parseIdent(context)
-    return ident
+    return parseIdent(context)
 }
 
 function parseArguments(context: ParseContext): Expr[] {

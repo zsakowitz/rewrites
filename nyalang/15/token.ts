@@ -25,6 +25,7 @@ export enum T {
     KFn,
     KFor,
     KIf,
+    KMaybe, // todo: remove
     KOr,
     KOrelse,
     KPub,
@@ -98,6 +99,7 @@ const IDENT_KEYWORDS = new Map([
     ["fn", T.KFn],
     ["for", T.KFor],
     ["if", T.KIf],
+    ["maybe", T.KMaybe],
     ["or", T.KOr],
     ["orelse", T.KOrelse],
     ["pub", T.KPub],

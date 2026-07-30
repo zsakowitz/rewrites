@@ -113,6 +113,16 @@ export type Name =
     // can't access the value of the outer `a`.
     | { k: "reserved"; v: null }
 
+export interface Label {
+    n: RII
+    break: RType | null | false // null = no expected type; false = no break allowed
+    continue: RType | null | false // null = no expected type; false = no break allowed
+}
+
+export type Labels = Record<string, Label>
+
+export type ReturnType = RType | null | false // null = no expected type; false = no break allowed
+
 /** Runtime instruction index. Used to reference outputs of runtime instructions. */
 type RII = number & { __rii: never }
 
@@ -124,14 +134,18 @@ const nextRII = (() => {
 type RuntimeInst =
     | { n: RII; k: "lit"; v: RTypedValue }
     | { n: RII; k: "cf-if"; v: { cond: RII; type: RType; if: RuntimeBlock; else: RuntimeBlock } }
+    | { n: RII; k: "cf-maybe"; v: RuntimeBlock }
     | { n: RII; k: "cf-unreachable"; v: null }
+    | { n: RII; k: "cf-block"; v: RuntimeBlock }
     | { n: RII; k: "get-unwrap"; v: RII }
     | { n: RII; k: "var-init"; v: RTypedValue }
+
+type RuntimeCompletion = Exclude<Result<RTypedValue>, { k: "error" }>
 
 // For `if`, `else`, `while`, etc.
 interface RuntimeBlock {
     body: RuntimeInst[]
-    value: RTypedValue | null // `null` means the end of this block is unreachable
+    value: RuntimeCompletion
 }
 
 export class Block {
@@ -145,21 +159,35 @@ export class Block {
         readonly errors: Errors,
         public file: File,
         readonly names: Names,
+        readonly labels: Labels,
+        readonly implicitLabel: string | null,
+        readonly returnType: ReturnType,
     ) {}
 
-    /** Forks this block into another one with a separate `.body` array. */
+    /**
+     * Forks this block into another one with a separate `.body` array. All other properties are
+     * shared.
+     */
     fork() {
-        return new Block(this.errors, this.file, this.names)
+        return new Block(this.errors, this.file, this.names, this.labels, null, this.returnType)
+    }
+
+    completeWith(value: RuntimeCompletion): RuntimeBlock {
+        return { body: this.body, value }
     }
 
     raiseAt(range: Range, message: string) {
         this.errors.raise(new TraceEntry(this.file, range.s, range.e, message))
     }
 
-    todo(range: Range) {
+    todo(range: Range, message?: string) {
         const source = new Error().stack?.split("\n")[2]
 
-        this.raiseAt(range, "not implemented yet (" + source?.slice(source.indexOf("(") + 49))
+        this.raiseAt(
+            range,
+            `not implemented yet${message ? " (" + message + ")" : ""} (`
+                + source?.slice(source.indexOf("(") + 49),
+        )
     }
 
     push<K extends RuntimeInst["k"]>(k: K, v: Extract<RuntimeInst, { k: K }>["v"]): RII {
@@ -208,26 +236,24 @@ const VOID: RTypedValue = { type: { k: "void", v: null }, value: { k: "void", v:
 
 export type Result<T> =
     | ResultPlain<T>
-    | { k: "break"; v: { n: RII; value: RTypedValue } }
+    | { k: "break" | "continue"; v: { n: RII; value: RTypedValue } }
     | { k: "unreachable"; v: null }
 
 export type ResultPlain<T> = { k: "normal"; v: T } | { k: "error"; v: null }
 
+function normal(value: RTypedValue): RuntimeCompletion & ResultPlain<RTypedValue>
+function normal<T>(value: T): ResultPlain<T>
 function normal<T>(value: T): ResultPlain<T> {
     return { k: "normal", v: value }
 }
 
-function normalRuntime(type: RType, value: RII): Result<RTypedValue> {
-    return normal({ type, value: { k: "runtime", v: value } })
-}
-
 /**
- * If `null` is returned, a fatal error prevented compilation, and the `null` should be bubbled up
- * through the application.
+ * If `type` is passed, the return value will eventually be coerced into that type, without
+ * exceptions. There is no case where an expected type is present but other types are accepted.
  *
  * Assumptions:
  *
- * - If `time == "comptime"`, the returned value must is fully known at comptime.
+ * - If `time == "comptime"`, the returned value is fully known at comptime.
  * - `block.file` is set to the file `expr` is from.
  *
  * Non-assumptions:
@@ -413,69 +439,59 @@ export function expr(
             break
 
         case "cf-if": {
-            if (v.v.capture) {
-                block.todo(v.v.capture)
-                return ERROR
-            }
-
-            const cond = exprAs(block, time, { k: "bool", v: null }, v.v.cond)
-            if (cond.k !== "normal") return cond
-            if (cond.v.value.k === "unreachable") return UNREACHABLE
-
-            if (cond.v.value.k === "bool") {
-                if (cond.v.value.v) {
-                    return expr(block, time, type, v.v.if)
-                } else {
-                    return v.v.else ? expr(block, time, type, v.v.else) : normal(VOID)
-                }
-            }
-
-            assert(cond.v.value.k === "runtime")
-
-            const blockIf = block.fork()
-            const blockElse = block.fork()
-
-            const valueIf = expr(blockIf, time, type, v.v.if)
-            if (valueIf.k === "error") return valueIf
-
-            const valueElse = v.v.else ? expr(blockElse, time, type, v.v.else) : normal(VOID)
-            if (valueElse.k === "error") return valueElse
-
-            if (valueIf.k === "normal" && valueElse.k === "normal") {
-                const joined = join(block, v, valueIf.v, valueElse.v)
-                if (joined === null) return ERROR
-
-                const rii = block.push("cf-if", {
-                    cond: cond.v.value.v,
-                    type: joined[0].type,
-                    if: { body: blockIf.body, value: joined[0] },
-                    else: { body: blockElse.body, value: joined[1] },
-                })
-
-                return normal({ type: joined[0].type, value: { k: "runtime", v: rii } })
-            }
-
-            const rii = block.push("cf-if", {
-                cond: cond.v.value.v,
-                type:
-                    valueIf.k === "normal" ? valueIf.v.type
-                    : valueElse.k === "normal" ? valueElse.v.type
-                    : { k: "never", v: null },
-                if: {
-                    body: blockIf.body,
-                    value: valueIf.k === "normal" ? valueIf.v : null,
-                },
-                else: {
-                    body: blockElse.body,
-                    value: valueElse.k === "normal" ? valueElse.v : null,
-                },
-            })
-
-            return (
-                valueIf.k === "normal" ? normalRuntime(valueIf.v.type, rii)
-                : valueElse.k === "normal" ? normalRuntime(valueElse.v.type, rii)
-                : UNREACHABLE
-            )
+            break
+            // if (v.v.capture) {
+            //     block.todo(v.v.capture)
+            //     return ERROR
+            // }
+            // const cond = exprAs(block, time, { k: "bool", v: null }, v.v.cond)
+            // if (cond.k !== "normal") return cond
+            // if (cond.v.value.k === "unreachable") return UNREACHABLE
+            // if (cond.v.value.k === "bool") {
+            //     if (cond.v.value.v) {
+            //         return expr(block, time, type, v.v.if)
+            //     } else {
+            //         return v.v.else ? expr(block, time, type, v.v.else) : normal(VOID)
+            //     }
+            // }
+            // assert(cond.v.value.k === "runtime")
+            // const blockIf = block.fork()
+            // const blockElse = block.fork()
+            // const valueIf = expr(blockIf, time, type, v.v.if)
+            // if (valueIf.k === "error") return valueIf
+            // const valueElse = v.v.else ? expr(blockElse, time, type, v.v.else) : normal(VOID)
+            // if (valueElse.k === "error") return valueElse
+            // if (valueIf.k === "normal" && valueElse.k === "normal") {
+            //     const joined = join(block, v, valueIf.v, valueElse.v)
+            //     if (joined === null) return ERROR
+            //     const rii = block.push("cf-if", {
+            //         cond: cond.v.value.v,
+            //         type: joined[0].type,
+            //         if: { body: blockIf.body, value: joined[0] },
+            //         else: { body: blockElse.body, value: joined[1] },
+            //     })
+            //     return normal({ type: joined[0].type, value: { k: "runtime", v: rii } })
+            // }
+            // const rii = block.push("cf-if", {
+            //     cond: cond.v.value.v,
+            //     type:
+            //         valueIf.k === "normal" ? valueIf.v.type
+            //         : valueElse.k === "normal" ? valueElse.v.type
+            //         : { k: "never", v: null },
+            //     if: {
+            //         body: blockIf.body,
+            //         value: valueIf.k === "normal" ? valueIf.v : null,
+            //     },
+            //     else: {
+            //         body: blockElse.body,
+            //         value: valueElse.k === "normal" ? valueElse.v : null,
+            //     },
+            // })
+            // return (
+            //     valueIf.k === "normal" ? normalRuntime(valueIf.v.type, rii)
+            //     : valueElse.k === "normal" ? normalRuntime(valueElse.v.type, rii)
+            //     : UNREACHABLE
+            // )
         }
 
         case "cf-switch":
@@ -488,10 +504,44 @@ export function expr(
             break
 
         case "cf-break":
-            break
+        case "cf-continue": {
+            const kind = v.k === "cf-break" ? "break" : "continue"
 
-        case "cf-continue":
-            break
+            const value = v.v.value ? expr(block, time, type, v.v.value) : normal(VOID)
+            if (value.k !== "normal") return value
+
+            let name: string
+            if (v.v.label === null) {
+                if (!block.implicitLabel) {
+                    block.raiseAt(v, `'${kind}' has no target`)
+                    return ERROR
+                }
+                name = block.implicitLabel
+            } else {
+                if (v.v.label.name in block.labels) {
+                    name = v.v.label.name
+                } else {
+                    block.raiseAt(v, `Cannot '${kind}' to nonexistent label`)
+                    return ERROR
+                }
+            }
+
+            const label = block.labels[name]!
+            if (label[kind] === false) {
+                block.raiseAt(v, "Label does not support 'break'")
+                return ERROR
+            }
+
+            if (label[kind] === null) {
+                block.todo(v, "'break' and 'continue' only work when an expected type is known")
+                return ERROR
+            }
+
+            const coerced = as(block, label[kind], v, value.v)
+            if (coerced === null) return ERROR
+
+            return { k: kind, v: { n: label.n, value: coerced } }
+        }
 
         case "cf-return":
             break
@@ -549,23 +599,107 @@ export function expr(
         }
 
         case "block": {
-            // TODO labeled blocks
-
             const innerBlock = new Block(
                 block.errors,
                 block.file,
                 Object.assign(Object.create(null), block.names),
+                Object.assign(Object.create(null), block.labels),
+                block.implicitLabel,
+                block.returnType,
             )
 
-            for (const el of v.v.body) {
-                const rv = stmt(innerBlock, time, el)
-                if (rv.k !== "normal") {
-                    block.body.push(...innerBlock.body)
-                    return rv
+            if (v.v.label === null) {
+                const result = stmtList(innerBlock, time, v.v.body)
+                block.body.push(...innerBlock.body)
+                return result.k === "normal" ? normal(VOID) : result
+            }
+
+            if (v.v.label.name in innerBlock.labels) {
+                block.raiseAt(v.v.label, "Label shadows a label declared on an outer block or loop")
+                return ERROR
+            }
+
+            if (type === null) {
+                block.todo(v, "Use '@as' to set the expected type of labeled blocks")
+                return ERROR
+            }
+
+            const n = nextRII()
+            innerBlock.labels[v.v.label.name] = { n, break: type, continue: false }
+
+            const result = stmtList(innerBlock, time, v.v.body)
+            if (result.k === "error") return ERROR
+
+            if (time === "comptime") {
+                if (result.k === "normal") {
+                    if (type.k !== "void") {
+                        block.raiseAt(
+                            v,
+                            `Expected to break with '${typeName(type)}' at end of block`,
+                        )
+                        return ERROR
+                    }
+                    return normal(VOID)
+                }
+                return result
+            }
+
+            {
+                const ret: RuntimeBlock[] = []
+                collectBlocksIn(
+                    ret,
+                    innerBlock.completeWith(result.k === "normal" ? normal(VOID) : result),
+                )
+
+                const used = ret.some((x) => x.value.k === "break" && x.value.v.n === n)
+                if (!used) {
+                    block.raiseAt(v, `Block label ':${v.v.label.name}' is never referenced`)
+                    return ERROR
                 }
             }
 
-            block.body.push(...innerBlock.body)
+            if (result.k === "break" && result.v.n === n) {
+                assert(time === "any")
+                block.body.push({
+                    n,
+                    k: "cf-block",
+                    v: innerBlock.completeWith(normal(result.v.value)),
+                })
+                return normal({ type, value: { k: "runtime", v: n } })
+            }
+
+            if (result.k === "normal") {
+                if (type.k !== "void") {
+                    block.raiseAt(v, `Expected to break with '${typeName(type)}' at end of block`)
+                    return ERROR
+                }
+                block.body.push({
+                    n,
+                    k: "cf-block",
+                    v: innerBlock.completeWith(normal(VOID)),
+                })
+                return normal(VOID)
+            }
+
+            block.body.push({
+                n,
+                k: "cf-block",
+                v: innerBlock.completeWith(result),
+            })
+
+            return normal({ type, value: { k: "runtime", v: n } })
+        }
+
+        case "cf-maybe": {
+            if (time === "comptime") {
+                block.raiseAt(v, "'maybe' is not supported at comptime")
+            }
+
+            const innerBlock = block.fork()
+            const result = exprAs(innerBlock, time, { k: "void", v: null }, v.v)
+            if (result.k === "error") return ERROR
+            block.push("cf-maybe", innerBlock.completeWith(result))
+
             return normal(VOID)
         }
 
@@ -654,7 +788,44 @@ export function expr(
     return ERROR
 }
 
-const UNREACHABLE: Result<RTypedValue> = { k: "unreachable", v: null }
+function stmtList(block: Block, time: "comptime" | "any", stmts: Stmt[]): Result<null> {
+    for (const el of stmts) {
+        const result = stmt(block, time, el)
+        if (result.k !== "normal") return result
+    }
+
+    return normal(null)
+}
+
+function collectBlocks(ret: RuntimeBlock[], rv: RuntimeInst): void {
+    switch (rv.k) {
+        case "lit":
+        case "cf-unreachable":
+        case "get-unwrap":
+        case "var-init":
+            break
+
+        case "cf-if":
+            collectBlocksIn(ret, rv.v.if)
+            collectBlocksIn(ret, rv.v.else)
+            break
+
+        case "cf-block":
+        case "cf-maybe":
+            collectBlocksIn(ret, rv.v)
+            break
+
+        default:
+            rv satisfies never
+    }
+}
+
+function collectBlocksIn(ret: RuntimeBlock[], rv: RuntimeBlock): void {
+    for (const el of rv.body) collectBlocks(ret, el)
+    ret.push(rv)
+}
+
+const UNREACHABLE = { k: "unreachable", v: null } as const
 
 // Properties of the typesystem. "is equivalent to" denotes that either both
 // segments result in an error, or both result in identically-functioning code.
@@ -813,55 +984,47 @@ function as(block: Block, type: RType, range: Range, value: RTypedValue): RTyped
     return null
 }
 
-/**
- * Coerces two values into a common supertype, or returns `null` if this is not possible.
- *
- * This operates on values instead of types because values of `comptime_int` can coerce into
- * different `uN` and `iN` types depending on their exact values.
- *
- * The `block` will not have any new runtime instructions appended. It is used exclusively for error
- * reporting.
- */
-function join(
-    block: Block,
-    range: Range,
-    a: RTypedValue,
-    b: RTypedValue,
-): [RTypedValue, RTypedValue] | null {
-    // never
-    if (a.type.k === "never") return [{ type: b.type, value: { k: "unreachable", v: null } }, b]
-    if (b.type.k === "never") return [a, { type: a.type, value: { k: "unreachable", v: null } }]
+function join(block: Block, range: Range, values: RTypedValue[]): RType | null {
+    values = values.filter((x) => x.type.k !== "never")
+    if (values.length === 0) return { k: "never", v: null }
 
-    // null
-    if (a.type.k === "null") {
-        if (b.type.k === "optional") return [{ type: b.type, value: { k: "null", v: null } }, b]
-        if (b.type.k === "null") return [a, b]
+    if (values.some((x) => x.type.k === "null") || values.some((x) => x.type.k === "optional")) {
+        const optionals = values.filter((x) => x.type.k === "optional")
+        if (optionals.length >= 2) {
+            for (let i = 1; i < optionals.length; i++) {
+                if (!typeEq(optionals[0]!.type, optionals[i]!.type)) {
+                    block.raiseAt(range, "Optionals must all be the same type")
+                    return null
+                }
+            }
+        }
 
-        const type: RType = { k: "optional", v: b.type }
-        return [
-            { type, value: { k: "null", v: null } },
-            { type, value: { k: "some", v: b.value } },
-        ]
-    }
-    if (b.type.k === "null") {
-        if (a.type.k === "optional") return [a, { type: a.type, value: { k: "null", v: null } }]
+        const plains = values.filter((x) => x.type.k !== "null" && x.type.k !== "optional")
 
-        const type: RType = { k: "optional", v: a.type }
-        return [
-            { type, value: { k: "some", v: a.value } },
-            { type, value: { k: "null", v: null } },
-        ]
+        if (optionals.length === 0) {
+            const commonPlainType = join(block, range, plains)
+            if (commonPlainType === null) return null
+            return { k: "optional", v: commonPlainType } // to accomodate the nulls
+        }
+
+        assert(optionals[0]!.type.k === "optional")
+        const optionalChild = optionals[0]!.type.v
+        for (const el of plains) {
+            const result = as(block, optionalChild, range, el)
+            if (result === null) return null
+        }
+
+        return optionals[0]!.type
     }
 
-    if (!typeEq(a.type, b.type)) {
-        block.raiseAt(
-            range,
-            `Unable to unify types '${typeName(a.type)}' and '${typeName(b.type)}'. Use '@as' to specify an explicit supertype if the compiler cannot detect it.`,
-        )
-        return null
+    for (let i = 1; i < values.length; i++) {
+        if (!typeEq(values[0]!.type, values[i]!.type)) {
+            block.raiseAt(range, "Cannot find supertype")
+            return null
+        }
     }
 
-    return [a, b]
+    return values[0]!.type
 }
 
 function countOptionalNestingDepth(type: RType): number {
@@ -1072,28 +1235,24 @@ function exprAsType(block: Block, v: Expr): Result<RType> {
     return normal(value.v.value.v)
 }
 
-export function stmt(
-    block: Block,
-    time: "comptime" | "any",
-    v: Stmt,
-): Result<"unreachable" | "void"> {
+export function stmt(block: Block, time: "comptime" | "any", v: Stmt): Result<null> {
     if (v.k === "expr") {
         const value = expr(block, time, { k: "void", v: null }, v.v)
         if (value.k !== "normal") return value
 
         if (value.v.type.k === "never" || value.v.value.k === "unreachable") {
-            return normal("unreachable")
+            return UNREACHABLE
         }
 
         if (value.v.type.k === "void") {
-            return normal("void")
+            return normal(null)
         }
 
         block.raiseAt(
             v.v,
             `Values of type '${typeName(value.v.type)}' cannot be silently ignored; use \`_ = ...\` to explicitly discard the value`,
         )
-        return normal("void")
+        return normal(null)
     }
 
     const { lhs: lhsRaw, rhs: rhsRaw } = v.v
@@ -1107,9 +1266,8 @@ export function stmt(
         if (lhs.v.k === "underscore") {
             const rhs = expr(block, time, null, rhsRaw)
             if (rhs.k !== "normal") return rhs
-            if (rhs.v.type.k === "never" || rhs.v.value.k === "unreachable")
-                return normal("unreachable")
-            return normal("void")
+            if (rhs.v.type.k === "never" || rhs.v.value.k === "unreachable") return UNREACHABLE
+            return normal(null)
         }
 
         block.raiseAt(v, "TODO: Only `_` can be assigned to")
@@ -1147,7 +1305,7 @@ export function stmt(
         }
     }
 
-    return normal("void")
+    return normal(null)
 }
 
 const RESERVED =
