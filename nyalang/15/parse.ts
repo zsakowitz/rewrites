@@ -92,7 +92,7 @@ export type Expr = Range
         | { k: "ty-fn"; v: { args: Expr[]; ret: Expr } }
         | { k: "ns-struct"; v: { id: number; extern: boolean; child: Decl[] } }
         | { k: "ns-enum"; v: { id: number; extern: boolean; tag: Expr | null; child: Decl[] } }
-        | { k: "ns-union"; v: { id: number; tag: Expr | null; child: Decl[] } }
+        | { k: "ns-union"; v: { id: number; tag: Expr | "enum" | null; child: Decl[] } }
         | { k: "dot-tuple"; v: { id: number; value: Expr[] } } // .{2, 3}
         | { k: "dot-record"; v: { id: number; value: { name: Ident; value: Expr }[] } } // .{a: 2}
         | { k: "dot-empty"; v: { id: number } } // .{}
@@ -153,9 +153,8 @@ export interface SwitchArm {
 
 export type Decl = Range
     & (
-        | { k: "field-ident"; v: { name: Ident; default: Expr | null } } // a, (could be a field in a tuple or a field name for an enum)
-        | { k: "field-expr"; v: Expr } // Map(i32, i32), (must be some kind of tuple field type)
-        | { k: "field-plain"; v: { name: Ident; type: Expr; default: Expr | null } } // a: i32 = 4,
+        | { k: "field-ident"; v: { name: Ident; value: Expr | null } } // a, b = 7,
+        | { k: "field-plain"; v: { name: Ident; type: Expr; default: Expr | null } } // a: i32, b: i32 = 4,
         | { k: "comptime"; v: Expr }
         | { k: "test"; v: { name: string; body: Expr } }
         | { k: "const"; v: { name: Ident; type: Expr | null; body: Expr } }
@@ -414,15 +413,15 @@ export function parseDecl(context: ParseContext): Decl {
 
     if (context.peek() === T.Ident) {
         const name = parseIdent(context)!
-        let defaultValue = null
+        let value = null
         if (context.peek() === T.Eq) {
             context.index++
-            defaultValue = parseExpr(context)
+            value = parseExpr(context)
         }
         if (context.peek() !== T.RBrace) {
             context.take(T.Comma)
         }
-        return { s, e: context.e, k: "field-ident", v: { name, default: defaultValue } }
+        return { s, e: context.e, k: "field-ident", v: { name, value: value } }
     }
 
     if (context.peek() === T.KFn) {
@@ -483,11 +482,8 @@ export function parseDecl(context: ParseContext): Decl {
         return { s, e: context.e, k: "test", v: { name, body } }
     }
 
-    const type = parseExpr(context)
-    if (context.peek() !== T.RBrace) {
-        context.take(T.Comma)
-    }
-    return { s, e: context.e, k: "field-expr", v: type }
+    context.raise("Expected field or declaration")
+    throw new Error("fatal parsing error")
 }
 
 function parseDeclBlock(context: ParseContext): Decl[] {
@@ -701,7 +697,8 @@ function parseExprAtom(context: ParseContext): Expr {
 
         case T.KUnion: {
             context.index++
-            const tag = parseTagType(context)
+            const tag =
+                context.peek() === T.KEnum ? (context.index++, "enum") : parseTagType(context)
             const child = parseDeclBlock(context)
             return { s, e: context.e, k: "ns-union", v: { id: nextId++, tag, child } }
         }

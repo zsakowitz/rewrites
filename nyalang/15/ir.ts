@@ -1,14 +1,12 @@
 import { assert, unreachable } from "./assert"
 import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
+import * as identCaptures from "./ident"
+import { isReservedIdent } from "./ident"
 import { FLOAT_BIT_SIZES, intIsSafe, type FloatBitSize } from "./num"
-import type { Expr, Range, Stmt } from "./parse"
+import type { Decl, Expr, Range, Stmt } from "./parse"
 
 const usize: RType = { k: "u", v: 32 }
-
-export type Lazy<Final, Raw> =
-    | { resolved: true; value: Final }
-    | { resolved: false; value: { context: Names; input: Raw } }
 
 export type RType =
     | { k: "never"; v: null }
@@ -29,8 +27,8 @@ export type RType =
           v: {
               id: number
               name: string
-              captures: RValue[]
-              fields: Record<string, RType>
+              captures: RTypedValue[]
+              fields: Record<string, { type: RType; default: RTypedValue | null }>
               decls: Record<string, RContainerDecl>
           }
       }
@@ -39,7 +37,7 @@ export type RType =
           v: {
               id: number
               name: string
-              captures: RValue[]
+              captures: RTypedValue[]
               tagType: RType & { k: "i" | "u" | "enum" }
               fields: Record<string, RType>
               decls: Record<string, RContainerDecl>
@@ -50,7 +48,7 @@ export type RType =
           v: {
               id: number
               name: string
-              captures: RValue[]
+              captures: RTypedValue[]
               tagType: RType & { k: "i" | "u" }
               fields: Record<string, bigint>
               decls: Record<string, RContainerDecl>
@@ -74,10 +72,8 @@ export type RValue =
     | { k: "union"; v: { key: string; value: RValue } }
     | { k: "runtime"; v: RII }
 
-export type RContainerDecl =
-    | { k: "const"; v: Lazy<RTypedValue, { type: Expr; value: Expr }> }
-    | { k: "var"; v: Lazy<RTypedValue, { type: Expr; value: Expr }> }
-    | { k: "fn"; v: Fn }
+// TODO: var
+export type RContainerDecl = { k: "const"; v: RTypedValue } | { k: "fn"; v: Fn }
 
 // Validity:
 //
@@ -167,12 +163,19 @@ export class Block {
         readonly returnType: ReturnType,
     ) {}
 
-    /**
-     * Forks this block into another one with a separate `.body` array. All other properties are
-     * shared.
-     */
-    fork() {
+    forkForConditional(): Block {
         return new Block(this.errors, this.file, this.names, this.labels, null, this.returnType)
+    }
+
+    forkForNamespace(): Block {
+        const names: Names = Object.create(null)
+        for (const key in this.names) {
+            const name = this.names[key]!
+            names[key] =
+                name.k === "comptime-const" || name.k === "fn" ? name : { k: "reserved", v: null }
+        }
+
+        return new Block(this.errors, this.file, names, Object.create(null), null, false)
     }
 
     completeWith(value: RuntimeCompletion): RuntimeBlock {
@@ -367,8 +370,17 @@ export function expr(
             return resultFromType({ k: "fn", v: { args, return: ret.v } })
         }
 
-        case "ns-struct":
-            break
+        case "ns-struct": {
+            if (v.v.extern) {
+                block.todo(v)
+                return ERROR
+            }
+
+            const type = nsStruct(block, v, v.v.id, v.v.child)
+            if (type === null) return ERROR
+
+            return resultFromType(type)
+        }
 
         case "ns-enum":
             break
@@ -691,7 +703,7 @@ export function expr(
                 block.raiseAt(v, "'maybe' is not supported at comptime")
             }
 
-            const innerBlock = block.fork()
+            const innerBlock = block.forkForConditional()
             const result = exprAs(innerBlock, time, { k: "void", v: null }, v.v)
             if (result.k === "error") return ERROR
             block.push("cf-maybe", innerBlock.completeWith(result))
@@ -1117,7 +1129,14 @@ function typeEq(a: RType, b: RType): boolean {
         case "union":
         case "enum":
             assert(b.k === a.k)
-            return a.v.id === b.v.id && a.v.captures.every((va, i) => valueEq(va, b.v.captures[i]!))
+            return (
+                a.v.id === b.v.id
+                && a.v.captures.every(
+                    (va, i) =>
+                        typeEq(va.type, b.v.captures[i]!.type)
+                        && valueEq(va.value, b.v.captures[i]!.value),
+                )
+            )
     }
 }
 
@@ -1391,9 +1410,102 @@ export function stmt(block: Block, time: "comptime" | "any", v: Stmt): Result<nu
     return normal(null)
 }
 
-const RESERVED =
-    /^(?:comptime_int|comptime_float|bool|never|type|void|str|true|false|null|[uif]\d+)$/
+function identsCapturedInDecl(names: Names, decl: Decl[]): string[] {
+    const map = new Map<string, boolean>()
+    for (const el in names) map.set(el, false)
 
-function isReservedIdent(name: string) {
-    return RESERVED.test(name)
+    for (const el of decl) identCaptures.decl(map, el)
+
+    const ret: string[] = []
+    for (const [k, v] of map) if (v) ret.push(k)
+    return ret
+}
+
+function nsStruct(block: Block, range: Range, id: number, v: Decl[]): RType | null {
+    const identsCaptured = identsCapturedInDecl(block.names, v)
+    const captures: RTypedValue[] = []
+
+    for (const el of identsCaptured) {
+        const value = block.names[el]!
+
+        switch (value.k) {
+            case "comptime-const":
+                captures.push(value.v)
+                break
+
+            case "fn":
+                break
+
+            case "const":
+            case "var":
+            case "reserved":
+                block.raiseAt(
+                    range,
+                    `Struct cannot capture '${el}', since it is not a 'comptime const' or a 'fn'`,
+                )
+                return null
+
+            default:
+                value satisfies never
+        }
+    }
+
+    block.forkForNamespace()
+
+    const decls: Record<string, RContainerDecl> = Object.create(null)
+    const fields: Record<string, { type: RType; default: RTypedValue | null }> = Object.create(null)
+
+    for (const el of v) {
+        switch (el.k) {
+            case "field-ident":
+                block.raiseAt(el, `Struct fields must have explicit types.`)
+                return null
+
+            case "field-plain": {
+                if (el.v.name.name in fields) {
+                    block.raiseAt(el, `Struct field '${el.v.name.name}' declared twice.`)
+                    return null
+                }
+
+                const myBlock = block.forkForNamespace()
+
+                const typeResult = exprAsType(myBlock, el.v.type)
+                if (typeResult.k === "error") return null
+                assert(typeResult.k === "normal")
+
+                let defaultValue: RTypedValue | null = null
+                if (el.v.default) {
+                    const val = exprAs(myBlock, "comptime", typeResult.v, el.v.default)
+                    if (val.k === "error") return null
+                    assert(val.k === "normal")
+                    defaultValue = val.v
+                }
+
+                fields[el.v.name.name] = { type: typeResult.v, default: defaultValue }
+                break
+            }
+
+            case "comptime": {
+                const val = exprAs(block, "comptime", { k: "void", v: null }, el.v)
+                if (val.k === "error") return null
+                assert(val.k === "normal")
+                break
+            }
+
+            case "test":
+            case "const":
+            case "var":
+            case "fn":
+                block.todo(el)
+                break
+
+            default:
+                el satisfies never
+        }
+    }
+
+    return {
+        k: "struct",
+        v: { id, name: `${block.file.name}__struct_${id}`, captures, decls, fields },
+    }
 }

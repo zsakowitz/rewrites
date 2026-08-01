@@ -1,9 +1,10 @@
-{
-    var a: ?u8 = 3;
-    _ = b: {
-        maybe { a = 78; };
-        maybe break :b 89;
-        break :b null;
+blk: {
+    comptime const T = i32;
+    break :blk struct {
+        re: T = 0,
+        im: T = 0,
+        comptime {
+            _ = @as(?i32, 23);
+        };
     };
-    a = null;
 }
