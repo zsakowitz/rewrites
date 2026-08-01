@@ -72,6 +72,13 @@ export type RValue =
     | { k: "union"; v: { key: string; value: RValue } }
     | { k: "runtime"; v: RII }
 
+interface RStruct {
+    names: Names
+    fields:
+        | { resolved: true; value: Record<string, { type: RType; default: RTypedValue | null }> }
+        | { resolved: false }
+}
+
 // TODO: var
 export type RContainerDecl = { k: "const"; v: RTypedValue } | { k: "fn"; v: Fn }
 
@@ -147,6 +154,34 @@ interface RuntimeBlock {
     value: RuntimeCompletion
 }
 
+/** A block for namespace bodies. */
+export class NamespaceBlock {
+    constructor(
+        readonly errors: Errors,
+        public file: File,
+        readonly names: Names,
+    ) {}
+
+    forkForExpression(): Block {
+        return new Block(this.errors, this.file, this.names, Object.create(null), null, false)
+    }
+
+    raiseAt(range: Range, message: string) {
+        this.errors.raise(new TraceEntry(this.file, range.s, range.e, message))
+    }
+
+    todo(range: Range, message?: string) {
+        const source = new Error().stack?.split("\n")[2]
+
+        this.raiseAt(
+            range,
+            `not implemented yet${message ? " (" + message + ")" : ""} (`
+                + source?.slice(source.indexOf("(") + 49),
+        )
+    }
+}
+
+/** A block for function bodies. */
 export class Block {
     /**
      * Contains all instructions with potential side effects, including `unreachable`, control flow,
@@ -167,7 +202,7 @@ export class Block {
         return new Block(this.errors, this.file, this.names, this.labels, null, this.returnType)
     }
 
-    forkForNamespace(): Block {
+    forkForNamespace(): NamespaceBlock {
         const names: Names = Object.create(null)
         for (const key in this.names) {
             const name = this.names[key]!
@@ -175,7 +210,7 @@ export class Block {
                 name.k === "comptime-const" || name.k === "fn" ? name : { k: "reserved", v: null }
         }
 
-        return new Block(this.errors, this.file, names, Object.create(null), null, false)
+        return new NamespaceBlock(this.errors, this.file, names)
     }
 
     completeWith(value: RuntimeCompletion): RuntimeBlock {
@@ -376,7 +411,7 @@ export function expr(
                 return ERROR
             }
 
-            const type = nsStruct(block, v, v.v.id, v.v.child)
+            const type = nsStruct(block.forkForNamespace(), v, v.v.id, v.v.child)
             if (type === null) return ERROR
 
             return resultFromType(type)
@@ -1421,7 +1456,7 @@ function identsCapturedInDecl(names: Names, decl: Decl[]): string[] {
     return ret
 }
 
-function nsStruct(block: Block, range: Range, id: number, v: Decl[]): RType | null {
+function nsStruct(block: NamespaceBlock, range: Range, id: number, v: Decl[]): RType | null {
     const identsCaptured = identsCapturedInDecl(block.names, v)
     const captures: RTypedValue[] = []
 
@@ -1450,8 +1485,6 @@ function nsStruct(block: Block, range: Range, id: number, v: Decl[]): RType | nu
         }
     }
 
-    block.forkForNamespace()
-
     const decls: Record<string, RContainerDecl> = Object.create(null)
     const fields: Record<string, { type: RType; default: RTypedValue | null }> = Object.create(null)
 
@@ -1467,7 +1500,7 @@ function nsStruct(block: Block, range: Range, id: number, v: Decl[]): RType | nu
                     return null
                 }
 
-                const myBlock = block.forkForNamespace()
+                const myBlock = block.forkForExpression()
 
                 const typeResult = exprAsType(myBlock, el.v.type)
                 if (typeResult.k === "error") return null
@@ -1486,7 +1519,12 @@ function nsStruct(block: Block, range: Range, id: number, v: Decl[]): RType | nu
             }
 
             case "comptime": {
-                const val = exprAs(block, "comptime", { k: "void", v: null }, el.v)
+                const val = exprAs(
+                    block.forkForExpression(),
+                    "comptime",
+                    { k: "void", v: null },
+                    el.v,
+                )
                 if (val.k === "error") return null
                 assert(val.k === "normal")
                 break
