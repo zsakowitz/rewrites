@@ -182,6 +182,7 @@ type RuntimeInst =
     | { n: RII; k: "lit"; v: TypedValue }
     | { n: RII; k: "cf-unreachable"; v: null }
     | { n: RII; k: "slice-from-array"; v: RII }
+    | { n: RII; k: "get-unwrap"; v: RII }
 
 export class RootContext {
     constructor(public errors: Errors) {}
@@ -505,6 +506,15 @@ function unwrapOptional(type: Type): { depth: number; inner: Type } {
     return { depth, inner: type }
 }
 
+/** Gets the innermost type of trivial type wrappers like `?T` and (once we have it) `!T`. */
+function innerType(type: Type) {
+    while (type.k === "optional") {
+        type = type.v
+    }
+
+    return type
+}
+
 /**
  * Finds a type which all values coerce into. If `null` is returned, no join was found and an error
  * was issued.
@@ -676,9 +686,97 @@ export function expr(
         case "ns-struct":
         case "ns-enum":
         case "ns-union":
-        case "dot-tuple":
+            break
+
+        case "dot-tuple": {
+            if (type !== null) type = innerType(type)
+
+            if (type !== null && (type.k === "array" || type.k === "slice")) {
+                if (type.k === "array" && v.value.length !== type.v.len) {
+                    ctx.raiseAt(
+                        p,
+                        `expected '${typeName(type)}', but array literal has ${v.value.length} elements`,
+                    )
+                    return ERROR
+                }
+
+                const child = type.k === "slice" ? type.v : type.v.child
+
+                const values: Value[] = []
+                for (const el of v.value) {
+                    const result = exprAs(ctx, comptime, child, el)
+                    if (result.k !== "normal") return ERROR
+
+                    values.push(result.v.value)
+                }
+
+                return normal(type, { k: "array", v: values })
+            }
+
+            if (type !== null && type.k === "tuple") {
+                if (v.value.length !== type.v.length) {
+                    ctx.raiseAt(
+                        p,
+                        `expected '${typeName(type)}', but tuple literal has ${v.value.length} elements`,
+                    )
+                    return ERROR
+                }
+
+                const values: Value[] = []
+                for (let i = 0; i < type.v.length; i++) {
+                    const result = exprAs(ctx, comptime, type.v[i]!, v.value[i]!)
+                    if (result.k !== "normal") return ERROR
+
+                    values.push(result.v.value)
+                }
+
+                return normal(type, { k: "array", v: values })
+            }
+
+            const types: Type[] = []
+            const values: Value[] = []
+            for (let i = 0; i < v.value.length; i++) {
+                const result = expr(ctx, comptime, null, v.value[i]!)
+                if (result.k !== "normal") return ERROR
+
+                types.push(result.v.type)
+                values.push(result.v.value)
+            }
+
+            return normal({ k: "tuple", v: types }, { k: "array", v: values })
+        }
+
         case "dot-record":
-        case "dot-empty":
+            break
+
+        case "dot-empty": {
+            if (type !== null) type = innerType(type)
+
+            if (type !== null && (type.k === "array" || type.k === "slice")) {
+                if (type.k === "array" && type.v.len !== 0) {
+                    ctx.raiseAt(p, `expected '${typeName(type)}', but array literal has 0 elements`)
+                    return ERROR
+                }
+
+                return normal(type, { k: "array", v: [] })
+            }
+
+            if (type !== null && type.k === "tuple") {
+                if (type.v.length !== 0) {
+                    ctx.raiseAt(p, `expected '${typeName(type)}', but tuple literal has 0 elements`)
+                    return ERROR
+                }
+
+                return normal(type, { k: "array", v: [] })
+            }
+
+            if (type !== null && type.k === "struct") {
+                ctx.todo(p, "struct with all default fields")
+            }
+
+            return normal({ k: "tuple", v: [] }, { k: "array", v: [] })
+        }
+
         case "dot-field":
         case "dot-method":
         case "dot-call":
@@ -712,7 +810,32 @@ export function expr(
         case "get-method":
         case "get-index":
         case "get-call":
-        case "get-unwrap":
+            break
+
+        case "get-unwrap": {
+            const inner = expr(ctx, comptime, type ? { k: "optional", v: type } : null, v.target)
+            if (inner.k !== "normal") return inner
+
+            if (inner.v.type.k !== "optional") {
+                ctx.raiseAt(p, `expected optional type, but got '${typeName(inner.v.type)}'`)
+                return ERROR
+            }
+
+            if (inner.v.value.k === "null") {
+                ctx.raiseAt(p, "unwrapped 'null'")
+                return ERROR
+            }
+
+            if (inner.v.value.k === "some") {
+                return normal(inner.v.type.v, inner.v.value.v)
+            }
+
+            assert(inner.v.value.k === "runtime")
+            assert(!comptime)
+
+            return ctx.rtResult(inner.v.type.v, "get-unwrap", inner.v.value.v)
+        }
+
         case "block":
             break
 
@@ -727,8 +850,10 @@ export function expr(
                     case "comptime_int":
                     case "comptime_float":
                     case "str":
-                    case "null":
                         return normalType({ k: v.name, v: null })
+
+                    case "null":
+                        return normal({ k: "null", v: null }, { k: "null", v: null })
 
                     case "true":
                     case "false":
@@ -845,7 +970,27 @@ export function builtin(
                 ctx.raiseAt(p, `'@This()' does not accept any arguments`)
                 return ERROR
             }
+
             return normalType(ctx.ns.self)
+        }
+
+        case "Tuple": {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `'@Tuple(...)' required exactly one argument`)
+                return ERROR
+            }
+
+            const result = exprAs(ctx, true, { k: "slice", v: { k: "type", v: null } }, args[0]!)
+            if (result.k !== "normal") return result
+            assert(result.v.value.k === "array")
+
+            const types: Type[] = []
+            for (const el of result.v.value.v) {
+                assert(el.k === "type")
+                types.push(el.v)
+            }
+
+            return normalType({ k: "tuple", v: types })
         }
 
         case "TypeOf": {
