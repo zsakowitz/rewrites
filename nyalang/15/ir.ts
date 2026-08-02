@@ -746,26 +746,7 @@ export function expr(
             const ns = ctx.createNamespaceContext({ k: "struct", v: struct })
             struct.ns = ns
 
-            const immediates = resolveNamespaceDecls(ns, v.child)
-            if (immediates === null) return ERROR
-
-            for (const comptimeExpr of immediates.comptime) {
-                const result = exprAs(
-                    ns.createEvaluationContext(),
-                    true,
-                    { k: "void", v: null },
-                    comptimeExpr,
-                )
-                assert(result.k === "error" || result.k === "normal")
-                if (result.k !== "normal") return result
-            }
-
-            if (ns.root.tests !== null) {
-                for (const { id, name, body } of immediates.test) {
-                    ns.root.tests.push({ ns, id: id as TID, name, body })
-                }
-            }
-
+            if (!finalizeNamespace(ns, v.child)) return ERROR
             return normalType(ns.self)
         }
 
@@ -1109,12 +1090,9 @@ export function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result
     return { k: "error", v: null }
 }
 
-/** Returns `null` on error. */
-function resolveNamespaceDecls(ctx: NamespaceContext, ps: Decl[]): ImmediateExecutables | null {
-    const ret: ImmediateExecutables = {
-        comptime: [],
-        test: [],
-    }
+/** Returns `false` on error. */
+function finalizeNamespace(ns: NamespaceContext, ps: Decl[]): boolean {
+    const comptime: Expr[] = []
 
     for (const { k, v, s, e } of ps) {
         switch (k) {
@@ -1124,45 +1102,47 @@ function resolveNamespaceDecls(ctx: NamespaceContext, ps: Decl[]): ImmediateExec
                 break
 
             case "comptime":
-                ret.comptime.push(v)
+                comptime.push(v)
                 break
 
             case "test":
-                ret.test.push(v)
+                if (ns.root.tests !== null) {
+                    ns.root.tests.push({ ns: ns, id: v.id as TID, name: v.name, body: v.body })
+                }
                 break
 
             case "const":
             case "var":
                 if (isReservedIdent(v.name)) {
-                    ctx.raiseAt(v.name, "declaration shadows a reserved word")
-                    return null
+                    ns.raiseAt(v.name, "declaration shadows a reserved word")
+                    return false
                 }
-                if (ctx.items.has(v.name.name)) {
-                    ctx.raiseAt(v.name, "declaration shadows a name from an outer scope")
-                    return null
+                if (ns.items.has(v.name.name)) {
+                    ns.raiseAt(v.name, "declaration shadows a name from an outer scope")
+                    return false
                 }
-                ctx.items.set(v.name.name, {
+                ns.items.set(v.name.name, {
                     k,
-                    v: { k: "raw", v: { ns: ctx, type: v.type, value: v.body } },
+                    v: { k: "raw", v: { ns: ns, type: v.type, value: v.body } },
                 })
                 break
 
             case "fn":
                 if (!v.name) {
-                    ctx.todo({ s, e }, "functions must have names")
-                    return null
+                    ns.todo({ s, e }, "functions must have names")
+                    return false
                 }
                 if (isReservedIdent(v.name)) {
-                    ctx.raiseAt(v.name, "declaration shadows a reserved word")
-                    return null
+                    ns.raiseAt(v.name, "declaration shadows a reserved word")
+                    return false
                 }
-                if (ctx.items.has(v.name.name)) {
-                    ctx.raiseAt(v.name, "declaration shadows a name from an outer scope")
-                    return null
+                if (ns.items.has(v.name.name)) {
+                    ns.raiseAt(v.name, "declaration shadows a name from an outer scope")
+                    return false
                 }
-                ctx.items.set(v.name.name, {
+                ns.items.set(v.name.name, {
                     k: "fn",
-                    v: new Fn(ctx, v.id as FID, v.params, v.ret, v.body),
+                    v: new Fn(ns, v.id as FID, v.params, v.ret, v.body),
                 })
                 break
 
@@ -1171,7 +1151,13 @@ function resolveNamespaceDecls(ctx: NamespaceContext, ps: Decl[]): ImmediateExec
         }
     }
 
-    return ret
+    for (const p of comptime) {
+        const ret = exprAs(ns.createEvaluationContext(), true, { k: "void", v: null }, p)
+        if (ret.k === "error") return false
+        assert(ret.k === "normal")
+    }
+
+    return true
 }
 
 function isReservedIdent(ident: Ident): boolean {
