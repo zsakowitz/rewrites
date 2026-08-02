@@ -116,6 +116,7 @@ type Capture = Value | { k: "runtime-var"; v: GID }
 
 interface Struct {
     id: AID
+    p: Range
     captures: Capture[]
     ns: NamespaceContext
     members: Lazy<
@@ -126,6 +127,7 @@ interface Struct {
 
 interface Enum {
     id: AID
+    p: Range
     captures: Capture[]
     ns: NamespaceContext
     backingInt: Type
@@ -134,6 +136,7 @@ interface Enum {
 
 interface Union {
     id: AID
+    p: Range
     captures: Capture[]
     ns: NamespaceContext
     tag: Type & { k: "enum" }
@@ -142,6 +145,7 @@ interface Union {
 
 interface Opaque {
     id: AID
+    p: Range
     captures: Capture[]
     ns: NamespaceContext
 }
@@ -182,6 +186,10 @@ export class Items {
     *[Symbol.iterator](): Generator<[string, Item], BuiltinIteratorReturn, unknown> {
         yield* this.self
         if (this.parent !== null) yield* this.parent
+    }
+
+    *own() {
+        yield* this.self.keys()
     }
 }
 
@@ -743,6 +751,7 @@ export function expr(
 
             const struct: Struct = {
                 id: v.id as AID,
+                p,
                 captures,
                 ns: null!,
                 members: { k: "raw", v: members },
@@ -750,7 +759,7 @@ export function expr(
             const ns = ctx.createNamespaceContext({ k: "struct", v: struct })
             struct.ns = ns
 
-            if (!finalizeNamespace(ns, v.child)) return ERROR
+            if (!finalizeNamespace(ns, "field", members, v.child)) return ERROR
             return normalType(ns.self)
         }
 
@@ -812,6 +821,7 @@ export function expr(
 
             const type: Enum = {
                 id: v.id as AID,
+                p,
                 captures,
                 ns: null!,
                 backingInt: tag,
@@ -823,7 +833,7 @@ export function expr(
             const ns = ctx.createNamespaceContext({ k: "enum", v: type })
             type.ns = ns
 
-            if (!finalizeNamespace(ns, v.child)) return ERROR
+            if (!finalizeNamespace(ns, "variant", members, v.child)) return ERROR
             return normalType(ns.self)
         }
 
@@ -858,6 +868,7 @@ export function expr(
             if (v.tag === "enum") {
                 const adt: Enum = {
                     id: (v.id - 1) as AID,
+                    p,
                     captures: [],
                     ns: null!,
                     backingInt: { k: "u", v: bitCountWithVariants(members.size) },
@@ -925,6 +936,7 @@ export function expr(
 
             const union: Union = {
                 id: v.id as AID,
+                p,
                 captures,
                 ns: null!,
                 tag,
@@ -933,7 +945,7 @@ export function expr(
             const ns = ctx.createNamespaceContext({ k: "union", v: union })
             union.ns = ns
 
-            if (!finalizeNamespace(ns, v.child)) return ERROR
+            if (!finalizeNamespace(ns, "variant", members, v.child)) return ERROR
             return normalType(ns.self)
         }
 
@@ -941,11 +953,11 @@ export function expr(
             const captures = getCaptures(ctx, v.child)
             if (captures === null) return ERROR
 
-            const opaque: Opaque = { id: v.id as AID, captures, ns: null! }
+            const opaque: Opaque = { id: v.id as AID, p, captures, ns: null! }
             const ns = ctx.createNamespaceContext({ k: "opaque", v: opaque })
             opaque.ns = ns
 
-            if (!finalizeNamespace(ns, v.child)) return ERROR
+            if (!finalizeNamespace(ns, null! /* never used */, new Map(), v.child)) return ERROR
             return normalType(ns.self)
         }
 
@@ -1286,7 +1298,12 @@ export function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result
 }
 
 /** Returns `false` on error. */
-function finalizeNamespace(ns: NamespaceContext, ps: Decl[]): boolean {
+function finalizeNamespace(
+    ns: NamespaceContext,
+    memberKind: "field" | "variant",
+    members: Map<string, unknown>,
+    ps: Decl[],
+): boolean {
     const comptime: Expr[] = []
 
     for (const { k, v, s, e } of ps) {
@@ -1309,7 +1326,11 @@ function finalizeNamespace(ns: NamespaceContext, ps: Decl[]): boolean {
             case "const":
             case "var":
                 if (isReservedIdent(v.name)) {
-                    ns.raiseAt(v.name, "declaration shadows a reserved word")
+                    ns.raiseAt(v.name, "declaration shadows a reserved identifier")
+                    return false
+                }
+                if (members.has(v.name.name)) {
+                    ns.raiseAt(v.name, `declaration cannot have same name as ${memberKind}`)
                     return false
                 }
                 if (ns.items.has(v.name.name)) {
@@ -1328,7 +1349,11 @@ function finalizeNamespace(ns: NamespaceContext, ps: Decl[]): boolean {
                     return false
                 }
                 if (isReservedIdent(v.name)) {
-                    ns.raiseAt(v.name, "declaration shadows a reserved word")
+                    ns.raiseAt(v.name, "declaration shadows a reserved identifier")
+                    return false
+                }
+                if (members.has(v.name.name)) {
+                    ns.raiseAt(v.name, `declaration cannot have same name as ${memberKind}`)
                     return false
                 }
                 if (ns.items.has(v.name.name)) {
@@ -1635,10 +1660,7 @@ function resolveConst(item: Extract<Item, { k: "const" }>): TypedValue | null {
     }
 
     if (item.v.k === "progressing") {
-        item.v.v.ns.raiseAt(
-            item.v.v.p,
-            "encountered dependency loop when analyzing 'const' declaration",
-        )
+        item.v.v.ns.raiseAt(item.v.v.p, "dependency loop when analyzing 'const' declaration")
         return null
     }
 
@@ -1658,10 +1680,7 @@ function resolveVar(item: Extract<Item, { k: "var" }>): { type: Type; id: GID } 
     }
 
     if (item.v.k === "progressing") {
-        item.v.v.ns.raiseAt(
-            item.v.v.p,
-            "encountered dependency loop when analyzing 'var' declaration",
-        )
+        item.v.v.ns.raiseAt(item.v.v.p, "dependency loop when analyzing 'var' declaration")
         return null
     }
 
@@ -1680,6 +1699,131 @@ function resolveVar(item: Extract<Item, { k: "var" }>): { type: Type; id: GID } 
 
     item.v = { k: "analyzed", v: { type: value.type, id: gid } }
     return item.v.v
+}
+
+function resolveEnum(item: Enum): Map<string, bigint> | null {
+    if (item.members.k === "analyzed") {
+        return item.members.v
+    }
+
+    if (item.members.k === "progressing") {
+        item.members.v.ns.raiseAt(
+            item.members.v.p,
+            "dependency loop when analyzing 'enum' variants",
+        )
+        return null
+    }
+
+    const membersRaw = item.members.v
+    item.members = { k: "progressing", v: { ns: item.ns, p: item.p } }
+
+    const ret = new Map<string, bigint>()
+    const assigned = new Map<bigint, string>()
+    let next = 0n
+    for (const [k, v] of membersRaw) {
+        if (v === null) {
+            const value = next++
+            if (assigned.has(value)) {
+                item.ns.raiseAt(
+                    item.p,
+                    `enum variant '${k}' has the same value as variant '${assigned.get(value)}'`,
+                )
+                return null
+            }
+
+            ret.set(k, value)
+            assigned.set(value, k)
+            continue
+        }
+
+        const value = topLevelValueAs(item.ns, item.ns.self, v)
+        if (value === null) return null
+
+        assert(value.value.k === "int")
+        if (assigned.has(value.value.v)) {
+            item.ns.raiseAt(
+                item.p,
+                `enum variant '${k}' has the same value as variant '${assigned.get(value.value.v)}'`,
+            )
+            return null
+        }
+        ret.set(k, value.value.v)
+        assigned.set(value.value.v, k)
+        next = value.value.v + 1n
+    }
+
+    item.members = { k: "analyzed", v: ret }
+    return item.members.v
+}
+
+function resolveStruct(
+    item: Struct,
+): Map<string, { type: Type; default: TypedValue | null }> | null {
+    if (item.members.k === "analyzed") {
+        return item.members.v
+    }
+
+    if (item.members.k === "progressing") {
+        item.members.v.ns.raiseAt(
+            item.members.v.p,
+            "dependency loop when analyzing 'struct' fields",
+        )
+        return null
+    }
+
+    const membersRaw = item.members.v
+    item.members = { k: "progressing", v: { ns: item.ns, p: item.p } }
+
+    const ret = new Map<string, { type: Type; default: TypedValue | null }>()
+    for (const [k, { type: typeRaw, default: defaultRaw }] of membersRaw) {
+        const type = topLevelType(item.ns, typeRaw)
+        if (type === null) return null
+
+        let defaultValue: TypedValue | null = null
+        if (defaultRaw !== null) {
+            const result = topLevelValueAs(item.ns, type, defaultRaw)
+            if (result === null) return null
+
+            defaultValue = result
+        }
+
+        ret.set(k, { type, default: defaultValue })
+    }
+
+    item.members = { k: "analyzed", v: ret }
+    return item.members.v
+}
+
+function resolveUnion(item: Union): Map<string, Type> | null {
+    if (item.members.k === "analyzed") {
+        return item.members.v
+    }
+
+    if (item.members.k === "progressing") {
+        item.members.v.ns.raiseAt(
+            item.members.v.p,
+            "dependency loop when analyzing 'union' variants",
+        )
+        return null
+    }
+
+    const membersRaw = item.members.v
+    item.members = { k: "progressing", v: { ns: item.ns, p: item.p } }
+
+    const ret = new Map<string, Type>()
+    for (const [k, typeRaw] of membersRaw) {
+        if (typeRaw === null) {
+            ret.set(k, { k: "void", v: null })
+            continue
+        }
+
+        const type = topLevelType(item.ns, typeRaw)
+        if (type === null) return null
+        ret.set(k, type)
+    }
+
+    item.members = { k: "analyzed", v: ret }
+    return item.members.v
 }
 
 function topLevelType(ctx: NamespaceContext, p: Expr): Type | null {
@@ -1703,6 +1847,15 @@ function topLevelValue(ctx: NamespaceContext, type: Expr | null, value: Expr): T
     if (ty === null) return null
 
     const result = exprAs(ec, true, ty, value)
+    if (result.k === "error") return null
+    assert(result.k === "normal")
+    return result.v
+}
+
+function topLevelValueAs(ctx: NamespaceContext, type: Type, value: Expr): TypedValue | null {
+    const ec = ctx.createEvaluationContext()
+
+    const result = exprAs(ec, true, type, value)
     if (result.k === "error") return null
     assert(result.k === "normal")
     return result.v
