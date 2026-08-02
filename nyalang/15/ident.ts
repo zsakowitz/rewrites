@@ -28,7 +28,7 @@ function decl(used: Map<string, boolean>, v: Decl | null) {
             break
 
         case "fn":
-            for (const el of v.v.args) {
+            for (const el of v.v.params) {
                 expr(used, el.type)
             }
             expr(used, v.v.ret)

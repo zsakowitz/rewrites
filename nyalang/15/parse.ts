@@ -159,16 +159,10 @@ export type Decl = Range
         | { k: "test"; v: { name: string; body: Expr } }
         | { k: "const"; v: { name: Ident; type: Expr | null; body: Expr } }
         | { k: "var"; v: { name: Ident; type: Expr | null; body: Expr } }
-        | {
-              k: "fn"
-              v: {
-                  name: Ident | null
-                  args: { comptime: boolean; name: Ident; type: Expr }[]
-                  ret: Expr
-                  body: Expr
-              }
-          }
+        | { k: "fn"; v: { name: Ident | null; params: FunctionParam[]; ret: Expr; body: Expr } }
     )
+
+export type FunctionParam = { comptime: boolean; name: Ident; type: Expr }
 
 export type Stmt = Range
     & ({ k: "expr"; v: Expr } | { k: "assign"; v: { lhs: AssignTarget[]; rhs: Expr } })
@@ -447,7 +441,7 @@ export function parseDecl(context: ParseContext): Decl {
             context.take(T.Eq)
         }
         const body = parseExpr(context)
-        return { s, e: context.e, k: "fn", v: { name, args, ret: returnType, body } }
+        return { s, e: context.e, k: "fn", v: { name, params: args, ret: returnType, body } }
     }
 
     if (context.peek() === T.KVar || context.peek() === T.KConst) {
