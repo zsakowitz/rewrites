@@ -1,6 +1,7 @@
 import { assert } from "./assert"
 import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
+import { decl } from "./ident"
 import { FLOAT_BIT_SIZES, floatTruncate, intIsSafe, type FloatBitSize } from "./num"
 import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
 
@@ -103,22 +104,24 @@ interface TypedValue {
 
 type Lazy<Raw, Analyzed> =
     | { k: "raw"; v: Raw }
-    | { k: "progressing"; v: null }
+    | { k: "progressing"; v: { ns: NamespaceContext; p: Range } }
     | { k: "analyzed"; v: Analyzed }
+
+type Capture = Value | { k: "runtime-var"; v: GID }
 
 interface Struct {
     id: AID
-    captures: Value[]
-    ns: NamespaceContext
+    captures: Capture[]
+    ns: NamespaceContext | null
     members: Lazy<
-        Map<string, { type: Type; default: Expr | null }>,
+        Map<string, { type: Expr; default: Expr | null }>,
         Map<string, { type: Type; default: TypedValue | null }>
     >
 }
 
 interface Enum {
     id: AID
-    captures: Value[]
+    captures: Capture[]
     ns: NamespaceContext
     backingInt: Type
     members: Lazy<Map<string, Expr | null>, Map<string, number>>
@@ -126,7 +129,7 @@ interface Enum {
 
 interface Union {
     id: AID
-    captures: Value[]
+    captures: Capture[]
     ns: NamespaceContext
     tag: Type & { k: "enum" }
     members: Lazy<Map<string, Expr | null>, Map<string, Type>>
@@ -134,7 +137,7 @@ interface Union {
 
 interface Opaque {
     id: AID
-    captures: Value[]
+    captures: Capture[]
     ns: NamespaceContext
 }
 
@@ -157,26 +160,40 @@ export class Items {
         return new Items(this)
     }
 
+    get(name: string): Item {
+        assert(this.has(name))
+        return this.self.get(name) ?? this.parent!.get(name)
+    }
+
     has(name: string): boolean {
         return this.self.has(name) || (this.parent !== null && this.parent.has(name))
     }
 
-    set(name: string, value: Item) {
+    set(name: string, value: Item): void {
         assert(!this.has(name))
         this.self.set(name, value)
+    }
+
+    *[Symbol.iterator](): Generator<[string, Item], BuiltinIteratorReturn, unknown> {
+        yield* this.self
+        if (this.parent !== null) yield* this.parent
     }
 }
 
 type Item =
     | { k: "fn"; v: Fn }
-    | { k: "const"; v: Lazy<{ type: Expr | null; value: Expr }, TypedValue> }
-    | { k: "var"; v: Lazy<{ type: Expr | null; value: Expr }, { type: Type; id: GID }> }
+    | { k: "const"; v: Lazy<{ ns: NamespaceContext; type: Expr | null; value: Expr }, TypedValue> }
+    | {
+          k: "var"
+          v: Lazy<{ ns: NamespaceContext; type: Expr | null; value: Expr }, { type: Type; id: GID }>
+      }
     | { k: "reserved"; v: null }
 
 type GID = number & { __brand: "global_var" }
 type RII = number & { __brand: "runtime_instruction" }
-type AID = number & { __brand: "adt_decl" }
+type AID = number & { __brand: "adt" }
 type FID = number & { __brand: "fn_decl" }
+type TID = number & { __brand: "test" }
 
 type RuntimeInst =
     | { n: RII; k: "lit"; v: TypedValue }
@@ -184,8 +201,18 @@ type RuntimeInst =
     | { n: RII; k: "slice-from-array"; v: RII }
     | { n: RII; k: "get-unwrap"; v: RII }
 
+interface Test {
+    ns: NamespaceContext
+    id: TID
+    name: string
+    body: Expr
+}
+
 export class RootContext {
-    constructor(public errors: Errors) {}
+    constructor(
+        public errors: Errors,
+        public tests: Test[] | null, // `null` if not using tests
+    ) {}
 
     public globalVars: Map<GID, TypedValue> = Object.create(null)
 }
@@ -210,7 +237,7 @@ type Variable =
     | { k: "var" | "const"; v: { type: Type; n: RII } }
     | { k: "comptime-const"; v: TypedValue }
 
-let nextRII = 0
+let nextId = 0
 
 export class EvaluationContext {
     constructor(
@@ -256,7 +283,7 @@ export class EvaluationContext {
     }
 
     rtInst<K extends RuntimeInst["k"]>(k: K, v: Extract<RuntimeInst, { k: K }>["v"]): RII {
-        const n = nextRII++ as RII
+        const n = nextId++ as RII
         this.runtime.push({ n, k, v } as RuntimeInst)
         return n
     }
@@ -266,7 +293,7 @@ export class EvaluationContext {
         k: K,
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): TypedValue {
-        const n = nextRII++ as RII
+        const n = nextId++ as RII
         this.runtime.push({ n, k, v } as RuntimeInst)
         return { type, value: { k: "runtime", v: n } }
     }
@@ -276,7 +303,7 @@ export class EvaluationContext {
         k: K,
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): Result<TypedValue> {
-        const n = nextRII++ as RII
+        const n = nextId++ as RII
         this.runtime.push({ n, k, v } as RuntimeInst)
         return { k: "normal", v: { type, value: { k: "runtime", v: n } } }
     }
@@ -314,7 +341,7 @@ type Result<T> = ResultNontrivial | { k: "normal"; v: T }
 
 interface ImmediateExecutables {
     comptime: Expr[]
-    test: { name: string; body: Expr }[]
+    test: { id: number; name: string; body: Expr }[]
 }
 
 const ERROR = { k: "error" as const, v: null }
@@ -683,7 +710,65 @@ export function expr(
             return normalType({ k: "fn", v: { params, ret } })
         }
 
-        case "ns-struct":
+        case "ns-struct": {
+            if (v.extern) {
+                ctx.todo(p, "extern structs")
+                return ERROR
+            }
+
+            const captures = getCaptures(ctx, v.child)
+            if (captures === null) return ERROR
+
+            const members = new Map<string, { type: Expr; default: Expr | null }>()
+            for (const p of v.child) {
+                if (p.k === "field-ident") {
+                    ctx.raiseAt(p, "expected type of struct field")
+                    return ERROR
+                }
+
+                if (p.k === "field-plain") {
+                    if (members.has(p.v.name.name)) {
+                        ctx.raiseAt(p, "struct field declared twice")
+                        return ERROR
+                    }
+
+                    members.set(p.v.name.name, { type: p.v.type, default: p.v.default })
+                }
+            }
+
+            const struct: Struct = {
+                id: v.id as AID,
+                captures,
+                ns: null,
+                members: { k: "raw", v: members },
+            }
+
+            const ns = ctx.createNamespaceContext({ k: "struct", v: struct })
+            struct.ns = ns
+
+            const immediates = resolveNamespaceDecls(ns, v.child)
+            if (immediates === null) return ERROR
+
+            for (const comptimeExpr of immediates.comptime) {
+                const result = exprAs(
+                    ns.createEvaluationContext(),
+                    true,
+                    { k: "void", v: null },
+                    comptimeExpr,
+                )
+                assert(result.k === "error" || result.k === "normal")
+                if (result.k !== "normal") return result
+            }
+
+            if (ns.root.tests !== null) {
+                for (const { id, name, body } of immediates.test) {
+                    ns.root.tests.push({ ns, id: id as TID, name, body })
+                }
+            }
+
+            return normalType(ns.self)
+        }
+
         case "ns-enum":
         case "ns-union":
             break
@@ -1058,7 +1143,7 @@ function resolveNamespaceDecls(ctx: NamespaceContext, ps: Decl[]): ImmediateExec
                 }
                 ctx.items.set(v.name.name, {
                     k,
-                    v: { k: "raw", v: { type: v.type, value: v.body } },
+                    v: { k: "raw", v: { ns: ctx, type: v.type, value: v.body } },
                 })
                 break
 
@@ -1144,7 +1229,16 @@ function typeEq(a: Type, b: Type): boolean {
             assert(a.k === b.k)
             if (a.v.id !== b.v.id) return false
             assert(a.v.captures.length === b.v.captures.length)
-            return a.v.captures.every((_, i) => valueEq(a.v.captures[i]!, b.v.captures[i]!))
+            return a.v.captures.every((_, i) => {
+                const av = a.v.captures[i]!
+                const bv = b.v.captures[i]!
+
+                return (
+                    av.k === "runtime-var" && bv.k === "runtime-var" ? av.v === bv.v
+                    : av.k === "runtime-var" || bv.k === "runtime-var" ? false
+                    : valueEq(av, bv)
+                )
+            })
     }
 }
 
@@ -1309,4 +1403,133 @@ function isRuntimeType(ctx: RootContext, type: Type): boolean {
         case "opaque":
             return true
     }
+}
+
+function getCaptures(parent: EvaluationContext, body: Decl[]): Capture[] | null {
+    const capturable = new Map<string, boolean>()
+
+    for (const [k, v] of parent.ns.items) {
+        if (v.k === "const" || v.k === "var") {
+            capturable.set(k, true)
+        }
+    }
+
+    for (const [k, v] of parent.variables) {
+        if (v.k === "comptime-const") {
+            capturable.set(k, true)
+        }
+    }
+
+    for (const el of body) {
+        decl(capturable, el)
+    }
+
+    const captures: Capture[] = []
+
+    for (const [k, v] of capturable) {
+        if (!v) continue
+
+        if (parent.variables.has(k)) {
+            const variable = parent.variables.get(k)!
+            assert(variable.k === "comptime-const")
+            captures.push(variable.v.value)
+            continue
+        }
+
+        const item = parent.ns.items.get(k)
+        assert(item.k === "const" || item.k === "var")
+
+        if (item.k === "const") {
+            const resolved = resolveConst(item)
+            if (resolved === null) return null
+            captures.push(resolved.value)
+        } else {
+            const resolved = resolveVar(item)
+            if (resolved === null) return null
+            captures.push({ k: "runtime-var", v: resolved.id })
+        }
+
+        parent.todo(null!)
+    }
+
+    return captures
+}
+
+function resolveConst(item: Extract<Item, { k: "const" }>): TypedValue | null {
+    if (item.v.k === "analyzed") {
+        return item.v.v
+    }
+
+    if (item.v.k === "progressing") {
+        item.v.v.ns.raiseAt(
+            item.v.v.p,
+            "encountered dependency loop when analyzing 'const' declaration",
+        )
+        return null
+    }
+
+    const v = item.v.v
+    item.v = { k: "progressing", v: { ns: v.ns, p: v.value } }
+
+    const value = topLevelValue(v.ns, v.type, v.value)
+    if (value === null) return null
+
+    item.v = { k: "analyzed", v: value }
+    return value
+}
+
+function resolveVar(item: Extract<Item, { k: "var" }>): { type: Type; id: GID } | null {
+    if (item.v.k === "analyzed") {
+        return item.v.v
+    }
+
+    if (item.v.k === "progressing") {
+        item.v.v.ns.raiseAt(
+            item.v.v.p,
+            "encountered dependency loop when analyzing 'var' declaration",
+        )
+        return null
+    }
+
+    const v = item.v.v
+    item.v = { k: "progressing", v: { ns: v.ns, p: v.value } }
+
+    const value = topLevelValue(v.ns, v.type, v.value)
+    if (value === null) return null
+
+    if (!isRuntimeType(v.ns.root, value.type)) {
+        v.ns.raiseAt(v.value, `type '${typeName(value.type)}' cannot be used at runtime`)
+    }
+
+    const gid = nextId++ as GID
+    v.ns.root.globalVars.set(gid, value)
+
+    item.v = { k: "analyzed", v: { type: value.type, id: gid } }
+    return item.v.v
+}
+
+function topLevelType(ctx: NamespaceContext, p: Expr): Type | null {
+    const val = exprAsType(ctx.createEvaluationContext(), p)
+    if (val.k === "error") return null
+    assert(val.k === "normal")
+    return val.v
+}
+
+function topLevelValue(ctx: NamespaceContext, type: Expr | null, value: Expr): TypedValue | null {
+    const ec = ctx.createEvaluationContext()
+
+    if (type === null) {
+        const result = expr(ec, true, type, value)
+        if (result.k === "error") return null
+        assert(result.k === "normal")
+        return result.v
+    }
+
+    const ty = topLevelType(ctx, type)
+    if (ty === null) return null
+
+    const result = exprAs(ec, true, ty, value)
+    if (result.k === "error") return null
+    assert(result.k === "normal")
+    return result.v
 }

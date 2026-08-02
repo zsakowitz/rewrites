@@ -4,6 +4,19 @@ import { Error, Errors } from "./error"
 import { typeName } from "./ir"
 
 export function debug(value: unknown): string {
+    if (value instanceof Map) {
+        if (value.size === 0) {
+            return `{}`
+        }
+
+        let ret = "{"
+        for (const [k, v] of value) {
+            ret += `\n    ${debug(k)} => ${debug(v).replaceAll("\n", "\n    ")},`
+        }
+        ret += "\n}"
+        return ret
+    }
+
     if (value instanceof Error) {
         return value
             .toString()
@@ -74,6 +87,13 @@ export function debug(value: unknown): string {
     ) {
         let s, e
         ;({ s, e, ...value } = value)
+    }
+
+    assert(typeof value === "object" && value !== null)
+
+    if ("ns" in value) {
+        let ns
+        ;({ ns, ...value } = value)
     }
 
     assert(typeof value === "object" && value !== null)
