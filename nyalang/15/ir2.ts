@@ -7,8 +7,6 @@ import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
 type Type =
     | { k: "never"; v: null }
     | { k: "void"; v: null }
-    | { k: "comptime_fn"; v: null }
-    | { k: "comptime_type"; v: null }
     | { k: "comptime_int"; v: null }
     | { k: "comptime_float"; v: null }
     | { k: "u" | "i"; v: number }
@@ -19,22 +17,74 @@ type Type =
     | { k: "array"; v: { len: number; child: Type } }
     | { k: "slice"; v: Type }
     | { k: "tuple"; v: Type[] }
+    | { k: "fn"; v: { params: (Type | null)[]; ret: Type | null } } // `null` means "anytype", or "type depending on previous arguments"
+    | { k: "type"; v: null }
     | { k: "struct"; v: Struct }
     | { k: "enum"; v: Enum }
     | { k: "union"; v: Union }
     | { k: "opaque"; v: Opaque }
 
+function typeName({ k, v }: Type): string {
+    switch (k) {
+        case "never":
+        case "void":
+        case "comptime_int":
+        case "comptime_float":
+        case "str":
+        case "type":
+            return k
+
+        case "u":
+        case "i":
+        case "f":
+            return k + v
+
+        case "null":
+            return "@TypeOf(null)"
+
+        case "optional":
+            return "?" + typeName(v)
+
+        case "array":
+            return `[${v.len}]${typeName(v.child)}`
+
+        case "slice":
+            return `[]${typeName(v)}`
+
+        case "tuple":
+            return `@Tuple(.{ ${v.map(typeName).join(", ")} })`
+
+        case "fn":
+            return `fn (${v.params.map((x) => (x ? typeName(x) : "anytype"))}) ${v.ret ? typeName(v.ret) : "anytype"}`
+
+        case "type":
+            return "type"
+
+        case "struct":
+            return `${v.ns.file.name}__struct_${v.id}`
+
+        case "enum":
+            return `${v.ns.file.name}__enum_${v.id}`
+
+        case "union":
+            return `${v.ns.file.name}__union_${v.id}`
+
+        case "opaque":
+            return `${v.ns.file.name}__opaque_${v.id}`
+    }
+}
+
 type Value =
     | { k: "runtime"; v: RII }
-    | { k: "void"; v: void } // type = void
-    | { k: "fn"; v: Fn } // type = comptime_fn
-    | { k: "type"; v: Type } // type = comptime_type
+    | { k: "void"; v: null } // type = void
     | { k: "int"; v: bigint } // type = comptime_int, u, i
     | { k: "float"; v: number } // type = comptime_float, f
     | { k: "str"; v: string } // type = str
     | { k: "null"; v: null } // type = null, optional(T)
     | { k: "some"; v: Value } // type = optional(T)
-    | { k: "array"; v: Value[] } // type = array, tuple
+    | { k: "array"; v: Value[] } // type = array, slice, tuple
+    | { k: "fn"; v: Fn } // type = fn
+    | { k: "type"; v: Type } // type = type
     | { k: "struct"; v: Map<string, Value> } // type = struct
     | { k: "enum"; v: string } // type = enum
     | { k: "union"; v: { k: string; v: Value } } // type = union
@@ -52,7 +102,7 @@ type Lazy<Raw, Analyzed> =
 interface Struct {
     id: AID
     captures: Value[]
-    decls: Items
+    ns: NamespaceContext
     members: Lazy<
         Map<string, { type: Type; default: Expr | null }>,
         Map<string, { type: Type; default: TypedValue | null }>
@@ -62,7 +112,7 @@ interface Struct {
 interface Enum {
     id: AID
     captures: Value[]
-    decls: Items
+    ns: NamespaceContext
     backingInt: Type
     members: Lazy<Map<string, Expr | null>, Map<string, number>>
 }
@@ -70,9 +120,15 @@ interface Enum {
 interface Union {
     id: AID
     captures: Value[]
-    decls: Items
+    ns: NamespaceContext
     tag: Type & { k: "enum" }
     members: Lazy<Map<string, Expr | null>, Map<string, Type>>
+}
+
+interface Opaque {
+    id: AID
+    captures: Value[]
+    ns: NamespaceContext
 }
 
 class Fn {
@@ -82,12 +138,6 @@ class Fn {
         public returnType: Expr,
         public body: Expr,
     ) {}
-}
-
-interface Opaque {
-    id: AID
-    captures: Value[]
-    decls: Items
 }
 
 class Items {
@@ -209,23 +259,117 @@ type CompletionNontrivial =
     | { k: "continue"; v: { n: RII; value: TypedValue } }
     | { k: "return"; v: { value: TypedValue } }
 
-type CompletionExpr = CompletionNontrivial | { k: "normal"; v: TypedValue }
-
-type CompletionStmt = CompletionNontrivial | { k: "normal"; v: null }
+type Completion<T> = CompletionNontrivial | { k: "normal"; v: T }
 
 interface ImmediateExecutables {
     comptime: Expr[]
     test: { name: string; body: Expr }[]
 }
 
-function expr(ctx: EvaluationContext, type: Type | null, p: Expr): CompletionExpr {
+const ERROR = { k: "error" as const, v: null }
+
+function normal(type: Type, value: Value): Completion<TypedValue> {
+    return { k: "normal", v: { type, value } }
+}
+
+function normalType(type: Type): Completion<TypedValue> {
+    return normal({ k: "type", v: null }, { k: "type", v: type })
+}
+
+const VOID: Completion<TypedValue> = {
+    k: "normal",
+    v: { type: { k: "void", v: null }, value: { k: "void", v: null } },
+}
+
+function exprAsType(ctx: EvaluationContext, p: Expr): Completion<Type> {
+    const value = expr(ctx, true, { k: "type", v: null }, p)
+    if (value.k !== "normal") return value
+
+    if (value.v.type.k !== "type") {
+        ctx.raiseAt(p, `expected 'type', got '${typeName(value.v.type)}'`)
+        return ERROR
+    }
+
+    assert(value.v.value.k === "type")
+    return { k: "normal", v: value.v.value.v }
+}
+
+export function expr(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    type: Type | null,
+    p: Expr,
+): Completion<TypedValue> {
     const { k, v } = p
+
+    switch (k) {
+        case "error":
+            return ERROR
+
+        case "lit-void":
+            return VOID
+
+        case "lit-int":
+            return normal({ k: "comptime_int", v: null }, { k: "int", v })
+
+        case "lit-float":
+            return normal({ k: "comptime_float", v: null }, { k: "float", v })
+
+        case "lit-str":
+            return normal({ k: "str", v: null }, { k: "str", v })
+
+        case "ty-optional": {
+            const type = exprAsType(ctx, p)
+            if (type.k !== "normal") return type
+
+            return normalType({ k: "optional", v: type.v })
+        }
+
+        case "ty-array":
+        case "ty-fn":
+        case "ns-struct":
+        case "ns-enum":
+        case "ns-union":
+        case "dot-tuple":
+        case "dot-record":
+        case "dot-empty":
+        case "dot-field":
+        case "dot-method":
+        case "dot-call":
+        case "op-prefix":
+        case "op-infix":
+        case "cf-unreachable":
+        case "cf-and":
+        case "cf-or":
+        case "cf-orelse":
+        case "cf-maybe":
+        case "cf-if":
+        case "cf-switch":
+        case "cf-for":
+        case "cf-while":
+        case "cf-break":
+        case "cf-continue":
+        case "cf-return":
+        case "cf-comptime":
+        case "get-prop":
+        case "get-method":
+        case "get-index":
+        case "get-call":
+        case "get-unwrap":
+        case "block":
+        case "builtin":
+        case "ident":
+        case "underscore":
+        case "closure":
+        case "paren":
+            break
+    }
 
     ctx.todo(p)
     return { k: "error", v: null }
 }
 
-function stmt(ctx: EvaluationContext, p: Stmt): CompletionStmt {
+export function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Completion<null> {
     const { k, v } = p
 
     ctx.todo(p)
@@ -287,7 +431,6 @@ function resolveNamespaceDecls(ctx: NamespaceContext, ps: Decl[]): ImmediateExec
                     k: "fn",
                     v: new Fn(ctx, v.params, v.ret, v.body),
                 })
-                ctx.todo({ s, e }, "functions ")
                 break
 
             default:
