@@ -61,7 +61,7 @@ function expr(used: Map<string, boolean>, v: Expr | null) {
             break
 
         case "ty-fn":
-            for (const el of v.v.args) expr(used, el)
+            for (const el of v.v.params) expr(used, el)
             expr(used, v.v.ret)
             break
 

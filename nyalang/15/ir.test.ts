@@ -1,7 +1,7 @@
 import { print } from "./debug"
 import { Errors } from "./error"
 import { File } from "./file"
-import { Block, expr } from "./ir"
+import { EvaluationContext, expr, Items, NamespaceContext, RootContext } from "./ir"
 import fileBody from "./ir.test.txt"
 import { ParseContext, parseExpr } from "./parse"
 import { tokenize } from "./token"
@@ -11,13 +11,15 @@ const errors = new Errors()
 const file = new File("./ir.test.txt", fileBody)
 const tokens = tokenize(errors, file)
 
-const context = new ParseContext(errors, tokens)
-const body = parseExpr(context)
-if (context.index !== tokens.length) {
-    context.raise("Expected end of expression")
+const parseContext = new ParseContext(errors, tokens)
+const body = parseExpr(parseContext)
+if (parseContext.index !== tokens.length) {
+    parseContext.raise("Expected end of expression")
 }
 
-const block = new Block(errors, file, Object.create(null), Object.create(null), null, false)
-const ret = expr(block, "any", null, body)
+const root = new RootContext(errors)
+const ns = new NamespaceContext(root, file, { k: "never", v: null }, new Items(null))
+const ev = new EvaluationContext(ns, [], new Map(), new Map(), null)
+const ret = expr(ev, false, null, body)
 
-print({ errors, body: block.body, ret })
+print({ errors, body: ev.runtime, ret })

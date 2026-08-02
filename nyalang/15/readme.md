@@ -353,3 +353,10 @@ input is known at comptime and fits without loss of precision into the target ty
 # Conventions
 
 Eventually, error messages will be lowercase with no trailing punctuation.
+
+# Axioms of the type system
+
+1. (Identity) `a` coerces into `@TypeOf(a)`, resulting in a value equivalent to `a`.
+2. (Associativity) If `a` coerces into `B` resulting in `b`, and `b` coerces into `C` resulting in
+   `c`, then `a` can coerce directly to `C` resulting in a value equivalent to `c`.
+3. (Join) If several `a1`, `a2`, ..., `an` join into type `A`, then each `ai` coerces into type `A`.

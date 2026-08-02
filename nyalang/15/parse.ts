@@ -3,6 +3,7 @@ import { Errors, TraceEntry } from "./error"
 import { readFloat } from "./frac"
 import { T, type Tokens } from "./token"
 
+/** Accessed using `nextId++`. */
 let nextId = 0
 
 export class ParseContext {
@@ -89,7 +90,7 @@ export type Expr = Range
         | { k: "lit-str"; v: string }
         | { k: "ty-optional"; v: { child: Expr } }
         | { k: "ty-array"; v: { len: Expr | null; child: Expr } }
-        | { k: "ty-fn"; v: { args: Expr[]; ret: Expr } }
+        | { k: "ty-fn"; v: { params: (Expr | null)[]; ret: Expr | null } }
         | { k: "ns-struct"; v: { id: number; extern: boolean; child: Decl[] } }
         | { k: "ns-enum"; v: { id: number; extern: boolean; tag: Expr | null; child: Decl[] } }
         | { k: "ns-union"; v: { id: number; tag: Expr | "enum" | null; child: Decl[] } }
@@ -159,7 +160,10 @@ export type Decl = Range
         | { k: "test"; v: { name: string; body: Expr } }
         | { k: "const"; v: { name: Ident; type: Expr | null; body: Expr } }
         | { k: "var"; v: { name: Ident; type: Expr | null; body: Expr } }
-        | { k: "fn"; v: { name: Ident | null; params: FunctionParam[]; ret: Expr; body: Expr } }
+        | {
+              k: "fn"
+              v: { id: number; name: Ident | null; params: FunctionParam[]; ret: Expr; body: Expr }
+          }
     )
 
 export type FunctionParam = { comptime: boolean; name: Ident; type: Expr }
@@ -441,7 +445,12 @@ export function parseDecl(context: ParseContext): Decl {
             context.take(T.Eq)
         }
         const body = parseExpr(context)
-        return { s, e: context.e, k: "fn", v: { name, params: args, ret: returnType, body } }
+        return {
+            s,
+            e: context.e,
+            k: "fn",
+            v: { id: nextId++, name, params: args, ret: returnType, body },
+        }
     }
 
     if (context.peek() === T.KVar || context.peek() === T.KConst) {
@@ -610,9 +619,9 @@ function parseExprAtom(context: ParseContext): Expr {
 
         case T.KFn: {
             context.index++
-            const args = parseArguments(context)
+            const params = parseArguments(context)
             const ret = parseExpr(context)
-            return { s, e: context.e, k: "ty-fn", v: { args, ret } }
+            return { s, e: context.e, k: "ty-fn", v: { params, ret } }
         }
 
         case T.KFor: {

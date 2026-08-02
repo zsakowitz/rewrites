@@ -1,10 +1,1 @@
-blk: {
-    comptime const T = i32;
-    break :blk struct {
-        re: T = 0,
-        im: T = 0,
-        comptime {
-            _ = @as(?i32, 23);
-        };
-    };
-}
+?u8
