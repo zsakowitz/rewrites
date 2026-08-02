@@ -1,1 +1,4 @@
-enum(u8) { a }
+@as(
+    union(enum) { a: i32, b: @compileError("worldbyre") },
+    .{ .a = 89 }
+)

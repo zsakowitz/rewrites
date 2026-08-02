@@ -1,4 +1,4 @@
-import { assert } from "./assert"
+import { assert, unreachable } from "./assert"
 import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
 import { decl } from "./ident"
@@ -174,11 +174,20 @@ export class Items {
         return this.self.get(name) ?? this.parent!.get(name)
     }
 
+    getOwn(name: string): Item {
+        assert(this.hasOwn(name))
+        return this.self.get(name)!
+    }
+
     has(name: string): boolean {
         return this.self.has(name) || (this.parent !== null && this.parent.has(name))
     }
 
-    set(name: string, value: Item): void {
+    hasOwn(name: string): boolean {
+        return this.self.has(name)
+    }
+
+    setOwn(name: string, value: Item): void {
         assert(!this.has(name))
         this.self.set(name, value)
     }
@@ -188,7 +197,7 @@ export class Items {
         if (this.parent !== null) yield* this.parent
     }
 
-    *own() {
+    *keysOwn() {
         yield* this.self.keys()
     }
 }
@@ -267,9 +276,9 @@ export class EvaluationContext {
 
         for (const [key, val] of this.variables) {
             if (val.k === "comptime-const") {
-                valueDecls.set(key, { k: "const", v: { k: "analyzed", v: val.v } })
+                valueDecls.setOwn(key, { k: "const", v: { k: "analyzed", v: val.v } })
             } else {
-                valueDecls.set(key, { k: "reserved", v: null })
+                valueDecls.setOwn(key, { k: "reserved", v: null })
             }
         }
 
@@ -1019,8 +1028,51 @@ export function expr(
             return normal({ k: "tuple", v: types }, { k: "array", v: values })
         }
 
-        case "dot-record":
+        case "dot-record": {
+            if (type === null) {
+                ctx.todo(p, `record literal syntax requires an expected type`)
+                return ERROR
+            }
+
+            type = innerType(type)
+
+            if (!(type.k === "struct" || type.k === "union")) {
+                ctx.raiseAt(
+                    p,
+                    `record literal syntax requires the expected type to be a struct or union`,
+                )
+                return ERROR
+            }
+
+            if (type.k === "union") {
+                if (v.value.length !== 1) {
+                    ctx.raiseAt(
+                        p,
+                        `record literal must specify exactly one field when expected type is a union`,
+                    )
+                    return ERROR
+                }
+
+                const members = resolveUnion(type.v)
+                if (members === null) return ERROR
+
+                const { name, value: valueRaw } = v.value[0]!
+
+                if (!members.has(name.name)) {
+                    ctx.raiseAt(name, `'${typeName(type)}' does not have variant '${name.name}'`)
+                    return ERROR
+                }
+
+                const member = members.get(name.name)!
+
+                const value = exprAs(ctx, comptime, member, valueRaw)
+                if (value.k !== "normal") return ERROR
+
+                return normal(type, { k: "union", v: { k: name.name, v: value.v.value } })
+            }
+
             break
+        }
 
         case "dot-empty": {
             if (type !== null) type = innerType(type)
@@ -1050,7 +1102,17 @@ export function expr(
             return normal({ k: "tuple", v: [] }, { k: "array", v: [] })
         }
 
-        case "dot-field":
+        case "dot-field": {
+            if (type === null) {
+                ctx.raiseAt(p, `'.xyz' syntax requires an expected type`)
+                return ERROR
+            }
+
+            const value = getProp(ctx, type, p, v.name)
+            if (value === null) return ERROR
+            return { k: "normal", v: value }
+        }
+
         case "dot-method":
         case "dot-call":
         case "op-prefix":
@@ -1216,6 +1278,20 @@ export function builtin(
             return exprAs(ctx, comptime, type.v, args[1]!)
         }
 
+        case "compileError": {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `'@compileError(...)' requires exactly one argument`)
+                return ERROR
+            }
+
+            const type = exprAs(ctx, true, { k: "str", v: null }, args[0]!)
+            if (type.k !== "normal") return type
+
+            assert(type.v.value.k === "str")
+            ctx.raiseAt(p, type.v.value.v)
+            return ERROR
+        }
+
         case "runtime": {
             if (args.length !== 1) {
                 ctx.raiseAt(p, `'@runtime(...)' requires exactly one argument`)
@@ -1337,7 +1413,7 @@ function finalizeNamespace(
                     ns.raiseAt(v.name, "declaration shadows a name from an outer scope")
                     return false
                 }
-                ns.items.set(v.name.name, {
+                ns.items.setOwn(v.name.name, {
                     k,
                     v: { k: "raw", v: { ns: ns, type: v.type, value: v.body } },
                 })
@@ -1360,7 +1436,7 @@ function finalizeNamespace(
                     ns.raiseAt(v.name, "declaration shadows a name from an outer scope")
                     return false
                 }
-                ns.items.set(v.name.name, {
+                ns.items.setOwn(v.name.name, {
                     k: "fn",
                     v: new Fn(ns, v.id as FID, v.params, v.ret, v.body),
                 })
@@ -1859,4 +1935,64 @@ function topLevelValueAs(ctx: NamespaceContext, type: Type, value: Expr): TypedV
     if (result.k === "error") return null
     assert(result.k === "normal")
     return result.v
+}
+
+/** Guaranteed to run at `comptime`. */
+function getProp(ctx: EvaluationContext, type: Type, p: Range, name: string): TypedValue | null {
+    type = innerType(type)
+
+    if (!(type.k === "struct" || type.k === "enum" || type.k === "union" || type.k === "opaque")) {
+        ctx.raiseAt(p, `'.xyz' syntax cannot be used when the expected type is '${typeName(type)}'`)
+        return null
+    }
+
+    if (type.k === "enum") {
+        const members = resolveEnum(type.v)
+        if (members === null) return null
+
+        if (members.has(name)) {
+            return { type, value: { k: "int", v: members.get(name)! } }
+        }
+    }
+
+    if (type.k === "union") {
+        const members = resolveUnion(type.v)
+        if (members === null) return null
+
+        if (members.has(name)) {
+            const memberType = members.get(name)!
+            if (memberType.k !== "void") {
+                ctx.raiseAt(
+                    p,
+                    `union variant '${name}' has type '${typeName(memberType)}', so '.xyz' syntax cannot be used`,
+                )
+                return null
+            }
+
+            return { type, value: { k: "union", v: { k: name, v: { k: "void", v: null } } } }
+        }
+    }
+
+    if (!type.v.ns.items.hasOwn(name)) {
+        ctx.raiseAt(p, `type '${typeName(type)}' does not have a declaration named '${name}'`)
+        return null
+    }
+
+    const item = type.v.ns.items.getOwn(name)
+
+    switch (item.k) {
+        case "fn":
+            ctx.todo(p, `functions are not real values yet`)
+            return null
+
+        case "const":
+            return resolveConst(item)
+
+        case "var":
+            ctx.raiseAt(p, `'.xyz' syntax cannot be used to access variables`)
+            return null
+
+        case "reserved":
+            unreachable()
+    }
 }
