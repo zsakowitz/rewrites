@@ -8,7 +8,7 @@ import type { Decl, Expr, Range, Stmt } from "./parse"
 
 const usize: RType = { k: "u", v: 32 }
 
-export type RType =
+type RType =
     | { k: "never"; v: null }
     | { k: "void"; v: null }
     | { k: "bool"; v: null }
@@ -55,7 +55,7 @@ export type RType =
           }
       }
 
-export type RValue =
+type RValue =
     | { k: "unreachable"; v: null }
     | { k: "void"; v: null }
     | { k: "bool"; v: boolean }
@@ -80,25 +80,25 @@ interface RStruct {
 }
 
 // TODO: var
-export type RContainerDecl = { k: "const"; v: RTypedValue } | { k: "fn"; v: Fn }
+type RContainerDecl = { k: "const"; v: RTypedValue } | { k: "fn"; v: Fn }
 
 // Validity:
 //
 // - `.value.k == "unreachable"` is valid for all types
 // - `.value.k == "runtime"` is valid for runtime values (i.e. excludes `type`, `?type`, etc.) (this is not defined specifically because this is not a specification)
 // - in general, the `value.k` and `type.k` must match, although this does not necessarily mean their string values are directly equal. for instance, for `type.k == "optional"`, `value.k == "null"` and `value.k == "some"` are both valid
-export type RTypedValue = { type: RType; value: RValue }
+type RTypedValue = { type: RType; value: RValue }
 
-export interface Fn {
+interface Fn {
     names: Names
     args: { comptime: boolean; name: string; type: Expr }[]
     return: Expr
     exec(block: Block | null /** `null` for comptime */, args: RTypedValue[]): RTypedValue
 }
 
-export type Names = Record<string, Name>
+type Names = Record<string, Name>
 
-export type Name =
+type Name =
     // Constant which can be captured by other declarations.
     | { k: "comptime-const"; v: RTypedValue }
 
@@ -116,15 +116,15 @@ export type Name =
     // can't access the value of the outer `a`.
     | { k: "reserved"; v: null }
 
-export interface Label {
+interface Label {
     n: RII
     break: RType | null | false // null = no expected type; false = no break allowed
     continue: RType | null | false // null = no expected type; false = no break allowed
 }
 
-export type Labels = Record<string, Label>
+type Labels = Record<string, Label>
 
-export type ReturnType = RType | null | false // null = no expected type; false = no break allowed
+type ReturnType = RType | null | false // null = no expected type; false = no break allowed
 
 /** Runtime instruction index. Used to reference outputs of runtime instructions. */
 type RII = number & { __rii: never }
@@ -155,7 +155,7 @@ interface RuntimeBlock {
 }
 
 /** A block for namespace bodies. */
-export class NamespaceBlock {
+class NamespaceBlock {
     constructor(
         readonly errors: Errors,
         public file: File,
@@ -182,7 +182,7 @@ export class NamespaceBlock {
 }
 
 /** A block for function bodies. */
-export class Block {
+class Block {
     /**
      * Contains all instructions with potential side effects, including `unreachable`, control flow,
      * and extern functions.
@@ -238,7 +238,7 @@ export class Block {
     }
 }
 
-export function typeName(type: RType): string {
+function typeName(type: RType): string {
     switch (type.k) {
         case "never":
         case "void":
@@ -275,13 +275,13 @@ export function typeName(type: RType): string {
 
 const VOID: RTypedValue = { type: { k: "void", v: null }, value: { k: "void", v: null } }
 
-export type Result<T> =
+type Result<T> =
     | ResultPlain<T>
     | { k: "break"; v: { n: RII; value: RTypedValue } }
     | { k: "continue"; v: { n: RII; value: RTypedValue } }
     | { k: "unreachable"; v: null }
 
-export type ResultPlain<T> = { k: "normal"; v: T } | { k: "error"; v: null }
+type ResultPlain<T> = { k: "normal"; v: T } | { k: "error"; v: null }
 
 function normal(value: RTypedValue): RuntimeCompletion & ResultPlain<RTypedValue>
 function normal<T>(value: T): ResultPlain<T>
@@ -303,7 +303,7 @@ function normal<T>(value: T): ResultPlain<T> {
  * - The return value is assignable to `type`.
  * - The return value has been coerced into `type`.
  */
-export function expr(
+function expr(
     block: Block,
     time: "comptime" | "any",
     type: RType | null,
@@ -1344,7 +1344,7 @@ function exprAsType(block: Block, v: Expr): Result<RType> {
     return normal(value.v.value.v)
 }
 
-export function stmt(block: Block, time: "comptime" | "any", v: Stmt): Result<null> {
+function stmt(block: Block, time: "comptime" | "any", v: Stmt): Result<null> {
     if (v.k === "expr") {
         const value = expr(block, time, { k: "void", v: null }, v.v)
         if (value.k !== "normal") return value
