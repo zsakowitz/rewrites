@@ -1,4 +1,10 @@
 @as(
-    union(enum) { a: i32, b: @compileError("worldbyre") },
-    .{ .a = 89 }
+    union(enum) {
+        int: struct {
+            signedness: enum { signed, unsigned },
+            bits: u16,
+        },
+        comptime_int,
+    },
+    .{ .int = .{ .signedness = .unsigned, .bits = 34 } },
 )

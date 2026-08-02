@@ -236,7 +236,7 @@ export class RootContext {
         public tests: Test[] | null, // `null` if not using tests
     ) {}
 
-    public globalVars: Map<GID, TypedValue> = Object.create(null)
+    public globalVars = new Map<GID, TypedValue>()
 }
 
 type BreakKind = { k: "with-value"; v: Type | null } | { k: "not-allowed"; v: null }
@@ -340,7 +340,7 @@ export class NamespaceContext {
     ) {}
 
     createEvaluationContext() {
-        return new EvaluationContext(this, [], Object.create(null), Object.create(null), null)
+        return new EvaluationContext(this, [], new Map(), new Map(), null)
     }
 
     raiseAt(p: Range, message: string) {
@@ -1071,7 +1071,45 @@ export function expr(
                 return normal(type, { k: "union", v: { k: name.name, v: value.v.value } })
             }
 
-            break
+            const members = resolveStruct(type.v)
+            if (members === null) return ERROR
+
+            const map = new Map<string, Value>()
+            for (const {
+                name: { name },
+                value: valueRaw,
+            } of v.value) {
+                if (!members.has(name)) {
+                    ctx.raiseAt(
+                        p,
+                        `struct '${typeName(type)}' does not have a field named '${name}'`,
+                    )
+                    return ERROR
+                }
+
+                const fieldType = members.get(name)!
+
+                const value = exprAs(ctx, comptime, fieldType.type, valueRaw)
+                if (value.k !== "normal") return value
+
+                map.set(name, value.v.value)
+            }
+
+            for (const [key, { default: defaultValue }] of members) {
+                if (map.has(key)) continue
+
+                if (defaultValue === null) {
+                    ctx.raiseAt(
+                        p,
+                        `field '${key}' is missing from record literal of type '${typeName(type)}'`,
+                    )
+                    return ERROR
+                }
+
+                map.set(key, defaultValue.value)
+            }
+
+            return normal(type, { k: "struct", v: map })
         }
 
         case "dot-empty": {
@@ -1964,7 +2002,7 @@ function getProp(ctx: EvaluationContext, type: Type, p: Range, name: string): Ty
             if (memberType.k !== "void") {
                 ctx.raiseAt(
                     p,
-                    `union variant '${name}' has type '${typeName(memberType)}', so '.xyz' syntax cannot be used`,
+                    `variant '${name}' of union '${typeName(type)}' has non-void type '${typeName(memberType)}', so dot literal syntax cannot be used`,
                 )
                 return null
             }
