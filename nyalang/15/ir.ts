@@ -1,7 +1,7 @@
 import { assert } from "./assert"
 import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
-import { floatTruncate, intIsSafe, type FloatBitSize } from "./num"
+import { FLOAT_BIT_SIZES, floatTruncate, intIsSafe, type FloatBitSize } from "./num"
 import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
 
 const usize: Type = { k: "u", v: 32 }
@@ -9,6 +9,7 @@ const usize: Type = { k: "u", v: 32 }
 type Type =
     | { k: "never"; v: null }
     | { k: "void"; v: null }
+    | { k: "bool"; v: null }
     | { k: "comptime_int"; v: null }
     | { k: "comptime_float"; v: null }
     | { k: "u" | "i"; v: number }
@@ -32,6 +33,7 @@ export function typeName(type: Type): string {
     switch (k) {
         case "never":
         case "void":
+        case "bool":
         case "comptime_int":
         case "comptime_float":
         case "str":
@@ -81,6 +83,7 @@ export function typeName(type: Type): string {
 type Value =
     | { k: "runtime"; v: RII }
     | { k: "void"; v: null } // type = void
+    | { k: "bool"; v: boolean } // type = bool
     | { k: "int"; v: bigint } // type = comptime_int, u, i
     | { k: "float"; v: number } // type = comptime_float, f
     | { k: "str"; v: string } // type = str
@@ -175,7 +178,10 @@ type RII = number & { __brand: "runtime_instruction" }
 type AID = number & { __brand: "adt_decl" }
 type FID = number & { __brand: "fn_decl" }
 
-type RuntimeInst = { n: RII; k: "lit"; v: TypedValue } | { n: RII; k: "slice-from-array"; v: RII }
+type RuntimeInst =
+    | { n: RII; k: "lit"; v: TypedValue }
+    | { n: RII; k: "cf-unreachable"; v: null }
+    | { n: RII; k: "slice-from-array"; v: RII }
 
 export class RootContext {
     constructor(public errors: Errors) {}
@@ -262,6 +268,16 @@ export class EvaluationContext {
         const n = nextRII++ as RII
         this.runtime.push({ n, k, v } as RuntimeInst)
         return { type, value: { k: "runtime", v: n } }
+    }
+
+    rtResult<K extends RuntimeInst["k"]>(
+        type: Type,
+        k: K,
+        v: Extract<RuntimeInst, { k: K }>["v"],
+    ): Result<TypedValue> {
+        const n = nextRII++ as RII
+        this.runtime.push({ n, k, v } as RuntimeInst)
+        return { k: "normal", v: { type, value: { k: "runtime", v: n } } }
     }
 }
 
@@ -366,7 +382,7 @@ function as(ctx: EvaluationContext, p: Range, type: Type, value: TypedValue): Ty
             }
 
             let val = valueAsInner.value
-            for (let i = 0; i <= depth; i++) {
+            for (let i = 0; i < depth; i++) {
                 val = { k: "some", v: val }
             }
 
@@ -584,38 +600,22 @@ export function expr(
             return VOID
 
         case "lit-int":
-            if (type !== null) {
-                if (type.k === "u" || type.k === "i") {
-                    if (!intIsSafe(type.k, type.v, v)) {
-                        ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
-                    }
-                    return normal(type, { k: "int", v })
+            if (type !== null && (type.k === "u" || type.k === "i")) {
+                if (!intIsSafe(type.k, type.v, v)) {
+                    ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
                 }
-
-                if (type.k === "comptime_int") {
-                    return normal({ k: "comptime_int", v: null }, { k: "int", v })
-                }
-
-                ctx.raiseAt(p, `Expected '${typeName(type)}', but got integer`)
+                return normal(type, { k: "int", v })
             }
 
             return normal({ k: "comptime_int", v: null }, { k: "int", v })
 
         case "lit-float":
-            if (type !== null) {
-                if (type.k === "f") {
-                    const val = floatTruncate(type.v, v)
-                    if (!isFinite(val)) {
-                        ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
-                    }
-                    return normal(type, { k: "float", v })
+            if (type !== null && type.k === "f") {
+                const val = floatTruncate(type.v, v)
+                if (!isFinite(val)) {
+                    ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
                 }
-
-                if (type.k === "comptime_float") {
-                    return normal({ k: "comptime_float", v: null }, { k: "float", v })
-                }
-
-                ctx.raiseAt(p, `Expected '${typeName(type)}', but got floating-point value`)
+                return normal(type, { k: "float", v })
             }
 
             return normal({ k: "comptime_float", v: null }, { k: "float", v })
@@ -684,7 +684,18 @@ export function expr(
         case "dot-call":
         case "op-prefix":
         case "op-infix":
-        case "cf-unreachable":
+            break
+
+        case "cf-unreachable": {
+            if (comptime) {
+                ctx.raiseAt(p, "reached 'unreachable'")
+                return ERROR
+            }
+
+            ctx.rtInst("cf-unreachable", null)
+            return { k: "unreachable", v: null }
+        }
+
         case "cf-and":
         case "cf-or":
         case "cf-orelse":
@@ -703,16 +714,155 @@ export function expr(
         case "get-call":
         case "get-unwrap":
         case "block":
-        case "builtin":
-        case "ident":
-        case "underscore":
-        case "closure":
-        case "paren":
             break
+
+        case "builtin":
+            return builtin(ctx, comptime, type, p, v.name, v.args)
+
+        case "ident":
+            if (isReservedIdent(v)) {
+                switch (v.name) {
+                    case "never":
+                    case "void":
+                    case "comptime_int":
+                    case "comptime_float":
+                    case "str":
+                    case "null":
+                        return normalType({ k: v.name, v: null })
+
+                    case "true":
+                    case "false":
+                        return normal({ k: "bool", v: null }, { k: "bool", v: v.name === "true" })
+
+                    case "inf":
+                    case "nan": {
+                        const value: Value = { k: "float", v: v.name === "inf" ? Infinity : NaN }
+
+                        if (type !== null && type.k === "f") {
+                            return normal(type, value)
+                        }
+
+                        return normal({ k: "comptime_float", v: null }, value)
+                    }
+                }
+
+                if (/^u\d+/.test(v.name)) {
+                    const bits = Number(v.name.slice(1))
+                    if (bits >= 2n ** 16n) {
+                        ctx.raiseAt(p, `integers can only have at most 65535 bits`)
+                        return ERROR
+                    }
+
+                    return normalType({ k: "u", v: bits })
+                }
+
+                if (/^i\d+/.test(v.name)) {
+                    const bits = Number(v.name.slice(1))
+                    if (bits >= 2n ** 16n) {
+                        ctx.raiseAt(p, `integers can only have at most 65535 bits`)
+                        return ERROR
+                    }
+
+                    return normalType({ k: "i", v: bits })
+                }
+
+                if (/^f\d+/.test(v.name)) {
+                    const bits = Number(v.name.slice(1))
+                    if (!FLOAT_BIT_SIZES.includes(bits as any)) {
+                        ctx.raiseAt(p, `invalid number of bits for floating-point number type`)
+                        return ERROR
+                    }
+
+                    return normalType({ k: "f", v: bits as FloatBitSize })
+                }
+
+                ctx.raiseAt(p, `'${v.name}' is not defined`)
+            }
+
+            ctx.todo(p, "general identifiers")
+            return ERROR
+
+        case "underscore":
+            ctx.raiseAt(p, "'_' cannot be used as an expression")
+            break
+
+        case "closure":
+            break
+
+        case "paren":
+            return expr(ctx, comptime, type, v)
     }
 
     ctx.todo(p)
     return { k: "error", v: null }
+}
+
+export function builtin(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    type: Type | null,
+    p: Range,
+    name: string,
+    args: Expr[],
+): Result<TypedValue> {
+    switch (name) {
+        case "as": {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, `'@as(...)' requires exactly two arguments`)
+                return ERROR
+            }
+
+            const type = exprAsType(ctx, args[0]!)
+            if (type.k !== "normal") return type
+
+            return exprAs(ctx, comptime, type.v, args[1]!)
+        }
+
+        case "runtime": {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `'@runtime(...)' requires exactly one argument`)
+                return ERROR
+            }
+
+            if (comptime) {
+                ctx.raiseAt(p, `'@runtime(...)' cannot be used at comptime`)
+                return ERROR
+            }
+
+            const value = expr(ctx, comptime, type, args[0]!)
+            if (value.k !== "normal") return value
+
+            if (!isRuntimeType(ctx.ns.root, value.v.type)) {
+                ctx.raiseAt(p, `type '${typeName(value.v.type)}' is comptime-only`)
+                return ERROR
+            }
+
+            return ctx.rtResult(value.v.type, "lit", value.v)
+        }
+
+        case "This": {
+            if (args.length !== 0) {
+                ctx.raiseAt(p, `'@This()' does not accept any arguments`)
+                return ERROR
+            }
+            return normalType(ctx.ns.self)
+        }
+
+        case "TypeOf": {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `'@TypeOf(...)' requires exactly one argument`)
+                return ERROR
+            }
+
+            const value = expr(ctx, comptime, null, args[0]!)
+            if (value.k !== "normal") return value
+
+            return normalType(value.v.type)
+        }
+    }
+
+    ctx.raiseAt(p, `'@${name}' does not exist or is not implemented`)
+    return ERROR
 }
 
 export function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result<null> {
@@ -797,7 +947,7 @@ function resolveNamespaceDecls(ctx: NamespaceContext, ps: Decl[]): ImmediateExec
 function isReservedIdent(ident: Ident): boolean {
     return (
         !ident.raw
-        && /^(?:[uif]\d+|comptime_.*|never|void|str|null|true|false|inf|nan)$/.test(ident.name)
+        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|null|true|false|inf|nan)$/.test(ident.name)
     )
 }
 
@@ -808,6 +958,7 @@ function typeEq(a: Type, b: Type): boolean {
     switch (a.k) {
         case "never":
         case "void":
+        case "bool":
         case "comptime_int":
         case "comptime_float":
         case "str":
@@ -871,6 +1022,7 @@ function valueEq(a: Value, b: Value): boolean {
         case "null":
             return true
 
+        case "bool":
         case "int":
         case "float":
         case "str":
@@ -918,12 +1070,15 @@ function valueEq(a: Value, b: Value): boolean {
  *
  * Excludes `runtime`, along with any value containing it.
  */
-function isComptimeValue({ k, v }: Value): boolean {
+function isComptimeValue(value: Value): boolean {
+    const { k, v } = value
+
     switch (k) {
         case "runtime":
             return false
 
         case "void":
+        case "bool":
         case "int":
         case "float":
         case "str":
@@ -963,10 +1118,13 @@ function isComptimeValue({ k, v }: Value): boolean {
  *
  * Excludes `comptime_int`, `comptime_float`, `fn`, and `type`, along with any type containing them.
  */
-function isRuntimeType(ctx: RootContext, { k, v }: Type): boolean {
+function isRuntimeType(ctx: RootContext, type: Type): boolean {
+    const { k, v } = type
+
     switch (k) {
         case "never":
         case "void":
+        case "bool":
             return true
 
         case "comptime_int":
