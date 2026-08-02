@@ -2,7 +2,13 @@ import { assert } from "./assert"
 import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
 import { decl } from "./ident"
-import { FLOAT_BIT_SIZES, floatTruncate, intIsSafe, type FloatBitSize } from "./num"
+import {
+    bitCountWithVariants,
+    FLOAT_BIT_SIZES,
+    floatTruncate,
+    intIsSafe,
+    type FloatBitSize,
+} from "./num"
 import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
 
 const usize: Type = { k: "u", v: 32 }
@@ -85,7 +91,7 @@ type Value =
     | { k: "runtime"; v: RII }
     | { k: "void"; v: null } // type = void
     | { k: "bool"; v: boolean } // type = bool
-    | { k: "int"; v: bigint } // type = comptime_int, u, i
+    | { k: "int"; v: bigint } // type = comptime_int, u, i, enum
     | { k: "float"; v: number } // type = comptime_float, f
     | { k: "str"; v: string } // type = str
     | { k: "null"; v: null } // type = null, optional(T)
@@ -94,7 +100,6 @@ type Value =
     | { k: "fn"; v: Fn } // type = fn
     | { k: "type"; v: Type } // type = type
     | { k: "struct"; v: Map<string, Value> } // type = struct
-    | { k: "enum"; v: string } // type = enum
     | { k: "union"; v: { k: string; v: Value } } // type = union
 
 interface TypedValue {
@@ -112,7 +117,7 @@ type Capture = Value | { k: "runtime-var"; v: GID }
 interface Struct {
     id: AID
     captures: Capture[]
-    ns: NamespaceContext | null
+    ns: NamespaceContext
     members: Lazy<
         Map<string, { type: Expr; default: Expr | null }>,
         Map<string, { type: Type; default: TypedValue | null }>
@@ -124,7 +129,7 @@ interface Enum {
     captures: Capture[]
     ns: NamespaceContext
     backingInt: Type
-    members: Lazy<Map<string, Expr | null>, Map<string, number>>
+    members: Lazy<Map<string, Expr | null>, Map<string, bigint>>
 }
 
 interface Union {
@@ -739,10 +744,9 @@ export function expr(
             const struct: Struct = {
                 id: v.id as AID,
                 captures,
-                ns: null,
+                ns: null!,
                 members: { k: "raw", v: members },
             }
-
             const ns = ctx.createNamespaceContext({ k: "struct", v: struct })
             struct.ns = ns
 
@@ -750,9 +754,200 @@ export function expr(
             return normalType(ns.self)
         }
 
-        case "ns-enum":
-        case "ns-union":
-            break
+        case "ns-enum": {
+            if (v.extern) {
+                ctx.todo(p, "extern enums")
+                return ERROR
+            }
+
+            let tag: Type | null = null
+            if (v.tag) {
+                const result = exprAsType(ctx, v.tag)
+                if (result.k !== "normal") return result
+
+                tag = result.v
+
+                // TODO: zig allows enum tag type to be nearly anything apparently? we should take that
+                if (!(tag.k === "u" || tag.k === "i")) {
+                    ctx.raiseAt(v.tag, `enum tag type must be an integer, got '${typeName(tag)}'`)
+                }
+            }
+
+            const captures = getCaptures(ctx, v.child)
+            if (captures === null) return ERROR
+
+            const members = new Map<string, Expr | null>()
+            let isAnyExplicit = false
+            for (const p of v.child) {
+                if (p.k === "field-plain") {
+                    ctx.raiseAt(p, "enum variants cannot have types")
+                    return ERROR
+                }
+
+                if (p.k === "field-ident") {
+                    if (members.has(p.v.name.name)) {
+                        ctx.raiseAt(p, "enum variant declared twice")
+                        return ERROR
+                    }
+
+                    members.set(p.v.name.name, p.v.value)
+                    if (p.v.value !== null) isAnyExplicit = true
+                }
+            }
+
+            let membersExplicit: Map<string, bigint> | null = null
+            if (tag === null) {
+                if (isAnyExplicit) {
+                    ctx.raiseAt(p, "enum with explicit values must have tag type")
+                    return ERROR
+                }
+
+                membersExplicit = new Map()
+                let i = 0n
+                for (const k of members.keys()) {
+                    membersExplicit.set(k, i++)
+                }
+                tag = { k: "u", v: bitCountWithVariants(Number(i)) }
+            }
+
+            const type: Enum = {
+                id: v.id as AID,
+                captures,
+                ns: null!,
+                backingInt: tag,
+                members:
+                    membersExplicit ?
+                        { k: "analyzed", v: membersExplicit }
+                    :   { k: "raw", v: members },
+            }
+            const ns = ctx.createNamespaceContext({ k: "enum", v: type })
+            type.ns = ns
+
+            if (!finalizeNamespace(ns, v.child)) return ERROR
+            return normalType(ns.self)
+        }
+
+        case "ns-union": {
+            const captures = getCaptures(ctx, v.child)
+            if (captures === null) return ERROR
+
+            const members = new Map<string, Expr | null>()
+            for (const p of v.child) {
+                if (p.k === "field-ident") {
+                    if (members.has(p.v.name.name)) {
+                        ctx.raiseAt(p, "union variant declared twice")
+                        return ERROR
+                    }
+
+                    members.set(p.v.name.name, null)
+                } else if (p.k === "field-plain") {
+                    if (members.has(p.v.name.name)) {
+                        ctx.raiseAt(p, "union variant declared twice")
+                        return ERROR
+                    }
+
+                    if (p.v.default !== null) {
+                        ctx.raiseAt(p, "union variants cannot specify tag values")
+                    }
+
+                    members.set(p.v.name.name, p.v.type)
+                }
+            }
+
+            let tag: Type
+            if (v.tag === "enum") {
+                const adt: Enum = {
+                    id: (v.id - 1) as AID,
+                    captures: [],
+                    ns: null!,
+                    backingInt: { k: "u", v: bitCountWithVariants(members.size) },
+                    members: {
+                        k: "analyzed",
+                        v: new Map(Array.from(members.keys()).map((k, i) => [k, BigInt(i)])),
+                    },
+                }
+                adt.ns = ctx.createNamespaceContext({ k: "enum", v: adt })
+                tag = { k: "enum", v: adt }
+            } else if (v.tag === null) {
+                ctx.todo(p, "untagged unions are not supported yet")
+                return ERROR
+            } else {
+                const tagType = exprAsType(ctx, v.tag)
+                if (tagType.k !== "normal") return tagType
+
+                if (tagType.v.k !== "enum") {
+                    ctx.raiseAt(
+                        v.tag,
+                        `union tag type must be an 'enum', got '${typeName(tagType.v)}'`,
+                    )
+                    return ERROR
+                }
+
+                if (tagType.v.v.members.k === "progressing") {
+                    ctx.raiseAt(v.tag, "dependency loop when analyzing union tag type")
+                    return ERROR
+                }
+
+                const enumKeys = Array.from(tagType.v.v.members.v.keys())
+                const unionKeys = Array.from(members.keys())
+
+                for (let i = 0; i < enumKeys.length; i++) {
+                    const key = enumKeys[i]!
+
+                    if (!members.has(key)) {
+                        ctx.raiseAt(
+                            p,
+                            `union is missing variant '${key}' from enum '${typeName(tagType.v)}'`,
+                        )
+                        return ERROR
+                    }
+
+                    if (unionKeys[i] !== key) {
+                        ctx.raiseAt(
+                            p,
+                            `union variant order does not match its tag type '${typeName(tagType.v)}'; variant #${i} should be '${key}'`,
+                        )
+                        return ERROR
+                    }
+                }
+
+                if (unionKeys.length > enumKeys.length) {
+                    const extra = unionKeys[enumKeys.length]!
+                    ctx.raiseAt(
+                        p,
+                        `union variant '${extra}' is not present in tag type '${typeName(tagType.v)}'`,
+                    )
+                    return ERROR
+                }
+
+                tag = tagType.v
+            }
+
+            const union: Union = {
+                id: v.id as AID,
+                captures,
+                ns: null!,
+                tag,
+                members: { k: "raw", v: members },
+            }
+            const ns = ctx.createNamespaceContext({ k: "union", v: union })
+            union.ns = ns
+
+            if (!finalizeNamespace(ns, v.child)) return ERROR
+            return normalType(ns.self)
+        }
+
+        case "ns-opaque": {
+            const captures = getCaptures(ctx, v.child)
+            if (captures === null) return ERROR
+
+            const opaque: Opaque = { id: v.id as AID, captures, ns: null! }
+            const ns = ctx.createNamespaceContext({ k: "opaque", v: opaque })
+            opaque.ns = ns
+
+            if (!finalizeNamespace(ns, v.child)) return ERROR
+            return normalType(ns.self)
+        }
 
         case "dot-tuple": {
             if (type !== null) type = innerType(type)
@@ -1280,10 +1475,6 @@ function valueEq(a: Value, b: Value): boolean {
             }
             return true
 
-        case "enum":
-            assert(a.k === b.k)
-            return a.v === b.v
-
         case "union":
             assert(a.k === b.k)
             return a.v.k === b.v.k && valueEq(a.v.v, b.v.v)
@@ -1328,9 +1519,6 @@ function isComptimeValue(value: Value): boolean {
                     return false
                 }
             }
-            return true
-
-        case "enum":
             return true
 
         case "union":

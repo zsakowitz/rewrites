@@ -36,3 +36,9 @@ export function floatTruncate(bits: FloatBitSize, value: number): number {
             return value
     }
 }
+
+export function bitCountWithVariants(count: number): number {
+    if (count === 0) return 0
+
+    return 32 - Math.clz32(count - 1)
+}

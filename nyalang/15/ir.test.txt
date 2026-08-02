@@ -1,1 +1,1 @@
-struct { a: i32 }
+enum(u8) { a }

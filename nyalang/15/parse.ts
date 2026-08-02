@@ -93,7 +93,8 @@ export type Expr = Range
         | { k: "ty-fn"; v: { params: (Expr | null)[]; ret: Expr | null } }
         | { k: "ns-struct"; v: { id: number; extern: boolean; child: Decl[] } }
         | { k: "ns-enum"; v: { id: number; extern: boolean; tag: Expr | null; child: Decl[] } }
-        | { k: "ns-union"; v: { id: number; tag: Expr | "enum" | null; child: Decl[] } }
+        | { k: "ns-union"; v: { id: number; tag: Expr | "enum" | null; child: Decl[] } } // if `tag == "enum"`, `id-1` is available for the tag type
+        | { k: "ns-opaque"; v: { id: number; child: Decl[] } }
         | { k: "dot-tuple"; v: { id: number; value: Expr[] } } // .{2, 3}
         | { k: "dot-record"; v: { id: number; value: { name: Ident; value: Expr }[] } } // .{a: 2}
         | { k: "dot-empty"; v: { id: number } } // .{}
@@ -701,7 +702,9 @@ function parseExprAtom(context: ParseContext): Expr {
         case T.KUnion: {
             context.index++
             const tag =
-                context.peek() === T.KEnum ? (context.index++, "enum") : parseTagType(context)
+                context.peek() === T.KEnum ?
+                    (context.index++, nextId++, "enum")
+                :   parseTagType(context)
             const child = parseDeclBlock(context)
             return { s, e: context.e, k: "ns-union", v: { id: nextId++, tag, child } }
         }
