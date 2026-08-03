@@ -1,13 +1,5 @@
-fn MyType(x: type) type {
-    return x;
+fn Complex(T: type) type {
+    return struct { re: T = 0, im: T = 0 };
 }
 
-fn world(x: i32) i32 {
-    return x;
-}
-
-fn id(T: type, x: T) T {
-    return x;
-}
-
-test .{ world(45), world(32), MyType(i32), id(i32, 45), id(i32, 67), id(u32, 4) };
+test @as(Complex(u32), .{}).re;

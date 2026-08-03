@@ -239,7 +239,10 @@ type RuntimeInst =
     | { n: RII; k: "cf-unreachable"; v: null }
     | { n: RII; k: "cf-return"; v: RII }
     | { n: RII; k: "fn-call"; v: { f: FID; i: IID; args: RII[] } }
+    | { n: RII; k: "get-field"; v: { target: RII; field: string } }
     | { n: RII; k: "get-unwrap"; v: RII }
+    | { n: RII; k: "get-variant"; v: { target: RII; field: string } }
+    | { n: RII; k: "global-load"; v: GID }
     | { n: RII; k: "slice-from-array"; v: RII }
     | { n: RII; k: "var-load"; v: RII }
 
@@ -970,7 +973,7 @@ function expr(
                 adt.ns = ctx.createNamespace({ k: "enum", v: adt })
                 tag = { k: "enum", v: adt }
             } else if (v.tag === null) {
-                ctx.todo(p, "untagged unions are not supported yet")
+                ctx.todo(p, "untagged unions")
                 return ERROR
             } else {
                 const tagType = exprAsType(ctx, v.tag)
@@ -1111,7 +1114,7 @@ function expr(
 
         case "dot-record": {
             if (type === null) {
-                ctx.todo(p, `record literal syntax requires an expected type`)
+                ctx.todo(p, "record literal syntax with no explicit type")
                 return ERROR
             }
 
@@ -1194,9 +1197,13 @@ function expr(
         }
 
         case "dot-empty": {
-            if (type !== null) type = innerType(type)
+            if (type === null) {
+                return normal({ k: "tuple", v: [] }, { k: "array", v: [] })
+            }
 
-            if (type !== null && (type.k === "array" || type.k === "slice")) {
+            type = innerType(type)
+
+            if (type.k === "array" || type.k === "slice") {
                 if (type.k === "array" && type.v.len !== 0) {
                     ctx.raiseAt(p, `expected '${typeName(type)}', but array literal has 0 elements`)
                     return ERROR
@@ -1205,7 +1212,7 @@ function expr(
                 return normal(type, { k: "array", v: [] })
             }
 
-            if (type !== null && type.k === "tuple") {
+            if (type.k === "tuple") {
                 if (type.v.length !== 0) {
                     ctx.raiseAt(p, `expected '${typeName(type)}', but tuple literal has 0 elements`)
                     return ERROR
@@ -1214,11 +1221,35 @@ function expr(
                 return normal(type, { k: "array", v: [] })
             }
 
-            if (type !== null && type.k === "struct") {
-                ctx.todo(p, "struct with all default fields")
+            if (type.k === "struct") {
+                const fields = resolveStruct(type.v)
+                if (fields === null) return ERROR
+
+                const ret = new Map<string, Value>()
+                for (const [k, { type, default: defaultValue }] of fields) {
+                    if (defaultValue === null) {
+                        ctx.raiseAt(
+                            p,
+                            `field '${k}' of struct '${typeName(type)}' is not initialized`,
+                        )
+                        return ERROR
+                    }
+
+                    ret.set(k, defaultValue.value)
+                }
+                return normal(type, { k: "struct", v: ret })
             }
 
-            return normal({ k: "tuple", v: [] }, { k: "array", v: [] })
+            if (type.k === "union") {
+                ctx.raiseAt(
+                    p,
+                    `initializing union '${typeName(type)}' requires exactly one variant to be specified`,
+                )
+                return ERROR
+            }
+
+            ctx.raiseAt(p, `expected '${typeName(type)}', but found empty record literal`)
+            return ERROR
         }
 
         case "dot-field": {
@@ -1233,10 +1264,20 @@ function expr(
         }
 
         case "dot-method":
+            ctx.todo(p, "expr kind '.dot-method'")
+            return ERROR
+
         case "dot-call":
+            ctx.todo(p, "expr kind '.dot-call'")
+            return ERROR
+
         case "op-prefix":
+            ctx.todo(p, "expr kind '.op-prefix'")
+            return ERROR
+
         case "op-infix":
-            break
+            ctx.todo(p, "expr kind '.op-infix'")
+            return ERROR
 
         case "cf-unreachable": {
             if (comptime) {
@@ -1249,16 +1290,44 @@ function expr(
         }
 
         case "cf-and":
+            ctx.todo(p, "expr kind '.cf-and'")
+            return ERROR
+
         case "cf-or":
+            ctx.todo(p, "expr kind '.cf-or'")
+            return ERROR
+
         case "cf-orelse":
+            ctx.todo(p, "expr kind '.cf-orelse'")
+            return ERROR
+
         case "cf-maybe":
+            ctx.todo(p, "expr kind '.cf-maybe'")
+            return ERROR
+
         case "cf-if":
+            ctx.todo(p, "expr kind '.cf-if'")
+            return ERROR
+
         case "cf-switch":
+            ctx.todo(p, "expr kind '.cf-switch'")
+            return ERROR
+
         case "cf-for":
+            ctx.todo(p, "expr kind '.cf-for'")
+            return ERROR
+
         case "cf-while":
+            ctx.todo(p, "expr kind '.cf-while'")
+            return ERROR
+
         case "cf-break":
+            ctx.todo(p, "expr kind '.cf-break'")
+            return ERROR
+
         case "cf-continue":
-            break
+            ctx.todo(p, "expr kind '.cf-continue'")
+            return ERROR
 
         case "cf-return": {
             if (ctx.returnType === null) {
@@ -1282,11 +1351,105 @@ function expr(
             return { k: "return", v: value.v }
         }
 
-        case "cf-comptime":
-        case "get-prop":
+        case "cf-comptime": {
+            const value = expr(ctx, true, type, v)
+            if (value.k === "error") return ERROR
+            assert(value.k !== "unreachable")
+
+            if (value.k === "break" || value.k === "continue" || value.k === "return") {
+                ctx.raiseAt(p, `explicit 'comptime' expressions must output a value`)
+                return ERROR
+            }
+
+            value.k satisfies "normal"
+            return value
+        }
+
+        case "get-prop": {
+            const target = expr(ctx, comptime, type, v.target)
+            if (target.k !== "normal") return target
+
+            switch (target.v.type.k) {
+                case "struct": {
+                    const fields = resolveStruct(target.v.type.v)
+                    if (fields === null) return ERROR
+
+                    if (!fields.has(v.name.name)) {
+                        ctx.raiseAt(
+                            p,
+                            `field '${v.name.name}' does not exist in struct '${typeName(target.v.type)}'`,
+                        )
+                        return ERROR
+                    }
+
+                    if (target.v.value.k === "struct") {
+                        return normal(
+                            fields.get(v.name.name)!.type,
+                            target.v.value.v.get(v.name.name)!,
+                        )
+                    }
+
+                    const rii = ctx.makeRuntime(v.target, target.v)
+                    if (rii === null) return ERROR
+
+                    assert(target.v.value.k === "runtime")
+                    return ctx.rtResult(fields.get(v.name.name)!.type, "get-field", {
+                        target: rii,
+                        field: v.name.name,
+                    })
+                }
+
+                case "union": {
+                    const variants = resolveUnion(target.v.type.v)
+                    if (variants === null) return ERROR
+
+                    if (!variants.has(v.name.name)) {
+                        ctx.raiseAt(
+                            p,
+                            `variant '${v.name.name}' does not exist in union '${typeName(target.v.type)}'`,
+                        )
+                        return ERROR
+                    }
+
+                    if (target.v.value.k === "union") {
+                        if (target.v.value.v.k !== v.name.name) {
+                            ctx.raiseAt(
+                                p,
+                                `variant '${v.name.name}' of union cannot be accessed because variant '${target.v.value.v.k}' is active`,
+                            )
+                            return ERROR
+                        }
+
+                        return normal(variants.get(v.name.name)!, target.v.value.v.v)
+                    }
+
+                    const rii = ctx.makeRuntime(v.target, target.v)
+                    if (rii === null) return ERROR
+
+                    assert(target.v.value.k === "runtime")
+                    return ctx.rtResult(variants.get(v.name.name)!, "get-variant", {
+                        target: rii,
+                        field: v.name.name,
+                    })
+                }
+
+                case "type":
+                    ctx.todo(p, "namespace items")
+                    return ERROR
+
+                default:
+                    ctx.raiseAt(p, `values of type '${typeName(target.v.type)}' have no fields`)
+                    return ERROR
+            }
+        }
+
         case "get-method":
+            ctx.raiseAt(p, `expr type '.get-method'`)
+            return ERROR
+
         case "get-index":
-            break
+            ctx.raiseAt(p, `expr type '.get-index'`)
+            return ERROR
 
         case "get-call": {
             if (v.target.k === "ident") {
@@ -1434,23 +1597,46 @@ function expr(
                 return { k: "normal", v: value }
             }
 
-            ctx.todo(p, "non-local identifiers")
-            return ERROR
+            if (!ctx.ns.items.has(v.name)) {
+                ctx.raiseAt(p, `'${v.name}' is not defined in this scope`)
+                return ERROR
+            }
+
+            const item = ctx.ns.items.get(v.name)
+            switch (item.k) {
+                case "fn":
+                    ctx.todo(p, "functions as values")
+                    return ERROR
+
+                case "const": {
+                    const val = resolveConst(item)
+                    if (val === null) return ERROR
+                    return { k: "normal", v: val }
+                }
+
+                case "var": {
+                    const val = resolveVar(item)
+                    if (val === null) return ERROR
+                    return ctx.rtResult(val.type, "global-load", val.id)
+                }
+
+                case "reserved":
+                    ctx.raiseAt(p, `'${v.name}' is not defined in this scope`)
+                    return ERROR
+            }
         }
 
         case "underscore":
             ctx.raiseAt(p, "'_' cannot be used as an expression")
-            break
+            return ERROR
 
         case "closure":
-            break
+            ctx.todo(p, "expr type '.closure'")
+            return ERROR
 
         case "paren":
             return expr(ctx, comptime, type, v)
     }
-
-    ctx.todo(p)
-    return { k: "error", v: null }
 }
 
 function builtin(
@@ -1578,7 +1764,7 @@ function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result<null> 
         return { k: "normal", v: null }
     }
 
-    ctx.todo(p, "assignments are not supported")
+    ctx.todo(p, "assignments")
     return { k: "error", v: null }
 }
 
@@ -2217,7 +2403,7 @@ function getProp(ctx: EvaluationContext, type: Type, p: Range, name: string): Ty
 
     switch (item.k) {
         case "fn":
-            ctx.todo(p, `functions are not real values yet`)
+            ctx.todo(p, "functions as values")
             return null
 
         case "const":
