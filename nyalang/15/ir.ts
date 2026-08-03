@@ -113,7 +113,7 @@ interface TypedValue {
 
 type Lazy<Raw, Analyzed> =
     | { k: "raw"; v: Raw }
-    | { k: "progressing"; v: { ns: NamespaceContext; p: Range } }
+    | { k: "progressing"; v: { ns: Namespace; p: Range } }
     | { k: "analyzed"; v: Analyzed }
 
 type Capture = Value | { k: "runtime-var"; v: GID }
@@ -122,7 +122,7 @@ interface Struct {
     id: AID
     p: Range
     captures: Capture[]
-    ns: NamespaceContext
+    ns: Namespace
     members: Lazy<
         Map<string, { type: Expr; default: Expr | null }>,
         Map<string, { type: Type; default: TypedValue | null }>
@@ -133,7 +133,7 @@ interface Enum {
     id: AID
     p: Range
     captures: Capture[]
-    ns: NamespaceContext
+    ns: Namespace
     backingInt: Type
     members: Lazy<Map<string, Expr | null>, Map<string, bigint>>
 }
@@ -142,7 +142,7 @@ interface Union {
     id: AID
     p: Range
     captures: Capture[]
-    ns: NamespaceContext
+    ns: Namespace
     tag: Type & { k: "enum" }
     members: Lazy<Map<string, Expr | null>, Map<string, Type>>
 }
@@ -151,12 +151,12 @@ interface Opaque {
     id: AID
     p: Range
     captures: Capture[]
-    ns: NamespaceContext
+    ns: Namespace
 }
 
 class Fn {
     constructor(
-        public ns: NamespaceContext,
+        public ns: Namespace,
         public id: FID,
         public params: FunctionParam[],
         public returnType: Expr,
@@ -208,10 +208,10 @@ export class Items {
 
 type Item =
     | { k: "fn"; v: Fn }
-    | { k: "const"; v: Lazy<{ ns: NamespaceContext; type: Expr | null; value: Expr }, TypedValue> }
+    | { k: "const"; v: Lazy<{ ns: Namespace; type: Expr | null; value: Expr }, TypedValue> }
     | {
           k: "var"
-          v: Lazy<{ ns: NamespaceContext; type: Expr | null; value: Expr }, { type: Type; id: GID }>
+          v: Lazy<{ ns: Namespace; type: Expr | null; value: Expr }, { type: Type; id: GID }>
       }
     | { k: "reserved"; v: null }
 
@@ -229,7 +229,7 @@ type RuntimeInst =
     | { n: RII; k: "arg-load"; v: { type: Type; index: number } }
 
 interface Test {
-    ns: NamespaceContext
+    ns: Namespace
     id: TID
     name: string
     body: Expr
@@ -247,8 +247,8 @@ export class Root {
         this.errors.raise(new TraceEntry(file, p.s, p.e, message))
     }
 
-    createNamespaceContext(file: File, self: Type) {
-        return new NamespaceContext(this, file, self, new Items(null))
+    createNamespace(file: File, self: Type) {
+        return new Namespace(this, file, self, new Items(null))
     }
 }
 
@@ -276,14 +276,14 @@ let nextId = 0
 
 export class EvaluationContext {
     constructor(
-        public ns: NamespaceContext,
+        public ns: Namespace,
         public runtime: RuntimeInst[],
         public variables: Map<string, Variable>,
         public labels: Map<string, Label>,
         public returnType: Type | null, // `null` means `return` is invalid
     ) {}
 
-    createNamespaceContext(type: Type) {
+    createNamespace(type: Type): Namespace {
         const valueDecls = this.ns.items.fork()
         const nsDecls = valueDecls.fork()
 
@@ -295,7 +295,7 @@ export class EvaluationContext {
             }
         }
 
-        return new NamespaceContext(this.ns.root, this.ns.file, type, nsDecls)
+        return new Namespace(this.ns.root, this.ns.file, type, nsDecls)
     }
 
     raiseAt(p: Range, message: string) {
@@ -344,7 +344,7 @@ export class EvaluationContext {
     }
 }
 
-export class NamespaceContext {
+export class Namespace {
     constructor(
         public root: Root,
         public file: File,
@@ -790,7 +790,7 @@ export function expr(
                 ns: null!,
                 members: { k: "raw", v: members },
             }
-            const ns = ctx.createNamespaceContext({ k: "struct", v: struct })
+            const ns = ctx.createNamespace({ k: "struct", v: struct })
             struct.ns = ns
 
             if (!finalizeNamespace(ns, "field", members, v.child)) return ERROR
@@ -864,7 +864,7 @@ export function expr(
                         { k: "analyzed", v: membersExplicit }
                     :   { k: "raw", v: members },
             }
-            const ns = ctx.createNamespaceContext({ k: "enum", v: type })
+            const ns = ctx.createNamespace({ k: "enum", v: type })
             type.ns = ns
 
             if (!finalizeNamespace(ns, "variant", members, v.child)) return ERROR
@@ -911,7 +911,7 @@ export function expr(
                         v: new Map(Array.from(members.keys()).map((k, i) => [k, BigInt(i)])),
                     },
                 }
-                adt.ns = ctx.createNamespaceContext({ k: "enum", v: adt })
+                adt.ns = ctx.createNamespace({ k: "enum", v: adt })
                 tag = { k: "enum", v: adt }
             } else if (v.tag === null) {
                 ctx.todo(p, "untagged unions are not supported yet")
@@ -976,7 +976,7 @@ export function expr(
                 tag,
                 members: { k: "raw", v: members },
             }
-            const ns = ctx.createNamespaceContext({ k: "union", v: union })
+            const ns = ctx.createNamespace({ k: "union", v: union })
             union.ns = ns
 
             if (!finalizeNamespace(ns, "variant", members, v.child)) return ERROR
@@ -988,7 +988,7 @@ export function expr(
             if (captures === null) return ERROR
 
             const opaque: Opaque = { id: (v.id << 1) as AID, p, captures, ns: null! }
-            const ns = ctx.createNamespaceContext({ k: "opaque", v: opaque })
+            const ns = ctx.createNamespace({ k: "opaque", v: opaque })
             opaque.ns = ns
 
             if (!finalizeNamespace(ns, null! /* never used */, new Map(), v.child)) return ERROR
@@ -1482,7 +1482,7 @@ export function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result
 
 /** Returns `false` on error. */
 function finalizeNamespace(
-    ns: NamespaceContext,
+    ns: Namespace,
     memberKind: "field" | "variant",
     members: Map<string, unknown>,
     ps: Decl[],
@@ -2037,36 +2037,36 @@ function resolveUnion(item: Union): Map<string, Type> | null {
     return item.members.v
 }
 
-function topLevelType(ctx: NamespaceContext, p: Expr): Type | null {
-    const val = exprAsType(ctx.createEvaluationContext(), p)
+function topLevelType(ns: Namespace, p: Expr): Type | null {
+    const val = exprAsType(ns.createEvaluationContext(), p)
     if (val.k === "error") return null
     assert(val.k === "normal")
     return val.v
 }
 
-function topLevelValue(ctx: NamespaceContext, type: Expr | null, value: Expr): TypedValue | null {
-    const ec = ctx.createEvaluationContext()
+function topLevelValue(ns: Namespace, type: Expr | null, value: Expr): TypedValue | null {
+    const ctx = ns.createEvaluationContext()
 
     if (type === null) {
-        const result = expr(ec, true, type, value)
+        const result = expr(ctx, true, type, value)
         if (result.k === "error") return null
         assert(result.k === "normal")
         return result.v
     }
 
-    const ty = topLevelType(ctx, type)
+    const ty = topLevelType(ns, type)
     if (ty === null) return null
 
-    const result = exprAs(ec, true, ty, value)
+    const result = exprAs(ctx, true, ty, value)
     if (result.k === "error") return null
     assert(result.k === "normal")
     return result.v
 }
 
-function topLevelValueAs(ctx: NamespaceContext, type: Type, value: Expr): TypedValue | null {
-    const ec = ctx.createEvaluationContext()
+function topLevelValueAs(ns: Namespace, type: Type, value: Expr): TypedValue | null {
+    const ctx = ns.createEvaluationContext()
 
-    const result = exprAs(ec, true, type, value)
+    const result = exprAs(ctx, true, type, value)
     if (result.k === "error") return null
     assert(result.k === "normal")
     return result.v
@@ -2289,7 +2289,7 @@ export function topLevel(root: Root, file: File, body: Decl[]): Type | null {
         ns: null!,
         members: { k: "raw", v: members },
     }
-    const ns = root.createNamespaceContext(file, { k: "struct", v: struct })
+    const ns = root.createNamespace(file, { k: "struct", v: struct })
     struct.ns = ns
 
     if (!finalizeNamespace(ns, "field", members, body)) return null
