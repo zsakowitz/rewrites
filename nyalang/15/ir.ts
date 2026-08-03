@@ -1753,7 +1753,7 @@ function isComptimeValue(value: Value): boolean {
  * Returns `null` on compile error. Currently, this only happens if `isRuntimeType` encounters an
  * unanalyzed `struct` or `union`, then errors while resolving its members.
  */
-function isRuntimeType(ctx: Root, type: Type): boolean | null {
+function isRuntimeType(root: Root, type: Type): boolean | null {
     const { k, v } = type
 
     switch (k) {
@@ -1778,14 +1778,14 @@ function isRuntimeType(ctx: Root, type: Type): boolean | null {
 
         case "optional":
         case "slice":
-            return isRuntimeType(ctx, v)
+            return isRuntimeType(root, v)
 
         case "array":
-            return isRuntimeType(ctx, v.child)
+            return isRuntimeType(root, v.child)
 
         case "tuple": {
             for (const el of v) {
-                const rt = isRuntimeType(ctx, el)
+                const rt = isRuntimeType(root, el)
                 if (rt !== true) return rt
             }
             return true
@@ -1796,7 +1796,7 @@ function isRuntimeType(ctx: Root, type: Type): boolean | null {
             if (fields === null) return null
 
             for (const el of fields.values()) {
-                const rt = isRuntimeType(ctx, el.type)
+                const rt = isRuntimeType(root, el.type)
                 if (rt !== true) return rt
             }
             return true
@@ -1807,7 +1807,7 @@ function isRuntimeType(ctx: Root, type: Type): boolean | null {
             if (fields === null) return null
 
             for (const el of fields.values()) {
-                const rt = isRuntimeType(ctx, el)
+                const rt = isRuntimeType(root, el)
                 if (rt !== true) return rt
             }
             return true
@@ -2264,17 +2264,17 @@ function encodeStr(ctx: EvaluationContext, type: Type, p: Range, v: string): Typ
     return null
 }
 
-export function topLevel(ctx: Root, file: File, body: Decl[]): Type | null {
+export function topLevel(root: Root, file: File, body: Decl[]): Type | null {
     const members = new Map<string, { type: Expr; default: Expr | null }>()
     for (const p of body) {
         if (p.k === "field-ident") {
-            ctx.raiseAt(file, p, "expected type of struct field")
+            root.raiseAt(file, p, "expected type of struct field")
             return null
         }
 
         if (p.k === "field-plain") {
             if (members.has(p.v.name.name)) {
-                ctx.raiseAt(file, p, "struct field declared twice")
+                root.raiseAt(file, p, "struct field declared twice")
                 return null
             }
 
@@ -2289,7 +2289,7 @@ export function topLevel(ctx: Root, file: File, body: Decl[]): Type | null {
         ns: null!,
         members: { k: "raw", v: members },
     }
-    const ns = ctx.createNamespaceContext(file, { k: "struct", v: struct })
+    const ns = root.createNamespaceContext(file, { k: "struct", v: struct })
     struct.ns = ns
 
     if (!finalizeNamespace(ns, "field", members, body)) return null
