@@ -22,6 +22,7 @@ type Type =
     | { k: "u" | "i"; v: number }
     | { k: "f"; v: FloatBitSize }
     | { k: "str"; v: null }
+    | { k: "path"; v: null } // so that `@import(x)` works even when `x` is defined in another file
     | { k: "null"; v: null }
     | { k: "optional"; v: Type }
     | { k: "array"; v: { len: number; child: Type } }
@@ -44,6 +45,7 @@ export function typeName(type: Type): string {
         case "comptime_int":
         case "comptime_float":
         case "str":
+        case "path":
         case "type":
             return k
 
@@ -93,10 +95,11 @@ type Value =
     | { k: "bool"; v: boolean } // type = bool
     | { k: "int"; v: bigint } // type = comptime_int, u, i, enum
     | { k: "float"; v: number } // type = comptime_float, f
-    | { k: "str"; v: string } // type = str
+    | { k: "str"; v: string } // type = str, path
     | { k: "null"; v: null } // type = null, optional(T)
     | { k: "some"; v: Value } // type = optional(T)
     | { k: "array"; v: Value[] } // type = array, slice, tuple
+    | { k: "array-u8"; v: Uint8Array } // type = array, slice
     | { k: "fn"; v: Fn } // type = fn
     | { k: "type"; v: Type } // type = type
     | { k: "struct"; v: Map<string, Value> } // type = struct
@@ -468,7 +471,7 @@ function as(ctx: EvaluationContext, p: Range, type: Type, value: TypedValue): Ty
             return null
         }
 
-        if (value.value.k === "array") {
+        if (value.value.k === "array" || value.value.k === "array-u8") {
             return { type, value: value.value }
         }
 
@@ -659,27 +662,64 @@ export function expr(
             return VOID
 
         case "lit-int":
-            if (type !== null && (type.k === "u" || type.k === "i")) {
-                if (!intIsSafe(type.k, type.v, v)) {
-                    ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
+            if (type !== null) {
+                type = innerType(type)
+                if (type.k === "u" || type.k === "i") {
+                    if (!intIsSafe(type.k, type.v, v)) {
+                        ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
+                    }
+                    return normal(type, { k: "int", v })
                 }
-                return normal(type, { k: "int", v })
             }
 
             return normal({ k: "comptime_int", v: null }, { k: "int", v })
 
         case "lit-float":
-            if (type !== null && type.k === "f") {
-                const val = floatTruncate(type.v, v)
-                if (!isFinite(val)) {
-                    ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
+            if (type !== null) {
+                type = innerType(type)
+                if (type.k === "f") {
+                    const val = floatTruncate(type.v, v)
+                    if (!isFinite(val)) {
+                        ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
+                    }
+                    return normal(type, { k: "float", v })
                 }
-                return normal(type, { k: "float", v })
             }
 
             return normal({ k: "comptime_float", v: null }, { k: "float", v })
 
         case "lit-str":
+            if (type !== null) {
+                type = innerType(type)
+                if (type.k === "path") {
+                    return normal(type, { k: "str", v })
+                }
+                if (type.k === "str") {
+                    return normal(type, { k: "str", v })
+                }
+                if (type.k === "array" && type.v.child.k === "u") {
+                    if (type.v.child.v === 7 /* ascii */ || type.v.child.v === 8 /* utf8 */) {
+                        const body = new TextEncoder().encode(v)
+                        if (body.length !== type.v.len) {
+                            ctx.raiseAt(
+                                p,
+                                `expected '${typeName(type)}', but string literal has ${body.length} bytes`,
+                            )
+                            return ERROR
+                        }
+                        if (type.v.child.v === 7) {
+                            if (!body.every((x) => x < 128)) {
+                                ctx.raiseAt(
+                                    p,
+                                    `expected '${typeName(type)}', but string literal has non-ASCII bytes`,
+                                )
+                                return ERROR
+                            }
+                        }
+                        return normal(type, { k: "array-u8", v: body })
+                    }
+                }
+            }
             return normal({ k: "str", v: null }, { k: "str", v })
 
         case "ty-optional": {
@@ -1512,6 +1552,7 @@ function typeEq(a: Type, b: Type): boolean {
         case "comptime_int":
         case "comptime_float":
         case "str":
+        case "path":
         case "null":
         case "type":
             return true
@@ -1574,7 +1615,19 @@ function valueEq(a: Value, b: Value): boolean {
     assert(b.k !== "runtime")
 
     if (a === b) return true
-    if (a.k !== b.k) return false
+
+    if (a.k !== b.k) {
+        if (a.k === "array" && b.k === "array-u8") {
+            assert(a.v.every((x) => x.k === "int" && x.v >= 0n && x.v < 256n))
+            return a.v.length === b.v.length && a.v.every((_, i) => Number(a.v[i]!) === b.v[i]!)
+        }
+        if (a.k === "array-u8" && b.k === "array") {
+            assert(b.v.every((x) => x.k === "int" && x.v >= 0n && x.v < 256n))
+            return a.v.length === b.v.length && a.v.every((_, i) => a.v[i]! === Number(b.v[i]!))
+        }
+
+        return false
+    }
 
     switch (a.k) {
         case "void":
@@ -1595,6 +1648,11 @@ function valueEq(a: Value, b: Value): boolean {
             assert(a.k === b.k)
             if (a.v.length !== b.v.length) return false // necessary for slices, assertion for arrays and tuples
             return a.v.every((_, i) => valueEq(a.v[i]!, b.v[i]!))
+
+        case "array-u8":
+            assert(a.k === b.k)
+            if (a.v.length !== b.v.length) return false // necessary for slices, assertion for arrays
+            return a.v.every((_, i) => a.v[i]! === b.v[i]!)
 
         case "fn":
             assert(a.k === b.k)
@@ -1638,6 +1696,9 @@ function isComptimeValue(value: Value): boolean {
         case "float":
         case "str":
         case "null":
+        case "array-u8":
+        case "fn":
+        case "type":
             return true
 
         case "some":
@@ -1645,12 +1706,6 @@ function isComptimeValue(value: Value): boolean {
 
         case "array":
             return v.every(isComptimeValue)
-
-        case "fn":
-            return true
-
-        case "type":
-            return true
 
         case "struct":
             for (const el of v.values()) {
@@ -1677,18 +1732,21 @@ function isRuntimeType(ctx: RootContext, type: Type): boolean {
         case "never":
         case "void":
         case "bool":
-            return true
-
-        case "comptime_int":
-        case "comptime_float":
-            return false
-
         case "u":
         case "i":
         case "f":
         case "str":
         case "null":
+        case "enum":
+        case "opaque":
             return true
+
+        case "comptime_int":
+        case "comptime_float":
+        case "path":
+        case "fn":
+        case "type":
+            return false
 
         case "optional":
         case "slice":
@@ -1700,21 +1758,11 @@ function isRuntimeType(ctx: RootContext, type: Type): boolean {
         case "tuple":
             return v.every((x) => isRuntimeType(ctx, x))
 
-        case "fn":
-        case "type":
-            return false
-
         case "struct":
             throw new Error("cannot check if struct is a runtime type")
 
-        case "enum":
-            return true
-
         case "union":
             throw new Error("cannot check if union is a runtime type")
-
-        case "opaque":
-            return true
     }
 }
 
@@ -2034,3 +2082,5 @@ function getProp(ctx: EvaluationContext, type: Type, p: Range, name: string): Ty
             unreachable()
     }
 }
+
+// function call(ctx: EvaluationContext, f: Fn)
