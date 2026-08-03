@@ -1,7 +1,7 @@
 import { print } from "./debug"
 import { Errors } from "./error"
 import { File } from "./file"
-import { RootContext, runTests, topLevel } from "./ir"
+import { Root, runTests, topLevel } from "./ir"
 import fileBody from "./ir.test.txt"
 import { ParseContext, parseFile } from "./parse"
 import { tokenize } from "./token"
@@ -14,7 +14,7 @@ const tokens = tokenize(errors, file)
 const parseContext = new ParseContext(errors, tokens)
 const body = parseFile(parseContext)
 
-const root = new RootContext(errors, [])
+const root = new Root(errors, [])
 topLevel(root, file, body)
 runTests(root)
 

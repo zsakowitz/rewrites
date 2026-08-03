@@ -463,10 +463,10 @@ export function parseDecl(context: ParseContext): Decl | null {
         }
         context.take(T.RParen)
         const returnType = parseExpr(context)
-        if (context.peek() !== T.LBrace) {
-            context.take(T.Eq)
-        }
+        let inline = context.peek() !== T.LBrace
+        if (inline) context.take(T.Eq)
         const body = parseExpr(context)
+        if (inline) context.take(T.Semi)
         return {
             s,
             e: context.e,

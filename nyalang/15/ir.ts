@@ -156,7 +156,7 @@ interface Opaque {
 
 class Fn {
     constructor(
-        public ctx: NamespaceContext,
+        public ns: NamespaceContext,
         public id: FID,
         public params: FunctionParam[],
         public returnType: Expr,
@@ -226,6 +226,7 @@ type RuntimeInst =
     | { n: RII; k: "cf-unreachable"; v: null }
     | { n: RII; k: "slice-from-array"; v: RII }
     | { n: RII; k: "get-unwrap"; v: RII }
+    | { n: RII; k: "arg-load"; v: { type: Type; index: number } }
 
 interface Test {
     ns: NamespaceContext
@@ -234,7 +235,7 @@ interface Test {
     body: Expr
 }
 
-export class RootContext {
+export class Root {
     constructor(
         public errors: Errors,
         public tests: Test[] | null, // `null` if not using tests
@@ -345,7 +346,7 @@ export class EvaluationContext {
 
 export class NamespaceContext {
     constructor(
-        public root: RootContext,
+        public root: Root,
         public file: File,
         public self: Type, // value of @This()
         public items: Items,
@@ -1206,8 +1207,38 @@ export function expr(
         case "get-prop":
         case "get-method":
         case "get-index":
-        case "get-call":
             break
+
+        case "get-call": {
+            if (v.target.k === "ident") {
+                if (isReservedIdent(v.target.v)) {
+                    ctx.raiseAt(p, `cannot call builtin identifier '${v.target.v}'`)
+                    return ERROR
+                }
+
+                if (ctx.variables.has(v.target.v.name)) {
+                    ctx.todo(p, "calling variables")
+                    return ERROR
+                }
+
+                const item = ctx.ns.items.get(v.target.v.name)
+                if (item.k !== "fn") {
+                    ctx.todo(p, "calling non-fns")
+                    return ERROR
+                }
+
+                return call(
+                    ctx,
+                    comptime,
+                    p,
+                    item.v,
+                    v.args.map((x) => ({ p: x, evaluated: false, value: x })),
+                )
+            }
+
+            ctx.todo(p, "calling non-identifiers")
+            return ERROR
+        }
 
         case "get-unwrap": {
             const inner = expr(ctx, comptime, type ? { k: "optional", v: type } : null, v.target)
@@ -1656,7 +1687,7 @@ function valueEq(a: Value, b: Value): boolean {
 
         case "fn":
             assert(a.k === b.k)
-            return a.v.id === b.v.id && typeEq(a.v.ctx.self, b.v.ctx.self) // ensure namespaces have equal captures
+            return a.v.id === b.v.id && typeEq(a.v.ns.self, b.v.ns.self) // ensure namespaces have equal captures
 
         case "type":
             assert(a.k === b.k)
@@ -1678,11 +1709,7 @@ function valueEq(a: Value, b: Value): boolean {
     }
 }
 
-/**
- * Whether a value is fully comptime-known.
- *
- * Excludes `runtime`, along with any value containing it.
- */
+/** Whether a value is fully comptime-known. */
 function isComptimeValue(value: Value): boolean {
     const { k, v } = value
 
@@ -1723,9 +1750,10 @@ function isComptimeValue(value: Value): boolean {
 /**
  * Whether a type can be used at runtime.
  *
- * Excludes `comptime_int`, `comptime_float`, `fn`, and `type`, along with any type containing them.
+ * Returns `null` on compile error. Currently, this only happens if `isRuntimeType` encounters an
+ * unanalyzed `struct` or `union`, then errors while resolving its members.
  */
-function isRuntimeType(ctx: RootContext, type: Type): boolean {
+function isRuntimeType(ctx: Root, type: Type): boolean | null {
     const { k, v } = type
 
     switch (k) {
@@ -1755,14 +1783,35 @@ function isRuntimeType(ctx: RootContext, type: Type): boolean {
         case "array":
             return isRuntimeType(ctx, v.child)
 
-        case "tuple":
-            return v.every((x) => isRuntimeType(ctx, x))
+        case "tuple": {
+            for (const el of v) {
+                const rt = isRuntimeType(ctx, el)
+                if (rt !== true) return rt
+            }
+            return true
+        }
 
-        case "struct":
-            throw new Error("cannot check if struct is a runtime type")
+        case "struct": {
+            const fields = resolveStruct(type.v)
+            if (fields === null) return null
 
-        case "union":
-            throw new Error("cannot check if union is a runtime type")
+            for (const el of fields.values()) {
+                const rt = isRuntimeType(ctx, el.type)
+                if (rt !== true) return rt
+            }
+            return true
+        }
+
+        case "union": {
+            const fields = resolveUnion(type.v)
+            if (fields === null) return null
+
+            for (const el of fields.values()) {
+                const rt = isRuntimeType(ctx, el)
+                if (rt !== true) return rt
+            }
+            return true
+        }
     }
 }
 
@@ -2083,7 +2132,85 @@ function getProp(ctx: EvaluationContext, type: Type, p: Range, name: string): Ty
     }
 }
 
-// function call(ctx: EvaluationContext, f: Fn)
+type FnArg =
+    | { p: Range; evaluated: true; value: TypedValue }
+    | { p: Range; evaluated: false; value: Expr }
+
+/** `null` is for errors. */
+function call(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    p: Range,
+    f: Fn,
+    argsRaw: FnArg[],
+): Result<TypedValue> {
+    if (argsRaw.length !== f.params.length) {
+        ctx.raiseAt(
+            p,
+            `function requires ${f.params.length} parameter(s), but caller specified ${argsRaw.length}`,
+        )
+        return ERROR
+    }
+
+    const callContext = f.ns.createEvaluationContext()
+
+    const runtimeArgs: TypedValue[] = []
+    let lastComptimeArg: number | null = null
+
+    for (let i = 0; i < f.params.length; i++) {
+        const param = f.params[i]!
+
+        const paramType = exprAsType(callContext, param.type)
+        if (paramType.k !== "normal") return paramType
+
+        const paramComptime = comptime || param.comptime || !isRuntimeType(ctx.ns.root, paramType.v)
+
+        const raw = argsRaw[i]!
+
+        let arg: TypedValue
+        if (raw.evaluated) {
+            const result = as(ctx, raw.p, paramType.v, raw.value)
+            if (result === null) return ERROR
+            if (paramComptime && !isComptimeValue(result.value)) {
+                ctx.raiseAt(raw.p, `function parameter cannot be resolved at comptime`)
+                return ERROR
+            }
+            arg = result
+        } else {
+            const result = exprAs(ctx, paramComptime, paramType.v, raw.value)
+            if (result.k !== "normal") return result
+            assert(!(paramComptime && !isComptimeValue(result.v.value)))
+            arg = result.v
+        }
+
+        console.log({ comptime, p: param.comptime })
+
+        if (param.name !== null) {
+            if (paramComptime) {
+                callContext.variables.set(param.name.name, { k: "comptime-const", v: arg })
+            } else {
+                callContext.variables.set(param.name.name, {
+                    k: "const",
+                    v: {
+                        type: arg.type,
+                        n: callContext.rtInst("arg-load", {
+                            type: arg.type,
+                            index: runtimeArgs.length,
+                        }),
+                    },
+                })
+                runtimeArgs.push(arg)
+            }
+        }
+
+        if (paramComptime) {
+            lastComptimeArg = i
+        }
+    }
+
+    ctx.raiseAt(p, `calling fn__${f.id}(...${runtimeArgs.length})`)
+    return ERROR
+}
 
 function encodeStr(ctx: EvaluationContext, type: Type, p: Range, v: string): TypedValue | null {
     type = innerType(type)
@@ -2137,7 +2264,7 @@ function encodeStr(ctx: EvaluationContext, type: Type, p: Range, v: string): Typ
     return null
 }
 
-export function topLevel(ctx: RootContext, file: File, body: Decl[]): Type | null {
+export function topLevel(ctx: Root, file: File, body: Decl[]): Type | null {
     const members = new Map<string, { type: Expr; default: Expr | null }>()
     for (const p of body) {
         if (p.k === "field-ident") {
@@ -2169,13 +2296,13 @@ export function topLevel(ctx: RootContext, file: File, body: Decl[]): Type | nul
     return ns.self
 }
 
-export function runTests(ctx: RootContext) {
-    assert(ctx.tests !== null)
+export function runTests(root: Root) {
+    assert(root.tests !== null)
 
     const alreadyRun = new Map<number, Type[]>()
 
-    for (let i = 0; i < ctx.tests.length; i++) {
-        const test = ctx.tests[i]!
+    for (let i = 0; i < root.tests.length; i++) {
+        const test = root.tests[i]!
 
         if (alreadyRun.has(test.id)) {
             const previousContexts = alreadyRun.get(test.id)!
@@ -2184,7 +2311,8 @@ export function runTests(ctx: RootContext) {
             }
         }
 
-        const value = topLevelValueAs(test.ns, { k: "void", v: null }, test.body)
+        const ctx = test.ns.createEvaluationContext()
+        const value = exprAs(ctx, false, { k: "void", v: null }, test.body)
         if (value === null) return null
 
         alreadyRun.getOrInsert(test.id, []).push(test.ns.self)
