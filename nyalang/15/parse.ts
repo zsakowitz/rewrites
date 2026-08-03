@@ -158,7 +158,7 @@ export type Decl = Range
         | { k: "field-ident"; v: { name: Ident; value: Expr | null } } // a, b = 7,
         | { k: "field-plain"; v: { name: Ident; type: Expr; default: Expr | null } } // a: i32, b: i32 = 4,
         | { k: "comptime"; v: Expr }
-        | { k: "test"; v: { id: number; name: string; body: Expr } }
+        | { k: "test"; v: { id: number; name: string | null; body: Expr } }
         | { k: "const"; v: { name: Ident; type: Expr | null; body: Expr } }
         | { k: "var"; v: { name: Ident; type: Expr | null; body: Expr } }
         | {
@@ -500,10 +500,9 @@ export function parseDecl(context: ParseContext): Decl | null {
 
     if (context.peek() === T.KTest) {
         context.index++
-        const name = parseStr(context)
+        const name = context.peek() === T.Str ? parseStr(context) : null
         const body = parseExpr(context)
         context.take(T.Semi)
-        if (name === null) return null
         return { s, e: context.e, k: "test", v: { id: nextId++, name, body } }
     }
 

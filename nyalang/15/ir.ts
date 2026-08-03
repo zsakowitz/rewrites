@@ -1,3 +1,4 @@
+import { red, reset } from "../2/ansi"
 import { assert, unreachable } from "./assert"
 import { debug } from "./debug"
 import { Errors, TraceEntry } from "./error"
@@ -164,6 +165,16 @@ class Fn {
     ) {}
 }
 
+interface FnInstance {
+    ns: Namespace
+
+    comptimeArgs: TypedValue[]
+    runtimeArgs: Type[]
+    returnType: Type
+
+    body: RuntimeInst[]
+}
+
 export class Items {
     constructor(public parent: Items | null) {}
 
@@ -220,18 +231,22 @@ type RII = number & { __brand: "runtime_instruction" }
 type AID = number & { __brand: "adt" } // even numbers are normal structs, odd are whole-file structs
 type FID = number & { __brand: "fn_decl" }
 type TID = number & { __brand: "test" }
+type IID = number & { __brand: "fn_instance" }
 
 type RuntimeInst =
+    | { n: RII; k: "arg-load"; v: number }
     | { n: RII; k: "lit"; v: TypedValue }
     | { n: RII; k: "cf-unreachable"; v: null }
-    | { n: RII; k: "slice-from-array"; v: RII }
+    | { n: RII; k: "cf-return"; v: RII }
+    | { n: RII; k: "fn-call"; v: { f: FID; i: IID; args: RII[] } }
     | { n: RII; k: "get-unwrap"; v: RII }
-    | { n: RII; k: "arg-load"; v: { type: Type; index: number } }
+    | { n: RII; k: "slice-from-array"; v: RII }
+    | { n: RII; k: "var-load"; v: RII }
 
 interface Test {
     ns: Namespace
     id: TID
-    name: string
+    name: string | null
     body: Expr
 }
 
@@ -242,6 +257,7 @@ export class Root {
     ) {}
 
     public globalVars = new Map<GID, TypedValue>()
+    public fns = new Map<FID, FnInstance[]>()
 
     raiseAt(file: File, p: Range, message: string) {
         this.errors.raise(new TraceEntry(file, p.s, p.e, message))
@@ -314,7 +330,7 @@ export class EvaluationContext {
     }
 
     todo(p: Range, message?: string) {
-        this.ns.todo(p, message)
+        this.ns.todo(p, message ?? new Error().stack)
     }
 
     rtInst<K extends RuntimeInst["k"]>(k: K, v: Extract<RuntimeInst, { k: K }>["v"]): RII {
@@ -341,6 +357,49 @@ export class EvaluationContext {
         const n = nextId++ as RII
         this.runtime.push({ n, k, v } as RuntimeInst)
         return { k: "normal", v: { type, value: { k: "runtime", v: n } } }
+    }
+
+    /** Returns `null` when loading a runtime-only variable at comptime. */
+    getVariable(comptime: boolean, p: Range, name: string): TypedValue | null {
+        assert(this.variables.has(name))
+        const { k, v } = this.variables.get(name)!
+
+        switch (k) {
+            case "comptime-const":
+                return v
+
+            case "var":
+            case "const":
+                if (comptime) {
+                    this.raiseAt(p, `variable '${name}' cannot be loaded at comptime`)
+                    return null
+                }
+
+                return this.rtTypedValue(v.type, "var-load", v.n)
+        }
+    }
+
+    makeRuntime(el: TypedValue): RII {
+        if (el.value.k === "runtime") {
+            return el.value.v
+        }
+
+        return this.rtInst("lit", el)
+    }
+
+    makeRuntimeMany(vals: TypedValue[]): RII[] {
+        const ret: RII[] = []
+
+        for (const el of vals) {
+            if (el.value.k === "runtime") {
+                ret.push(el.value.v)
+                continue
+            }
+
+            ret.push(this.rtInst("lit", el))
+        }
+
+        return ret
     }
 }
 
@@ -370,7 +429,7 @@ type ResultNontrivial =
     | { k: "unreachable"; v: null }
     | { k: "break"; v: BreakSite }
     | { k: "continue"; v: { n: RII; value: TypedValue } }
-    | { k: "return"; v: { value: TypedValue } }
+    | { k: "return"; v: TypedValue }
 
 type Result<T> = ResultNontrivial | { k: "normal"; v: T }
 
@@ -1202,7 +1261,30 @@ export function expr(
         case "cf-while":
         case "cf-break":
         case "cf-continue":
-        case "cf-return":
+            break
+
+        case "cf-return": {
+            if (ctx.returnType === null) {
+                ctx.raiseAt(p, `'return' statement outside of function body`)
+                return ERROR
+            }
+
+            if (v.value === null) {
+                const value = as(ctx, p, ctx.returnType, {
+                    type: { k: "void", v: null },
+                    value: { k: "void", v: null },
+                })
+                if (value === null) return ERROR
+
+                return { k: "return", v: value }
+            }
+
+            const value = exprAs(ctx, comptime, ctx.returnType, v.value)
+            if (value.k !== "normal") return value
+
+            return { k: "return", v: value.v }
+        }
+
         case "cf-comptime":
         case "get-prop":
         case "get-method":
@@ -1264,13 +1346,24 @@ export function expr(
             return ctx.rtResult(inner.v.type.v, "get-unwrap", inner.v.value.v)
         }
 
-        case "block":
-            break
+        case "block": {
+            if (v.label !== null) {
+                ctx.todo(p, "labeled block")
+                return ERROR
+            }
+
+            for (const el of v.body) {
+                const ret = stmt(ctx, comptime, el)
+                if (ret.k !== "normal") return ret
+            }
+
+            return normal({ k: "void", v: null }, { k: "void", v: null })
+        }
 
         case "builtin":
             return builtin(ctx, comptime, type, p, v.name, v.args)
 
-        case "ident":
+        case "ident": {
             if (isReservedIdent(v)) {
                 switch (v.name) {
                     case "never":
@@ -1290,7 +1383,10 @@ export function expr(
 
                     case "inf":
                     case "nan": {
-                        const value: Value = { k: "float", v: v.name === "inf" ? Infinity : NaN }
+                        const value: Value = {
+                            k: "float",
+                            v: v.name === "inf" ? Infinity : NaN,
+                        }
 
                         if (type !== null && type.k === "f") {
                             return normal(type, value)
@@ -1333,8 +1429,16 @@ export function expr(
                 ctx.raiseAt(p, `'${v.name}' is not defined`)
             }
 
-            ctx.todo(p, "general identifiers")
+            if (ctx.variables.has(v.name)) {
+                const value = ctx.getVariable(comptime, p, v.name)
+                if (value === null) return ERROR
+
+                return { k: "normal", v: value }
+            }
+
+            ctx.todo(p, "non-local identifiers")
             return ERROR
+        }
 
         case "underscore":
             ctx.raiseAt(p, "'_' cannot be used as an expression")
@@ -1392,10 +1496,10 @@ export function builtin(
                 return ERROR
             }
 
-            const type = expr(ctx, true, null, args[0]!)
-            if (type.k !== "normal") return type
+            const value = expr(ctx, true, null, args[0]!)
+            if (value.k !== "normal") return value
 
-            ctx.raiseAt(p, debug(type.v))
+            ctx.raiseAt(p, reset + debug(value.v) + red)
             return ERROR
         }
 
@@ -2132,86 +2236,6 @@ function getProp(ctx: EvaluationContext, type: Type, p: Range, name: string): Ty
     }
 }
 
-type FnArg =
-    | { p: Range; evaluated: true; value: TypedValue }
-    | { p: Range; evaluated: false; value: Expr }
-
-/** `null` is for errors. */
-function call(
-    ctx: EvaluationContext,
-    comptime: boolean,
-    p: Range,
-    f: Fn,
-    argsRaw: FnArg[],
-): Result<TypedValue> {
-    if (argsRaw.length !== f.params.length) {
-        ctx.raiseAt(
-            p,
-            `function requires ${f.params.length} parameter(s), but caller specified ${argsRaw.length}`,
-        )
-        return ERROR
-    }
-
-    const callContext = f.ns.createEvaluationContext()
-
-    const runtimeArgs: TypedValue[] = []
-    let lastComptimeArg: number | null = null
-
-    for (let i = 0; i < f.params.length; i++) {
-        const param = f.params[i]!
-
-        const paramType = exprAsType(callContext, param.type)
-        if (paramType.k !== "normal") return paramType
-
-        const paramComptime = comptime || param.comptime || !isRuntimeType(ctx.ns.root, paramType.v)
-
-        const raw = argsRaw[i]!
-
-        let arg: TypedValue
-        if (raw.evaluated) {
-            const result = as(ctx, raw.p, paramType.v, raw.value)
-            if (result === null) return ERROR
-            if (paramComptime && !isComptimeValue(result.value)) {
-                ctx.raiseAt(raw.p, `function parameter cannot be resolved at comptime`)
-                return ERROR
-            }
-            arg = result
-        } else {
-            const result = exprAs(ctx, paramComptime, paramType.v, raw.value)
-            if (result.k !== "normal") return result
-            assert(!(paramComptime && !isComptimeValue(result.v.value)))
-            arg = result.v
-        }
-
-        console.log({ comptime, p: param.comptime })
-
-        if (param.name !== null) {
-            if (paramComptime) {
-                callContext.variables.set(param.name.name, { k: "comptime-const", v: arg })
-            } else {
-                callContext.variables.set(param.name.name, {
-                    k: "const",
-                    v: {
-                        type: arg.type,
-                        n: callContext.rtInst("arg-load", {
-                            type: arg.type,
-                            index: runtimeArgs.length,
-                        }),
-                    },
-                })
-                runtimeArgs.push(arg)
-            }
-        }
-
-        if (paramComptime) {
-            lastComptimeArg = i
-        }
-    }
-
-    ctx.raiseAt(p, `calling fn__${f.id}(...${runtimeArgs.length})`)
-    return ERROR
-}
-
 function encodeStr(ctx: EvaluationContext, type: Type, p: Range, v: string): TypedValue | null {
     type = innerType(type)
 
@@ -2296,7 +2320,7 @@ export function topLevel(root: Root, file: File, body: Decl[]): Type | null {
     return ns.self
 }
 
-export function runTests(root: Root) {
+export function runTests(root: Root): boolean {
     assert(root.tests !== null)
 
     const alreadyRun = new Map<number, Type[]>()
@@ -2313,8 +2337,161 @@ export function runTests(root: Root) {
 
         const ctx = test.ns.createEvaluationContext()
         const value = exprAs(ctx, false, { k: "void", v: null }, test.body)
-        if (value === null) return null
+        if (value === null) return false
 
         alreadyRun.getOrInsert(test.id, []).push(test.ns.self)
     }
+
+    return true
+}
+
+type FnArg =
+    | { p: Range; evaluated: true; value: TypedValue }
+    | { p: Range; evaluated: false; value: Expr }
+
+/** `null` is for errors. */
+function call(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    p: Range,
+    f: Fn,
+    argsRaw: FnArg[],
+): Result<TypedValue> {
+    if (argsRaw.length !== f.params.length) {
+        ctx.raiseAt(
+            p,
+            `function requires ${f.params.length} parameter(s), but caller specified ${argsRaw.length}`,
+        )
+        return ERROR
+    }
+
+    const callContext = f.ns.createEvaluationContext()
+
+    const comptimeArgs: TypedValue[] = []
+    const runtimeArgs: TypedValue[] = []
+    let lastComptimeArg: number | null = null
+
+    for (let i = 0; i < f.params.length; i++) {
+        const param = f.params[i]!
+
+        const paramType = exprAsType(callContext, param.type)
+        if (paramType.k === "error") return ERROR
+        assert(paramType.k === "normal")
+
+        const paramComptime = comptime || param.comptime || !isRuntimeType(ctx.ns.root, paramType.v)
+
+        const raw = argsRaw[i]!
+
+        let arg: TypedValue
+        if (raw.evaluated) {
+            const result = as(ctx, raw.p, paramType.v, raw.value)
+            if (result === null) return ERROR
+            if (paramComptime && !isComptimeValue(result.value)) {
+                ctx.raiseAt(raw.p, `function parameter cannot be resolved at comptime`)
+                return ERROR
+            }
+            arg = result
+        } else {
+            const result = exprAs(ctx, paramComptime, paramType.v, raw.value)
+            if (result.k !== "normal") return result
+            assert(!(paramComptime && !isComptimeValue(result.v.value)))
+            arg = result.v
+        }
+
+        if (paramComptime) {
+            comptimeArgs.push(arg)
+            lastComptimeArg = i
+        }
+        if (param.name !== null) {
+            if (paramComptime) {
+                callContext.variables.set(param.name.name, { k: "comptime-const", v: arg })
+            } else {
+                callContext.variables.set(param.name.name, {
+                    k: "const",
+                    v: { type: arg.type, n: callContext.rtInst("arg-load", runtimeArgs.length) },
+                })
+                runtimeArgs.push(arg)
+            }
+        }
+    }
+
+    const returnType = exprAsType(callContext, f.returnType)
+    if (returnType.k === "error") return ERROR
+    assert(returnType.k === "normal")
+
+    if (comptime) {
+        assert(runtimeArgs.length === 0)
+        const result = exprCall(callContext, comptime, returnType.v, f.body)
+        assert(result.k === "normal" || result.k === "error")
+        return result
+    }
+
+    const instances = ctx.ns.root.fns.getOrInsert(f.id, [])
+    findExisting: for (let i = 0; i < instances.length; i++) {
+        const el = instances[i]!
+
+        if (!typeEq(el.ns.self, f.ns.self)) continue
+        if (el.comptimeArgs.length !== comptimeArgs.length) continue
+
+        for (let i = 0; i < comptimeArgs.length; i++) {
+            const expected = el.comptimeArgs[i]!
+            const actual = comptimeArgs[i]!
+
+            if (!typeEq(expected.type, actual.type)) continue findExisting
+            if (!valueEq(expected.value, actual.value)) continue findExisting
+        }
+
+        assert(runtimeArgs.length === el.runtimeArgs.length)
+        for (let i = 0; i < el.runtimeArgs.length; i++) {
+            assert(typeEq(el.runtimeArgs[i]!, runtimeArgs[i]!.type))
+        }
+        assert(typeEq(el.returnType, returnType.v))
+
+        return ctx.rtResult(el.returnType, "fn-call", {
+            f: f.id,
+            i: i as IID,
+            args: ctx.makeRuntimeMany(runtimeArgs),
+        })
+    }
+
+    const result = exprCall(callContext, comptime, returnType.v, f.body)
+    assert(result.k === "normal" || result.k === "error" || result.k === "unreachable")
+    if (result.k === "error") return ERROR
+    if (result.k === "normal") {
+        callContext.rtInst("cf-return", callContext.makeRuntime(result.v))
+    }
+
+    const instance: FnInstance = {
+        ns: f.ns,
+        comptimeArgs,
+        runtimeArgs: runtimeArgs.map((x) => x.type),
+        returnType: returnType.v,
+        body: callContext.runtime,
+    }
+    instances.push(instance)
+    return ctx.rtResult(returnType.v, "fn-call", {
+        f: f.id,
+        i: (instances.length - 1) as IID,
+        args: ctx.makeRuntimeMany(runtimeArgs),
+    })
+}
+
+function exprCall(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    returnType: Type,
+    body: Expr,
+): Result<TypedValue> {
+    ctx.returnType = returnType
+
+    const result = exprAs(ctx, comptime, { k: "void", v: null }, body)
+    if (result.k === "error" || result.k === "unreachable") return result
+    if (result.k === "return") return { k: "normal", v: result.v }
+
+    const voidCast = as(ctx, { s: body.e, e: body.e }, returnType, {
+        type: { k: "void", v: null },
+        value: { k: "void", v: null },
+    })
+    if (voidCast === null) return ERROR
+    return { k: "normal", v: voidCast }
 }

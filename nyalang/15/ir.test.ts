@@ -16,6 +16,8 @@ const body = parseFile(parseContext)
 
 const root = new Root(errors, [])
 topLevel(root, file, body)
-runTests(root)
 
-print({ errors })
+print({
+    success: runTests(root),
+    errors,
+})
