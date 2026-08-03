@@ -110,7 +110,7 @@ export function debug(value: unknown): string {
         && "v" in value
         && Object.keys(value).length === 3
     ) {
-        return `${yellow}%${value.n}${reset} = ${cyan}.${value.k}${reset} ${debug(value.v)}`
+        return `${yellow}%${value.n}${reset} := ${cyan}.${value.k.replace(/-/g, "_")}${reset} ${debug(value.v)}`
     }
 
     if (
@@ -123,16 +123,20 @@ export function debug(value: unknown): string {
             return `${yellow}%${value.v}${reset}`
         }
 
-        return `${cyan}.${value.k}${reset} ${debug(value.v)}`
+        return `${cyan}.${value.k.replace(/-/g, "_")}${reset} ${debug(value.v)}`
     }
 
     if (Object.keys(value).length === 0) return "[]"
 
-    const subvalues = Object.entries(value).map(([k, v]) => "." + k + " = " + debug(v))
+    const subvalues = Object.entries(value).map(
+        ([k, v]) =>
+            "."
+            + k.replace(/-/g, "_").replace(/[A-Z]/g, (x) => "_" + x.toLowerCase())
+            + " = "
+            + debug(v),
+    )
 
-    const flat =
-        Bun.stringWidth(subvalues.join(", ")) < 40
-        && Object.values(value).every((x) => typeof x !== "object" || x === null)
+    const flat = Bun.stringWidth(subvalues.join(", ")) < 40
 
     if (flat) {
         return "{ " + subvalues.join(", ") + " }"

@@ -175,7 +175,7 @@ interface FnInstance {
     body: RuntimeInst[]
 }
 
-export class Items {
+class Items {
     constructor(public parent: Items | null) {}
 
     private self = new Map<string, Item>()
@@ -290,10 +290,15 @@ type Variable =
 
 let nextId = 0
 
-export class EvaluationContext {
+interface Runtime {
+    nextRII: number
+    body: RuntimeInst[]
+}
+
+class EvaluationContext {
     constructor(
         public ns: Namespace,
-        public runtime: RuntimeInst[],
+        public runtime: Runtime,
         public variables: Map<string, Variable>,
         public labels: Map<string, Label>,
         public returnType: Type | null, // `null` means `return` is invalid
@@ -334,8 +339,8 @@ export class EvaluationContext {
     }
 
     rtInst<K extends RuntimeInst["k"]>(k: K, v: Extract<RuntimeInst, { k: K }>["v"]): RII {
-        const n = nextId++ as RII
-        this.runtime.push({ n, k, v } as RuntimeInst)
+        const n = this.runtime.nextRII++ as RII
+        this.runtime.body.push({ n, k, v } as RuntimeInst)
         return n
     }
 
@@ -344,8 +349,8 @@ export class EvaluationContext {
         k: K,
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): TypedValue {
-        const n = nextId++ as RII
-        this.runtime.push({ n, k, v } as RuntimeInst)
+        const n = this.runtime.nextRII++ as RII
+        this.runtime.body.push({ n, k, v } as RuntimeInst)
         return { type, value: { k: "runtime", v: n } }
     }
 
@@ -354,8 +359,8 @@ export class EvaluationContext {
         k: K,
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): Result<TypedValue> {
-        const n = nextId++ as RII
-        this.runtime.push({ n, k, v } as RuntimeInst)
+        const n = this.runtime.nextRII++ as RII
+        this.runtime.body.push({ n, k, v } as RuntimeInst)
         return { k: "normal", v: { type, value: { k: "runtime", v: n } } }
     }
 
@@ -400,7 +405,7 @@ export class EvaluationContext {
     }
 }
 
-export class Namespace {
+class Namespace {
     constructor(
         public root: Root,
         public file: File,
@@ -409,7 +414,7 @@ export class Namespace {
     ) {}
 
     createEvaluationContext() {
-        return new EvaluationContext(this, [], new Map(), new Map(), null)
+        return new EvaluationContext(this, { nextRII: 0, body: [] }, new Map(), new Map(), null)
     }
 
     raiseAt(p: Range, message: string) {
@@ -429,11 +434,6 @@ type ResultNontrivial =
     | { k: "return"; v: TypedValue }
 
 type Result<T> = ResultNontrivial | { k: "normal"; v: T }
-
-interface ImmediateExecutables {
-    comptime: Expr[]
-    test: { id: number; name: string; body: Expr }[]
-}
 
 const ERROR = { k: "error" as const, v: null }
 
@@ -697,7 +697,7 @@ function join(ctx: EvaluationContext, p: Range, values: TypedValue[]): Type | nu
     return fst
 }
 
-export function exprAs(
+function exprAs(
     ctx: EvaluationContext,
     comptime: boolean,
     type: Type,
@@ -712,7 +712,7 @@ export function exprAs(
     return { k: "normal", v: result }
 }
 
-export function expr(
+function expr(
     ctx: EvaluationContext,
     comptime: boolean,
     type: Type | null,
@@ -1453,7 +1453,7 @@ export function expr(
     return { k: "error", v: null }
 }
 
-export function builtin(
+function builtin(
     ctx: EvaluationContext,
     comptime: boolean,
     type: Type | null,
@@ -1568,7 +1568,7 @@ export function builtin(
     return ERROR
 }
 
-export function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result<null> {
+function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result<null> {
     const { k, v } = p
 
     if (k === "expr") {
@@ -2344,7 +2344,7 @@ export function compileTests(root: Root): CompiledTest[] | null {
 
         alreadyRun.getOrInsert(test.id, []).push(test.ns.self)
 
-        ret.push({ body: ctx.runtime, value: value.v })
+        ret.push({ body: ctx.runtime.body, value: value.v })
     }
 
     return ret
@@ -2375,7 +2375,6 @@ function call(
     const comptimeArgs: TypedValue[] = []
     const runtimeArgTypes: Type[] = []
     const runtimeRII: RII[] = []
-    let lastComptimeArg: number | null = null
 
     for (let i = 0; i < f.params.length; i++) {
         const param = f.params[i]!
@@ -2406,7 +2405,6 @@ function call(
 
         if (paramComptime) {
             comptimeArgs.push(arg)
-            lastComptimeArg = i
         }
         if (param.name !== null) {
             if (paramComptime) {
@@ -2480,7 +2478,7 @@ function call(
         comptimeArgs,
         runtimeArgTypes: runtimeArgTypes,
         returnType: returnType.v,
-        body: callContext.runtime,
+        body: callContext.runtime.body,
     }
     instances.push(instance)
     return ctx.rtResult(returnType.v, "fn-call", {
