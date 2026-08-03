@@ -1,10 +1,14 @@
-@as(
-    union(enum) {
-        int: struct {
-            signedness: enum { signed, unsigned },
-            bits: u16,
+.{
+    @as(
+        union(enum) {
+            int: struct {
+                signedness: enum { signed, unsigned },
+                bits: u16,
+            },
+            comptime_int,
         },
-        comptime_int,
-    },
-    .{ .int = .{ .signedness = .unsigned, .bits = 34 } },
-)
+        .{ .int = .{ .signedness = .unsigned, .bits = 34 } },
+    ),
+    @as([]u7, "hello world!\u{23}"),
+    @as([11]u8, "hello world"),
+}

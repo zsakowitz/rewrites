@@ -4,6 +4,10 @@ import { Error, Errors } from "./error"
 import { typeName } from "./ir"
 
 export function debug(value: unknown): string {
+    if (value instanceof Uint8Array) {
+        return `0x[${value.toHex()}]`
+    }
+
     if (value instanceof Map) {
         if (value.size === 0) {
             return `{}`

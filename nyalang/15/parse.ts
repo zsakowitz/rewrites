@@ -179,10 +179,10 @@ export type AssignTarget = Range
     )
 
 /** @param body Excludes quotes. */
-function readStr(body: string): string {
+function readStr(body: string): string | null {
     let ret = ""
 
-    for (let i = 0; i < body.length; i++) {
+    for (let i = 0; i < body.length; ) {
         const nextBackslash = body.indexOf("\\", i)
         if (nextBackslash !== i) {
             if (nextBackslash === -1) {
@@ -220,12 +220,16 @@ function readStr(body: string): string {
 
             case "x":
                 ret += String.fromCodePoint(parseInt(body.slice(i + 2, i + 4), 16))
-                i += 2
+                i += 4
                 break
 
             default:
                 unreachable()
         }
+    }
+
+    if (!ret.isWellFormed()) {
+        return null
     }
 
     return ret
@@ -246,14 +250,22 @@ function parseIdent(context: ParseContext): Ident | null {
     const { index, tokens } = context
     const s = tokens.start[index]!
     const e = tokens.end[index]!
-    context.index++
 
     const name = context.tokens.file.body.slice(s, e)
 
     if (name.startsWith("@")) {
-        return { s, e, raw: true, name: readStr(name.slice(2, -1)) }
+        const body = readStr(name.slice(2, -1))
+        if (body === null) {
+            context.raise("invalid string literal")
+            context.index++
+            return null
+        }
+
+        context.index++
+        return { s, e, raw: true, name: body }
     }
 
+    context.index++
     return { s, e, raw: false, name: name }
 }
 
@@ -268,9 +280,15 @@ function parseStr(context: ParseContext): string | null {
     const { index, tokens } = context
     const s = tokens.start[index]!
     const e = tokens.end[index]!
-    context.index++
 
-    const body = context.tokens.file.body.slice(s + 1, e - 1)
+    const body = readStr(context.tokens.file.body.slice(s + 1, e - 1))
+    if (body === null) {
+        context.raise("invalid string literal")
+        context.index++
+        return null
+    }
+
+    context.index++
     return readStr(body)
 }
 

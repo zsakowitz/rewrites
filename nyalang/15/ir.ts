@@ -690,36 +690,11 @@ export function expr(
 
         case "lit-str":
             if (type !== null) {
-                type = innerType(type)
-                if (type.k === "path") {
-                    return normal(type, { k: "str", v })
-                }
-                if (type.k === "str") {
-                    return normal(type, { k: "str", v })
-                }
-                if (type.k === "array" && type.v.child.k === "u") {
-                    if (type.v.child.v === 7 /* ascii */ || type.v.child.v === 8 /* utf8 */) {
-                        const body = new TextEncoder().encode(v)
-                        if (body.length !== type.v.len) {
-                            ctx.raiseAt(
-                                p,
-                                `expected '${typeName(type)}', but string literal has ${body.length} bytes`,
-                            )
-                            return ERROR
-                        }
-                        if (type.v.child.v === 7) {
-                            if (!body.every((x) => x < 128)) {
-                                ctx.raiseAt(
-                                    p,
-                                    `expected '${typeName(type)}', but string literal has non-ASCII bytes`,
-                                )
-                                return ERROR
-                            }
-                        }
-                        return normal(type, { k: "array-u8", v: body })
-                    }
-                }
+                const value = encodeStr(ctx, type, p, v)
+                if (value === null) return ERROR
+                return { k: "normal", v: value }
             }
+
             return normal({ k: "str", v: null }, { k: "str", v })
 
         case "ty-optional": {
@@ -1263,6 +1238,7 @@ export function expr(
                     case "comptime_int":
                     case "comptime_float":
                     case "str":
+                    case "path":
                         return normalType({ k: v.name, v: null })
 
                     case "null":
@@ -1537,7 +1513,9 @@ function finalizeNamespace(
 function isReservedIdent(ident: Ident): boolean {
     return (
         !ident.raw
-        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|null|true|false|inf|nan)$/.test(ident.name)
+        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|path|null|true|false|inf|nan)$/.test(
+            ident.name,
+        )
     )
 }
 
@@ -2084,3 +2062,55 @@ function getProp(ctx: EvaluationContext, type: Type, p: Range, name: string): Ty
 }
 
 // function call(ctx: EvaluationContext, f: Fn)
+
+function encodeStr(ctx: EvaluationContext, type: Type, p: Range, v: string): TypedValue | null {
+    type = innerType(type)
+
+    if (type.k === "path") {
+        return { type, value: { k: "str", v } }
+    }
+
+    if (type.k === "str") {
+        return { type, value: { k: "str", v } }
+    }
+
+    if (type.k === "array" && type.v.child.k === "u") {
+        if (type.v.child.k !== "u" || !(type.v.child.v === 7 || type.v.child.v === 8)) {
+            ctx.raiseAt(p, `string literals only coerce into arrays of 'u7' or 'u8'`)
+            return null
+        }
+
+        const body = new TextEncoder().encode(v)
+
+        if (body.length !== type.v.len) {
+            ctx.raiseAt(p, `expected '${typeName(type)}', but string has ${body.length} bytes`)
+            return null
+        }
+
+        if (type.v.child.v === 7 && !body.every((x) => x < 128)) {
+            ctx.raiseAt(p, `expected '${typeName(type)}', but string has non-ASCII bytes`)
+            return null
+        }
+
+        return { type, value: { k: "array-u8", v: body } }
+    }
+
+    if (type.k === "slice" && type.v.k === "u") {
+        if (type.v.k !== "u" || !(type.v.v === 7 || type.v.v === 8)) {
+            ctx.raiseAt(p, `string literals only coerce into arrays of 'u7' or 'u8'`)
+            return null
+        }
+
+        const body = new TextEncoder().encode(v)
+
+        if (type.v.v === 7 && !body.every((x) => x < 128)) {
+            ctx.raiseAt(p, `expected '${typeName(type)}', but string has non-ASCII bytes`)
+            return null
+        }
+
+        return { type, value: { k: "array-u8", v: body } }
+    }
+
+    ctx.raiseAt(p, `expected '${typeName(type)}', but found string literal`)
+    return null
+}
