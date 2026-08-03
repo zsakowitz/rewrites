@@ -1,4 +1,5 @@
 import { assert, unreachable } from "./assert"
+import { debug } from "./debug"
 import { Errors, TraceEntry } from "./error"
 import type { File } from "./file"
 import { decl } from "./ident"
@@ -216,7 +217,7 @@ type Item =
 
 type GID = number & { __brand: "global_var" }
 type RII = number & { __brand: "runtime_instruction" }
-type AID = number & { __brand: "adt" }
+type AID = number & { __brand: "adt" } // even numbers are normal structs, odd are whole-file structs
 type FID = number & { __brand: "fn_decl" }
 type TID = number & { __brand: "test" }
 
@@ -240,6 +241,14 @@ export class RootContext {
     ) {}
 
     public globalVars = new Map<GID, TypedValue>()
+
+    raiseAt(file: File, p: Range, message: string) {
+        this.errors.raise(new TraceEntry(file, p.s, p.e, message))
+    }
+
+    createNamespaceContext(file: File, self: Type) {
+        return new NamespaceContext(this, file, self, new Items(null))
+    }
 }
 
 type BreakKind = { k: "with-value"; v: Type | null } | { k: "not-allowed"; v: null }
@@ -774,7 +783,7 @@ export function expr(
             }
 
             const struct: Struct = {
-                id: v.id as AID,
+                id: (v.id << 1) as AID,
                 p,
                 captures,
                 ns: null!,
@@ -844,7 +853,7 @@ export function expr(
             }
 
             const type: Enum = {
-                id: v.id as AID,
+                id: (v.id << 1) as AID,
                 p,
                 captures,
                 ns: null!,
@@ -891,7 +900,7 @@ export function expr(
             let tag: Type
             if (v.tag === "enum") {
                 const adt: Enum = {
-                    id: (v.id - 1) as AID,
+                    id: ((v.id - 1) << 1) as AID,
                     p,
                     captures: [],
                     ns: null!,
@@ -959,7 +968,7 @@ export function expr(
             }
 
             const union: Union = {
-                id: v.id as AID,
+                id: (v.id << 1) as AID,
                 p,
                 captures,
                 ns: null!,
@@ -977,7 +986,7 @@ export function expr(
             const captures = getCaptures(ctx, v.child)
             if (captures === null) return ERROR
 
-            const opaque: Opaque = { id: v.id as AID, p, captures, ns: null! }
+            const opaque: Opaque = { id: (v.id << 1) as AID, p, captures, ns: null! }
             const ns = ctx.createNamespaceContext({ k: "opaque", v: opaque })
             opaque.ns = ns
 
@@ -1343,6 +1352,19 @@ export function builtin(
 
             assert(type.v.value.k === "str")
             ctx.raiseAt(p, type.v.value.v)
+            return ERROR
+        }
+
+        case "compileLog": {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `'@compileLog(...)' requires exactly one argument`)
+                return ERROR
+            }
+
+            const type = expr(ctx, true, null, args[0]!)
+            if (type.k !== "normal") return type
+
+            ctx.raiseAt(p, debug(type.v))
             return ERROR
         }
 
@@ -2113,4 +2135,58 @@ function encodeStr(ctx: EvaluationContext, type: Type, p: Range, v: string): Typ
 
     ctx.raiseAt(p, `expected '${typeName(type)}', but found string literal`)
     return null
+}
+
+export function topLevel(ctx: RootContext, file: File, body: Decl[]): Type | null {
+    const members = new Map<string, { type: Expr; default: Expr | null }>()
+    for (const p of body) {
+        if (p.k === "field-ident") {
+            ctx.raiseAt(file, p, "expected type of struct field")
+            return null
+        }
+
+        if (p.k === "field-plain") {
+            if (members.has(p.v.name.name)) {
+                ctx.raiseAt(file, p, "struct field declared twice")
+                return null
+            }
+
+            members.set(p.v.name.name, { type: p.v.type, default: p.v.default })
+        }
+    }
+
+    const struct: Struct = {
+        id: ((file.id << 1) + 1) as AID,
+        p: { s: 0, e: file.body.length },
+        captures: [],
+        ns: null!,
+        members: { k: "raw", v: members },
+    }
+    const ns = ctx.createNamespaceContext(file, { k: "struct", v: struct })
+    struct.ns = ns
+
+    if (!finalizeNamespace(ns, "field", members, body)) return null
+    return ns.self
+}
+
+export function runTests(ctx: RootContext) {
+    assert(ctx.tests !== null)
+
+    const alreadyRun = new Map<number, Type[]>()
+
+    for (let i = 0; i < ctx.tests.length; i++) {
+        const test = ctx.tests[i]!
+
+        if (alreadyRun.has(test.id)) {
+            const previousContexts = alreadyRun.get(test.id)!
+            if (previousContexts.some((x) => typeEq(x, test.ns.self))) {
+                continue
+            }
+        }
+
+        const value = topLevelValueAs(test.ns, { k: "void", v: null }, test.body)
+        if (value === null) return null
+
+        alreadyRun.getOrInsert(test.id, []).push(test.ns.self)
+    }
 }

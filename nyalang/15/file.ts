@@ -1,6 +1,9 @@
+let nextId = 0
+
 export class File {
     readonly lineStart: readonly number[]
     readonly lineEnd: readonly number[]
+    readonly id = nextId++
 
     constructor(
         readonly name: string,

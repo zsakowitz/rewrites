@@ -1,15 +1,3 @@
-.{
-    @as(
-        union(enum) {
-            int: struct {
-                signedness: enum { signed, unsigned },
-                bits: u16,
-            },
-            comptime_int,
-        },
-        .{ .int = .{ .signedness = .unsigned, .bits = 34 } },
-    ),
-    @as([]u7, "hello world!\u{23}"),
-    @as([13]u8, "hello world\x23\x45"),
-    @as(path, "./world"),
-}
+const MyInt = i32;
+
+test "int" i32;

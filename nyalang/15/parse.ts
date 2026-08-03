@@ -167,7 +167,7 @@ export type Decl = Range
           }
     )
 
-export type FunctionParam = { comptime: boolean; name: Ident; type: Expr }
+export type FunctionParam = { comptime: boolean; name: Ident | null; type: Expr }
 
 export type Stmt = Range
     & ({ k: "expr"; v: Expr } | { k: "assign"; v: { lhs: AssignTarget[]; rhs: Expr } })
@@ -414,7 +414,7 @@ function parseCaptureN(context: ParseContext): Ident[] {
     return ret.filter((x) => x !== null)
 }
 
-export function parseDecl(context: ParseContext): Decl {
+export function parseDecl(context: ParseContext): Decl | null {
     const s = context.s
 
     if (context.peek() === T.Ident && context.peekN(1) === T.Colon) {
@@ -455,7 +455,6 @@ export function parseDecl(context: ParseContext): Decl {
             const comptime = context.peek() === T.KComptime
             if (comptime) context.index++
             const name = parseIdent(context)
-            if (!name) throw new Error("TODO: argument name is required")
             context.take(T.Colon)
             const type = parseExpr(context)
             if (context.peek() !== T.RParen) context.take(T.Comma)
@@ -502,14 +501,14 @@ export function parseDecl(context: ParseContext): Decl {
     if (context.peek() === T.KTest) {
         context.index++
         const name = parseStr(context)
-        if (!name) throw new Error("Name required for tests")
         const body = parseExpr(context)
         context.take(T.Semi)
+        if (name === null) return null
         return { s, e: context.e, k: "test", v: { id: nextId++, name, body } }
     }
 
     context.raise("Expected field or declaration")
-    throw new Error("fatal parsing error")
+    return null
 }
 
 function parseDeclBlock(context: ParseContext): Decl[] {
@@ -523,7 +522,9 @@ function parseDeclBlockInner(context: ParseContext): Decl[] {
     const ret: Decl[] = []
     while (context.peek() !== T.RBrace && context.peek() !== T.Eof) {
         const i = context.index
-        ret.push(parseDecl(context))
+        const decl = parseDecl(context)
+        if (decl === null) break
+        ret.push(decl)
         if (i === context.index) break
     }
     return ret
@@ -952,7 +953,7 @@ function parseExprWithSuffixes(context: ParseContext): Expr {
             case T.Dot: {
                 context.index++
                 const name = parseIdent(context)
-                if (!name) throw new Error("Invalid expression")
+                if (name === null) break
                 if (context.peek() !== T.LParen) {
                     base = { s: base.s, e: context.e, k: "get-prop", v: { target: base, name } }
                     break
@@ -1112,7 +1113,7 @@ export function parseExpr(context: ParseContext): Expr {
 export function parseFile(context: ParseContext): Decl[] {
     const ret = parseDeclBlockInner(context)
     if (context.peek() !== T.Eof) {
-        context.raise("Invalid declaration")
+        context.raise("expected declaration or end of file")
     }
     return ret
 }
