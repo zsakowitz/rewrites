@@ -6,4 +6,8 @@ fn world(x: i32) i32 {
     return x;
 }
 
-test .{ world(45), world(32), MyType(i32) };
+fn id(T: type, x: T) T {
+    return x;
+}
+
+test .{ world(45), world(32), MyType(i32), id(i32, 45), id(i32, 67), id(u32, 4) };

@@ -169,7 +169,7 @@ interface FnInstance {
     ns: Namespace
 
     comptimeArgs: TypedValue[]
-    runtimeArgs: Type[]
+    runtimeArgTypes: Type[]
     returnType: Type
 
     body: RuntimeInst[]
@@ -2453,9 +2453,9 @@ function call(
             if (!valueEq(expected.value, actual.value)) continue findExisting
         }
 
-        assert(runtimeArgTypes.length === el.runtimeArgs.length)
-        for (let i = 0; i < el.runtimeArgs.length; i++) {
-            assert(typeEq(el.runtimeArgs[i]!, runtimeArgTypes[i]!))
+        assert(runtimeArgTypes.length === el.runtimeArgTypes.length)
+        for (let i = 0; i < el.runtimeArgTypes.length; i++) {
+            assert(typeEq(el.runtimeArgTypes[i]!, runtimeArgTypes[i]!))
         }
         assert(typeEq(el.returnType, returnType.v))
 
@@ -2478,7 +2478,7 @@ function call(
     const instance: FnInstance = {
         ns: f.ns,
         comptimeArgs,
-        runtimeArgs: runtimeArgTypes,
+        runtimeArgTypes: runtimeArgTypes,
         returnType: returnType.v,
         body: callContext.runtime,
     }
