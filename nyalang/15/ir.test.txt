@@ -10,5 +10,6 @@
         .{ .int = .{ .signedness = .unsigned, .bits = 34 } },
     ),
     @as([]u7, "hello world!\u{23}"),
-    @as([11]u8, "hello world"),
+    @as([13]u8, "hello world\x23\x45"),
+    @as(path, "./world"),
 }
