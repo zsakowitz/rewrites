@@ -379,27 +379,24 @@ export class EvaluationContext {
         }
     }
 
-    makeRuntime(el: TypedValue): RII {
+    makeRuntime(p: Range, el: TypedValue): RII | null {
         if (el.value.k === "runtime") {
             return el.value.v
+        }
+
+        if (!isRuntimeType(this.ns.root, el.type)) {
+            this.raiseAt(p, `'${typeName(el.type)}' cannot be used at runtime`)
+            return null
         }
 
         return this.rtInst("lit", el)
     }
 
-    makeRuntimeMany(vals: TypedValue[]): RII[] {
-        const ret: RII[] = []
+    makeRuntimeResult(p: Range, el: TypedValue): Result<TypedValue> {
+        const rii = this.makeRuntime(p, el)
+        if (rii === null) return ERROR
 
-        for (const el of vals) {
-            if (el.value.k === "runtime") {
-                ret.push(el.value.v)
-                continue
-            }
-
-            ret.push(this.rtInst("lit", el))
-        }
-
-        return ret
+        return { k: "normal", v: { type: el.type, value: { k: "runtime", v: rii } } }
     }
 }
 
@@ -1372,6 +1369,7 @@ export function expr(
                     case "comptime_float":
                     case "str":
                     case "path":
+                    case "type":
                         return normalType({ k: v.name, v: null })
 
                     case "null":
@@ -1522,7 +1520,7 @@ export function builtin(
                 return ERROR
             }
 
-            return ctx.rtResult(value.v.type, "lit", value.v)
+            return ctx.makeRuntimeResult(p, value.v)
         }
 
         case "This": {
@@ -1670,7 +1668,7 @@ function finalizeNamespace(
 function isReservedIdent(ident: Ident): boolean {
     return (
         !ident.raw
-        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|path|null|true|false|inf|nan)$/.test(
+        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|path|type|null|true|false|inf|nan)$/.test(
             ident.name,
         )
     )
@@ -1962,8 +1960,6 @@ function getCaptures(parent: EvaluationContext, body: Decl[]): Capture[] | null 
             if (resolved === null) return null
             captures.push({ k: "runtime-var", v: resolved.id })
         }
-
-        parent.todo(null!)
     }
 
     return captures
@@ -2320,10 +2316,16 @@ export function topLevel(root: Root, file: File, body: Decl[]): Type | null {
     return ns.self
 }
 
-export function runTests(root: Root): boolean {
+interface CompiledTest {
+    body: RuntimeInst[]
+    value: TypedValue | null
+}
+
+export function compileTests(root: Root): CompiledTest[] | null {
     assert(root.tests !== null)
 
     const alreadyRun = new Map<number, Type[]>()
+    const ret: CompiledTest[] = []
 
     for (let i = 0; i < root.tests.length; i++) {
         const test = root.tests[i]!
@@ -2336,13 +2338,16 @@ export function runTests(root: Root): boolean {
         }
 
         const ctx = test.ns.createEvaluationContext()
-        const value = exprAs(ctx, false, { k: "void", v: null }, test.body)
-        if (value === null) return false
+        const value = expr(ctx, false, null, test.body)
+        if (value.k === "error") return null
+        assert(value.k === "normal" || value.k === "unreachable")
 
         alreadyRun.getOrInsert(test.id, []).push(test.ns.self)
+
+        ret.push({ body: ctx.runtime, value: value.v })
     }
 
-    return true
+    return ret
 }
 
 type FnArg =
@@ -2368,7 +2373,8 @@ function call(
     const callContext = f.ns.createEvaluationContext()
 
     const comptimeArgs: TypedValue[] = []
-    const runtimeArgs: TypedValue[] = []
+    const runtimeArgTypes: Type[] = []
+    const runtimeRII: RII[] = []
     let lastComptimeArg: number | null = null
 
     for (let i = 0; i < f.params.length; i++) {
@@ -2408,9 +2414,15 @@ function call(
             } else {
                 callContext.variables.set(param.name.name, {
                     k: "const",
-                    v: { type: arg.type, n: callContext.rtInst("arg-load", runtimeArgs.length) },
+                    v: {
+                        type: arg.type,
+                        n: callContext.rtInst("arg-load", runtimeArgTypes.length),
+                    },
                 })
-                runtimeArgs.push(arg)
+                runtimeArgTypes.push(arg.type)
+                const rii = ctx.makeRuntime(p, arg)
+                if (rii === null) return ERROR
+                runtimeRII.push(rii)
             }
         }
     }
@@ -2419,8 +2431,8 @@ function call(
     if (returnType.k === "error") return ERROR
     assert(returnType.k === "normal")
 
-    if (comptime) {
-        assert(runtimeArgs.length === 0)
+    if (comptime || !isRuntimeType(ctx.ns.root, returnType.v)) {
+        assert(runtimeArgTypes.length === 0)
         const result = exprCall(callContext, comptime, returnType.v, f.body)
         assert(result.k === "normal" || result.k === "error")
         return result
@@ -2441,30 +2453,32 @@ function call(
             if (!valueEq(expected.value, actual.value)) continue findExisting
         }
 
-        assert(runtimeArgs.length === el.runtimeArgs.length)
+        assert(runtimeArgTypes.length === el.runtimeArgs.length)
         for (let i = 0; i < el.runtimeArgs.length; i++) {
-            assert(typeEq(el.runtimeArgs[i]!, runtimeArgs[i]!.type))
+            assert(typeEq(el.runtimeArgs[i]!, runtimeArgTypes[i]!))
         }
         assert(typeEq(el.returnType, returnType.v))
 
         return ctx.rtResult(el.returnType, "fn-call", {
             f: f.id,
             i: i as IID,
-            args: ctx.makeRuntimeMany(runtimeArgs),
+            args: runtimeRII,
         })
     }
 
-    const result = exprCall(callContext, comptime, returnType.v, f.body)
+    const result = exprCall(callContext, false, returnType.v, f.body)
     assert(result.k === "normal" || result.k === "error" || result.k === "unreachable")
     if (result.k === "error") return ERROR
     if (result.k === "normal") {
-        callContext.rtInst("cf-return", callContext.makeRuntime(result.v))
+        const rii = callContext.makeRuntime({ s: f.body.e, e: f.body.e }, result.v)
+        if (rii === null) return ERROR
+        callContext.rtInst("cf-return", rii)
     }
 
     const instance: FnInstance = {
         ns: f.ns,
         comptimeArgs,
-        runtimeArgs: runtimeArgs.map((x) => x.type),
+        runtimeArgs: runtimeArgTypes,
         returnType: returnType.v,
         body: callContext.runtime,
     }
@@ -2472,7 +2486,7 @@ function call(
     return ctx.rtResult(returnType.v, "fn-call", {
         f: f.id,
         i: (instances.length - 1) as IID,
-        args: ctx.makeRuntimeMany(runtimeArgs),
+        args: runtimeRII,
     })
 }
 
