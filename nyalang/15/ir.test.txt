@@ -17,3 +17,4 @@ fn Complex(T: type) type {
 
 test -@as(Complex(i32), .{ .re = 9, .im = 78 });
 test comptime @as(Complex(f32), .{ .re = 9, .im = 78 }).sinEach();
+test comptime @as(Complex(f32), .sinEach(.{ .re = 9, .im = 78 }));

@@ -827,6 +827,8 @@ function expr(
                     }
                     return normal(type, { k: "float", v: val })
                 }
+                if (isNamespace(type)) {
+                }
             }
 
             return normal({ k: "comptime_int", v: null }, { k: "int", v })
@@ -1351,9 +1353,27 @@ function expr(
             return { k: "normal", v: value }
         }
 
-        case "dot-method":
-            ctx.todo(p, "expr kind '.dot-method'")
-            return ERROR
+        case "dot-method": {
+            if (type === null) {
+                ctx.raiseAt(p, `'.xyz(...)' syntax requires an expected type`)
+                return ERROR
+            }
+
+            type = innerType(type)
+            if (!isNamespace(type)) {
+                ctx.raiseAt(p, `type '${typeName(type)}' has no methods`)
+                return ERROR
+            }
+
+            return dotMethod(
+                ctx,
+                comptime,
+                type,
+                p,
+                v.name.name,
+                v.args.map((x) => ({ p: x, evaluated: false, value: x })),
+            )
+        }
 
         case "dot-call":
             ctx.todo(p, "expr kind '.dot-call'")
@@ -3222,13 +3242,76 @@ function exprBinary(
     type: Type | null,
     p: Range,
     name: Op2,
-    lhs: Expr,
-    rhs: Expr,
+    lraw: Expr,
+    rraw: Expr,
 ): Result<TypedValue> {
+    // inputs should match, but output is likely different
+    if (has(["==", "!=", "<", ">", "<=", ">="], name)) {
+        const lhs = expr(ctx, comptime, null, lraw)
+        if (lhs.k !== "normal") return lhs
+
+        if (isNamespace(lhs.v.type)) {
+            const rhs = expr(ctx, comptime, null, lraw)
+            if (rhs.k !== "normal") return rhs
+        }
+    }
+
+    // inputs should match output
+    if (has(["+", "-", "*", "+%", "-%", "*%", "/", "%", "&", "|", "~"], name)) {
+    }
+
+    // inputs have the weird log behavior
+    if (has(["<<", ">>"], name)) {
+    }
+
     ctx.todo(p, "binary operator not supported")
     return ERROR
 }
 
 function isNamespace(type: Type): boolean {
     return type.k === "struct" || type.k === "enum" || type.k === "union" || type.k === "opaque"
+}
+
+function dotMethod(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    self: Type,
+    p: Range,
+    name: string,
+    args: FnArg[],
+): Result<TypedValue> {
+    assert(self.k === "struct" || self.k === "enum" || self.k === "union" || self.k === "opaque")
+
+    if (!self.v.ns.items.hasOwn(name)) {
+        ctx.raiseAt(p, `type '${typeName(self)}' does not have method '${name}'`)
+        return ERROR
+    }
+
+    const item = self.v.ns.items.getOwn(name)
+
+    switch (item.k) {
+        case "fn":
+            return call(ctx, comptime, p, item.v, args)
+
+        case "const": {
+            const value = resolveConst(item)
+            if (value === null) return ERROR
+
+            if (value.type.k !== "fn") {
+                ctx.raiseAt(p, `constant '${name}' in type '${typeName(self)}' is not a function`)
+                return ERROR
+            }
+
+            assert(value.value.k === "fn")
+
+            return call(ctx, comptime, p, value.value.v, args)
+        }
+
+        case "var":
+            ctx.todo(p, `calling variables`)
+            return ERROR
+
+        case "reserved":
+            unreachable()
+    }
 }
