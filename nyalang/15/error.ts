@@ -24,7 +24,7 @@ export class TraceEntry {
         const col = Math.max(0, file.col(start, row) - offset)
 
         const rowEnd = file.row(end)
-        const colEnd = Math.max(col, file.col(end, rowEnd))
+        const colEnd = Math.max(col, file.col(end, rowEnd) - offset)
 
         return (
             red
@@ -45,7 +45,7 @@ export class TraceEntry {
             + blue
             + "^"
             + dim
-            + "~".repeat(Math.max(0, rowEnd > row ? 0 : colEnd - col - 1))
+            + (rowEnd > row ? "" : "~".repeat(Math.max(0, colEnd - col - 1)))
             + reset
         )
     }

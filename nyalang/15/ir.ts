@@ -580,6 +580,8 @@ export function as(
         return value
     }
 
+    using _ = ctx.ns.trace(p, `coercing '${typeName(value.type)}' into '${typeName(type)}'`)
+
     if (type.k === "optional") {
         if (value.type.k === "null") {
             return { type, value: { k: "null", v: null } }
@@ -816,7 +818,12 @@ function expr(
     type: Type | null,
     p: Expr,
 ): Result<TypedValue> {
-    using _ = ctx.ns.trace(p, `evaluating expression`)
+    using _ = ctx.ns.trace(
+        p,
+        type === null ?
+            `evaluating expression, no expected type`
+        :   `evaluting expression, expecting '${typeName(type)}'`,
+    )
 
     const { k, v } = p
 
@@ -855,11 +862,7 @@ function expr(
                 }
                 if (isNamespace(type)) {
                     return dotMethod(ctx, comptime, type, p, "from_literal", [
-                        {
-                            p,
-                            evaluated: true,
-                            value: { type: tcomptime_int, value: { k: "int", v } },
-                        },
+                        { p, evaluated: false, value: p },
                     ])
                 }
             }
@@ -878,11 +881,7 @@ function expr(
                 }
                 if (isNamespace(type)) {
                     return dotMethod(ctx, comptime, type, p, "from_literal", [
-                        {
-                            p,
-                            evaluated: true,
-                            value: { type: tcomptime_float, value: { k: "float", v } },
-                        },
+                        { p, evaluated: false, value: p },
                     ])
                 }
             }

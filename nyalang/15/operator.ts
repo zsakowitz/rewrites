@@ -262,7 +262,7 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         "==": ftodo,
         "!=": ftodo,
 
-        conj: ftodo,
+        conj,
     },
 
     u: {
@@ -298,66 +298,91 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         "==": ftodo,
         "!=": ftodo,
 
-        conj: ftodo,
+        conj,
     },
 
     comptime_float: {
-        "0-": ftodo,
-        "+": ftodo,
-        "-": ftodo,
-        "*": ftodo,
+        "0-": cfloat_unary((x) => -x),
+        "+": cfloat_binary((_ctx, _p, a, b) => a + b),
+        "-": cfloat_binary((_ctx, _p, a, b) => a - b),
+        "*": cfloat_binary((_ctx, _p, a, b) => a * b),
 
-        "1/": ftodo,
-        "/": ftodo,
-        divExact: ftodo,
-        divFloor: ftodo,
-        divCeil: ftodo,
-        divTrunc: ftodo,
-        "%": ftodo,
-        rem: ftodo,
-        mod: ftodo,
+        "1/": cfloat_unary((x) => 1 / x),
+        "/": cfloat_binary((_ctx, _p, a, b) => a / b),
+        divExact: cfloat_binary((ctx, p, a, b) => {
+            if (!(isFinite(a) && isFinite(b))) {
+                ctx.raiseAt(p, `'.divExact' called with non-finite values`)
+                return null
+            }
 
-        sign: ftodo,
-        abs: ftodo,
+            const quot = a / b
+            if (quot !== Math.trunc(quot) || a % b !== 0) {
+                ctx.raiseAt(p, `division is not exact`)
+                return null
+            }
 
-        sin: ftodo,
-        sinh: ftodo,
-        asin: ftodo,
-        asinh: ftodo,
-        cos: ftodo,
-        cosh: ftodo,
-        acos: ftodo,
-        acosh: ftodo,
-        tan: ftodo,
-        tanh: ftodo,
-        atan: ftodo,
-        atanh: ftodo,
+            return quot
+        }),
+        divFloor: cfloat_binary((_ctx, _p, a, b) => Math.floor(a / b)),
+        divCeil: cfloat_binary((_ctx, _p, a, b) => Math.ceil(a / b)),
+        divTrunc: cfloat_binary((_ctx, _p, a, b) => Math.trunc(a / b)),
+        "%": cfloat_binary((ctx, p, a, b) => {
+            if (!(isFinite(a) && isFinite(b))) {
+                ctx.raiseAt(p, `'%' called with non-finite values`)
+                return null
+            }
 
-        exp: ftodo,
-        exp2: ftodo,
-        exp10: ftodo,
-        expm1: ftodo,
-        log: ftodo,
-        log2: ftodo,
-        log10: ftodo,
-        log1p: ftodo,
+            if (b <= 0) {
+                ctx.raiseAt(p, `'%' called with nonpositive divisor`)
+                return null
+            }
 
-        floor: ftodo,
-        ceil: ftodo,
-        trunc: ftodo,
+            return a % b
+        }),
+        rem: cfloat_binary((_ctx, _p, a, b) => a % b),
+        mod: cfloat_binary((_ctx, _p, a, b) => ((a % b) + b) % b),
 
-        isInf: ftodo,
-        isNan: ftodo,
-        isFin: ftodo,
+        sign: cfloat_unary((x) => Math.sign(x)),
+        abs: cfloat_unary((x) => Math.abs(x)),
 
-        "<": ftodo,
-        ">": ftodo,
-        "<=": ftodo,
-        ">=": ftodo,
-        "==": ftodo,
-        "!=": ftodo,
+        sin: cfloat_unary((x) => Math.sin(x)),
+        sinh: cfloat_unary((x) => Math.sinh(x)),
+        asin: cfloat_unary((x) => Math.asin(x)),
+        asinh: cfloat_unary((x) => Math.asinh(x)),
+        cos: cfloat_unary((x) => Math.cos(x)),
+        cosh: cfloat_unary((x) => Math.cosh(x)),
+        acos: cfloat_unary((x) => Math.acos(x)),
+        acosh: cfloat_unary((x) => Math.acosh(x)),
+        tan: cfloat_unary((x) => Math.tan(x)),
+        tanh: cfloat_unary((x) => Math.tanh(x)),
+        atan: cfloat_unary((x) => Math.atan(x)),
+        atanh: cfloat_unary((x) => Math.atanh(x)),
 
-        conj: ftodo,
+        exp: cfloat_unary((x) => Math.exp(x)),
+        exp2: cfloat_unary((x) => Math.pow(2, x)),
+        exp10: cfloat_unary((x) => Math.pow(10, x)),
+        expm1: cfloat_unary((x) => Math.expm1(x)),
+        log: cfloat_unary((x) => Math.log(x)),
+        log2: cfloat_unary((x) => Math.log2(x)),
+        log10: cfloat_unary((x) => Math.log10(x)),
+        log1p: cfloat_unary((x) => Math.log1p(x)),
+
+        floor: cfloat_unary((x) => Math.floor(x)),
+        ceil: cfloat_unary((x) => Math.ceil(x)),
+        trunc: cfloat_unary((x) => Math.trunc(x)),
+
+        isInf: cfloat_check((x) => x === x && !isFinite(x)),
+        isNan: cfloat_check((x) => x !== x),
+        isFin: cfloat_check((x) => isFinite(x)),
+
+        "<": cfloat_cmp((a, b) => a < b),
+        ">": cfloat_cmp((a, b) => a > b),
+        "<=": cfloat_cmp((a, b) => a <= b),
+        ">=": cfloat_cmp((a, b) => a >= b),
+        "==": cfloat_cmp((a, b) => a == b),
+        "!=": cfloat_cmp((a, b) => a != b),
+
+        conj,
     },
 
     f: {
@@ -416,7 +441,7 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         "==": ftodo,
         "!=": ftodo,
 
-        conj: ftodo,
+        conj,
     },
 }
 
@@ -446,4 +471,80 @@ const BUILTIN_CONSTANTS: Partial<Record<Type["k"], Record<string, BuiltinConst>>
         inf: ctodo,
         nan: ctodo,
     },
+}
+
+function cfloat_unary(f: (a: number) => number): BuiltinFn {
+    return (ctx, comptime, self, p, args) => {
+        if (args.length !== 1) {
+            ctx.raiseAt(p, "expected exactly one argument")
+            return ERROR
+        }
+
+        const arg = fnArg(ctx, comptime, self, args[0]!)
+        if (arg.k !== "normal") return arg
+        assert(arg.v.value.k === "float")
+
+        const result = f(arg.v.value.v)
+        return normal(self, { k: "float", v: result })
+    }
+}
+
+function cfloat_binary(
+    f: (ctx: EvaluationContext, p: Range, a: number, b: number) => number | null,
+): BuiltinFn {
+    return (ctx, comptime, self, p, args) => {
+        if (args.length !== 2) {
+            ctx.raiseAt(p, "expected exactly two arguments")
+            return ERROR
+        }
+
+        const lhs = fnArg(ctx, comptime, self, args[0]!)
+        if (lhs.k !== "normal") return lhs
+        assert(lhs.v.value.k === "float")
+
+        const rhs = fnArg(ctx, comptime, self, args[1]!)
+        if (rhs.k !== "normal") return rhs
+        assert(rhs.v.value.k === "float")
+
+        const result = f(ctx, p, lhs.v.value.v, rhs.v.value.v)
+        if (result === null) return ERROR
+
+        return normal(self, { k: "float", v: result })
+    }
+}
+
+function cfloat_cmp(f: (a: number, b: number) => boolean): BuiltinFn {
+    return (ctx, comptime, self, p, args) => {
+        if (args.length !== 2) {
+            ctx.raiseAt(p, "expected exactly two arguments")
+            return ERROR
+        }
+
+        const lhs = fnArg(ctx, comptime, self, args[0]!)
+        if (lhs.k !== "normal") return lhs
+        assert(lhs.v.value.k === "float")
+
+        const rhs = fnArg(ctx, comptime, self, args[1]!)
+        if (rhs.k !== "normal") return rhs
+        assert(rhs.v.value.k === "float")
+
+        const result = f(lhs.v.value.v, rhs.v.value.v)
+        return normal(tbool, { k: "bool", v: result })
+    }
+}
+
+function cfloat_check(f: (a: number) => boolean): BuiltinFn {
+    return (ctx, comptime, self, p, args) => {
+        if (args.length !== 1) {
+            ctx.raiseAt(p, "expected exactly one argument")
+            return ERROR
+        }
+
+        const arg = fnArg(ctx, comptime, self, args[0]!)
+        if (arg.k !== "normal") return arg
+        assert(arg.v.value.k === "float")
+
+        const result = f(arg.v.value.v)
+        return normal(tbool, { k: "bool", v: result })
+    }
 }
