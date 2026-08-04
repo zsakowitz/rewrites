@@ -8,6 +8,8 @@ import {
     bitCountWithVariants,
     FLOAT_BIT_SIZES,
     floatTruncate,
+    idivCeil,
+    idivFloor,
     intIsSafe,
     type FloatBitSize,
 } from "./num"
@@ -167,7 +169,7 @@ interface TypedValue {
 
 type Lazy<Raw, Analyzed> =
     | { k: "raw"; v: Raw }
-    | { k: "progressing"; v: { ns: Namespace; p: Range } }
+    | { k: "progressing"; v: Namespace }
     | { k: "analyzed"; v: Analyzed }
 
 type Capture = Value | { k: "runtime-var"; v: GID }
@@ -271,13 +273,18 @@ class Items {
 }
 
 type Item =
-    | { k: "fn"; v: Fn }
-    | { k: "const"; v: Lazy<{ ns: Namespace; type: Expr | null; value: Expr }, TypedValue> }
+    | { k: "fn"; p: Range; v: Fn }
+    | {
+          k: "const"
+          p: Range
+          v: Lazy<{ ns: Namespace; type: Expr | null; value: Expr }, TypedValue>
+      }
     | {
           k: "var"
+          p: Range
           v: Lazy<{ ns: Namespace; type: Expr | null; value: Expr }, { type: Type; id: GID }>
       }
-    | { k: "reserved"; v: null }
+    | { k: "reserved"; p: Range; v: null }
 
 type GID = number & { __brand: "global_var" }
 type RII = number & { __brand: "runtime_instruction" }
@@ -319,9 +326,10 @@ export class Root {
 
     public globalVars = new Map<GID, TypedValue>()
     public fns = new Map<FID, FnInstance[]>()
+    public stack: TraceEntry[] = []
 
     raiseAt(file: File, p: Range, message: string) {
-        this.errors.raise(new TraceEntry(file, p.s, p.e, message))
+        this.errors.raise(new TraceEntry(file, p.s, p.e, message), ...this.stack.toReversed())
     }
 
     createNamespace(file: File, self: Type) {
@@ -346,9 +354,9 @@ interface Label {
 }
 
 type Variable =
-    | { k: "arg"; v: { type: Type; n: number } }
-    | { k: "var" | "const"; v: { type: Type; n: RII } }
-    | { k: "comptime-const"; v: TypedValue }
+    | { k: "arg"; p: Range; v: { type: Type; n: number } }
+    | { k: "var" | "const"; p: Range; v: { type: Type; n: RII } }
+    | { k: "comptime-const"; p: Range; v: TypedValue }
 
 let nextId = 0
 
@@ -372,9 +380,9 @@ class EvaluationContext {
 
         for (const [key, val] of this.variables) {
             if (val.k === "comptime-const") {
-                valueDecls.setOwn(key, { k: "const", v: { k: "analyzed", v: val.v } })
+                valueDecls.setOwn(key, { k: "const", p: val.p, v: { k: "analyzed", v: val.v } })
             } else {
-                valueDecls.setOwn(key, { k: "reserved", v: null })
+                valueDecls.setOwn(key, { k: "reserved", p: val.p, v: null })
             }
         }
 
@@ -491,11 +499,20 @@ class Namespace {
     }
 
     raiseAt(p: Range, message: string) {
-        this.root.errors.raise(new TraceEntry(this.file, p.s, p.e, message))
+        this.root.raiseAt(this.file, p, message)
     }
 
     todo(p: Range, message?: string) {
         this.raiseAt(p, `TODO (${message})`)
+    }
+
+    trace(p: Range, message: string): Disposable {
+        this.root.stack.push(new TraceEntry(this.file, p.s, p.e, message))
+        return {
+            [Symbol.dispose]: () => {
+                this.root.stack.pop()
+            },
+        }
     }
 }
 
@@ -785,12 +802,18 @@ function exprAs(
     return { k: "normal", v: result }
 }
 
+const tcomptime_int: Type = { k: "comptime_int", v: null }
+const tcomptime_float: Type = { k: "comptime_float", v: null }
+const tbool: Type = { k: "bool", v: null }
+
 function expr(
     ctx: EvaluationContext,
     comptime: boolean,
     type: Type | null,
     p: Expr,
 ): Result<TypedValue> {
+    using _ = ctx.ns.trace(p, `evaluating expression`)
+
     const { k, v } = p
 
     switch (k) {
@@ -827,6 +850,13 @@ function expr(
                     return normal(type, { k: "float", v: val })
                 }
                 if (isNamespace(type)) {
+                    return dotMethod(ctx, comptime, type, p, "from_literal", [
+                        {
+                            p,
+                            evaluated: true,
+                            value: { type: tcomptime_int, value: { k: "int", v } },
+                        },
+                    ])
                 }
             }
 
@@ -841,6 +871,15 @@ function expr(
                         ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
                     }
                     return normal(type, { k: "float", v })
+                }
+                if (isNamespace(type)) {
+                    return dotMethod(ctx, comptime, type, p, "from_literal", [
+                        {
+                            p,
+                            evaluated: true,
+                            value: { type: tcomptime_float, value: { k: "float", v } },
+                        },
+                    ])
                 }
             }
 
@@ -911,7 +950,7 @@ function expr(
                 return ERROR
             }
 
-            const captures = getCaptures(ctx, v.child)
+            const captures = getCaptures(ctx, p, v.child)
             if (captures === null) return ERROR
 
             const members = new Map<string, { type: Expr; default: Expr | null }>()
@@ -964,7 +1003,7 @@ function expr(
                 }
             }
 
-            const captures = getCaptures(ctx, v.child)
+            const captures = getCaptures(ctx, p, v.child)
             if (captures === null) return ERROR
 
             const members = new Map<string, Expr | null>()
@@ -1020,7 +1059,7 @@ function expr(
         }
 
         case "ns-union": {
-            const captures = getCaptures(ctx, v.child)
+            const captures = getCaptures(ctx, p, v.child)
             if (captures === null) return ERROR
 
             const members = new Map<string, Expr | null>()
@@ -1132,7 +1171,7 @@ function expr(
         }
 
         case "ns-opaque": {
-            const captures = getCaptures(ctx, v.child)
+            const captures = getCaptures(ctx, p, v.child)
             if (captures === null) return ERROR
 
             const opaque: Opaque = { id: (v.id << 1) as AID, p, captures, ns: null! }
@@ -1341,7 +1380,7 @@ function expr(
             return ERROR
         }
 
-        case "dot-field": {
+        case "dot-prop": {
             if (type === null) {
                 ctx.raiseAt(p, `'.xyz' syntax requires an expected type`)
                 return ERROR
@@ -1349,6 +1388,7 @@ function expr(
 
             const value = dotProp(ctx, innerType(type), p, v.name)
             if (value === null) return ERROR
+
             return { k: "normal", v: value }
         }
 
@@ -1372,13 +1412,45 @@ function expr(
             ctx.todo(p, "expr kind '.dot-call'")
             return ERROR
 
-        case "op-prefix":
-            ctx.todo(p, "expr kind '.op-prefix'")
-            return ERROR
+        case "op-prefix": {
+            if (type !== null) {
+                return dotMethod(ctx, comptime, innerType(type), p, v.name, [
+                    { p: v.arg, evaluated: false, value: v.arg },
+                ])
+            }
 
-        case "op-infix":
-            ctx.todo(p, "expr kind '.op-infix'")
-            return ERROR
+            const value = expr(ctx, comptime, null, v.arg)
+            if (value.k !== "normal") return value
+
+            return callMethod(ctx, comptime, p, v.name, v.arg, value.v, [])
+        }
+
+        case "op-infix": {
+            if (
+                type !== null
+                && !(
+                    v.name === "=="
+                    || v.name === "!="
+                    || v.name === "<"
+                    || v.name === ">"
+                    || v.name === "<="
+                    || v.name === ">="
+                )
+            ) {
+                return dotMethod(ctx, comptime, innerType(type), p, v.name, [
+                    { p: v.lhs, evaluated: false, value: v.lhs },
+                    { p: v.rhs, evaluated: false, value: v.rhs },
+                ])
+            }
+
+            const lhs = expr(ctx, comptime, type, v.lhs)
+            if (lhs.k !== "normal") return lhs
+
+            return dotMethod(ctx, comptime, innerType(lhs.v.type), p, v.name, [
+                { p: v.lhs, evaluated: false, value: v.lhs },
+                { p: v.rhs, evaluated: false, value: v.rhs },
+            ])
+        }
 
         case "cf-unreachable": {
             if (comptime) {
@@ -1639,20 +1711,6 @@ function expr(
                     case "true":
                     case "false":
                         return normal({ k: "bool", v: null }, { k: "bool", v: v.name === "true" })
-
-                    case "inf":
-                    case "nan": {
-                        const value: Value = {
-                            k: "float",
-                            v: v.name === "inf" ? Infinity : NaN,
-                        }
-
-                        if (type !== null && type.k === "f") {
-                            return normal(type, value)
-                        }
-
-                        return normal({ k: "comptime_float", v: null }, value)
-                    }
                 }
 
                 if (/^u\d+/.test(v.name)) {
@@ -1906,7 +1964,7 @@ function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result<null> 
         }
 
         if (lhsRaw.k === "const" && isComptimeValue(value.value)) {
-            ctx.variables.set(name.name, { k: "comptime-const", v: value })
+            ctx.variables.set(name.name, { k: "comptime-const", p, v: value })
             return { k: "normal", v: null }
         }
 
@@ -1925,6 +1983,7 @@ function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result<null> 
         assert(isRuntimeType(ctx.ns.root, value.type) === true)
         ctx.variables.set(name.name, {
             k: lhsRaw.k,
+            p,
             v: {
                 type: value.type,
                 n: ctx.rtInst(
@@ -1982,6 +2041,7 @@ function finalizeNamespace(
                 }
                 ns.items.setOwn(v.name.name, {
                     k,
+                    p: { s, e },
                     v: { k: "raw", v: { ns: ns, type: v.type, value: v.body } },
                 })
                 break
@@ -2005,6 +2065,7 @@ function finalizeNamespace(
                 }
                 ns.items.setOwn(v.name.name, {
                     k: "fn",
+                    p: { s, e },
                     v: new Fn(ns, v.id as FID, v.params, v.ret, v.body),
                 })
                 break
@@ -2026,7 +2087,7 @@ function finalizeNamespace(
 function isReservedIdent(ident: Ident): boolean {
     return (
         !ident.raw
-        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|path|type|null|true|false|inf|nan)$/.test(
+        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|path|type|null|true|false)$/.test(
             ident.name,
         )
     )
@@ -2275,18 +2336,20 @@ function isRuntimeType(root: Root, type: Type): boolean | null {
     }
 }
 
-function getCaptures(parent: EvaluationContext, body: Decl[]): Capture[] | null {
+function getCaptures(parent: EvaluationContext, p: Range, body: Decl[]): Capture[] | null {
+    using _ = parent.ns.trace(p, `finding parameters captured by namespace`)
+
     const capturable = new Map<string, boolean>()
 
     for (const [k, v] of parent.ns.items) {
         if (v.k === "const" || v.k === "var") {
-            capturable.set(k, true)
+            capturable.set(k, false)
         }
     }
 
     for (const [k, v] of parent.variables) {
         if (v.k === "comptime-const") {
-            capturable.set(k, true)
+            capturable.set(k, false)
         }
     }
 
@@ -2329,12 +2392,14 @@ function resolveConst(item: Extract<Item, { k: "const" }>): TypedValue | null {
     }
 
     if (item.v.k === "progressing") {
-        item.v.v.ns.raiseAt(item.v.v.p, "dependency loop when analyzing 'const' declaration")
+        item.v.v.raiseAt(item.p, "dependency loop when analyzing 'const' declaration")
         return null
     }
 
+    using _ = item.v.v.ns.trace(item.p, "resolving 'const' declaration")
+
     const v = item.v.v
-    item.v = { k: "progressing", v: { ns: v.ns, p: v.value } }
+    item.v = { k: "progressing", v: v.ns }
 
     const value = topLevelValue(v.ns, v.type, v.value)
     if (value === null) return null
@@ -2349,12 +2414,14 @@ function resolveVar(item: Extract<Item, { k: "var" }>): { type: Type; id: GID } 
     }
 
     if (item.v.k === "progressing") {
-        item.v.v.ns.raiseAt(item.v.v.p, "dependency loop when analyzing 'var' declaration")
+        item.v.v.raiseAt(item.p, "dependency loop when analyzing 'var' declaration")
         return null
     }
 
+    using _ = item.v.v.ns.trace(item.p, "resolving 'var' declaration")
+
     const v = item.v.v
-    item.v = { k: "progressing", v: { ns: v.ns, p: v.value } }
+    item.v = { k: "progressing", v: v.ns }
 
     const value = topLevelValue(v.ns, v.type, v.value)
     if (value === null) return null
@@ -2379,15 +2446,12 @@ function resolveEnum(item: Enum): Map<string, bigint> | null {
     }
 
     if (item.members.k === "progressing") {
-        item.members.v.ns.raiseAt(
-            item.members.v.p,
-            "dependency loop when analyzing 'enum' variants",
-        )
+        item.members.v.raiseAt(item.p, "dependency loop when analyzing 'enum' variants")
         return null
     }
 
     const membersRaw = item.members.v
-    item.members = { k: "progressing", v: { ns: item.ns, p: item.p } }
+    item.members = { k: "progressing", v: item.ns }
 
     const ret = new Map<string, bigint>()
     const assigned = new Map<bigint, string>()
@@ -2436,15 +2500,12 @@ function resolveStruct(
     }
 
     if (item.members.k === "progressing") {
-        item.members.v.ns.raiseAt(
-            item.members.v.p,
-            "dependency loop when analyzing 'struct' fields",
-        )
+        item.members.v.raiseAt(item.p, "dependency loop when analyzing 'struct' fields")
         return null
     }
 
     const membersRaw = item.members.v
-    item.members = { k: "progressing", v: { ns: item.ns, p: item.p } }
+    item.members = { k: "progressing", v: item.ns }
 
     const ret = new Map<string, { type: Type; default: TypedValue | null }>()
     for (const [k, { type: typeRaw, default: defaultRaw }] of membersRaw) {
@@ -2472,15 +2533,12 @@ function resolveUnion(item: Union): Map<string, Type> | null {
     }
 
     if (item.members.k === "progressing") {
-        item.members.v.ns.raiseAt(
-            item.members.v.p,
-            "dependency loop when analyzing 'union' variants",
-        )
+        item.members.v.raiseAt(item.p, "dependency loop when analyzing 'union' variants")
         return null
     }
 
     const membersRaw = item.members.v
-    item.members = { k: "progressing", v: { ns: item.ns, p: item.p } }
+    item.members = { k: "progressing", v: item.ns }
 
     const ret = new Map<string, Type>()
     for (const [k, typeRaw] of membersRaw) {
@@ -2854,10 +2912,15 @@ function call(
         }
         if (param.name !== null) {
             if (paramComptime) {
-                callContext.variables.set(param.name.name, { k: "comptime-const", v: arg })
+                callContext.variables.set(param.name.name, {
+                    k: "comptime-const",
+                    p: param.name,
+                    v: arg,
+                })
             } else {
                 callContext.variables.set(param.name.name, {
                     k: "arg",
+                    p: param.name,
                     v: { type: arg.type, n: runtimeArgTypes.length },
                 })
                 runtimeArgTypes.push(arg.type)
@@ -2945,16 +3008,11 @@ function callInner(
 ): Result<TypedValue> {
     ctx.returnType = returnType
 
-    const result = exprAs(ctx, comptime, { k: "void", v: null }, body)
+    const result = exprAs(ctx, comptime, returnType, body)
     if (result.k === "error" || result.k === "unreachable") return result
     if (result.k === "return") return { k: "normal", v: result.v }
-
-    const voidCast = as(ctx, { s: body.e, e: body.e }, returnType, {
-        type: { k: "void", v: null },
-        value: { k: "void", v: null },
-    })
-    if (voidCast === null) return ERROR
-    return { k: "normal", v: voidCast }
+    assert(result.k === "normal")
+    return { k: "normal", v: result.v }
 }
 
 function isNamespace(
@@ -3034,12 +3092,60 @@ const ftodo: BuiltinFn = (ctx, _comptime, _self, p, _args) => {
     return ERROR
 }
 
+type BuiltinConst = (ctx: EvaluationContext, self: Type, p: Range) => TypedValue | null
+
+const ctodo: BuiltinConst = (ctx, _self, p) => {
+    ctx.raiseAt(p, `builtin constant not implemented yet`)
+    return null
+}
+
+function fnArg(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    type: Type,
+    arg: FnArg,
+): Result<TypedValue> {
+    if (arg.evaluated) {
+        assert(!(comptime && !isComptimeValue(arg.value.value)))
+        const result = as(ctx, arg.p, type, arg.value)
+        if (result === null) return ERROR
+        return { k: "normal", v: result }
+    }
+
+    return exprAs(ctx, comptime, type, arg.value)
+}
+
+function builtinFn(type: Type, name: string): BuiltinFn | null {
+    if (!Object.hasOwn(BUILTIN_METHODS, type.k)) {
+        return null
+    }
+
+    if (!Object.hasOwn(BUILTIN_METHODS[type.k]!, name)) {
+        return null
+    }
+
+    return BUILTIN_METHODS[type.k]![name]!
+}
+
+function builtinConst(type: Type, name: string): BuiltinConst | null {
+    if (!Object.hasOwn(BUILTIN_CONSTANTS, type.k)) {
+        return null
+    }
+
+    if (!Object.hasOwn(BUILTIN_CONSTANTS[type.k]!, name)) {
+        return null
+    }
+
+    return BUILTIN_CONSTANTS[type.k]![name]!
+}
+
 const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
     bool: {
         "!": ftodo,
         "&": ftodo,
         "|": ftodo,
         "~": ftodo,
+
         "==": ftodo,
         "!=": ftodo,
         "<": ftodo,
@@ -3049,100 +3155,530 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
     },
 
     comptime_int: {
-        "0-": ftodo,
-        "1/": ftodo,
-        "+": ftodo,
-        "-": ftodo,
-        "*": ftodo,
-        "/": ftodo,
-        "%": ftodo,
-        "&": ftodo,
-        "|": ftodo,
-        "~": ftodo,
-        divExact: ftodo,
-        divFloor: ftodo,
-        divCeil: ftodo,
-        divTrunc: ftodo,
-        rem: ftodo,
-        mod: ftodo,
-        sign: ftodo,
-        abs: ftodo,
-        "<": ftodo,
-        ">": ftodo,
-        "<=": ftodo,
-        ">=": ftodo,
-        "==": ftodo,
-        "!=": ftodo,
+        "0-"(ctx, comptime, self, p, args) {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, "'comptime_int.@\"0-\"' requires exactly one argument")
+                return ERROR
+            }
+
+            const arg = fnArg(ctx, comptime, self, args[0]!)
+            if (arg.k !== "normal") return arg
+            assert(arg.v.value.k === "int")
+            return normal(self, { k: "int", v: -arg.v.value.v })
+        },
+        "+"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"+\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(self, { k: "int", v: lhs.v.value.v + rhs.v.value.v })
+        },
+        "-"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"-\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(self, { k: "int", v: lhs.v.value.v - rhs.v.value.v })
+        },
+        "*"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"*\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(self, { k: "int", v: lhs.v.value.v * rhs.v.value.v })
+        },
+
+        "/"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"/\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            if (rhs.v.value.v === 0n) {
+                ctx.raiseAt(p, `division by zero`)
+                return ERROR
+            }
+
+            if (lhs.v.value.v % rhs.v.value.v !== 0n) {
+                ctx.raiseAt(
+                    p,
+                    `division is not exact; use '.divFloor', '.divCeil', or '.divTrunc' to specify precise behavior`,
+                )
+                return ERROR
+            }
+
+            return normal(self, { k: "int", v: lhs.v.value.v / rhs.v.value.v })
+        },
+        "%"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"%\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            if (rhs.v.value.v === 0n) {
+                ctx.raiseAt(p, `remainder by zero`)
+                return ERROR
+            }
+
+            if (rhs.v.value.v < 0n) {
+                ctx.raiseAt(
+                    p,
+                    `cannot take remainder by negative divisor '${rhs.v.value.v}'; use '.rem' or '.mod' to specify precise behavior`,
+                )
+                return ERROR
+            }
+
+            return normal(self, { k: "int", v: lhs.v.value.v % rhs.v.value.v })
+        },
+        divExact(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.divExact' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            if (rhs.v.value.v === 0n) {
+                ctx.raiseAt(p, `division by zero`)
+                return ERROR
+            }
+
+            if (lhs.v.value.v % rhs.v.value.v !== 0n) {
+                ctx.raiseAt(p, `division is not exact`)
+                return ERROR
+            }
+
+            return normal(self, { k: "int", v: lhs.v.value.v / rhs.v.value.v })
+        },
+        divFloor(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.divExact' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            if (rhs.v.value.v === 0n) {
+                ctx.raiseAt(p, `division by zero`)
+                return ERROR
+            }
+
+            return normal(self, { k: "int", v: idivFloor(lhs.v.value.v, rhs.v.value.v) })
+        },
+        divCeil(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.divCeil' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            if (rhs.v.value.v === 0n) {
+                ctx.raiseAt(p, `division by zero`)
+                return ERROR
+            }
+
+            return normal(self, { k: "int", v: idivCeil(lhs.v.value.v, rhs.v.value.v) })
+        },
+        divTrunc(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.divTrunc' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            if (rhs.v.value.v === 0n) {
+                ctx.raiseAt(p, `division by zero`)
+                return ERROR
+            }
+
+            return normal(self, { k: "int", v: lhs.v.value.v / rhs.v.value.v })
+        },
+        rem(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.rem' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            if (rhs.v.value.v === 0n) {
+                ctx.raiseAt(p, `remainder by zero`)
+                return ERROR
+            }
+
+            return normal(self, { k: "int", v: lhs.v.value.v % rhs.v.value.v })
+        },
+        mod(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.mod' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            if (rhs.v.value.v === 0n) {
+                ctx.raiseAt(p, `modulo by zero`)
+                return ERROR
+            }
+
+            return normal(self, {
+                k: "int",
+                v: ((lhs.v.value.v % rhs.v.value.v) + rhs.v.value.v) % rhs.v.value.v,
+            })
+        },
+
+        "&"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"&\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(self, { k: "int", v: lhs.v.value.v & rhs.v.value.v })
+        },
+        "|"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"|\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(self, { k: "int", v: lhs.v.value.v | rhs.v.value.v })
+        },
+        "~"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"~\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(self, { k: "int", v: lhs.v.value.v ^ rhs.v.value.v })
+        },
+
+        sign(ctx, comptime, self, p, args) {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, "'comptime_int.sign' requires exactly one argument")
+                return ERROR
+            }
+
+            const arg = fnArg(ctx, comptime, self, args[0]!)
+            if (arg.k !== "normal") return arg
+            assert(arg.v.value.k === "int")
+
+            return normal(self, {
+                k: "int",
+                v:
+                    arg.v.value.v < 0n ? -1n
+                    : arg.v.value.v > 0n ? 1n
+                    : 0n,
+            })
+        },
+        abs(ctx, comptime, self, p, args) {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, "'comptime_int.abs' requires exactly one argument")
+                return ERROR
+            }
+
+            const arg = fnArg(ctx, comptime, self, args[0]!)
+            if (arg.k !== "normal") return arg
+            assert(arg.v.value.k === "int")
+
+            return normal(self, {
+                k: "int",
+                v: arg.v.value.v < 0n ? -arg.v.value.v : arg.v.value.v,
+            })
+        },
+
+        "<"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"<\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(tbool, { k: "bool", v: lhs.v.value.v < rhs.v.value.v })
+        },
+        ">"(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\">\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(tbool, { k: "bool", v: lhs.v.value.v > rhs.v.value.v })
+        },
+        "<="(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"<=\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(tbool, { k: "bool", v: lhs.v.value.v <= rhs.v.value.v })
+        },
+        ">="(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\">=\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(tbool, { k: "bool", v: lhs.v.value.v >= rhs.v.value.v })
+        },
+        "=="(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"==\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(tbool, { k: "bool", v: lhs.v.value.v == rhs.v.value.v })
+        },
+        "!="(ctx, comptime, self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, "'comptime_int.@\"!=\"' requires exactly two arguments")
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, self, args[0]!)
+            if (lhs.k !== "normal") return lhs
+            assert(lhs.v.value.k === "int")
+
+            const rhs = fnArg(ctx, comptime, self, args[1]!)
+            if (rhs.k !== "normal") return rhs
+            assert(rhs.v.value.k === "int")
+
+            return normal(tbool, { k: "bool", v: lhs.v.value.v != rhs.v.value.v })
+        },
+
+        conj(ctx, comptime, self, p, args) {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, "'comptime_int.conj' requires exactly one argument")
+                return ERROR
+            }
+
+            return fnArg(ctx, comptime, self, args[0]!)
+        },
     },
 
     i: {
         "0-": ftodo,
-        "0-%": ftodo,
-        "1~": ftodo,
         "+": ftodo,
-        "+%": ftodo,
         "-": ftodo,
-        "-%": ftodo,
         "*": ftodo,
+        "0-%": ftodo,
+        "+%": ftodo,
+        "-%": ftodo,
         "*%": ftodo,
+
         "/": ftodo,
         "%": ftodo,
-        "&": ftodo,
-        "|": ftodo,
-        "~": ftodo,
         divExact: ftodo,
         divFloor: ftodo,
         divCeil: ftodo,
         divTrunc: ftodo,
         rem: ftodo,
         mod: ftodo,
+
+        "1~": ftodo,
+        "&": ftodo,
+        "|": ftodo,
+        "~": ftodo,
+
         sign: ftodo,
         abs: ftodo,
         clz: ftodo,
+
         "<": ftodo,
         ">": ftodo,
         "<=": ftodo,
         ">=": ftodo,
         "==": ftodo,
         "!=": ftodo,
+
+        conj: ftodo,
     },
 
     u: {
-        "1~": ftodo,
         "+": ftodo,
-        "+%": ftodo,
         "-": ftodo,
-        "-%": ftodo,
         "*": ftodo,
+        "+%": ftodo,
+        "-%": ftodo,
         "*%": ftodo,
+
         "/": ftodo,
         "%": ftodo,
-        "&": ftodo,
-        "|": ftodo,
-        "~": ftodo,
         divExact: ftodo,
         divFloor: ftodo,
         divCeil: ftodo,
         divTrunc: ftodo,
         rem: ftodo,
         mod: ftodo,
+
+        "1~": ftodo,
+        "&": ftodo,
+        "|": ftodo,
+        "~": ftodo,
+
         sign: ftodo,
         abs: ftodo,
         clz: ftodo,
+
         "<": ftodo,
         ">": ftodo,
         "<=": ftodo,
         ">=": ftodo,
         "==": ftodo,
         "!=": ftodo,
+
+        conj: ftodo,
     },
 
     comptime_float: {
         "0-": ftodo,
-        "1/": ftodo,
         "+": ftodo,
         "-": ftodo,
         "*": ftodo,
+
+        "1/": ftodo,
         "/": ftodo,
         "%": ftodo,
         divExact: ftodo,
@@ -3151,6 +3687,7 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         divTrunc: ftodo,
         rem: ftodo,
         mod: ftodo,
+
         sign: ftodo,
         abs: ftodo,
 
@@ -3190,14 +3727,17 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         ">=": ftodo,
         "==": ftodo,
         "!=": ftodo,
+
+        conj: ftodo,
     },
 
     f: {
         "0-": ftodo,
-        "1/": ftodo,
         "+": ftodo,
         "-": ftodo,
         "*": ftodo,
+
+        "1/": ftodo,
         "/": ftodo, // comptime-only
         "%": ftodo, // comptime-only
         divExact: ftodo,
@@ -3206,6 +3746,7 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         divTrunc: ftodo,
         rem: ftodo,
         mod: ftodo,
+
         sign: ftodo,
         abs: ftodo,
 
@@ -3245,14 +3786,9 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         ">=": ftodo,
         "==": ftodo,
         "!=": ftodo,
+
+        conj: ftodo,
     },
-}
-
-type BuiltinConst = (ctx: EvaluationContext, self: Type, p: Range) => TypedValue | null
-
-const ctodo: BuiltinConst = (ctx, _self, p) => {
-    ctx.raiseAt(p, `builtin constant not implemented yet`)
-    return null
 }
 
 const BUILTIN_CONSTANTS: Partial<Record<Type["k"], Record<string, BuiltinConst>>> = {
@@ -3281,28 +3817,4 @@ const BUILTIN_CONSTANTS: Partial<Record<Type["k"], Record<string, BuiltinConst>>
         inf: ctodo,
         nan: ctodo,
     },
-}
-
-function builtinFn(type: Type, name: string): BuiltinFn | null {
-    if (!Object.hasOwn(BUILTIN_METHODS, type.k)) {
-        return null
-    }
-
-    if (!Object.hasOwn(BUILTIN_METHODS[type.k]!, name)) {
-        return null
-    }
-
-    return BUILTIN_METHODS[type.k]![name]!
-}
-
-function builtinConst(type: Type, name: string): BuiltinConst | null {
-    if (!Object.hasOwn(BUILTIN_CONSTANTS, type.k)) {
-        return null
-    }
-
-    if (!Object.hasOwn(BUILTIN_CONSTANTS[type.k]!, name)) {
-        return null
-    }
-
-    return BUILTIN_CONSTANTS[type.k]![name]!
 }

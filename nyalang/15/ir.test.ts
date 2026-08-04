@@ -2,20 +2,20 @@ import { print } from "./debug"
 import { Errors } from "./error"
 import { File } from "./file"
 import { Root, compileTests, topLevel } from "./ir"
-import fileBody from "./ir.test.txt"
+import body from "./ir.test.zig" with { type: "text" }
 import { ParseContext, parseFile } from "./parse"
 import { tokenize } from "./token"
 
 const errors = new Errors()
 
-const file = new File("./ir.test.txt", fileBody)
+const file = new File("./ir.test.zig", body)
 const tokens = tokenize(errors, file)
 
 const parseContext = new ParseContext(errors, tokens)
-const body = parseFile(parseContext)
+const decls = parseFile(parseContext)
 
 const root = new Root(errors, [])
-topLevel(root, file, body)
+topLevel(root, file, decls)
 
 const tests = compileTests(root)
 

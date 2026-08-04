@@ -1,3 +1,4 @@
+import { blue, bold, dim, red, reset } from "../2/ansi"
 import type { File } from "./file"
 
 export class TraceEntry {
@@ -13,9 +14,40 @@ export class TraceEntry {
     ) {}
 
     toString(): string {
-        const { message, file, start } = this
+        const { message, file, start, end } = this
 
-        return `${message} (${file.name}:${file.row(start) + 1}:${file.col(start, file.row(start)) + 1})`
+        const row = file.row(start)
+        const bodyRaw = file.body.slice(file.lineStart[row]!, file.lineEnd[row]!)
+        const body = bodyRaw.trimStart()
+        let offset = bodyRaw.length - body.length
+
+        const col = Math.max(0, file.col(start, row) - offset)
+
+        const rowEnd = file.row(end)
+        const colEnd = Math.max(col, file.col(end, rowEnd))
+
+        return (
+            red
+            + message
+            + reset
+            + "\n    "
+            + dim
+            + body.slice(0, col)
+            + reset
+            + bold
+            + body.slice(col, rowEnd > row ? undefined : colEnd)
+            + reset
+            + dim
+            + (rowEnd > row ? "" : body.slice(colEnd))
+            + reset
+            + "\n    "
+            + " ".repeat(col)
+            + blue
+            + "^"
+            + dim
+            + "~".repeat(Math.max(0, rowEnd > row ? 0 : colEnd - col - 1))
+            + reset
+        )
     }
 }
 

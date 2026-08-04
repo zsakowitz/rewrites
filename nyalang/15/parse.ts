@@ -60,7 +60,7 @@ export class ParseContext {
     }
 }
 
-export type OpPrefix = "!" | "~" | "-" | "/" | "-%"
+export type OpPrefix = "!" | "1~" | "0-" | "0-%" | "1/"
 
 // prettier-ignore
 export type OpInfix =
@@ -98,7 +98,7 @@ export type Expr = Range
         | { k: "dot-tuple"; v: { id: number; value: Expr[] } } // .{2, 3}
         | { k: "dot-record"; v: { id: number; value: { name: Ident; value: Expr }[] } } // .{a: 2}
         | { k: "dot-empty"; v: { id: number } } // .{}
-        | { k: "dot-field"; v: Ident } // .a
+        | { k: "dot-prop"; v: Ident } // .a
         | { k: "dot-method"; v: { name: Ident; args: Expr[] } } // .a(2, 3)
         | { k: "dot-call"; v: Expr[] } // .(2, 3)
         | { k: "op-prefix"; v: { name: OpPrefix; arg: Expr } }
@@ -798,7 +798,7 @@ function parseExprAtomDot(context: ParseContext): Expr {
                 const args = parseArguments(context)
                 return { s, e: context.e, k: "dot-method", v: { name: id, args } }
             }
-            return { s, e: context.e, k: "dot-field", v: id }
+            return { s, e: context.e, k: "dot-prop", v: id }
         }
 
         case T.LParen: {
@@ -993,10 +993,10 @@ function parseExprWithSuffixes(context: ParseContext): Expr {
 
 const OP_PREFIX = {
     [T.Bang]: "!",
-    [T.Tilde]: "~",
-    [T.Slash]: "/",
-    [T.Minus]: "-",
-    [T.MinusPercent]: "-%",
+    [T.Tilde]: "1~",
+    [T.Minus]: "0-",
+    [T.MinusPercent]: "0-%",
+    [T.Slash]: "1/",
 } as const
 
 function parseExprWithPrefixes(context: ParseContext): Expr {

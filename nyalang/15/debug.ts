@@ -1,10 +1,10 @@
-import { blue, cyan, dim, green, red, reset, yellow } from "../2/ansi"
+import { blue, cyan, dim, green, reset, yellow } from "../2/ansi"
 import { assert } from "./assert"
 import { Error, Errors } from "./error"
 import { typeName } from "./ir"
 
 export function debug(value: unknown, key?: string): string {
-    if (key === "returnType" || (key === "runtimeArgTypes" && !Array.isArray(value))) {
+    if (!Array.isArray(value) && ["returnType", "runtimeArgTypes"].includes(key!)) {
         return blue + typeName(value as any) + reset
     }
 
@@ -29,7 +29,7 @@ export function debug(value: unknown, key?: string): string {
         return value
             .toString()
             .split("\n")
-            .map((x) => red + dim + "\\\\" + reset + red + x.toString() + reset)
+            .map((x) => dim + "\\\\" + reset + x.toString())
             .join("\n")
     }
 
@@ -125,6 +125,10 @@ export function debug(value: unknown, key?: string): string {
     ) {
         if (value.k === "runtime" && typeof value.v == "number") {
             return `${yellow}%${value.v}${reset}`
+        }
+
+        if (value.k === "type" && typeof value.v == "object") {
+            return `${cyan}.type${reset} ${typeName(value.v as any)}`
         }
 
         return `${cyan}.${value.k.replace(/-/g, "_")}${reset} ${debug(value.v)}`
