@@ -11,6 +11,7 @@ import {
     intIsSafe,
     type FloatBitSize,
 } from "./num"
+import { builtinConst, builtinFn } from "./operator"
 import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
 
 type Op1 =

@@ -51,7 +51,7 @@ function fnArg(
     return exprAs(ctx, comptime, type, arg.value)
 }
 
-function builtinFn(type: Type, name: string): BuiltinFn | null {
+export function builtinFn(type: Type, name: string): BuiltinFn | null {
     if (!Object.hasOwn(BUILTIN_METHODS, type.k)) {
         return null
     }
@@ -63,7 +63,7 @@ function builtinFn(type: Type, name: string): BuiltinFn | null {
     return BUILTIN_METHODS[type.k]![name]!
 }
 
-function builtinConst(type: Type, name: string): BuiltinConst | null {
+export function builtinConst(type: Type, name: string): BuiltinConst | null {
     if (!Object.hasOwn(BUILTIN_CONSTANTS, type.k)) {
         return null
     }
@@ -75,9 +75,7 @@ function builtinConst(type: Type, name: string): BuiltinConst | null {
     return BUILTIN_CONSTANTS[type.k]![name]!
 }
 
-function comptime_int_unary(
-    f: (ctx: EvaluationContext, p: Range, a: bigint) => bigint | null,
-): BuiltinFn {
+function cint_unary(f: (ctx: EvaluationContext, p: Range, a: bigint) => bigint | null): BuiltinFn {
     return (ctx, comptime, self, p, args) => {
         if (args.length !== 1) {
             ctx.raiseAt(p, "expected exactly one argument")
@@ -95,7 +93,7 @@ function comptime_int_unary(
     }
 }
 
-function comptime_int_binary(
+function cint_binary(
     f: (ctx: EvaluationContext, p: Range, a: bigint, b: bigint) => bigint | null,
 ): BuiltinFn {
     return (ctx, comptime, self, p, args) => {
@@ -119,7 +117,20 @@ function comptime_int_binary(
     }
 }
 
-function comptime_int_binary_cmp(f: (a: bigint, b: bigint) => boolean): BuiltinFn {
+function cint_binary_dividing(
+    f: (ctx: EvaluationContext, p: Range, a: bigint, b: bigint) => bigint | null,
+): BuiltinFn {
+    return cint_binary((ctx, p, a, b) => {
+        if (b === 0n) {
+            ctx.raiseAt(p, `division by zero`)
+            return null
+        }
+
+        return f(ctx, p, a, b)
+    })
+}
+
+function cint_cmp(f: (a: bigint, b: bigint) => boolean): BuiltinFn {
     return (ctx, comptime, self, p, args) => {
         if (args.length !== 2) {
             ctx.raiseAt(p, "expected exactly two arguments")
@@ -137,19 +148,6 @@ function comptime_int_binary_cmp(f: (a: bigint, b: bigint) => boolean): BuiltinF
         const result = f(lhs.v.value.v, rhs.v.value.v)
         return normal(tbool, { k: "bool", v: result })
     }
-}
-
-function comptime_int_binary_dividing(
-    f: (ctx: EvaluationContext, p: Range, a: bigint, b: bigint) => bigint | null,
-): BuiltinFn {
-    return comptime_int_binary((ctx, p, a, b) => {
-        if (b === 0n) {
-            ctx.raiseAt(p, `division by zero`)
-            return null
-        }
-
-        return f(ctx, p, a, b)
-    })
 }
 
 const conj: BuiltinFn = (ctx, comptime, self, p, args) => {
@@ -177,12 +175,12 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
     },
 
     comptime_int: {
-        "0-": comptime_int_unary((_ctx, _p, a) => -a),
-        "+": comptime_int_binary((_ctx, _p, a, b) => a + b),
-        "-": comptime_int_binary((_ctx, _p, a, b) => a - b),
-        "*": comptime_int_binary((_ctx, _p, a, b) => a * b),
+        "0-": cint_unary((_ctx, _p, a) => -a),
+        "+": cint_binary((_ctx, _p, a, b) => a + b),
+        "-": cint_binary((_ctx, _p, a, b) => a - b),
+        "*": cint_binary((_ctx, _p, a, b) => a * b),
 
-        "/": comptime_int_binary_dividing((ctx, p, a, b) => {
+        "/": cint_binary_dividing((ctx, p, a, b) => {
             if (a % b !== 0n) {
                 ctx.raiseAt(p, `division is not exact; try '.divFloor', '.divCeil', or '.divTrunc'`)
                 return null
@@ -190,7 +188,7 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
 
             return a / b
         }),
-        divExact: comptime_int_binary_dividing((ctx, p, a, b) => {
+        divExact: cint_binary_dividing((ctx, p, a, b) => {
             if (a % b !== 0n) {
                 ctx.raiseAt(p, `division is not exact; try '.divFloor', '.divCeil', or '.divTrunc'`)
                 return null
@@ -198,10 +196,10 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
 
             return a / b
         }),
-        divFloor: comptime_int_binary_dividing((_ctx, _p, a, b) => idivFloor(a, b)),
-        divCeil: comptime_int_binary_dividing((_ctx, _p, a, b) => idivCeil(a, b)),
-        divTrunc: comptime_int_binary_dividing((_ctx, _p, a, b) => a / b),
-        "%": comptime_int_binary_dividing((ctx, p, a, b) => {
+        divFloor: cint_binary_dividing((_ctx, _p, a, b) => idivFloor(a, b)),
+        divCeil: cint_binary_dividing((_ctx, _p, a, b) => idivCeil(a, b)),
+        divTrunc: cint_binary_dividing((_ctx, _p, a, b) => a / b),
+        "%": cint_binary_dividing((ctx, p, a, b) => {
             if (b < 0n) {
                 ctx.raiseAt(p, `divisor of '%' cannot be negative; try '.rem' or '.mod'`)
                 return null
@@ -209,22 +207,22 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
 
             return a / b
         }),
-        rem: comptime_int_binary_dividing((_ctx, _p, a, b) => a % b),
-        mod: comptime_int_binary_dividing((_ctx, _p, a, b) => ((a % b) + b) % b),
+        rem: cint_binary_dividing((_ctx, _p, a, b) => a % b),
+        mod: cint_binary_dividing((_ctx, _p, a, b) => ((a % b) + b) % b),
 
-        "&": comptime_int_binary((_ctx, _p, a, b) => a & b),
-        "|": comptime_int_binary((_ctx, _p, a, b) => a | b),
-        "~": comptime_int_binary((_ctx, _p, a, b) => a ^ b),
+        "&": cint_binary((_ctx, _p, a, b) => a & b),
+        "|": cint_binary((_ctx, _p, a, b) => a | b),
+        "~": cint_binary((_ctx, _p, a, b) => a ^ b),
 
-        sign: comptime_int_unary((_ctx, _p, a) => isign(a)),
-        abs: comptime_int_unary((_ctx, _p, a) => iabs(a)),
+        sign: cint_unary((_ctx, _p, a) => isign(a)),
+        abs: cint_unary((_ctx, _p, a) => iabs(a)),
 
-        "<": comptime_int_binary_cmp((a, b) => a < b),
-        ">": comptime_int_binary_cmp((a, b) => a > b),
-        "<=": comptime_int_binary_cmp((a, b) => a <= b),
-        ">=": comptime_int_binary_cmp((a, b) => a >= b),
-        "==": comptime_int_binary_cmp((a, b) => a == b),
-        "!=": comptime_int_binary_cmp((a, b) => a != b),
+        "<": cint_cmp((a, b) => a < b),
+        ">": cint_cmp((a, b) => a > b),
+        "<=": cint_cmp((a, b) => a <= b),
+        ">=": cint_cmp((a, b) => a >= b),
+        "==": cint_cmp((a, b) => a == b),
+        "!=": cint_cmp((a, b) => a != b),
 
         conj,
     },
