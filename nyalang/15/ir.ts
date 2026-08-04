@@ -6,7 +6,6 @@ import type { File } from "./file"
 import { decl } from "./ident"
 import {
     bitCountWithVariants,
-    clz,
     FLOAT_BIT_SIZES,
     floatTruncate,
     intIsSafe,
@@ -1348,7 +1347,7 @@ function expr(
                 return ERROR
             }
 
-            const value = getProp(ctx, type, p, v.name)
+            const value = dotProp(ctx, innerType(type), p, v.name)
             if (value === null) return ERROR
             return { k: "normal", v: value }
         }
@@ -1359,16 +1358,10 @@ function expr(
                 return ERROR
             }
 
-            type = innerType(type)
-            if (!isNamespace(type)) {
-                ctx.raiseAt(p, `type '${typeName(type)}' has no methods`)
-                return ERROR
-            }
-
             return dotMethod(
                 ctx,
                 comptime,
-                type,
+                innerType(type),
                 p,
                 v.name.name,
                 v.args.map((x) => ({ p: x, evaluated: false, value: x })),
@@ -1380,10 +1373,12 @@ function expr(
             return ERROR
 
         case "op-prefix":
-            return exprUnary(ctx, comptime, type, p, v.name, v.arg)
+            ctx.todo(p, "expr kind '.op-prefix'")
+            return ERROR
 
         case "op-infix":
-            return exprBinary(ctx, comptime, type, p, v.name, v.lhs, v.rhs)
+            ctx.todo(p, "expr kind '.op-infix'")
+            return ERROR
 
         case "cf-unreachable": {
             if (comptime) {
@@ -1853,59 +1848,6 @@ function builtin(
 
             return normalType(value.v.type)
         }
-
-        case "abs":
-        case "acos":
-        case "acosh":
-        case "asin":
-        case "asinh":
-        case "atan":
-        case "atanh":
-        case "cbrt":
-        case "ceil":
-        case "clz":
-        case "cos":
-        case "cosh":
-        case "exp":
-        case "exp10":
-        case "exp2":
-        case "expm1":
-        case "floor":
-        case "log":
-        case "log10":
-        case "log1p":
-        case "log2":
-        case "sign":
-        case "sin":
-        case "sinh":
-        case "sqrt":
-        case "tan":
-        case "tanh":
-        case "trunc":
-        case "isInf":
-        case "isNan":
-        case "isFin":
-            if (args.length !== 1) {
-                ctx.raiseAt(p, `builtin '@${name}' requires exactly one argument`)
-                return ERROR
-            }
-            return exprUnary(ctx, comptime, type, p, `@${name}`, args[0]!)
-
-        case "divExact":
-        case "divFloor":
-        case "divCeil":
-        case "divTrunc":
-        case "mod":
-        case "rem":
-        case "pow":
-        case "rotl":
-        case "rotr":
-        case "atan2":
-            if (args.length !== 1) {
-                ctx.raiseAt(p, `builtin '@${name}' requires exactly two arguments`)
-                return ERROR
-            }
-            return exprBinary(ctx, comptime, type, p, `@${name}`, args[0]!, args[1]!)
     }
 
     ctx.raiseAt(p, `'@${name}' does not exist or is not implemented`)
@@ -2592,12 +2534,21 @@ function topLevelValueAs(ns: Namespace, type: Type, value: Expr): TypedValue | n
 }
 
 /** Guaranteed to run at `comptime`. */
-function getProp(ctx: EvaluationContext, type: Type, p: Range, name: string): TypedValue | null {
-    type = innerType(type)
+function dotProp(ctx: EvaluationContext, type: Type, p: Range, name: string): TypedValue | null {
+    if (!isNamespace(type)) {
+        const prop = builtinConst(type, name)
+        if (prop === null) {
+            const method = builtinFn(type, name)
+            if (method === null) {
+                ctx.raiseAt(p, `type '${typeName(type)}' has no declaration named '${name}'`)
+                return null
+            }
 
-    if (!(type.k === "struct" || type.k === "enum" || type.k === "union" || type.k === "opaque")) {
-        ctx.raiseAt(p, `'.xyz' syntax cannot be used when the expected type is '${typeName(type)}'`)
-        return null
+            ctx.todo(p, `builtin function from prop`)
+            return null
+        }
+
+        return prop(ctx, type, p)
     }
 
     if (type.k === "enum") {
@@ -2782,6 +2733,19 @@ function callMethod(
     self: TypedValue,
     argsRaw: Expr[],
 ): Result<TypedValue> {
+    if (!isNamespace(self.type)) {
+        const f = builtinFn(self.type, name)
+        if (f === null) {
+            ctx.raiseAt(p, `type '${typeName(self.type)}' has no method '${name}'`)
+            return ERROR
+        }
+
+        return f(ctx, comptime, self.type, p, [
+            { p: selfP, evaluated: true, value: self },
+            ...argsRaw.map((x): FnArg => ({ p: x, evaluated: false, value: x })),
+        ])
+    }
+
     assert(
         self.type.k === "struct"
             || self.type.k === "enum"
@@ -2993,282 +2957,13 @@ function callInner(
     return { k: "normal", v: voidCast }
 }
 
-const tbool: Type = { k: "bool", v: null }
-const ttype: Type = { k: "type", v: null }
-const tcomptime_int: Type = { k: "comptime_int", v: null }
-const tcomptime_float: Type = { k: "comptime_float", v: null }
-
-function exprUnary(
-    ctx: EvaluationContext,
-    comptime: boolean,
-    type: Type | null,
-    p: Range,
-    name: Op1,
-    argRaw: Expr,
-): Result<TypedValue> {
-    if (type !== null) type = innerType(type)
-
-    // expected type is useless because argument can vary even when expected type is fixed
-    if (name === "@clz" || name === "@isInf" || name === "@isNan" || name === "@isFin") type = null
-
-    const result = expr(ctx, comptime, type, argRaw)
-    if (result.k !== "normal") return result
-    const arg = result.v
-
-    if (isNamespace(arg.type)) {
-        if (name === "!" || name === "-" || name === "-%" || name === "/") {
-            return callMethod(ctx, comptime, p, name, argRaw, arg, [])
-        }
-
-        ctx.raiseAt(p, `'${name}' does not accept user-defined types`)
-        return ERROR
-    }
-
-    if (arg.type.k === "bool") {
-        if (name !== "!") {
-            ctx.raiseAt(p, `'${name}' does not accept 'bool'`)
-            return ERROR
-        }
-
-        if (arg.value.k === "bool") {
-            return normal(tbool, { k: "bool", v: !arg.value.v })
-        }
-
-        assert(arg.value.k === "runtime" && !comptime)
-        return ctx.rtResult(tbool, "op-1", { name: "!", v: arg.value.v })
-    }
-
-    if (arg.type.k === "comptime_int") {
-        if (!has(OP1_COMPTIME_INT, name)) {
-            ctx.raiseAt(p, `'${name}' does not accept 'comptime_int'`)
-            return ERROR
-        }
-
-        assert(arg.value.k === "int")
-
-        // prettier-ignore
-        switch (name) {
-            case "-":     return normal(tcomptime_int, { k: "int", v: -arg.value.v })
-            case "@abs":  return normal(tcomptime_int, { k: "int", v: arg.value.v < 0n ? -arg.value.v : arg.value.v })
-            case "@sign": return normal(tcomptime_int, { k: "int", v: arg.value.v < 0n ? -1n : arg.value.v > 0n ? 1n : 0n })
-            default:      name satisfies never
-        }
-    }
-
-    if ((arg.type.k === "i" || arg.type.k === "u") && name === "@clz") {
-        const ret = { k: "u" as const, v: bitCountWithVariants(arg.type.v) }
-
-        if (arg.value.k === "int") {
-            return normal(ret, { k: "int", v: BigInt(clz(arg.type.v, arg.value.v)) })
-        }
-
-        assert(arg.value.k === "runtime")
-        return ctx.rtResult(ret, "op-1", { name: "@clz", v: arg.value.v })
-    }
-
-    if (arg.type.k === "i") {
-        if (!has(OP1_I, name)) {
-            ctx.raiseAt(p, `'${name}' does not accept '${typeName(arg.type)}'`)
-            return ERROR
-        }
-
-        if (arg.value.k === "runtime") {
-            return ctx.rtResult(arg.type, "op-1", { name, v: arg.value.v })
-        }
-
-        assert(arg.value.k === "int")
-
-        // prettier-ignore
-        switch (name) {
-            case "-":
-            case "@abs": {
-                if (arg.value.v === -(1n << BigInt(arg.type.k))) {
-                    ctx.raiseAt(p, `negation of '@as(i${arg.type.v}, ${arg.value.v})' overflows its type`)
-                    return ERROR
-                }
-                return normal(arg.type, { k: "int", v: name === "-" || arg.value.v < 0n ? -arg.value.v : arg.value.v })}
-            case "-%":    return normal(arg.type, { k: "int", v: BigInt.asIntN(arg.type.v, -arg.value.v) })
-            case "~":     return normal(arg.type, { k: "int", v: ~arg.value.v })
-            case "@sign": return normal(arg.type, { k: "int", v: arg.value.v < 0n ? -1n : arg.value.v > 0n ? 1n : 0n })
-            default:      name satisfies never
-        }
-    }
-
-    if (arg.type.k === "u") {
-        if (!has(OP1_U, name)) {
-            ctx.raiseAt(p, `'${name}(...)' does not accept '${typeName(arg.type)}'`)
-            return ERROR
-        }
-
-        if (arg.value.k === "runtime") {
-            return ctx.rtResult(arg.type, "op-1", { name, v: arg.value.v })
-        }
-
-        assert(arg.value.k === "int")
-
-        // prettier-ignore
-        switch (name) {
-            case "~":     return normal(arg.type, { k: "int", v: BigInt.asUintN(arg.type.v, ~arg.value.v) })
-            case "@sign": return normal(arg.type, { k: "int", v: BigInt(arg.value.v !== 0n) })
-            default:      name satisfies never
-        }
-    }
-
-    if (arg.type.k === "comptime_float") {
-        if (!has(OP1_FLOAT, name)) {
-            ctx.raiseAt(p, `'${name}' does not accept 'comptime_float'`)
-            return ERROR
-        }
-
-        assert(arg.value.k === "float")
-
-        if (name === "@isInf") return normal(tbool, { k: "bool", v: 1 / arg.value.v === 0 })
-        if (name === "@isNan") return normal(tbool, { k: "bool", v: arg.value.v !== arg.value.v })
-        if (name === "@isFin") return normal(tbool, { k: "bool", v: isFinite(arg.value.v) })
-
-        return normal(tcomptime_float, { k: "float", v: op1float(name, arg.value.v) })
-    }
-
-    if (arg.type.k === "f") {
-        if (!has(OP1_FLOAT, name)) {
-            ctx.raiseAt(p, `'${name}' does not accept '${typeName(arg.type)}'`)
-            return ERROR
-        }
-
-        if (arg.value.k === "runtime") {
-            return ctx.rtResult(arg.type, "op-1", { name, v: arg.value.v })
-        }
-
-        assert(arg.value.k === "float")
-
-        if (name === "@isInf") return normal(tbool, { k: "bool", v: 1 / arg.value.v === 0 })
-        if (name === "@isNan") return normal(tbool, { k: "bool", v: arg.value.v !== arg.value.v })
-        if (name === "@isFin") return normal(tbool, { k: "bool", v: isFinite(arg.value.v) })
-
-        return normal(arg.type, {
-            k: "float",
-            v: floatTruncate(arg.type.v, op1float(name, arg.value.v)),
-        })
-    }
-
-    ctx.raiseAt(p, `unary operators are only supported on numeric values and namespace types`)
-    return ERROR
-}
-
-function has<T extends string>(array: T[], value: string): value is T {
-    return array.includes(value as T)
-}
-
-const OP1_COMPTIME_INT = ["-", "@abs", "@sign"] satisfies Op1[]
-const OP1_I = ["-", "-%", "~", "@abs", "@sign"] satisfies Op1[]
-const OP1_U = ["~", "@sign"] satisfies Op1[]
-
-const OP1_FLOAT = [
-    "-",
-    "/",
-    "@abs",
-    "@sign",
-    "@sin",
-    "@sinh",
-    "@asin",
-    "@asinh",
-    "@cos",
-    "@cosh",
-    "@acos",
-    "@acosh",
-    "@tan",
-    "@tanh",
-    "@atan",
-    "@atanh",
-    "@exp",
-    "@exp2",
-    "@exp10",
-    "@log",
-    "@log2",
-    "@log10",
-    "@expm1",
-    "@log1p",
-    "@sqrt",
-    "@cbrt",
-    "@floor",
-    "@ceil",
-    "@trunc",
-    "@isInf",
-    "@isNan",
-    "@isFin",
-] satisfies Op1[]
-
-function op1float(
-    op: Exclude<(typeof OP1_FLOAT)[number], "@isInf" | "@isNan" | "@isFin">,
-    value: number,
-): number {
-    // prettier-ignore
-    switch (op) {
-        case "-":      return -value
-        case "/":      return 1 / value
-        case "@abs":   return Math.abs(value)
-        case "@sign":  return Math.sign(value)
-        case "@sin":   return Math.sin(value)
-        case "@sinh":  return Math.sinh(value)
-        case "@cos":   return Math.cos(value)
-        case "@cosh":  return Math.cosh(value)
-        case "@tan":   return Math.tan(value)
-        case "@tanh":  return Math.tanh(value)
-        case "@asin":  return Math.asin(value)
-        case "@asinh": return Math.asinh(value)
-        case "@acos":  return Math.acos(value)
-        case "@acosh": return Math.acosh(value)
-        case "@atan":  return Math.atan(value)
-        case "@atanh": return Math.atanh(value)
-        case "@exp":   return Math.exp(value)
-        case "@exp2":  return Math.pow(2, value)
-        case "@exp10": return Math.pow(10, value)
-        case "@log":   return Math.log(value)
-        case "@log2":  return Math.log2(value)
-        case "@log10": return Math.log10(value)
-        case "@expm1": return Math.expm1(value)
-        case "@log1p": return Math.log1p(value)
-        case "@sqrt":  return Math.sqrt(value)
-        case "@cbrt":  return Math.cbrt(value)
-        case "@floor": return Math.floor(value)
-        case "@ceil":  return Math.ceil(value)
-        case "@trunc": return Math.trunc(value)
-    }
-}
-
-function exprBinary(
-    ctx: EvaluationContext,
-    comptime: boolean,
-    type: Type | null,
-    p: Range,
-    name: Op2,
-    lraw: Expr,
-    rraw: Expr,
-): Result<TypedValue> {
-    // inputs should match, but output is likely different
-    if (has(["==", "!=", "<", ">", "<=", ">="], name)) {
-        const lhs = expr(ctx, comptime, null, lraw)
-        if (lhs.k !== "normal") return lhs
-
-        if (isNamespace(lhs.v.type)) {
-            const rhs = expr(ctx, comptime, null, lraw)
-            if (rhs.k !== "normal") return rhs
-        }
-    }
-
-    // inputs should match output
-    if (has(["+", "-", "*", "+%", "-%", "*%", "/", "%", "&", "|", "~"], name)) {
-    }
-
-    // inputs have the weird log behavior
-    if (has(["<<", ">>"], name)) {
-    }
-
-    ctx.todo(p, "binary operator not supported")
-    return ERROR
-}
-
-function isNamespace(type: Type): boolean {
+function isNamespace(
+    type: Type,
+): type is
+    | { k: "struct"; v: Struct }
+    | { k: "enum"; v: Enum }
+    | { k: "union"; v: Union }
+    | { k: "opaque"; v: Opaque } {
     return type.k === "struct" || type.k === "enum" || type.k === "union" || type.k === "opaque"
 }
 
@@ -3280,6 +2975,16 @@ function dotMethod(
     name: string,
     args: FnArg[],
 ): Result<TypedValue> {
+    if (!isNamespace(self)) {
+        const f = builtinFn(self, name)
+        if (f === null) {
+            ctx.raiseAt(p, `type '${typeName(self)}' does not have method '${name}'`)
+            return ERROR
+        }
+
+        return f(ctx, comptime, self, p, args)
+    }
+
     assert(self.k === "struct" || self.k === "enum" || self.k === "union" || self.k === "opaque")
 
     if (!self.v.ns.items.hasOwn(name)) {
@@ -3321,7 +3026,7 @@ type BuiltinFn = (
     comptime: boolean,
     self: Type,
     p: Range,
-    args: Expr[],
+    args: FnArg[],
 ) => Result<TypedValue>
 
 const ftodo: BuiltinFn = (ctx, _comptime, _self, p, _args) => {
@@ -3543,11 +3248,11 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
     },
 }
 
-type BuiltinConst = (ctx: EvaluationContext, self: Type, p: Range) => Result<TypedValue>
+type BuiltinConst = (ctx: EvaluationContext, self: Type, p: Range) => TypedValue | null
 
 const ctodo: BuiltinConst = (ctx, _self, p) => {
     ctx.raiseAt(p, `builtin constant not implemented yet`)
-    return ERROR
+    return null
 }
 
 const BUILTIN_CONSTANTS: Partial<Record<Type["k"], Record<string, BuiltinConst>>> = {
