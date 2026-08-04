@@ -8,9 +8,11 @@ import {
     bitCountWithVariants,
     FLOAT_BIT_SIZES,
     floatTruncate,
+    iabs,
     idivCeil,
     idivFloor,
     intIsSafe,
+    isign,
     type FloatBitSize,
 } from "./num"
 import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
@@ -3139,6 +3141,92 @@ function builtinConst(type: Type, name: string): BuiltinConst | null {
     return BUILTIN_CONSTANTS[type.k]![name]!
 }
 
+function comptime_int_unary(
+    f: (ctx: EvaluationContext, p: Range, a: bigint) => bigint | null,
+): BuiltinFn {
+    return (ctx, comptime, self, p, args) => {
+        if (args.length !== 1) {
+            ctx.raiseAt(p, "expected exactly one argument")
+            return ERROR
+        }
+
+        const arg = fnArg(ctx, comptime, self, args[0]!)
+        if (arg.k !== "normal") return arg
+        assert(arg.v.value.k === "int")
+
+        const result = f(ctx, p, arg.v.value.v)
+        if (result === null) return ERROR
+
+        return normal(self, { k: "int", v: result })
+    }
+}
+
+function comptime_int_binary(
+    f: (ctx: EvaluationContext, p: Range, a: bigint, b: bigint) => bigint | null,
+): BuiltinFn {
+    return (ctx, comptime, self, p, args) => {
+        if (args.length !== 2) {
+            ctx.raiseAt(p, "expected exactly two arguments")
+            return ERROR
+        }
+
+        const lhs = fnArg(ctx, comptime, self, args[0]!)
+        if (lhs.k !== "normal") return lhs
+        assert(lhs.v.value.k === "int")
+
+        const rhs = fnArg(ctx, comptime, self, args[1]!)
+        if (rhs.k !== "normal") return rhs
+        assert(rhs.v.value.k === "int")
+
+        const result = f(ctx, p, lhs.v.value.v, rhs.v.value.v)
+        if (result === null) return ERROR
+
+        return normal(self, { k: "int", v: result })
+    }
+}
+
+function comptime_int_binary_cmp(f: (a: bigint, b: bigint) => boolean): BuiltinFn {
+    return (ctx, comptime, self, p, args) => {
+        if (args.length !== 2) {
+            ctx.raiseAt(p, "expected exactly two arguments")
+            return ERROR
+        }
+
+        const lhs = fnArg(ctx, comptime, self, args[0]!)
+        if (lhs.k !== "normal") return lhs
+        assert(lhs.v.value.k === "int")
+
+        const rhs = fnArg(ctx, comptime, self, args[1]!)
+        if (rhs.k !== "normal") return rhs
+        assert(rhs.v.value.k === "int")
+
+        const result = f(lhs.v.value.v, rhs.v.value.v)
+        return normal(tbool, { k: "bool", v: result })
+    }
+}
+
+function comptime_int_binary_dividing(
+    f: (ctx: EvaluationContext, p: Range, a: bigint, b: bigint) => bigint | null,
+): BuiltinFn {
+    return comptime_int_binary((ctx, p, a, b) => {
+        if (b === 0n) {
+            ctx.raiseAt(p, `division by zero`)
+            return null
+        }
+
+        return f(ctx, p, a, b)
+    })
+}
+
+const conj: BuiltinFn = (ctx, comptime, self, p, args) => {
+    if (args.length !== 1) {
+        ctx.raiseAt(p, "'.conj' requires exactly one argument")
+        return ERROR
+    }
+
+    return fnArg(ctx, comptime, self, args[0]!)
+}
+
 const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
     bool: {
         "!": ftodo,
@@ -3155,447 +3243,56 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
     },
 
     comptime_int: {
-        "0-"(ctx, comptime, self, p, args) {
-            if (args.length !== 1) {
-                ctx.raiseAt(p, "'comptime_int.@\"0-\"' requires exactly one argument")
-                return ERROR
+        "0-": comptime_int_unary((_ctx, _p, a) => -a),
+        "+": comptime_int_binary((_ctx, _p, a, b) => a + b),
+        "-": comptime_int_binary((_ctx, _p, a, b) => a - b),
+        "*": comptime_int_binary((_ctx, _p, a, b) => a * b),
+
+        "/": comptime_int_binary_dividing((ctx, p, a, b) => {
+            if (a % b !== 0n) {
+                ctx.raiseAt(p, `division is not exact; try '.divFloor', '.divCeil', or '.divTrunc'`)
+                return null
             }
 
-            const arg = fnArg(ctx, comptime, self, args[0]!)
-            if (arg.k !== "normal") return arg
-            assert(arg.v.value.k === "int")
-            return normal(self, { k: "int", v: -arg.v.value.v })
-        },
-        "+"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"+\"' requires exactly two arguments")
-                return ERROR
+            return a / b
+        }),
+        divExact: comptime_int_binary_dividing((ctx, p, a, b) => {
+            if (a % b !== 0n) {
+                ctx.raiseAt(p, `division is not exact; try '.divFloor', '.divCeil', or '.divTrunc'`)
+                return null
             }
 
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(self, { k: "int", v: lhs.v.value.v + rhs.v.value.v })
-        },
-        "-"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"-\"' requires exactly two arguments")
-                return ERROR
+            return a / b
+        }),
+        divFloor: comptime_int_binary_dividing((_ctx, _p, a, b) => idivFloor(a, b)),
+        divCeil: comptime_int_binary_dividing((_ctx, _p, a, b) => idivCeil(a, b)),
+        divTrunc: comptime_int_binary_dividing((_ctx, _p, a, b) => a / b),
+        "%": comptime_int_binary_dividing((ctx, p, a, b) => {
+            if (b < 0n) {
+                ctx.raiseAt(p, `divisor of '%' cannot be negative; try '.rem' or '.mod'`)
+                return null
             }
 
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(self, { k: "int", v: lhs.v.value.v - rhs.v.value.v })
-        },
-        "*"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"*\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(self, { k: "int", v: lhs.v.value.v * rhs.v.value.v })
-        },
-
-        "/"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"/\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            if (rhs.v.value.v === 0n) {
-                ctx.raiseAt(p, `division by zero`)
-                return ERROR
-            }
-
-            if (lhs.v.value.v % rhs.v.value.v !== 0n) {
-                ctx.raiseAt(
-                    p,
-                    `division is not exact; use '.divFloor', '.divCeil', or '.divTrunc' to specify precise behavior`,
-                )
-                return ERROR
-            }
-
-            return normal(self, { k: "int", v: lhs.v.value.v / rhs.v.value.v })
-        },
-        "%"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"%\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            if (rhs.v.value.v === 0n) {
-                ctx.raiseAt(p, `remainder by zero`)
-                return ERROR
-            }
-
-            if (rhs.v.value.v < 0n) {
-                ctx.raiseAt(
-                    p,
-                    `cannot take remainder by negative divisor '${rhs.v.value.v}'; use '.rem' or '.mod' to specify precise behavior`,
-                )
-                return ERROR
-            }
-
-            return normal(self, { k: "int", v: lhs.v.value.v % rhs.v.value.v })
-        },
-        divExact(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.divExact' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            if (rhs.v.value.v === 0n) {
-                ctx.raiseAt(p, `division by zero`)
-                return ERROR
-            }
-
-            if (lhs.v.value.v % rhs.v.value.v !== 0n) {
-                ctx.raiseAt(p, `division is not exact`)
-                return ERROR
-            }
-
-            return normal(self, { k: "int", v: lhs.v.value.v / rhs.v.value.v })
-        },
-        divFloor(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.divExact' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            if (rhs.v.value.v === 0n) {
-                ctx.raiseAt(p, `division by zero`)
-                return ERROR
-            }
-
-            return normal(self, { k: "int", v: idivFloor(lhs.v.value.v, rhs.v.value.v) })
-        },
-        divCeil(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.divCeil' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            if (rhs.v.value.v === 0n) {
-                ctx.raiseAt(p, `division by zero`)
-                return ERROR
-            }
-
-            return normal(self, { k: "int", v: idivCeil(lhs.v.value.v, rhs.v.value.v) })
-        },
-        divTrunc(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.divTrunc' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            if (rhs.v.value.v === 0n) {
-                ctx.raiseAt(p, `division by zero`)
-                return ERROR
-            }
-
-            return normal(self, { k: "int", v: lhs.v.value.v / rhs.v.value.v })
-        },
-        rem(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.rem' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            if (rhs.v.value.v === 0n) {
-                ctx.raiseAt(p, `remainder by zero`)
-                return ERROR
-            }
-
-            return normal(self, { k: "int", v: lhs.v.value.v % rhs.v.value.v })
-        },
-        mod(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.mod' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            if (rhs.v.value.v === 0n) {
-                ctx.raiseAt(p, `modulo by zero`)
-                return ERROR
-            }
-
-            return normal(self, {
-                k: "int",
-                v: ((lhs.v.value.v % rhs.v.value.v) + rhs.v.value.v) % rhs.v.value.v,
-            })
-        },
-
-        "&"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"&\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(self, { k: "int", v: lhs.v.value.v & rhs.v.value.v })
-        },
-        "|"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"|\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(self, { k: "int", v: lhs.v.value.v | rhs.v.value.v })
-        },
-        "~"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"~\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(self, { k: "int", v: lhs.v.value.v ^ rhs.v.value.v })
-        },
-
-        sign(ctx, comptime, self, p, args) {
-            if (args.length !== 1) {
-                ctx.raiseAt(p, "'comptime_int.sign' requires exactly one argument")
-                return ERROR
-            }
-
-            const arg = fnArg(ctx, comptime, self, args[0]!)
-            if (arg.k !== "normal") return arg
-            assert(arg.v.value.k === "int")
-
-            return normal(self, {
-                k: "int",
-                v:
-                    arg.v.value.v < 0n ? -1n
-                    : arg.v.value.v > 0n ? 1n
-                    : 0n,
-            })
-        },
-        abs(ctx, comptime, self, p, args) {
-            if (args.length !== 1) {
-                ctx.raiseAt(p, "'comptime_int.abs' requires exactly one argument")
-                return ERROR
-            }
-
-            const arg = fnArg(ctx, comptime, self, args[0]!)
-            if (arg.k !== "normal") return arg
-            assert(arg.v.value.k === "int")
-
-            return normal(self, {
-                k: "int",
-                v: arg.v.value.v < 0n ? -arg.v.value.v : arg.v.value.v,
-            })
-        },
-
-        "<"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"<\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(tbool, { k: "bool", v: lhs.v.value.v < rhs.v.value.v })
-        },
-        ">"(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\">\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(tbool, { k: "bool", v: lhs.v.value.v > rhs.v.value.v })
-        },
-        "<="(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"<=\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(tbool, { k: "bool", v: lhs.v.value.v <= rhs.v.value.v })
-        },
-        ">="(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\">=\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(tbool, { k: "bool", v: lhs.v.value.v >= rhs.v.value.v })
-        },
-        "=="(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"==\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(tbool, { k: "bool", v: lhs.v.value.v == rhs.v.value.v })
-        },
-        "!="(ctx, comptime, self, p, args) {
-            if (args.length !== 2) {
-                ctx.raiseAt(p, "'comptime_int.@\"!=\"' requires exactly two arguments")
-                return ERROR
-            }
-
-            const lhs = fnArg(ctx, comptime, self, args[0]!)
-            if (lhs.k !== "normal") return lhs
-            assert(lhs.v.value.k === "int")
-
-            const rhs = fnArg(ctx, comptime, self, args[1]!)
-            if (rhs.k !== "normal") return rhs
-            assert(rhs.v.value.k === "int")
-
-            return normal(tbool, { k: "bool", v: lhs.v.value.v != rhs.v.value.v })
-        },
-
-        conj(ctx, comptime, self, p, args) {
-            if (args.length !== 1) {
-                ctx.raiseAt(p, "'comptime_int.conj' requires exactly one argument")
-                return ERROR
-            }
-
-            return fnArg(ctx, comptime, self, args[0]!)
-        },
+            return a / b
+        }),
+        rem: comptime_int_binary_dividing((_ctx, _p, a, b) => a % b),
+        mod: comptime_int_binary_dividing((_ctx, _p, a, b) => ((a % b) + b) % b),
+
+        "&": comptime_int_binary((_ctx, _p, a, b) => a & b),
+        "|": comptime_int_binary((_ctx, _p, a, b) => a | b),
+        "~": comptime_int_binary((_ctx, _p, a, b) => a ^ b),
+
+        sign: comptime_int_unary((_ctx, _p, a) => isign(a)),
+        abs: comptime_int_unary((_ctx, _p, a) => iabs(a)),
+
+        "<": comptime_int_binary_cmp((a, b) => a < b),
+        ">": comptime_int_binary_cmp((a, b) => a > b),
+        "<=": comptime_int_binary_cmp((a, b) => a <= b),
+        ">=": comptime_int_binary_cmp((a, b) => a >= b),
+        "==": comptime_int_binary_cmp((a, b) => a == b),
+        "!=": comptime_int_binary_cmp((a, b) => a != b),
+
+        conj,
     },
 
     i: {
@@ -3609,11 +3306,11 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         "*%": ftodo,
 
         "/": ftodo,
-        "%": ftodo,
         divExact: ftodo,
         divFloor: ftodo,
         divCeil: ftodo,
         divTrunc: ftodo,
+        "%": ftodo,
         rem: ftodo,
         mod: ftodo,
 
@@ -3645,11 +3342,11 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         "*%": ftodo,
 
         "/": ftodo,
-        "%": ftodo,
         divExact: ftodo,
         divFloor: ftodo,
         divCeil: ftodo,
         divTrunc: ftodo,
+        "%": ftodo,
         rem: ftodo,
         mod: ftodo,
 
@@ -3680,11 +3377,11 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
 
         "1/": ftodo,
         "/": ftodo,
-        "%": ftodo,
         divExact: ftodo,
         divFloor: ftodo,
         divCeil: ftodo,
         divTrunc: ftodo,
+        "%": ftodo,
         rem: ftodo,
         mod: ftodo,
 
@@ -3739,11 +3436,11 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
 
         "1/": ftodo,
         "/": ftodo, // comptime-only
-        "%": ftodo, // comptime-only
         divExact: ftodo,
         divFloor: ftodo,
         divCeil: ftodo,
         divTrunc: ftodo,
+        "%": ftodo, // comptime-only
         rem: ftodo,
         mod: ftodo,
 

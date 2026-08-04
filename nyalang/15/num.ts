@@ -110,3 +110,15 @@ assert(idivCeil(3n, -3n) === -1n)
 assert(idivCeil(4n, -3n) === -1n)
 assert(idivCeil(5n, -3n) === -1n)
 assert(idivCeil(6n, -3n) === -2n)
+
+export function isign(n: bigint): -1n | 0n | 1n {
+    return (
+        n < 0n ? -1n
+        : n > 0n ? 1n
+        : 0n
+    )
+}
+
+export function iabs(n: bigint): bigint {
+    return n < 0n ? -n : n
+}
