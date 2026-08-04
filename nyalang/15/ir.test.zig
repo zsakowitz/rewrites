@@ -50,6 +50,10 @@ fn Complex(T: type) type {
     };
 }
 
-const Q = Complex(Complex(comptime_int));
+test @as(Q, .init(.init(-5, 4), .init(2, 3)) * .init(.init(2, 45), .init(9, -8)));
 
-test Q;
+const Q = Complex(Complex(comptime_int));
+const u: Q = .init(.init(1, 0), .init(0, 0));
+const i: Q = .init(.init(0, 1), .init(0, 0));
+const j: Q = .init(.init(0, 0), .init(1, 0));
+const k: Q = .init(.init(0, 0), .init(0, 1));
