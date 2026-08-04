@@ -6,12 +6,66 @@ import type { File } from "./file"
 import { decl } from "./ident"
 import {
     bitCountWithVariants,
+    clz,
     FLOAT_BIT_SIZES,
     floatTruncate,
     intIsSafe,
     type FloatBitSize,
 } from "./num"
 import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
+
+type Op1 =
+    | "!"
+    | "-"
+    | "-%"
+    | "~"
+    | "/"
+    | "@abs"
+    | "@sign"
+    | "@clz"
+    | `@${"a" | ""}${"sin" | "cos" | "tan"}${"h" | ""}`
+    | `@${"exp" | "log"}${"" | "2" | "10"}`
+    | "@expm1"
+    | "@log1p"
+    | "@sqrt"
+    | "@cbrt"
+    | "@floor"
+    | "@ceil"
+    | "@trunc"
+    | "@isInf"
+    | "@isNan"
+    | "@isFin"
+
+type Op2 =
+    | "&"
+    | "|"
+    | "~"
+    | "+"
+    | "-"
+    | "*"
+    | "+%"
+    | "-%"
+    | "*%"
+    | "/" // only supported when result is exact or inputs are floats
+    | "%" // only supported when both operands are nonnegative
+    | "<<"
+    | ">>"
+    | "=="
+    | "!="
+    | "<"
+    | ">"
+    | "<="
+    | ">="
+    | "@divExact"
+    | "@divFloor"
+    | "@divCeil"
+    | "@divTrunc"
+    | "@mod"
+    | "@rem"
+    | "@pow"
+    | "@rotl"
+    | "@rotr"
+    | "@atan2"
 
 const usize: Type = { k: "u", v: 32 }
 
@@ -22,7 +76,7 @@ type Type =
     | { k: "comptime_int"; v: null }
     | { k: "comptime_float"; v: null }
     | { k: "u" | "i"; v: number }
-    | { k: "f"; v: FloatBitSize }
+    | { k: "f"; v: FloatBitSize } // todo: do we want `rN` for non-nan, non-inf, algebraically transformable numbers? if so GPU code should only allow `rN`, not `fN`
     | { k: "str"; v: null }
     | { k: "path"; v: null } // so that `@import(x)` works even when `x` is defined in another file
     | { k: "null"; v: null }
@@ -244,7 +298,12 @@ type RuntimeInst =
     | { n: RII; k: "get-variant"; v: { target: RII; field: string } }
     | { n: RII; k: "global-load"; v: GID }
     | { n: RII; k: "slice-from-array"; v: RII }
+    | { n: RII; k: "const-init"; v: RII }
+    | { n: RII; k: "const-load"; v: RII }
+    | { n: RII; k: "var-init"; v: RII }
     | { n: RII; k: "var-load"; v: RII }
+    | { n: RII; k: "op-1"; v: { name: Op1; v: RII } }
+    | { n: RII; k: "op-2"; v: { name: Op2; l: RII; r: RII } }
 
 interface Test {
     ns: Namespace
@@ -288,6 +347,7 @@ interface Label {
 }
 
 type Variable =
+    | { k: "arg"; v: { type: Type; n: number } }
     | { k: "var" | "const"; v: { type: Type; n: RII } }
     | { k: "comptime-const"; v: TypedValue }
 
@@ -377,33 +437,44 @@ class EvaluationContext {
                 return v
 
             case "var":
-            case "const":
                 if (comptime) {
                     this.raiseAt(p, `variable '${name}' cannot be loaded at comptime`)
                     return null
                 }
 
                 return this.rtTypedValue(v.type, "var-load", v.n)
+
+            case "const":
+                if (comptime) {
+                    this.raiseAt(p, `non-comptime constant '${name}' cannot be loaded at comptime`)
+                    return null
+                }
+
+                return this.rtTypedValue(v.type, "const-load", v.n)
+
+            case "arg":
+                if (comptime) {
+                    this.raiseAt(p, `non-comptime argument '${name}' cannot be loaded at comptime`)
+                    return null
+                }
+
+                return this.rtTypedValue(v.type, "arg-load", v.n)
         }
     }
 
-    makeRuntime(p: Range, el: TypedValue): RII | null {
+    /** `el.type` must be a runtime type. */
+    makeRuntime(el: TypedValue): RII {
         if (el.value.k === "runtime") {
             return el.value.v
         }
 
-        if (!isRuntimeType(this.ns.root, el.type)) {
-            this.raiseAt(p, `'${typeName(el.type)}' cannot be used at runtime`)
-            return null
-        }
-
+        assert(isRuntimeType(this.ns.root, el.type) === true)
         return this.rtInst("lit", el)
     }
 
-    makeRuntimeResult(p: Range, el: TypedValue): Result<TypedValue> {
-        const rii = this.makeRuntime(p, el)
-        if (rii === null) return ERROR
-
+    /** `el.type` must be a runtime type. */
+    makeRuntimeResult(el: TypedValue): Result<TypedValue> {
+        const rii = this.makeRuntime(el)
         return { k: "normal", v: { type: el.type, value: { k: "runtime", v: rii } } }
     }
 }
@@ -736,8 +807,25 @@ function expr(
                 if (type.k === "u" || type.k === "i") {
                     if (!intIsSafe(type.k, type.v, v)) {
                         ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
+                        return ERROR
                     }
                     return normal(type, { k: "int", v })
+                }
+                if (type.k === "comptime_float") {
+                    const val = Number(v)
+                    if (!isFinite(val)) {
+                        ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
+                        return ERROR
+                    }
+                    return normal(type, { k: "float", v: val })
+                }
+                if (type.k === "f") {
+                    const val = floatTruncate(type.v, Number(v))
+                    if (!isFinite(val)) {
+                        ctx.raiseAt(p, `'${v}' does not fit in '${typeName(type)}'`)
+                        return ERROR
+                    }
+                    return normal(type, { k: "float", v: val })
                 }
             }
 
@@ -1272,12 +1360,10 @@ function expr(
             return ERROR
 
         case "op-prefix":
-            ctx.todo(p, "expr kind '.op-prefix'")
-            return ERROR
+            return exprUnary(ctx, comptime, type, p, v.name, v.arg)
 
         case "op-infix":
-            ctx.todo(p, "expr kind '.op-infix'")
-            return ERROR
+            return exprBinary(ctx, comptime, type, p, v.name, v.lhs, v.rhs)
 
         case "cf-unreachable": {
             if (comptime) {
@@ -1389,12 +1475,9 @@ function expr(
                         )
                     }
 
-                    const rii = ctx.makeRuntime(v.target, target.v)
-                    if (rii === null) return ERROR
-
                     assert(target.v.value.k === "runtime")
                     return ctx.rtResult(fields.get(v.name.name)!.type, "get-field", {
-                        target: rii,
+                        target: target.v.value.v,
                         field: v.name.name,
                     })
                 }
@@ -1423,12 +1506,9 @@ function expr(
                         return normal(variants.get(v.name.name)!, target.v.value.v.v)
                     }
 
-                    const rii = ctx.makeRuntime(v.target, target.v)
-                    if (rii === null) return ERROR
-
                     assert(target.v.value.k === "runtime")
                     return ctx.rtResult(variants.get(v.name.name)!, "get-variant", {
-                        target: rii,
+                        target: target.v.value.v,
                         field: v.name.name,
                     })
                 }
@@ -1443,9 +1523,12 @@ function expr(
             }
         }
 
-        case "get-method":
-            ctx.raiseAt(p, `expr type '.get-method'`)
-            return ERROR
+        case "get-method": {
+            const self = expr(ctx, comptime, null, v.target)
+            if (self.k !== "normal") return self
+
+            return callMethod(ctx, comptime, p, v.name.name, v.target, self.v, v.args)
+        }
 
         case "get-index":
             ctx.raiseAt(p, `expr type '.get-index'`)
@@ -1701,12 +1784,14 @@ function builtin(
             const value = expr(ctx, comptime, type, args[0]!)
             if (value.k !== "normal") return value
 
-            if (!isRuntimeType(ctx.ns.root, value.v.type)) {
+            const irt = isRuntimeType(ctx.ns.root, value.v.type)
+            if (irt === null) return ERROR
+            if (!irt) {
                 ctx.raiseAt(p, `type '${typeName(value.v.type)}' is comptime-only`)
                 return ERROR
             }
 
-            return ctx.makeRuntimeResult(p, value.v)
+            return ctx.makeRuntimeResult(value.v)
         }
 
         case "This": {
@@ -1748,6 +1833,59 @@ function builtin(
 
             return normalType(value.v.type)
         }
+
+        case "abs":
+        case "acos":
+        case "acosh":
+        case "asin":
+        case "asinh":
+        case "atan":
+        case "atanh":
+        case "cbrt":
+        case "ceil":
+        case "clz":
+        case "cos":
+        case "cosh":
+        case "exp":
+        case "exp10":
+        case "exp2":
+        case "expm1":
+        case "floor":
+        case "log":
+        case "log10":
+        case "log1p":
+        case "log2":
+        case "sign":
+        case "sin":
+        case "sinh":
+        case "sqrt":
+        case "tan":
+        case "tanh":
+        case "trunc":
+        case "isInf":
+        case "isNan":
+        case "isFin":
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `builtin '@${name}' requires exactly one argument`)
+                return ERROR
+            }
+            return exprUnary(ctx, comptime, type, p, `@${name}`, args[0]!)
+
+        case "divExact":
+        case "divFloor":
+        case "divCeil":
+        case "divTrunc":
+        case "mod":
+        case "rem":
+        case "pow":
+        case "rotl":
+        case "rotr":
+        case "atan2":
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `builtin '@${name}' requires exactly two arguments`)
+                return ERROR
+            }
+            return exprBinary(ctx, comptime, type, p, `@${name}`, args[0]!, args[1]!)
     }
 
     ctx.raiseAt(p, `'@${name}' does not exist or is not implemented`)
@@ -1764,8 +1902,80 @@ function stmt(ctx: EvaluationContext, comptime: boolean, p: Stmt): Result<null> 
         return { k: "normal", v: null }
     }
 
-    ctx.todo(p, "assignments")
-    return { k: "error", v: null }
+    if (v.lhs.length !== 1) {
+        ctx.todo(p, "assignments to more than one variable")
+        return ERROR
+    }
+
+    const lhsRaw = v.lhs[0]!
+
+    if (lhsRaw.k === "var" || lhsRaw.k === "const") {
+        const { name, type: expectedType } = lhsRaw.v
+
+        if (isReservedIdent(name)) {
+            ctx.raiseAt(p, `declaration shadows builtin constant '${name.name}'`)
+            return ERROR
+        }
+
+        if (ctx.variables.has(name.name)) {
+            ctx.raiseAt(p, `declaration shadows existing variable`)
+            return ERROR
+        }
+
+        if (ctx.ns.items.has(name.name)) {
+            ctx.raiseAt(p, `declaration shadows declaration from outer scope`)
+            return ERROR
+        }
+
+        let value: TypedValue
+        if (expectedType === null) {
+            const rhs = expr(ctx, comptime, null, v.rhs)
+            if (rhs.k !== "normal") return rhs
+
+            value = rhs.v
+        } else {
+            const type = exprAsType(ctx, expectedType)
+            if (type.k !== "normal") return type
+
+            const rhs = exprAs(ctx, comptime, type.v, v.rhs)
+            if (rhs.k !== "normal") return rhs
+
+            value = rhs.v
+        }
+
+        if (lhsRaw.k === "const" && isComptimeValue(value.value)) {
+            ctx.variables.set(name.name, { k: "comptime-const", v: value })
+            return { k: "normal", v: null }
+        }
+
+        if (lhsRaw.k === "var") {
+            const irt = isRuntimeType(ctx.ns.root, value.type)
+            if (irt === null) return ERROR
+            if (!irt) {
+                ctx.raiseAt(
+                    p,
+                    `variable of type '${typeName(value.type)}' must be declared with 'const'`,
+                )
+                return ERROR
+            }
+        }
+
+        assert(isRuntimeType(ctx.ns.root, value.type) === true)
+        ctx.variables.set(name.name, {
+            k: lhsRaw.k,
+            v: {
+                type: value.type,
+                n: ctx.rtInst(
+                    lhsRaw.k === "const" ? "const-init" : "var-init",
+                    ctx.makeRuntime(value),
+                ),
+            },
+        })
+        return { k: "normal", v: null }
+    }
+
+    ctx.todo(p, "assignments to expressions")
+    return ERROR
 }
 
 /** Returns `false` on error. */
@@ -2187,8 +2397,11 @@ function resolveVar(item: Extract<Item, { k: "var" }>): { type: Type; id: GID } 
     const value = topLevelValue(v.ns, v.type, v.value)
     if (value === null) return null
 
-    if (!isRuntimeType(v.ns.root, value.type)) {
+    const irt = isRuntimeType(v.ns.root, value.type)
+    if (irt === null) return null
+    if (!irt) {
         v.ns.raiseAt(v.value, `type '${typeName(value.type)}' cannot be used at runtime`)
+        return null
     }
 
     const gid = nextId++ as GID
@@ -2540,7 +2753,65 @@ type FnArg =
     | { p: Range; evaluated: true; value: TypedValue }
     | { p: Range; evaluated: false; value: Expr }
 
-/** `null` is for errors. */
+function callMethod(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    p: Range,
+    name: string,
+    selfP: Range,
+    self: TypedValue,
+    argsRaw: Expr[],
+): Result<TypedValue> {
+    assert(
+        self.type.k === "struct"
+            || self.type.k === "enum"
+            || self.type.k === "union"
+            || self.type.k === "opaque",
+    )
+
+    if (!self.type.v.ns.items.hasOwn(name)) {
+        ctx.raiseAt(p, `type '${typeName(self.type)}' does not have method '${name}'`)
+        return ERROR
+    }
+
+    const item = self.type.v.ns.items.getOwn(name)
+
+    switch (item.k) {
+        case "fn":
+            return call(ctx, comptime, p, item.v, [
+                { p: selfP, evaluated: true, value: self },
+                ...argsRaw.map((x) => ({ p: x, evaluated: false as const, value: x })),
+            ])
+
+        case "const": {
+            const value = resolveConst(item)
+            if (value === null) return ERROR
+
+            if (value.type.k !== "fn") {
+                ctx.raiseAt(
+                    p,
+                    `constant '${name}' in type '${typeName(self.type)}' is not a function`,
+                )
+                return ERROR
+            }
+
+            assert(value.value.k === "fn")
+
+            return call(ctx, comptime, p, value.value.v, [
+                { p: selfP, evaluated: true, value: self },
+                ...argsRaw.map((x) => ({ p: x, evaluated: false as const, value: x })),
+            ])
+        }
+
+        case "var":
+            ctx.todo(p, `calling variables`)
+            return ERROR
+
+        case "reserved":
+            unreachable()
+    }
+}
+
 function call(
     ctx: EvaluationContext,
     comptime: boolean,
@@ -2569,7 +2840,12 @@ function call(
         if (paramType.k === "error") return ERROR
         assert(paramType.k === "normal")
 
-        const paramComptime = comptime || param.comptime || !isRuntimeType(ctx.ns.root, paramType.v)
+        let paramComptime = comptime || param.comptime
+        if (!paramComptime) {
+            const irt = isRuntimeType(ctx.ns.root, paramType.v)
+            if (irt === null) return ERROR
+            paramComptime = !irt
+        }
 
         const raw = argsRaw[i]!
 
@@ -2597,16 +2873,11 @@ function call(
                 callContext.variables.set(param.name.name, { k: "comptime-const", v: arg })
             } else {
                 callContext.variables.set(param.name.name, {
-                    k: "const",
-                    v: {
-                        type: arg.type,
-                        n: callContext.rtInst("arg-load", runtimeArgTypes.length),
-                    },
+                    k: "arg",
+                    v: { type: arg.type, n: runtimeArgTypes.length },
                 })
                 runtimeArgTypes.push(arg.type)
-                const rii = ctx.makeRuntime(p, arg)
-                if (rii === null) return ERROR
-                runtimeRII.push(rii)
+                runtimeRII.push(ctx.makeRuntime(arg))
             }
         }
     }
@@ -2615,9 +2886,18 @@ function call(
     if (returnType.k === "error") return ERROR
     assert(returnType.k === "normal")
 
-    if (comptime || !isRuntimeType(ctx.ns.root, returnType.v)) {
+    if (!comptime) {
+        const irt = isRuntimeType(ctx.ns.root, returnType.v)
+        if (irt === null) return ERROR
+        if (!irt && runtimeArgTypes.length !== 0) {
+            ctx.todo(p, `for now, call this function from a 'comptime' block`)
+            return ERROR
+        }
+        comptime = !irt
+    }
+    if (comptime) {
         assert(runtimeArgTypes.length === 0)
-        const result = exprCall(callContext, comptime, returnType.v, f.body)
+        const result = callInner(callContext, true, returnType.v, f.body)
         assert(result.k === "normal" || result.k === "error")
         return result
     }
@@ -2650,13 +2930,12 @@ function call(
         })
     }
 
-    const result = exprCall(callContext, false, returnType.v, f.body)
+    const result = callInner(callContext, false, returnType.v, f.body)
     assert(result.k === "normal" || result.k === "error" || result.k === "unreachable")
     if (result.k === "error") return ERROR
     if (result.k === "normal") {
-        const rii = callContext.makeRuntime({ s: f.body.e, e: f.body.e }, result.v)
-        if (rii === null) return ERROR
-        callContext.rtInst("cf-return", rii)
+        assert(isRuntimeType(ctx.ns.root, result.v.type) === true)
+        callContext.rtInst("cf-return", callContext.makeRuntime(result.v))
     }
 
     const instance: FnInstance = {
@@ -2674,7 +2953,7 @@ function call(
     })
 }
 
-function exprCall(
+function callInner(
     ctx: EvaluationContext,
     comptime: boolean,
     returnType: Type,
@@ -2692,4 +2971,264 @@ function exprCall(
     })
     if (voidCast === null) return ERROR
     return { k: "normal", v: voidCast }
+}
+
+const tbool: Type = { k: "bool", v: null }
+const ttype: Type = { k: "type", v: null }
+const tcomptime_int: Type = { k: "comptime_int", v: null }
+const tcomptime_float: Type = { k: "comptime_float", v: null }
+
+function exprUnary(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    type: Type | null,
+    p: Range,
+    name: Op1,
+    argRaw: Expr,
+): Result<TypedValue> {
+    if (type !== null) type = innerType(type)
+
+    // expected type is useless because argument can vary even when expected type is fixed
+    if (name === "@clz" || name === "@isInf" || name === "@isNan" || name === "@isFin") type = null
+
+    const result = expr(ctx, comptime, type, argRaw)
+    if (result.k !== "normal") return result
+    const arg = result.v
+
+    if (isNamespace(arg.type)) {
+        if (name === "!" || name === "-" || name === "-%" || name === "/") {
+            return callMethod(ctx, comptime, p, name, argRaw, arg, [])
+        }
+
+        ctx.raiseAt(p, `'${name}' does not accept user-defined types`)
+        return ERROR
+    }
+
+    if (arg.type.k === "bool") {
+        if (name !== "!") {
+            ctx.raiseAt(p, `'${name}' does not accept 'bool'`)
+            return ERROR
+        }
+
+        if (arg.value.k === "bool") {
+            return normal(tbool, { k: "bool", v: !arg.value.v })
+        }
+
+        assert(arg.value.k === "runtime" && !comptime)
+        return ctx.rtResult(tbool, "op-1", { name: "!", v: arg.value.v })
+    }
+
+    if (arg.type.k === "comptime_int") {
+        if (!has(OP1_COMPTIME_INT, name)) {
+            ctx.raiseAt(p, `'${name}' does not accept 'comptime_int'`)
+            return ERROR
+        }
+
+        assert(arg.value.k === "int")
+
+        // prettier-ignore
+        switch (name) {
+            case "-":     return normal(tcomptime_int, { k: "int", v: -arg.value.v })
+            case "@abs":  return normal(tcomptime_int, { k: "int", v: arg.value.v < 0n ? -arg.value.v : arg.value.v })
+            case "@sign": return normal(tcomptime_int, { k: "int", v: arg.value.v < 0n ? -1n : arg.value.v > 0n ? 1n : 0n })
+            default:      name satisfies never
+        }
+    }
+
+    if ((arg.type.k === "i" || arg.type.k === "u") && name === "@clz") {
+        const ret = { k: "u" as const, v: bitCountWithVariants(arg.type.v) }
+
+        if (arg.value.k === "int") {
+            return normal(ret, { k: "int", v: BigInt(clz(arg.type.v, arg.value.v)) })
+        }
+
+        assert(arg.value.k === "runtime")
+        return ctx.rtResult(ret, "op-1", { name: "@clz", v: arg.value.v })
+    }
+
+    if (arg.type.k === "i") {
+        if (!has(OP1_I, name)) {
+            ctx.raiseAt(p, `'${name}' does not accept '${typeName(arg.type)}'`)
+            return ERROR
+        }
+
+        if (arg.value.k === "runtime") {
+            return ctx.rtResult(arg.type, "op-1", { name, v: arg.value.v })
+        }
+
+        assert(arg.value.k === "int")
+
+        // prettier-ignore
+        switch (name) {
+            case "-":
+            case "@abs": {
+                if (arg.value.v === -(1n << BigInt(arg.type.k))) {
+                    ctx.raiseAt(p, `negation of '@as(i${arg.type.v}, ${arg.value.v})' overflows its type`)
+                    return ERROR
+                }
+                return normal(arg.type, { k: "int", v: name === "-" || arg.value.v < 0n ? -arg.value.v : arg.value.v })}
+            case "-%":    return normal(arg.type, { k: "int", v: BigInt.asIntN(arg.type.v, -arg.value.v) })
+            case "~":     return normal(arg.type, { k: "int", v: ~arg.value.v })
+            case "@sign": return normal(arg.type, { k: "int", v: arg.value.v < 0n ? -1n : arg.value.v > 0n ? 1n : 0n })
+            default:      name satisfies never
+        }
+    }
+
+    if (arg.type.k === "u") {
+        if (!has(OP1_U, name)) {
+            ctx.raiseAt(p, `'${name}(...)' does not accept '${typeName(arg.type)}'`)
+            return ERROR
+        }
+
+        if (arg.value.k === "runtime") {
+            return ctx.rtResult(arg.type, "op-1", { name, v: arg.value.v })
+        }
+
+        assert(arg.value.k === "int")
+
+        // prettier-ignore
+        switch (name) {
+            case "~":     return normal(arg.type, { k: "int", v: BigInt.asUintN(arg.type.v, ~arg.value.v) })
+            case "@sign": return normal(arg.type, { k: "int", v: BigInt(arg.value.v !== 0n) })
+            default:      name satisfies never
+        }
+    }
+
+    if (arg.type.k === "comptime_float") {
+        if (!has(OP1_FLOAT, name)) {
+            ctx.raiseAt(p, `'${name}' does not accept 'comptime_float'`)
+            return ERROR
+        }
+
+        assert(arg.value.k === "float")
+
+        if (name === "@isInf") return normal(tbool, { k: "bool", v: 1 / arg.value.v === 0 })
+        if (name === "@isNan") return normal(tbool, { k: "bool", v: arg.value.v !== arg.value.v })
+        if (name === "@isFin") return normal(tbool, { k: "bool", v: isFinite(arg.value.v) })
+
+        return normal(tcomptime_float, { k: "float", v: op1float(name, arg.value.v) })
+    }
+
+    if (arg.type.k === "f") {
+        if (!has(OP1_FLOAT, name)) {
+            ctx.raiseAt(p, `'${name}' does not accept '${typeName(arg.type)}'`)
+            return ERROR
+        }
+
+        if (arg.value.k === "runtime") {
+            return ctx.rtResult(arg.type, "op-1", { name, v: arg.value.v })
+        }
+
+        assert(arg.value.k === "float")
+
+        if (name === "@isInf") return normal(tbool, { k: "bool", v: 1 / arg.value.v === 0 })
+        if (name === "@isNan") return normal(tbool, { k: "bool", v: arg.value.v !== arg.value.v })
+        if (name === "@isFin") return normal(tbool, { k: "bool", v: isFinite(arg.value.v) })
+
+        return normal(arg.type, {
+            k: "float",
+            v: floatTruncate(arg.type.v, op1float(name, arg.value.v)),
+        })
+    }
+
+    ctx.raiseAt(p, `unary operators are only supported on numeric values and namespace types`)
+    return ERROR
+}
+
+function has<T extends string>(array: T[], value: string): value is T {
+    return array.includes(value as T)
+}
+
+const OP1_COMPTIME_INT = ["-", "@abs", "@sign"] satisfies Op1[]
+const OP1_I = ["-", "-%", "~", "@abs", "@sign"] satisfies Op1[]
+const OP1_U = ["~", "@sign"] satisfies Op1[]
+
+const OP1_FLOAT = [
+    "-",
+    "/",
+    "@abs",
+    "@sign",
+    "@sin",
+    "@sinh",
+    "@asin",
+    "@asinh",
+    "@cos",
+    "@cosh",
+    "@acos",
+    "@acosh",
+    "@tan",
+    "@tanh",
+    "@atan",
+    "@atanh",
+    "@exp",
+    "@exp2",
+    "@exp10",
+    "@log",
+    "@log2",
+    "@log10",
+    "@expm1",
+    "@log1p",
+    "@sqrt",
+    "@cbrt",
+    "@floor",
+    "@ceil",
+    "@trunc",
+    "@isInf",
+    "@isNan",
+    "@isFin",
+] satisfies Op1[]
+
+function op1float(
+    op: Exclude<(typeof OP1_FLOAT)[number], "@isInf" | "@isNan" | "@isFin">,
+    value: number,
+): number {
+    // prettier-ignore
+    switch (op) {
+        case "-":      return -value
+        case "/":      return 1 / value
+        case "@abs":   return Math.abs(value)
+        case "@sign":  return Math.sign(value)
+        case "@sin":   return Math.sin(value)
+        case "@sinh":  return Math.sinh(value)
+        case "@cos":   return Math.cos(value)
+        case "@cosh":  return Math.cosh(value)
+        case "@tan":   return Math.tan(value)
+        case "@tanh":  return Math.tanh(value)
+        case "@asin":  return Math.asin(value)
+        case "@asinh": return Math.asinh(value)
+        case "@acos":  return Math.acos(value)
+        case "@acosh": return Math.acosh(value)
+        case "@atan":  return Math.atan(value)
+        case "@atanh": return Math.atanh(value)
+        case "@exp":   return Math.exp(value)
+        case "@exp2":  return Math.pow(2, value)
+        case "@exp10": return Math.pow(10, value)
+        case "@log":   return Math.log(value)
+        case "@log2":  return Math.log2(value)
+        case "@log10": return Math.log10(value)
+        case "@expm1": return Math.expm1(value)
+        case "@log1p": return Math.log1p(value)
+        case "@sqrt":  return Math.sqrt(value)
+        case "@cbrt":  return Math.cbrt(value)
+        case "@floor": return Math.floor(value)
+        case "@ceil":  return Math.ceil(value)
+        case "@trunc": return Math.trunc(value)
+    }
+}
+
+function exprBinary(
+    ctx: EvaluationContext,
+    comptime: boolean,
+    type: Type | null,
+    p: Range,
+    name: Op2,
+    lhs: Expr,
+    rhs: Expr,
+): Result<TypedValue> {
+    ctx.todo(p, "binary operator not supported")
+    return ERROR
+}
+
+function isNamespace(type: Type): boolean {
+    return type.k === "struct" || type.k === "enum" || type.k === "union" || type.k === "opaque"
 }

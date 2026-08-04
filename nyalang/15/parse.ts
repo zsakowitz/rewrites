@@ -167,14 +167,23 @@ export type Decl = Range
           }
     )
 
-export type FunctionParam = { comptime: boolean; name: Ident | null; type: Expr }
+export interface FunctionParam {
+    comptime: boolean
+    name: Ident | null
+    type: Expr
+}
 
+// prettier-ignore
 export type Stmt = Range
-    & ({ k: "expr"; v: Expr } | { k: "assign"; v: { lhs: AssignTarget[]; rhs: Expr } })
+    & (
+        | { k: "expr"; v: Expr }
+        | { k: "assign"; v: { lhs: AssignTarget[]; rhs: Expr } }
+    )
 
+// prettier-ignore
 export type AssignTarget = Range
     & (
-        | { k: "var" | "const" | "comptime-const"; v: { name: Ident; type: Expr | null } }
+        | { k: "var" | "const"; v: { name: Ident; type: Expr | null } }
         | { k: "expr"; v: Expr }
     )
 
@@ -334,17 +343,9 @@ function parseStmtAssign(
 function parseAssignTarget(context: ParseContext): AssignTarget {
     const next = context.peek()
 
-    if (
-        next === T.KVar
-        || next === T.KConst
-        || (next === T.KComptime && context.peekN(1) === T.KConst)
-    ) {
+    if (next === T.KVar || next === T.KConst) {
         const s = context.s
-        const kind =
-            next === T.KVar ? "var"
-            : next === T.KComptime ? "comptime-const"
-            : "const"
-        if (kind === "comptime-const") context.index++
+        const kind = next === T.KVar ? "var" : "const"
         context.index++
 
         const name = parseIdent(context)

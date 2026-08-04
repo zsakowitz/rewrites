@@ -3,7 +3,11 @@ import { assert } from "./assert"
 import { Error, Errors } from "./error"
 import { typeName } from "./ir"
 
-export function debug(value: unknown): string {
+export function debug(value: unknown, key?: string): string {
+    if (key === "returnType" || (key === "runtimeArgTypes" && !Array.isArray(value))) {
+        return blue + typeName(value as any) + reset
+    }
+
     if (value instanceof Uint8Array) {
         return `0x[${value.toHex()}]`
     }
@@ -56,7 +60,7 @@ export function debug(value: unknown): string {
     if (Array.isArray(value)) {
         if (value.length === 0) return "[]"
 
-        const subvalues = value.map(debug)
+        const subvalues = value.map((x) => debug(x, key))
 
         const flat =
             Bun.stringWidth(subvalues.join(", ")) < 40
@@ -126,14 +130,12 @@ export function debug(value: unknown): string {
         return `${cyan}.${value.k.replace(/-/g, "_")}${reset} ${debug(value.v)}`
     }
 
-    if (Object.keys(value).length === 0) return "[]"
-
     const subvalues = Object.entries(value).map(
         ([k, v]) =>
             "."
             + k.replace(/-/g, "_").replace(/[A-Z]/g, (x) => "_" + x.toLowerCase())
             + " = "
-            + debug(v),
+            + debug(v, k),
     )
 
     const flat = Bun.stringWidth(subvalues.join(", ")) < 40

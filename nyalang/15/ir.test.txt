@@ -1,5 +1,19 @@
 fn Complex(T: type) type {
-    return struct { re: T = 0, im: T = 0 };
+    return struct {
+        const Self = @This();
+
+        re: T = 0,
+        im: T = 0,
+
+        fn @"-"(this: Self) Self {
+            return .{ .re = -this.re, .im = -this.im };
+        }
+
+        fn sinEach(this: Self) Self {
+            return .{ .re = @sin(this.re), .im = @sin(this.im) };
+        }
+    };
 }
 
-test @as(Complex(u32), .{}).re;
+test -@as(Complex(i32), .{ .re = 9, .im = 78 });
+test comptime @as(Complex(f32), .{ .re = 9, .im = 78 }).sinEach();
