@@ -3315,3 +3315,289 @@ function dotMethod(
             unreachable()
     }
 }
+
+type BuiltinFn = (
+    ctx: EvaluationContext,
+    comptime: boolean,
+    self: Type,
+    p: Range,
+    args: Expr[],
+) => Result<TypedValue>
+
+const ftodo: BuiltinFn = (ctx, _comptime, _self, p, _args) => {
+    ctx.raiseAt(p, `builtin function not implemented yet`)
+    return ERROR
+}
+
+const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
+    bool: {
+        "!": ftodo,
+        "&": ftodo,
+        "|": ftodo,
+        "~": ftodo,
+        "==": ftodo,
+        "!=": ftodo,
+        "<": ftodo,
+        ">": ftodo,
+        "<=": ftodo,
+        ">=": ftodo,
+    },
+
+    comptime_int: {
+        "0-": ftodo,
+        "1/": ftodo,
+        "+": ftodo,
+        "-": ftodo,
+        "*": ftodo,
+        "/": ftodo,
+        "%": ftodo,
+        "&": ftodo,
+        "|": ftodo,
+        "~": ftodo,
+        divExact: ftodo,
+        divFloor: ftodo,
+        divCeil: ftodo,
+        divTrunc: ftodo,
+        rem: ftodo,
+        mod: ftodo,
+        sign: ftodo,
+        abs: ftodo,
+        "<": ftodo,
+        ">": ftodo,
+        "<=": ftodo,
+        ">=": ftodo,
+        "==": ftodo,
+        "!=": ftodo,
+    },
+
+    i: {
+        "0-": ftodo,
+        "0-%": ftodo,
+        "1~": ftodo,
+        "+": ftodo,
+        "+%": ftodo,
+        "-": ftodo,
+        "-%": ftodo,
+        "*": ftodo,
+        "*%": ftodo,
+        "/": ftodo,
+        "%": ftodo,
+        "&": ftodo,
+        "|": ftodo,
+        "~": ftodo,
+        divExact: ftodo,
+        divFloor: ftodo,
+        divCeil: ftodo,
+        divTrunc: ftodo,
+        rem: ftodo,
+        mod: ftodo,
+        sign: ftodo,
+        abs: ftodo,
+        clz: ftodo,
+        "<": ftodo,
+        ">": ftodo,
+        "<=": ftodo,
+        ">=": ftodo,
+        "==": ftodo,
+        "!=": ftodo,
+    },
+
+    u: {
+        "1~": ftodo,
+        "+": ftodo,
+        "+%": ftodo,
+        "-": ftodo,
+        "-%": ftodo,
+        "*": ftodo,
+        "*%": ftodo,
+        "/": ftodo,
+        "%": ftodo,
+        "&": ftodo,
+        "|": ftodo,
+        "~": ftodo,
+        divExact: ftodo,
+        divFloor: ftodo,
+        divCeil: ftodo,
+        divTrunc: ftodo,
+        rem: ftodo,
+        mod: ftodo,
+        sign: ftodo,
+        abs: ftodo,
+        clz: ftodo,
+        "<": ftodo,
+        ">": ftodo,
+        "<=": ftodo,
+        ">=": ftodo,
+        "==": ftodo,
+        "!=": ftodo,
+    },
+
+    comptime_float: {
+        "0-": ftodo,
+        "1/": ftodo,
+        "+": ftodo,
+        "-": ftodo,
+        "*": ftodo,
+        "/": ftodo,
+        "%": ftodo,
+        divExact: ftodo,
+        divFloor: ftodo,
+        divCeil: ftodo,
+        divTrunc: ftodo,
+        rem: ftodo,
+        mod: ftodo,
+        sign: ftodo,
+        abs: ftodo,
+
+        sin: ftodo,
+        sinh: ftodo,
+        asin: ftodo,
+        asinh: ftodo,
+        cos: ftodo,
+        cosh: ftodo,
+        acos: ftodo,
+        acosh: ftodo,
+        tan: ftodo,
+        tanh: ftodo,
+        atan: ftodo,
+        atanh: ftodo,
+
+        exp: ftodo,
+        exp2: ftodo,
+        exp10: ftodo,
+        expm1: ftodo,
+        log: ftodo,
+        log2: ftodo,
+        log10: ftodo,
+        log1p: ftodo,
+
+        floor: ftodo,
+        ceil: ftodo,
+        trunc: ftodo,
+
+        isInf: ftodo,
+        isNan: ftodo,
+        isFin: ftodo,
+
+        "<": ftodo,
+        ">": ftodo,
+        "<=": ftodo,
+        ">=": ftodo,
+        "==": ftodo,
+        "!=": ftodo,
+    },
+
+    f: {
+        "0-": ftodo,
+        "1/": ftodo,
+        "+": ftodo,
+        "-": ftodo,
+        "*": ftodo,
+        "/": ftodo, // comptime-only
+        "%": ftodo, // comptime-only
+        divExact: ftodo,
+        divFloor: ftodo,
+        divCeil: ftodo,
+        divTrunc: ftodo,
+        rem: ftodo,
+        mod: ftodo,
+        sign: ftodo,
+        abs: ftodo,
+
+        sin: ftodo,
+        sinh: ftodo,
+        asin: ftodo,
+        asinh: ftodo,
+        cos: ftodo,
+        cosh: ftodo,
+        acos: ftodo,
+        acosh: ftodo,
+        tan: ftodo,
+        tanh: ftodo,
+        atan: ftodo,
+        atanh: ftodo,
+
+        exp: ftodo,
+        exp2: ftodo,
+        exp10: ftodo,
+        expm1: ftodo,
+        log: ftodo,
+        log2: ftodo,
+        log10: ftodo,
+        log1p: ftodo,
+
+        floor: ftodo,
+        ceil: ftodo,
+        trunc: ftodo,
+
+        isInf: ftodo,
+        isNan: ftodo,
+        isFin: ftodo,
+
+        "<": ftodo,
+        ">": ftodo,
+        "<=": ftodo,
+        ">=": ftodo,
+        "==": ftodo,
+        "!=": ftodo,
+    },
+}
+
+type BuiltinConst = (ctx: EvaluationContext, self: Type, p: Range) => Result<TypedValue>
+
+const ctodo: BuiltinConst = (ctx, _self, p) => {
+    ctx.raiseAt(p, `builtin constant not implemented yet`)
+    return ERROR
+}
+
+const BUILTIN_CONSTANTS: Partial<Record<Type["k"], Record<string, BuiltinConst>>> = {
+    i: {
+        minValue: ctodo,
+        maxValue: ctodo,
+    },
+
+    u: {
+        minValue: ctodo,
+        maxValue: ctodo,
+    },
+
+    comptime_float: {
+        epsilon: ctodo,
+        pi: ctodo,
+        e: ctodo,
+        inf: ctodo,
+        nan: ctodo,
+    },
+
+    f: {
+        epsilon: ctodo,
+        pi: ctodo,
+        e: ctodo,
+        inf: ctodo,
+        nan: ctodo,
+    },
+}
+
+function builtinFn(type: Type, name: string): BuiltinFn | null {
+    if (!Object.hasOwn(BUILTIN_METHODS, type.k)) {
+        return null
+    }
+
+    if (!Object.hasOwn(BUILTIN_METHODS[type.k]!, name)) {
+        return null
+    }
+
+    return BUILTIN_METHODS[type.k]![name]!
+}
+
+function builtinConst(type: Type, name: string): BuiltinConst | null {
+    if (!Object.hasOwn(BUILTIN_CONSTANTS, type.k)) {
+        return null
+    }
+
+    if (!Object.hasOwn(BUILTIN_CONSTANTS[type.k]!, name)) {
+        return null
+    }
+
+    return BUILTIN_CONSTANTS[type.k]![name]!
+}
