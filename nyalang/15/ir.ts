@@ -2,7 +2,7 @@ import { red, reset } from "../2/ansi"
 import { assert, unreachable } from "./assert"
 import { debug } from "./debug"
 import { Errors, TraceEntry } from "./error"
-import type { File } from "./file"
+import { File } from "./file"
 import { decl } from "./ident"
 import {
     bitCountWithVariants,
@@ -12,7 +12,17 @@ import {
     type FloatBitSize,
 } from "./num"
 import { builtinConst, builtinFn } from "./operator"
-import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
+import {
+    ParseContext,
+    parseFile,
+    type Decl,
+    type Expr,
+    type FunctionParam,
+    type Ident,
+    type Range,
+    type Stmt,
+} from "./parse"
+import { tokenize } from "./token"
 
 export type Op1 =
     | "!"
@@ -78,7 +88,6 @@ export type Type =
     | { k: "u" | "i"; v: number }
     | { k: "f"; v: FloatBitSize } // todo: do we want `rN` for non-nan, non-inf, algebraically transformable numbers? if so GPU code should only allow `rN`, not `fN`
     | { k: "str"; v: null }
-    | { k: "path"; v: null } // so that `@import(x)` works even when `x` is defined in another file
     | { k: "null"; v: null }
     | { k: "optional"; v: Type }
     | { k: "array"; v: { len: number; child: Type } }
@@ -101,7 +110,6 @@ export function typeName(type: Type): string {
         case "comptime_int":
         case "comptime_float":
         case "str":
-        case "path":
         case "type":
             return k
 
@@ -151,7 +159,7 @@ type Value =
     | { k: "bool"; v: boolean } // type = bool
     | { k: "int"; v: bigint } // type = comptime_int, u, i, enum
     | { k: "float"; v: number } // type = comptime_float, f
-    | { k: "str"; v: string } // type = str, path
+    | { k: "str"; v: string } // type = str
     | { k: "null"; v: null } // type = null, optional(T)
     | { k: "some"; v: Value } // type = optional(T)
     | { k: "array"; v: Value[] } // type = array, slice, tuple
@@ -330,12 +338,14 @@ interface Test {
 export class Root {
     constructor(
         public errors: Errors,
-        public tests: Test[] | null, // `null` if not using tests
+        public importFile: (path: string) => File | null,
     ) {}
 
+    public tests: Test[] | null = null
     public globalVars = new Map<GID, TypedValue>()
     public fns = new Map<FID, FnInstance[]>()
     public stack: TraceEntry[] = []
+    public imports = new Map<string, Struct>()
 
     raiseAt(file: File, p: Range, message: string) {
         this.errors.raise(new TraceEntry(file, p.s, p.e, message), ...this.stack.toReversed())
@@ -343,6 +353,74 @@ export class Root {
 
     createNamespace(file: File, self: Type) {
         return new Namespace(this, file, self, new Items(null))
+    }
+
+    /**
+     * Return values:
+     *
+     * - `{ fid, iid }` is the location of the runtime function to call as 'main'
+     * - `null` is an error
+     */
+    compileMain(entrypoint: string): { fid: FID; iid: IID } | null {
+        assert(this.imports.size === 0)
+
+        const file = this.importFile(entrypoint)
+        if (file === null) {
+            this.raiseAt(
+                new File("<entrypoint>", ""),
+                { s: 0, e: 0 },
+                `entrypoint '${entrypoint}' does not exist`,
+            )
+            return null
+        }
+
+        const tokens = tokenize(this.errors, file)
+        const body = parseFile(new ParseContext(this.errors, tokens))
+        const struct = topLevel(this, file, body)
+        if (struct === null) return null
+
+        if (!struct.ns.items.hasOwn("main")) {
+            this.raiseAt(file, { s: 0, e: 0 }, `entrypoint has no 'main' function`)
+            return null
+        }
+
+        const main = struct.ns.items.getOwn("main")
+        if (main.k !== "fn") {
+            this.raiseAt(file, { s: 0, e: 0 }, `entrypoint has no 'main' function`)
+            return null
+        }
+
+        if (main.v.params.length !== 0) {
+            this.raiseAt(
+                file,
+                { s: 0, e: 0 },
+                `entrypoint 'main' function must accept no arguments`,
+            )
+            return null
+        }
+
+        if (
+            !(
+                main.v.returnType.k === "ident"
+                && !main.v.returnType.v.raw
+                && main.v.returnType.v.name === "void"
+            )
+        ) {
+            this.raiseAt(
+                file,
+                { s: 0, e: 0 },
+                `entrypoint 'main' function must have 'void' return type; other spellings are not permitted`,
+            )
+            return null
+        }
+
+        const ctx = struct.ns.createEvaluationContext()
+        const result = call(ctx, false, main.p, main.v, [])
+        assert(result.k === "error" || result.k === "normal" || result.k === "unreachable")
+        if (result.k === "error") return null
+        assert(ctx.runtime.length === 1)
+        assert(ctx.runtime[0]!.k === "fn-call")
+        return { fid: ctx.runtime[0]!.v.f, iid: ctx.runtime[0]!.v.i }
     }
 }
 
@@ -1771,7 +1849,6 @@ function expr(
                     case "comptime_float":
                     case "bool":
                     case "str":
-                    case "path":
                     case "type":
                         return normalType({ k: v.name, v: null })
 
@@ -1911,6 +1988,39 @@ function builtin(
 
             ctx.raiseAt(p, reset + debug(value.v) + red)
             return ERROR
+        }
+
+        case "import": {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `'@import(...)' requires exactly one argument`)
+                return ERROR
+            }
+
+            if (args[0]!.k !== "lit-str") {
+                ctx.raiseAt(p, `argument to '@import(...)' must be a string literal`)
+                return ERROR
+            }
+
+            const path = args[0]!.v
+            if (ctx.ns.root.imports.has(path)) {
+                return normalType(ctx.ns.root.imports.get(path)!.ns.self)
+            }
+
+            const file = ctx.ns.root.importFile(path)
+            if (file === null) {
+                ctx.raiseAt(p, `path does not represent a known file`)
+                return ERROR
+            }
+
+            const tokens = tokenize(ctx.ns.root.errors, file)
+            const parseContext = new ParseContext(ctx.ns.root.errors, tokens)
+            const decls = parseFile(parseContext)
+
+            const struct = topLevel(ctx.ns.root, file, decls)
+            if (struct === null) return ERROR
+
+            ctx.ns.root.imports.set(path, struct)
+            return normalType(struct.ns.self)
         }
 
         case "runtime": {
@@ -2157,9 +2267,7 @@ function finalizeNamespace(
 function isReservedIdent(ident: Ident): boolean {
     return (
         !ident.raw
-        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|path|type|null|true|false)$/.test(
-            ident.name,
-        )
+        && /^(?:[uif]\d+|comptime_.*|never|void|bool|str|type|null|true|false)$/.test(ident.name)
     )
 }
 
@@ -2174,7 +2282,6 @@ function typeEq(a: Type, b: Type): boolean {
         case "comptime_int":
         case "comptime_float":
         case "str":
-        case "path":
         case "null":
         case "type":
             return true
@@ -2381,7 +2488,6 @@ function isRuntimeType(root: Root, type: Type): boolean | null {
 
         case "comptime_int":
         case "comptime_float":
-        case "path":
         case "fn":
         case "type":
             return false
@@ -2748,10 +2854,6 @@ function dotProp(ctx: EvaluationContext, type: Type, p: Range, name: string): Ty
 function encodeStr(ctx: EvaluationContext, type: Type, p: Range, v: string): TypedValue | null {
     type = innerType(type)
 
-    if (type.k === "path") {
-        return { type, value: { k: "str", v } }
-    }
-
     if (type.k === "str") {
         return { type, value: { k: "str", v } }
     }
@@ -2797,7 +2899,7 @@ function encodeStr(ctx: EvaluationContext, type: Type, p: Range, v: string): Typ
     return null
 }
 
-export function topLevel(root: Root, file: File, body: Decl[]): Type | null {
+export function topLevel(root: Root, file: File, body: Decl[]): Struct | null {
     const members = new Map<string, { type: Expr; default: Expr | null }>()
     for (const p of body) {
         if (p.k === "field-ident") {
@@ -2826,7 +2928,7 @@ export function topLevel(root: Root, file: File, body: Decl[]): Type | null {
     struct.ns = ns
 
     if (!finalizeNamespace(ns, "field", members, body)) return null
-    return ns.self
+    return struct
 }
 
 interface CompiledTest {
