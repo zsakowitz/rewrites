@@ -305,28 +305,27 @@ type IID = number & { __brand: "fn_instance" }
 
 type RuntimeInst =
     | { k: "arg-load"; v: number }
-    | { k: "lit"; v: TypedValue }
-    | { k: "cf-unreachable"; v: null }
     | { k: "cf-break"; v: { n: RII; value: RII } }
     | { k: "cf-continue"; v: { n: RII; value: RII } }
+    | { k: "cf-if/then"; v: { cond: RII; result: Type | null } }
+    | { k: "cf-if/else"; v: RII | null } // '.v' is result of 'then' block
+    | { k: "cf-if/end"; v: RII | null } // '.v' is result of 'else' block
     | { k: "cf-return"; v: RII }
+    | { k: "cf-unreachable"; v: null }
+    | { k: "const-init"; v: RII }
+    | { k: "const-load"; v: RII }
     | { k: "fn-call"; v: { f: FID; i: IID; args: RII[] } }
     | { k: "get-field"; v: { target: RII; field: string } }
     | { k: "get-unwrap"; v: RII }
     | { k: "get-variant"; v: { target: RII; field: string } }
     | { k: "global-load"; v: GID }
-    | { k: "slice-from-array"; v: RII }
-    | { k: "const-init"; v: RII }
-    | { k: "const-load"; v: RII }
-    | { k: "var-init"; v: RII }
-    | { k: "var-load"; v: RII }
+    | { k: "lit"; v: TypedValue }
     | { k: "op-1"; v: { name: Op1; v: RII } }
     | { k: "op-2"; v: { name: Op2; l: RII; r: RII } }
-
-    // `null` means "no result due to unreachable endpoint"
-    | { k: "cf-if/then"; v: { cond: RII; result: Type | null } }
-    | { k: "cf-if/else"; v: RII | null } // '.v' is result of 'then' block
-    | { k: "cf-if/end"; v: RII | null } // '.v' is result of 'else' block
+    | { k: "print"; v: RII }
+    | { k: "slice-from-array"; v: RII }
+    | { k: "var-init"; v: RII }
+    | { k: "var-load"; v: RII }
 
 interface Test {
     ns: Namespace
@@ -341,7 +340,7 @@ export class Root {
         public importFile: (path: string) => File | null,
     ) {}
 
-    public tests: Test[] | null = null
+    public tests: Test[] | null = []
     public globalVars = new Map<GID, TypedValue>()
     public fns = new Map<FID, FnInstance[]>()
     public stack: TraceEntry[] = []
@@ -355,13 +354,10 @@ export class Root {
         return new Namespace(this, file, self, new Items(null))
     }
 
-    /**
-     * Return values:
-     *
-     * - `{ fid, iid }` is the location of the runtime function to call as 'main'
-     * - `null` is an error
-     */
-    compileMain(entrypoint: string): { fid: FID; iid: IID } | null {
+    compile(entrypoint: string): {
+        main: { fid: FID; iid: IID }
+        tests: CompiledTest[]
+    } | null {
         assert(this.imports.size === 0)
 
         const file = this.importFile(entrypoint)
@@ -414,13 +410,42 @@ export class Root {
             return null
         }
 
+        this.tests ??= []
         const ctx = struct.ns.createEvaluationContext()
         const result = call(ctx, false, main.p, main.v, [])
         assert(result.k === "error" || result.k === "normal" || result.k === "unreachable")
         if (result.k === "error") return null
         assert(ctx.runtime.length === 1)
         assert(ctx.runtime[0]!.k === "fn-call")
-        return { fid: ctx.runtime[0]!.v.f, iid: ctx.runtime[0]!.v.i }
+        const retMain = { fid: ctx.runtime[0]!.v.f, iid: ctx.runtime[0]!.v.i }
+
+        const testIdToContext = new Map<number, Type[]>()
+        const tests: CompiledTest[] = []
+
+        for (let i = 0; i < this.tests.length; i++) {
+            const test = this.tests[i]!
+
+            if (testIdToContext.has(test.id)) {
+                const previousContexts = testIdToContext.get(test.id)!
+                if (previousContexts.some((x) => typeEq(x, test.ns.self))) {
+                    continue
+                }
+            }
+
+            const ctx = test.ns.createEvaluationContext()
+            const value = expr(ctx, false, null, test.body)
+            if (value.k === "error") return null
+            assert(value.k === "normal" || value.k === "unreachable")
+
+            testIdToContext.getOrInsert(test.id, []).push(test.ns.self)
+
+            tests.push({ body: ctx.runtime, value: value.v })
+        }
+
+        return {
+            main: retMain,
+            tests,
+        }
     }
 }
 
@@ -518,18 +543,30 @@ export class EvaluationContext {
         return { k: "normal", v: this.rtTypedValue(type, k, v as any) }
     }
 
-    rtControlFlow(result: Exclude<Result<TypedValue>, { k: "error" }>): RII | null {
+    rtControlFlow(p: Range, result: Exclude<Result<TypedValue>, { k: "error" }>): RII | null | -1 {
         switch (result.k) {
             case "unreachable":
                 return null
 
             case "break":
-                // TODO: what happens if type is not runtime?
+                if (!isRuntimeType(this.ns.root, result.v.value.type)) {
+                    this.raiseAt(
+                        p,
+                        `cannot conditionally break with comptime type '${typeName(result.v.value.type)}'`,
+                    )
+                    return -1
+                }
                 this.rtInst("cf-break", { n: result.v.n, value: this.makeRuntime(result.v.value) })
                 return null
 
             case "continue":
-                // TODO: what happens if type is not runtime?
+                if (!isRuntimeType(this.ns.root, result.v.value.type)) {
+                    this.raiseAt(
+                        p,
+                        `cannot conditionally continue with comptime type '${typeName(result.v.value.type)}'`,
+                    )
+                    return -1
+                }
                 this.rtInst("cf-continue", {
                     n: result.v.n,
                     value: this.makeRuntime(result.v.value),
@@ -537,11 +574,24 @@ export class EvaluationContext {
                 return null
 
             case "return":
-                // TODO: what happens if type is not runtime?
+                if (!isRuntimeType(this.ns.root, result.v.type)) {
+                    this.raiseAt(
+                        p,
+                        `cannot conditionally return comptime type '${typeName(result.v.type)}'`,
+                    )
+                    return -1
+                }
                 this.rtInst("cf-return", this.makeRuntime(result.v))
                 return null
 
             case "normal":
+                if (!isRuntimeType(this.ns.root, result.v.type)) {
+                    this.raiseAt(
+                        p,
+                        `cannot conditionally output comptime type '${typeName(result.v.type)}'`,
+                    )
+                    return -1
+                }
                 return this.makeRuntime(result.v)
         }
     }
@@ -1544,7 +1594,8 @@ function expr(
                         expr(ctx, comptime, null, v.if)
                     :   exprAs(ctx, comptime, type, v.if)
                 if (resultIf.k === "error") return ERROR
-                const riiIf = ctx.rtControlFlow(resultIf)
+                const riiIf = ctx.rtControlFlow(v.if, resultIf)
+                if (riiIf === -1) return ERROR
                 ctx.rtInst("cf-if/else", riiIf)
                 if (type === null && resultIf.k === "normal") {
                     type = resultIf.v.type
@@ -1555,7 +1606,8 @@ function expr(
                         expr(ctx, comptime, null, v.else ?? voidAt(p.e))
                     :   exprAs(ctx, comptime, type, v.else ?? voidAt(p.e))
                 if (resultElse.k === "error") return ERROR
-                const riiElse = ctx.rtControlFlow(resultElse)
+                const riiElse = ctx.rtControlFlow(v.else ?? { s: p.e, e: p.e }, resultElse)
+                if (riiElse === -1) return ERROR
                 const riiResult = ctx.rtInst("cf-if/end", riiElse)
                 if (type === null && resultElse.k === "normal") {
                     type = resultElse.v.type
@@ -2021,6 +2073,32 @@ function builtin(
 
             ctx.ns.root.imports.set(path, struct)
             return normalType(struct.ns.self)
+        }
+
+        case "print": {
+            if (args.length !== 1) {
+                ctx.raiseAt(p, `'@print(...)' requires exactly one argument`)
+                return ERROR
+            }
+
+            const arg = expr(ctx, comptime, null, args[0]!)
+            if (arg.k !== "normal") return arg
+
+            if (comptime) {
+                ctx.raiseAt(p, `'@print(...)' cannot be called at 'comptime'`)
+                return ERROR
+            }
+
+            if (!isRuntimeType(ctx.ns.root, arg.v.type)) {
+                ctx.raiseAt(
+                    p,
+                    `comptime type '${typeName(arg.v.type)}' cannot be printed at runtime; use '@compileLog' instead`,
+                )
+                return ERROR
+            }
+
+            ctx.rtInst("print", ctx.makeRuntime(arg.v))
+            return VOID
         }
 
         case "runtime": {
@@ -2934,35 +3012,6 @@ export function topLevel(root: Root, file: File, body: Decl[]): Struct | null {
 interface CompiledTest {
     body: RuntimeInst[]
     value: TypedValue | null
-}
-
-export function compileTests(root: Root): CompiledTest[] | null {
-    assert(root.tests !== null)
-
-    const alreadyRun = new Map<number, Type[]>()
-    const ret: CompiledTest[] = []
-
-    for (let i = 0; i < root.tests.length; i++) {
-        const test = root.tests[i]!
-
-        if (alreadyRun.has(test.id)) {
-            const previousContexts = alreadyRun.get(test.id)!
-            if (previousContexts.some((x) => typeEq(x, test.ns.self))) {
-                continue
-            }
-        }
-
-        const ctx = test.ns.createEvaluationContext()
-        const value = expr(ctx, false, null, test.body)
-        if (value.k === "error") return null
-        assert(value.k === "normal" || value.k === "unreachable")
-
-        alreadyRun.getOrInsert(test.id, []).push(test.ns.self)
-
-        ret.push({ body: ctx.runtime, value: value.v })
-    }
-
-    return ret
 }
 
 export type FnArg =

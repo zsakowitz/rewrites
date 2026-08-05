@@ -13,17 +13,17 @@ import { Errors } from "./error"
 import { File } from "./file"
 import { Root } from "./ir"
 
-const errors = new Errors()
-const root = new Root(errors, (path) => {
+const rootMain = new Root(new Errors(), (path) => {
     if (path in sources) {
         return new File("./" + path, sources[path]!)
     }
     return null
 })
+
 print({
-    result: root.compileMain("main.nya"),
-    errors: root.errors,
-    tests: root.tests,
-    global_vars: root.globalVars,
-    fns: root.fns,
+    result: rootMain.compile("main.nya"),
+    errors: rootMain.errors,
+    tests: rootMain.tests,
+    global_vars: rootMain.globalVars,
+    fns: rootMain.fns,
 })
