@@ -106,6 +106,12 @@ const Math = struct {
         .is_single = true,
     };
 
+    fn mo(operator: str) Math = .{
+        // TODO: xss protection
+        .xml = "<mo>" + operator + "</mo>",
+        .is_single = true,
+    };
+
     const Accents = struct {
         sub: ?Math = null,
         sup: ?Math = null,
@@ -121,7 +127,9 @@ const Math = struct {
         .xml =
             if (accents.sub) |sub|
                 if (accents.sup) |sup|
-                    "<msubsup>" + self.xml_as_single() + sub.xml_as_single() + sup.xml_as_single() + "</msubsup>"
+                    "<msubsup>" + self.xml_as_single()
+                        + sub.xml_as_single() + sup.xml_as_single()
+                        + "</msubsup>"
                 else
                     "<msub>" + self.xml_as_single() + sub.xml_as_single() + "</msub>"
             else

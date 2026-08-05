@@ -296,22 +296,22 @@ type TID = number & { __brand: "test" }
 type IID = number & { __brand: "fn_instance" }
 
 type RuntimeInst =
-    | { n: RII; k: "arg-load"; v: number }
-    | { n: RII; k: "lit"; v: TypedValue }
-    | { n: RII; k: "cf-unreachable"; v: null }
-    | { n: RII; k: "cf-return"; v: RII }
-    | { n: RII; k: "fn-call"; v: { f: FID; i: IID; args: RII[] } }
-    | { n: RII; k: "get-field"; v: { target: RII; field: string } }
-    | { n: RII; k: "get-unwrap"; v: RII }
-    | { n: RII; k: "get-variant"; v: { target: RII; field: string } }
-    | { n: RII; k: "global-load"; v: GID }
-    | { n: RII; k: "slice-from-array"; v: RII }
-    | { n: RII; k: "const-init"; v: RII }
-    | { n: RII; k: "const-load"; v: RII }
-    | { n: RII; k: "var-init"; v: RII }
-    | { n: RII; k: "var-load"; v: RII }
-    | { n: RII; k: "op-1"; v: { name: Op1; v: RII } }
-    | { n: RII; k: "op-2"; v: { name: Op2; l: RII; r: RII } }
+    | { k: "arg-load"; v: number }
+    | { k: "lit"; v: TypedValue }
+    | { k: "cf-unreachable"; v: null }
+    | { k: "cf-return"; v: RII }
+    | { k: "fn-call"; v: { f: FID; i: IID; args: RII[] } }
+    | { k: "get-field"; v: { target: RII; field: string } }
+    | { k: "get-unwrap"; v: RII }
+    | { k: "get-variant"; v: { target: RII; field: string } }
+    | { k: "global-load"; v: GID }
+    | { k: "slice-from-array"; v: RII }
+    | { k: "const-init"; v: RII }
+    | { k: "const-load"; v: RII }
+    | { k: "var-init"; v: RII }
+    | { k: "var-load"; v: RII }
+    | { k: "op-1"; v: { name: Op1; v: RII } }
+    | { k: "op-2"; v: { name: Op2; l: RII; r: RII } }
 
 interface Test {
     ns: Namespace
@@ -366,21 +366,15 @@ export class EvaluationContext {
     constructor(
         public ns: Namespace,
         public runtime: RuntimeInst[],
-        public nextRII: number,
         public variables: Map<string, Variable>,
         public labels: Map<string, Label>,
         public returnType: Type | null, // `null` means `return` is invalid
     ) {}
 
-    /**
-     * Caller must set `this.nextRII` to the return value's `.nextRII` property after using the
-     * child context.
-     */
-    createPotentialSubcontext(): EvaluationContext {
+    createSubcontext(): EvaluationContext {
         return new EvaluationContext(
             this.ns,
-            [],
-            this.nextRII,
+            this.runtime,
             this.variables,
             this.labels,
             this.returnType,
@@ -422,9 +416,8 @@ export class EvaluationContext {
     }
 
     rtInst<K extends RuntimeInst["k"]>(k: K, v: Extract<RuntimeInst, { k: K }>["v"]): RII {
-        const n = this.nextRII++ as RII
-        this.runtime.push({ n, k, v } as RuntimeInst)
-        return n
+        this.runtime.push({ k, v } as RuntimeInst)
+        return (this.runtime.length - 1) as RII
     }
 
     rtTypedValue<K extends RuntimeInst["k"]>(
@@ -432,9 +425,7 @@ export class EvaluationContext {
         k: K,
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): TypedValue {
-        const n = this.nextRII++ as RII
-        this.runtime.push({ n, k, v } as RuntimeInst)
-        return { type, value: { k: "runtime", v: n } }
+        return { type, value: { k: "runtime", v: this.rtInst(k, v as any) } }
     }
 
     rtResult<K extends RuntimeInst["k"]>(
@@ -442,9 +433,7 @@ export class EvaluationContext {
         k: K,
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): Result<TypedValue> {
-        const n = this.nextRII++ as RII
-        this.runtime.push({ n, k, v } as RuntimeInst)
-        return { k: "normal", v: { type, value: { k: "runtime", v: n } } }
+        return { k: "normal", v: this.rtTypedValue(type, k, v as any) }
     }
 
     /** Returns `null` when loading a runtime-only variable at comptime. */
@@ -508,7 +497,7 @@ class Namespace {
     ) {}
 
     createEvaluationContext() {
-        return new EvaluationContext(this, [], 0, new Map(), new Map(), null)
+        return new EvaluationContext(this, [], new Map(), new Map(), null)
     }
 
     raiseAt(p: Range, message: string) {
