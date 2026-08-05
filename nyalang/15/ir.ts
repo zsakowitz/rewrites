@@ -339,19 +339,16 @@ export class Root {
     }
 }
 
-type BreakKind = { k: "with-value"; v: Type | null } | { k: "not-allowed"; v: null }
+type BreakKind = { k: "with-value"; v: Type } | { k: "not-allowed"; v: null }
 
 type ContinueKind =
     | { k: "with-value"; v: Type }
     | { k: "without-value"; v: null }
     | { k: "not-allowed"; v: null }
 
-type BreakSite = { n: RII; value: TypedValue }
-
 interface Label {
     n: RII
     break: BreakKind
-    breakSites: BreakSite[] // so we can coerce into one type
     continue: ContinueKind
 }
 
@@ -521,7 +518,7 @@ class Namespace {
 type ResultNontrivial =
     | { k: "error"; v: null } // compile error
     | { k: "unreachable"; v: null }
-    | { k: "break"; v: BreakSite }
+    | { k: "break"; v: { n: RII; value: TypedValue } }
     | { k: "continue"; v: { n: RII; value: TypedValue } }
     | { k: "return"; v: TypedValue }
 
@@ -679,39 +676,6 @@ export function as(
     return value
 }
 
-/** `as(..., ..., type, value)` should return `null` precisely when this function returns `false`. */
-function canCoerce(type: Type, value: TypedValue): boolean {
-    if (value.type === type) return true
-
-    if (type.k === "optional") {
-        if (value.type.k === "null") return true
-        if (value.type.k !== "optional") return canCoerce(unwrapOptional(type).inner, value)
-
-        const expected = unwrapOptional(type)
-        const actual = unwrapOptional(value.type)
-
-        return typeEq(expected.inner, actual.inner) && expected.depth >= actual.depth
-    }
-
-    if (value.type.k === "array" && type.k === "slice") {
-        return typeEq(value.type.v.child, type.v)
-    }
-
-    if (value.type.k === "comptime_float" && type.k === "f") {
-        assert(value.value.k === "float")
-
-        const v = floatTruncate(type.v, value.value.v)
-        return !(isFinite(value.value.v) && !isFinite(v))
-    }
-
-    if (value.type.k === "comptime_int" && (type.k === "u" || type.k === "i")) {
-        assert(value.value.k === "int")
-        return intIsSafe(type.k, type.v, value.value.v)
-    }
-
-    return typeEq(type, value.type)
-}
-
 function unwrapOptional(type: Type): { depth: number; inner: Type } {
     let depth = 0
 
@@ -730,70 +694,6 @@ function innerType(type: Type) {
     }
 
     return type
-}
-
-/**
- * Finds a type which all values coerce into. If `null` is returned, no join was found and an error
- * was issued.
- *
- * This algorithm is not very clever yet. It only finds `null` and `T` into `?T`, and otherwise
- * requires that all types match.
- *
- * TODO: Currently, this algorithm only has nontrivial behavior so that we know it's working. In the
- * future, the `null` + `T` = `?T` join should be removed, as it could cause different behavior at
- * comptime and runtime.
- */
-function join(ctx: EvaluationContext, p: Range, values: TypedValue[]): Type | null {
-    if (values.length === 0) {
-        return { k: "never", v: null }
-    }
-
-    if (values.length === 1) {
-        return values[0]!.type
-    }
-
-    if (values.some((x) => x.type.k === "null" || x.type.k === "optional")) {
-        const optional = values.filter((x) => x.type.k === "optional")
-        const plain = values.filter((x) => x.type.k !== "null" && x.type.k !== "optional")
-
-        if (optional.length === 0) {
-            const child = join(ctx, p, plain)
-            if (child === null) return null
-
-            return { k: "optional", v: child }
-        }
-
-        let { depth, inner } = unwrapOptional(optional[0]!.type)
-        for (let i = 1; i < optional.length; i++) {
-            const { depth: myDepth, inner: myInner } = unwrapOptional(optional[i]!.type)
-            depth = Math.max(depth, myDepth)
-            if (!typeEq(inner, myInner)) {
-                ctx.raiseMismatchedPeers(p, values)
-                return null
-            }
-        }
-
-        for (const el of plain) {
-            if (!canCoerce(inner, el)) {
-                ctx.raiseMismatchedPeers(p, values)
-                return null
-            }
-        }
-
-        for (let i = 0; i < depth; i++) {
-            inner = { k: "optional", v: inner }
-        }
-        return inner
-    }
-
-    const fst = values[0]!.type
-    for (const el of values) {
-        if (!typeEq(fst, el.type)) {
-            ctx.raiseMismatchedPeers(p, values)
-            return null
-        }
-    }
-    return fst
 }
 
 export function exprAs(
