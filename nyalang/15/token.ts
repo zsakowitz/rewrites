@@ -166,7 +166,7 @@ const OPERATORS = new Map([
     ["%", T.Percent],
 ])
 
-const OPERATOR = /!=|=>|<=|>=|<<|>>|\.\?|[+\-*]%|[%&!|^,.=>{[(<\-+?}\]);/\*~:]/y
+const OPERATOR = /!=|=>|<=|>=|<<|>>|\.\?|[+\-*]%|\/(?!\/)|[%&!|^,.=>{[(<\-+?}\]);\*~:]/y
 
 export function tokenize(errors: Errors, file: File): Tokens {
     const { body } = file
@@ -177,6 +177,12 @@ export function tokenize(errors: Errors, file: File): Tokens {
     let index = 0
 
     while (index < body.length) {
+        WS.lastIndex = index
+        if (WS.test(body)) {
+            index = WS.lastIndex
+            continue
+        }
+
         IDENT.lastIndex = index
         if (IDENT.test(body)) {
             start.push(index)
@@ -216,12 +222,6 @@ export function tokenize(errors: Errors, file: File): Tokens {
                 ),
             )
 
-            continue
-        }
-
-        WS.lastIndex = index
-        if (WS.test(body)) {
-            index = WS.lastIndex
             continue
         }
 
@@ -283,6 +283,11 @@ export function tokenize(errors: Errors, file: File): Tokens {
             start.push(index)
             end.push((index = file.lineEnd[file.row(index)]!))
             kind.push(T.StrPart)
+            continue
+        }
+
+        if (body.charAt(index) === "/" && body.charAt(index + 1) === "/") {
+            index = file.lineEnd[file.row(index)]!
             continue
         }
 

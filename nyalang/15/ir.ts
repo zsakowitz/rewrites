@@ -171,7 +171,10 @@ type Lazy<Raw, Analyzed> =
     | { k: "progressing"; v: Namespace }
     | { k: "analyzed"; v: Analyzed }
 
-type Capture = Value | { k: "runtime-var"; v: GID }
+type Capture =
+    | Value
+    | { k: "item-var"; v: Extract<Item, { k: "var" }> }
+    | { k: "item-const"; v: Extract<Item, { k: "const" }> }
 
 interface Struct {
     id: AID
@@ -359,19 +362,30 @@ type Variable =
 
 let nextId = 0
 
-interface Runtime {
-    nextRII: number
-    body: RuntimeInst[]
-}
-
 export class EvaluationContext {
     constructor(
         public ns: Namespace,
-        public runtime: Runtime,
+        public runtime: RuntimeInst[],
+        public nextRII: number,
         public variables: Map<string, Variable>,
         public labels: Map<string, Label>,
         public returnType: Type | null, // `null` means `return` is invalid
     ) {}
+
+    /**
+     * Caller must set `this.nextRII` to the return value's `.nextRII` property after using the
+     * child context.
+     */
+    createPotentialSubcontext(): EvaluationContext {
+        return new EvaluationContext(
+            this.ns,
+            [],
+            this.nextRII,
+            this.variables,
+            this.labels,
+            this.returnType,
+        )
+    }
 
     createNamespace(type: Type): Namespace {
         const valueDecls = this.ns.items.fork()
@@ -408,8 +422,8 @@ export class EvaluationContext {
     }
 
     rtInst<K extends RuntimeInst["k"]>(k: K, v: Extract<RuntimeInst, { k: K }>["v"]): RII {
-        const n = this.runtime.nextRII++ as RII
-        this.runtime.body.push({ n, k, v } as RuntimeInst)
+        const n = this.nextRII++ as RII
+        this.runtime.push({ n, k, v } as RuntimeInst)
         return n
     }
 
@@ -418,8 +432,8 @@ export class EvaluationContext {
         k: K,
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): TypedValue {
-        const n = this.runtime.nextRII++ as RII
-        this.runtime.body.push({ n, k, v } as RuntimeInst)
+        const n = this.nextRII++ as RII
+        this.runtime.push({ n, k, v } as RuntimeInst)
         return { type, value: { k: "runtime", v: n } }
     }
 
@@ -428,8 +442,8 @@ export class EvaluationContext {
         k: K,
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): Result<TypedValue> {
-        const n = this.runtime.nextRII++ as RII
-        this.runtime.body.push({ n, k, v } as RuntimeInst)
+        const n = this.nextRII++ as RII
+        this.runtime.push({ n, k, v } as RuntimeInst)
         return { k: "normal", v: { type, value: { k: "runtime", v: n } } }
     }
 
@@ -494,7 +508,7 @@ class Namespace {
     ) {}
 
     createEvaluationContext() {
-        return new EvaluationContext(this, { nextRII: 0, body: [] }, new Map(), new Map(), null)
+        return new EvaluationContext(this, [], 0, new Map(), new Map(), null)
     }
 
     raiseAt(p: Range, message: string) {
@@ -811,6 +825,7 @@ export function exprAs(
 export const tcomptime_int: Type = { k: "comptime_int", v: null }
 export const tcomptime_float: Type = { k: "comptime_float", v: null }
 export const tbool: Type = { k: "bool", v: null }
+export const tstr: Type = { k: "str", v: null }
 
 function expr(
     ctx: EvaluationContext,
@@ -1481,9 +1496,36 @@ function expr(
             ctx.todo(p, "expr kind '.cf-maybe'")
             return ERROR
 
-        case "cf-if":
-            ctx.todo(p, "expr kind '.cf-if'")
+        case "cf-if": {
+            const cond = expr(ctx, comptime, null, v.cond)
+            if (cond.k !== "normal") return cond
+
+            if (cond.v.type.k === "optional") {
+                ctx.todo(p, "expr kind '.cf-if' on optionals not supported yet")
+                return ERROR
+            }
+
+            if (cond.v.type.k !== "bool") {
+                ctx.raiseAt(
+                    v.cond,
+                    `expected 'bool' or optional type, got '${typeName(cond.v.type)}'`,
+                )
+                return ERROR
+            }
+
+            if (cond.v.value.k === "bool") {
+                if (cond.v.value.v) {
+                    return expr(ctx, comptime, type, v.if)
+                } else if (v.else !== null) {
+                    return expr(ctx, comptime, type, v.else)
+                } else {
+                    return VOID
+                }
+            }
+
+            ctx.todo(p, "expr kind '.cf-if' at runtime")
             return ERROR
+        }
 
         case "cf-switch":
             ctx.todo(p, "expr kind '.cf-switch'")
@@ -2145,16 +2187,35 @@ function typeEq(a: Type, b: Type): boolean {
             assert(a.k === b.k)
             if (a.v.id !== b.v.id) return false
             assert(a.v.captures.length === b.v.captures.length)
-            return a.v.captures.every((_, i) => {
+            for (let i = 0; i < a.v.captures.length; i++) {
                 const av = a.v.captures[i]!
                 const bv = b.v.captures[i]!
 
-                return (
-                    av.k === "runtime-var" && bv.k === "runtime-var" ? av.v === bv.v
-                    : av.k === "runtime-var" || bv.k === "runtime-var" ? false
-                    : valueEq(av, bv)
-                )
-            })
+                if (av.k === "item-const" && bv.k === "item-const") {
+                    const ac = resolveConst(av.v)
+                    const bc = resolveConst(bv.v)
+                    if (ac === null || bc === null) return false // TODO: return `null`
+                    return typeEq(ac.type, bc.type) && valueEq(ac.value, bc.value)
+                }
+
+                if (av.k === "item-var" && bv.k === "item-var") {
+                    const ac = resolveVar(av.v)
+                    const bc = resolveVar(bv.v)
+                    if (ac === null || bc === null) return false // TODO: return `null`
+                    return typeEq(ac.type, bc.type) && ac.id === bc.id
+                }
+
+                const eq =
+                    !(
+                        av.k === "item-var"
+                        || bv.k === "item-var"
+                        || av.k === "item-const"
+                        || bv.k === "item-const"
+                    ) && valueEq(av, bv)
+
+                if (!eq) return false
+            }
+            return true
     }
 }
 
@@ -2376,13 +2437,9 @@ function getCaptures(parent: EvaluationContext, p: Range, body: Decl[]): Capture
         assert(item.k === "const" || item.k === "var")
 
         if (item.k === "const") {
-            const resolved = resolveConst(item)
-            if (resolved === null) return null
-            captures.push(resolved.value)
+            captures.push({ k: "item-const", v: item })
         } else {
-            const resolved = resolveVar(item)
-            if (resolved === null) return null
-            captures.push({ k: "runtime-var", v: resolved.id })
+            captures.push({ k: "item-var", v: item })
         }
     }
 
@@ -2775,7 +2832,7 @@ export function compileTests(root: Root): CompiledTest[] | null {
 
         alreadyRun.getOrInsert(test.id, []).push(test.ns.self)
 
-        ret.push({ body: ctx.runtime.body, value: value.v })
+        ret.push({ body: ctx.runtime, value: value.v })
     }
 
     return ret
@@ -2993,7 +3050,7 @@ function call(
         comptimeArgs,
         runtimeArgTypes: runtimeArgTypes,
         returnType: returnType.v,
-        body: callContext.runtime.body,
+        body: callContext.runtime,
     }
     instances.push(instance)
     return ctx.rtResult(returnType.v, "fn-call", {

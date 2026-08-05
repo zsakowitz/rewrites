@@ -7,6 +7,7 @@ import {
     isComptimeValue,
     normal,
     tbool,
+    tstr,
     type FnArg,
     type Result,
     type Type,
@@ -225,6 +226,18 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         "!=": cint_cmp((a, b) => a != b),
 
         conj,
+        into_str(ctx, comptime, _self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, `'comptime_int.into_str' requires exactly one argument`)
+                return ERROR
+            }
+
+            const arg = fnArg(ctx, comptime, tstr, args[0]!)
+            if (arg.k !== "normal") return ERROR
+            assert(arg.v.value.k === "int")
+
+            return normal(tstr, { k: "str", v: arg.v.value.v.toString() })
+        },
     },
 
     i: {
@@ -442,6 +455,28 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         "!=": ftodo,
 
         conj,
+    },
+
+    str: {
+        "+"(ctx, comptime, _self, p, args) {
+            if (args.length !== 2) {
+                ctx.raiseAt(p, `'str.@"+"' requires exactly two arguments`)
+                return ERROR
+            }
+
+            const lhs = fnArg(ctx, comptime, tstr, args[0]!)
+            if (lhs.k !== "normal") return ERROR
+
+            const rhs = fnArg(ctx, comptime, tstr, args[0]!)
+            if (rhs.k !== "normal") return ERROR
+
+            if (lhs.v.value.k === "str" && rhs.v.value.k === "str") {
+                return normal(tstr, { k: "str", v: lhs.v.value.v + rhs.v.value.v })
+            }
+
+            ctx.todo(p, `'str.@"+"' must be called at comptime`)
+            return ERROR
+        },
     },
 }
 
