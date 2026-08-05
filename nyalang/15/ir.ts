@@ -14,12 +14,12 @@ import {
 import { builtinConst, builtinFn } from "./operator"
 import type { Decl, Expr, FunctionParam, Ident, Range, Stmt } from "./parse"
 
-type Op1 =
+export type Op1 =
     | "!"
-    | "-"
-    | "-%"
-    | "~"
-    | "/"
+    | "0-"
+    | "0-%"
+    | "1~"
+    | "1/"
     | "@abs"
     | "@sign"
     | "@clz"
@@ -36,7 +36,7 @@ type Op1 =
     | "@isNan"
     | "@isFin"
 
-type Op2 =
+export type Op2 =
     | "&"
     | "|"
     | "~"
@@ -299,6 +299,8 @@ type RuntimeInst =
     | { k: "arg-load"; v: number }
     | { k: "lit"; v: TypedValue }
     | { k: "cf-unreachable"; v: null }
+    | { k: "cf-break"; v: { n: RII; value: RII } }
+    | { k: "cf-continue"; v: { n: RII; value: RII } }
     | { k: "cf-return"; v: RII }
     | { k: "fn-call"; v: { f: FID; i: IID; args: RII[] } }
     | { k: "get-field"; v: { target: RII; field: string } }
@@ -312,6 +314,11 @@ type RuntimeInst =
     | { k: "var-load"; v: RII }
     | { k: "op-1"; v: { name: Op1; v: RII } }
     | { k: "op-2"; v: { name: Op2; l: RII; r: RII } }
+
+    // `null` means "no result due to unreachable endpoint"
+    | { k: "cf-if/then"; v: { cond: RII; result: Type | null } }
+    | { k: "cf-if/else"; v: RII | null } // '.v' is result of 'then' block
+    | { k: "cf-if/end"; v: RII | null } // '.v' is result of 'else' block
 
 interface Test {
     ns: Namespace
@@ -431,6 +438,34 @@ export class EvaluationContext {
         v: Extract<RuntimeInst, { k: K }>["v"],
     ): Result<TypedValue> {
         return { k: "normal", v: this.rtTypedValue(type, k, v as any) }
+    }
+
+    rtControlFlow(result: Exclude<Result<TypedValue>, { k: "error" }>): RII | null {
+        switch (result.k) {
+            case "unreachable":
+                return null
+
+            case "break":
+                // TODO: what happens if type is not runtime?
+                this.rtInst("cf-break", { n: result.v.n, value: this.makeRuntime(result.v.value) })
+                return null
+
+            case "continue":
+                // TODO: what happens if type is not runtime?
+                this.rtInst("cf-continue", {
+                    n: result.v.n,
+                    value: this.makeRuntime(result.v.value),
+                })
+                return null
+
+            case "return":
+                // TODO: what happens if type is not runtime?
+                this.rtInst("cf-return", this.makeRuntime(result.v))
+                return null
+
+            case "normal":
+                return this.makeRuntime(result.v)
+        }
     }
 
     /** Returns `null` when loading a runtime-only variable at comptime. */
@@ -1422,8 +1457,39 @@ function expr(
                 }
 
                 assert(cond.v.value.k === "runtime")
-                ctx.todo(p, "'if' on booleans at runtime")
-                return ERROR
+
+                const head = { cond: cond.v.value.v, result: null as Type | null }
+                ctx.rtInst("cf-if/then", head)
+
+                const resultIf =
+                    type === null ?
+                        expr(ctx, comptime, null, v.if)
+                    :   exprAs(ctx, comptime, type, v.if)
+                if (resultIf.k === "error") return ERROR
+                const riiIf = ctx.rtControlFlow(resultIf)
+                ctx.rtInst("cf-if/else", riiIf)
+                if (type === null && resultIf.k === "normal") {
+                    type = resultIf.v.type
+                }
+
+                const resultElse =
+                    type === null ?
+                        expr(ctx, comptime, null, v.else ?? voidAt(p.e))
+                    :   exprAs(ctx, comptime, type, v.else ?? voidAt(p.e))
+                if (resultElse.k === "error") return ERROR
+                const riiElse = ctx.rtControlFlow(resultElse)
+                const riiResult = ctx.rtInst("cf-if/end", riiElse)
+                if (type === null && resultElse.k === "normal") {
+                    type = resultElse.v.type
+                }
+
+                if (riiIf !== null || riiElse !== null) {
+                    assert(type !== null)
+                    head.result = type
+                    return { k: "normal", v: { type, value: { k: "runtime", v: riiResult } } }
+                }
+
+                return { k: "unreachable", v: null }
             }
 
             if (cond.v.type.k === "optional") {
@@ -3096,4 +3162,8 @@ function dotMethod(
         case "reserved":
             unreachable()
     }
+}
+
+function voidAt(e: number): Expr {
+    return { s: e, e, k: "lit-void", v: null }
 }

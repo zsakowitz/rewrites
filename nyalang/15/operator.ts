@@ -10,11 +10,13 @@ import {
     tcomptime_int,
     tstr,
     type FnArg,
+    type Op1,
+    type Op2,
     type Result,
     type Type,
     type TypedValue,
 } from "./ir"
-import { iabs, idivCeil, idivFloor, isign } from "./num"
+import { floatTruncate, iabs, idivCeil, idivFloor, isign } from "./num"
 import type { Range } from "./parse"
 
 type BuiltinFn = (
@@ -316,14 +318,14 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
     },
 
     comptime_float: {
-        "0-": cfloat_unary((x) => -x),
-        "+": cfloat_binary((_ctx, _p, a, b) => a + b),
-        "-": cfloat_binary((_ctx, _p, a, b) => a - b),
-        "*": cfloat_binary((_ctx, _p, a, b) => a * b),
+        "0-": f_unary("0-", (x) => -x),
+        "+": f_binary("+", (_ctx, _p, a, b) => a + b),
+        "-": f_binary("-", (_ctx, _p, a, b) => a - b),
+        "*": f_binary("*", (_ctx, _p, a, b) => a * b),
 
-        "1/": cfloat_unary((x) => 1 / x),
-        "/": cfloat_binary((_ctx, _p, a, b) => a / b),
-        divExact: cfloat_binary((ctx, p, a, b) => {
+        "1/": f_unary("1/", (x) => 1 / x),
+        "/": f_binary("/", (_ctx, _p, a, b) => a / b),
+        divExact: f_binary("@divExact", (ctx, p, a, b) => {
             if (!(isFinite(a) && isFinite(b))) {
                 ctx.raiseAt(p, `'.divExact' called with non-finite values`)
                 return null
@@ -337,64 +339,67 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
 
             return quot
         }),
-        divFloor: cfloat_binary((_ctx, _p, a, b) => Math.floor(a / b)),
-        divCeil: cfloat_binary((_ctx, _p, a, b) => Math.ceil(a / b)),
-        divTrunc: cfloat_binary((_ctx, _p, a, b) => Math.trunc(a / b)),
-        "%": cfloat_binary((ctx, p, a, b) => {
+        divFloor: f_binary("@divFloor", (_ctx, _p, a, b) => Math.floor(a / b)),
+        divCeil: f_binary("@divCeil", (_ctx, _p, a, b) => Math.ceil(a / b)),
+        divTrunc: f_binary("@divTrunc", (_ctx, _p, a, b) => Math.trunc(a / b)),
+        "%": f_binary("%", (ctx, p, a, b) => {
             if (!(isFinite(a) && isFinite(b))) {
                 ctx.raiseAt(p, `'%' called with non-finite values`)
                 return null
             }
 
             if (b <= 0) {
-                ctx.raiseAt(p, `'%' called with nonpositive divisor`)
+                ctx.raiseAt(
+                    p,
+                    `'%' called with nonpositive divisor; use '.rem' or '.mod' to specify behavior when divisor is negative`,
+                )
                 return null
             }
 
             return a % b
         }),
-        rem: cfloat_binary((_ctx, _p, a, b) => a % b),
-        mod: cfloat_binary((_ctx, _p, a, b) => ((a % b) + b) % b),
+        rem: f_binary("@rem", (_ctx, _p, a, b) => a % b),
+        mod: f_binary("@mod", (_ctx, _p, a, b) => ((a % b) + b) % b),
 
-        sign: cfloat_unary((x) => Math.sign(x)),
-        abs: cfloat_unary((x) => Math.abs(x)),
+        sign: f_unary("@sign", (x) => Math.sign(x)),
+        abs: f_unary("@abs", (x) => Math.abs(x)),
 
-        sin: cfloat_unary((x) => Math.sin(x)),
-        sinh: cfloat_unary((x) => Math.sinh(x)),
-        asin: cfloat_unary((x) => Math.asin(x)),
-        asinh: cfloat_unary((x) => Math.asinh(x)),
-        cos: cfloat_unary((x) => Math.cos(x)),
-        cosh: cfloat_unary((x) => Math.cosh(x)),
-        acos: cfloat_unary((x) => Math.acos(x)),
-        acosh: cfloat_unary((x) => Math.acosh(x)),
-        tan: cfloat_unary((x) => Math.tan(x)),
-        tanh: cfloat_unary((x) => Math.tanh(x)),
-        atan: cfloat_unary((x) => Math.atan(x)),
-        atanh: cfloat_unary((x) => Math.atanh(x)),
+        sin: f_unary("@sin", (x) => Math.sin(x)),
+        sinh: f_unary("@sinh", (x) => Math.sinh(x)),
+        asin: f_unary("@asin", (x) => Math.asin(x)),
+        asinh: f_unary("@asinh", (x) => Math.asinh(x)),
+        cos: f_unary("@cos", (x) => Math.cos(x)),
+        cosh: f_unary("@cosh", (x) => Math.cosh(x)),
+        acos: f_unary("@acos", (x) => Math.acos(x)),
+        acosh: f_unary("@acosh", (x) => Math.acosh(x)),
+        tan: f_unary("@tan", (x) => Math.tan(x)),
+        tanh: f_unary("@tanh", (x) => Math.tanh(x)),
+        atan: f_unary("@atan", (x) => Math.atan(x)),
+        atanh: f_unary("@atanh", (x) => Math.atanh(x)),
 
-        exp: cfloat_unary((x) => Math.exp(x)),
-        exp2: cfloat_unary((x) => Math.pow(2, x)),
-        exp10: cfloat_unary((x) => Math.pow(10, x)),
-        expm1: cfloat_unary((x) => Math.expm1(x)),
-        log: cfloat_unary((x) => Math.log(x)),
-        log2: cfloat_unary((x) => Math.log2(x)),
-        log10: cfloat_unary((x) => Math.log10(x)),
-        log1p: cfloat_unary((x) => Math.log1p(x)),
+        exp: f_unary("@exp", (x) => Math.exp(x)),
+        exp2: f_unary("@exp2", (x) => Math.pow(2, x)),
+        exp10: f_unary("@exp10", (x) => Math.pow(10, x)),
+        expm1: f_unary("@expm1", (x) => Math.expm1(x)),
+        log: f_unary("@log", (x) => Math.log(x)),
+        log2: f_unary("@log2", (x) => Math.log2(x)),
+        log10: f_unary("@log10", (x) => Math.log10(x)),
+        log1p: f_unary("@log1p", (x) => Math.log1p(x)),
 
-        floor: cfloat_unary((x) => Math.floor(x)),
-        ceil: cfloat_unary((x) => Math.ceil(x)),
-        trunc: cfloat_unary((x) => Math.trunc(x)),
+        floor: f_unary("@floor", (x) => Math.floor(x)),
+        ceil: f_unary("@ceil", (x) => Math.ceil(x)),
+        trunc: f_unary("@trunc", (x) => Math.trunc(x)),
 
-        isInf: cfloat_check((x) => x === x && !isFinite(x)),
-        isNan: cfloat_check((x) => x !== x),
-        isFin: cfloat_check((x) => isFinite(x)),
+        isInf: f_check("@isInf", (x) => x === x && !isFinite(x)),
+        isNan: f_check("@isNan", (x) => x !== x),
+        isFin: f_check("@isFin", (x) => isFinite(x)),
 
-        "<": cfloat_cmp((a, b) => a < b),
-        ">": cfloat_cmp((a, b) => a > b),
-        "<=": cfloat_cmp((a, b) => a <= b),
-        ">=": cfloat_cmp((a, b) => a >= b),
-        "==": cfloat_cmp((a, b) => a == b),
-        "!=": cfloat_cmp((a, b) => a != b),
+        "<": f_cmp("<", (a, b) => a < b),
+        ">": f_cmp(">", (a, b) => a > b),
+        "<=": f_cmp("<=", (a, b) => a <= b),
+        ">=": f_cmp(">=", (a, b) => a >= b),
+        "==": f_cmp("==", (a, b) => a == b),
+        "!=": f_cmp("!=", (a, b) => a != b),
 
         conj,
     },
@@ -509,8 +514,10 @@ const BUILTIN_CONSTANTS: Partial<Record<Type["k"], Record<string, BuiltinConst>>
     },
 }
 
-function cfloat_unary(f: (a: number) => number): BuiltinFn {
+function f_unary(name: Op1, f: (a: number) => number): BuiltinFn {
     return (ctx, comptime, self, p, args) => {
+        assert(self.k === "comptime_float" || self.k === "f")
+
         if (args.length !== 1) {
             ctx.raiseAt(p, "expected exactly one argument")
             return ERROR
@@ -518,17 +525,27 @@ function cfloat_unary(f: (a: number) => number): BuiltinFn {
 
         const arg = fnArg(ctx, comptime, self, args[0]!)
         if (arg.k !== "normal") return arg
-        assert(arg.v.value.k === "float")
 
-        const result = f(arg.v.value.v)
-        return normal(self, { k: "float", v: result })
+        if (arg.v.value.k === "float") {
+            let value = f(arg.v.value.v)
+            if (self.k === "f") {
+                value = floatTruncate(self.v, value)
+            }
+            return normal(self, { k: "float", v: value })
+        }
+
+        assert(arg.v.value.k === "runtime" && self.k === "f")
+        return ctx.rtResult(self, "op-1", { name, v: arg.v.value.v })
     }
 }
 
-function cfloat_binary(
+function f_binary(
+    name: Op2,
     f: (ctx: EvaluationContext, p: Range, a: number, b: number) => number | null,
 ): BuiltinFn {
     return (ctx, comptime, self, p, args) => {
+        assert(self.k === "comptime_float" || self.k === "f")
+
         if (args.length !== 2) {
             ctx.raiseAt(p, "expected exactly two arguments")
             return ERROR
@@ -536,21 +553,41 @@ function cfloat_binary(
 
         const lhs = fnArg(ctx, comptime, self, args[0]!)
         if (lhs.k !== "normal") return lhs
-        assert(lhs.v.value.k === "float")
 
         const rhs = fnArg(ctx, comptime, self, args[1]!)
         if (rhs.k !== "normal") return rhs
-        assert(rhs.v.value.k === "float")
 
-        const result = f(ctx, p, lhs.v.value.v, rhs.v.value.v)
-        if (result === null) return ERROR
+        if (lhs.v.value.k === "float" && rhs.v.value.k === "float") {
+            let value = f(ctx, p, lhs.v.value.v, rhs.v.value.v)
+            if (value === null) return ERROR
 
-        return normal(self, { k: "float", v: result })
+            if (self.k === "f") {
+                value = floatTruncate(self.v, value)
+            }
+            return normal(self, { k: "float", v: value })
+        }
+
+        if (name === "%") {
+            ctx.raiseAt(
+                p,
+                `'%' is not allowed for non-comptime floating-point values; use '.rem' or '.mod' instead to be explicit about behavior when divisor is zero`,
+            )
+            return ERROR
+        }
+
+        assert(self.k === "f")
+        return ctx.rtResult(self, "op-2", {
+            name,
+            l: ctx.makeRuntime(lhs.v),
+            r: ctx.makeRuntime(rhs.v),
+        })
     }
 }
 
-function cfloat_cmp(f: (a: number, b: number) => boolean): BuiltinFn {
+function f_cmp(name: Op2, f: (a: number, b: number) => boolean): BuiltinFn {
     return (ctx, comptime, self, p, args) => {
+        assert(self.k === "comptime_float" || self.k === "f")
+
         if (args.length !== 2) {
             ctx.raiseAt(p, "expected exactly two arguments")
             return ERROR
@@ -558,18 +595,24 @@ function cfloat_cmp(f: (a: number, b: number) => boolean): BuiltinFn {
 
         const lhs = fnArg(ctx, comptime, self, args[0]!)
         if (lhs.k !== "normal") return lhs
-        assert(lhs.v.value.k === "float")
 
         const rhs = fnArg(ctx, comptime, self, args[1]!)
         if (rhs.k !== "normal") return rhs
-        assert(rhs.v.value.k === "float")
 
-        const result = f(lhs.v.value.v, rhs.v.value.v)
-        return normal(tbool, { k: "bool", v: result })
+        if (lhs.v.value.k === "float" && rhs.v.value.k === "float") {
+            return normal(self, { k: "bool", v: f(lhs.v.value.v, rhs.v.value.v) })
+        }
+
+        assert(self.k === "f")
+        return ctx.rtResult({ k: "bool", v: null }, "op-2", {
+            name,
+            l: ctx.makeRuntime(lhs.v),
+            r: ctx.makeRuntime(rhs.v),
+        })
     }
 }
 
-function cfloat_check(f: (a: number) => boolean): BuiltinFn {
+function f_check(name: Op1, f: (a: number) => boolean): BuiltinFn {
     return (ctx, comptime, self, p, args) => {
         if (args.length !== 1) {
             ctx.raiseAt(p, "expected exactly one argument")
@@ -578,9 +621,13 @@ function cfloat_check(f: (a: number) => boolean): BuiltinFn {
 
         const arg = fnArg(ctx, comptime, self, args[0]!)
         if (arg.k !== "normal") return arg
-        assert(arg.v.value.k === "float")
 
-        const result = f(arg.v.value.v)
-        return normal(tbool, { k: "bool", v: result })
+        if (arg.v.value.k === "float") {
+            const result = f(arg.v.value.v)
+            return normal(tbool, { k: "bool", v: result })
+        }
+
+        assert(arg.v.value.k === "runtime" && self.k === "f")
+        return ctx.rtResult(self, "op-1", { name, v: arg.v.value.v })
     }
 }
