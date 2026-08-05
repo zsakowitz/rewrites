@@ -1465,7 +1465,7 @@ function expr(
             if (lhs.k !== "normal") return lhs
 
             return dotMethod(ctx, comptime, innerType(lhs.v.type), p, v.name, [
-                { p: v.lhs, evaluated: false, value: v.lhs },
+                { p: v.lhs, evaluated: true, value: lhs.v },
                 { p: v.rhs, evaluated: false, value: v.rhs },
             ])
         }
@@ -1480,13 +1480,25 @@ function expr(
             return { k: "unreachable", v: null }
         }
 
-        case "cf-and":
-            ctx.todo(p, "expr kind '.cf-and'")
-            return ERROR
+        case "cf-and": {
+            const lhs = exprAs(ctx, comptime, tbool, v.lhs)
+            if (lhs.k !== "normal") return ERROR
+            if (lhs.v.value.k === "runtime") ctx.todo(p, "runtime '.cf-and'")
+            assert(lhs.v.value.k === "bool")
+            if (!lhs.v.value.v) return lhs
 
-        case "cf-or":
-            ctx.todo(p, "expr kind '.cf-or'")
-            return ERROR
+            return exprAs(ctx, comptime, tbool, v.rhs)
+        }
+
+        case "cf-or": {
+            const lhs = exprAs(ctx, comptime, tbool, v.lhs)
+            if (lhs.k !== "normal") return ERROR
+            if (lhs.v.value.k === "runtime") ctx.todo(p, "runtime '.cf-or'")
+            assert(lhs.v.value.k === "bool")
+            if (lhs.v.value.v) return lhs
+
+            return exprAs(ctx, comptime, tbool, v.rhs)
+        }
 
         case "cf-orelse":
             ctx.todo(p, "expr kind '.cf-orelse'")
@@ -1500,30 +1512,87 @@ function expr(
             const cond = expr(ctx, comptime, null, v.cond)
             if (cond.k !== "normal") return cond
 
-            if (cond.v.type.k === "optional") {
-                ctx.todo(p, "expr kind '.cf-if' on optionals not supported yet")
-                return ERROR
-            }
-
-            if (cond.v.type.k !== "bool") {
-                ctx.raiseAt(
-                    v.cond,
-                    `expected 'bool' or optional type, got '${typeName(cond.v.type)}'`,
-                )
-                return ERROR
-            }
-
-            if (cond.v.value.k === "bool") {
-                if (cond.v.value.v) {
-                    return expr(ctx, comptime, type, v.if)
-                } else if (v.else !== null) {
-                    return expr(ctx, comptime, type, v.else)
-                } else {
-                    return VOID
+            if (cond.v.type.k === "bool") {
+                if (v.capture !== null) {
+                    ctx.raiseAt(p, `capture cannot be present for 'bool' condition`)
+                    return ERROR
                 }
+
+                if (cond.v.value.k === "bool") {
+                    const result =
+                        cond.v.value.v ? expr(ctx, comptime, type, v.if)
+                        : v.else !== null ? expr(ctx, comptime, type, v.else)
+                        : VOID
+                    if (result.k !== "normal") return result
+
+                    if (type === null) return result
+
+                    const coerced = as(ctx, p, type, result.v)
+                    if (coerced === null) return ERROR
+                    return { k: "normal", v: coerced }
+                }
+
+                assert(cond.v.value.k === "runtime")
+                ctx.todo(p, "'if' on booleans at runtime")
+                return ERROR
             }
 
-            ctx.todo(p, "expr kind '.cf-if' at runtime")
+            if (cond.v.type.k === "optional") {
+                if (cond.v.value.k === "null") {
+                    const result = v.else !== null ? expr(ctx, comptime, type, v.else) : VOID
+                    if (result.k !== "normal") return result
+
+                    if (type === null) return result
+
+                    const coerced = as(ctx, p, type, result.v)
+                    if (coerced === null) return ERROR
+                    return { k: "normal", v: coerced }
+                }
+
+                if (cond.v.value.k === "some") {
+                    if (v.capture === null) {
+                        ctx.raiseAt(p, `capture must be present when 'if' condition is an optional`)
+                        return ERROR
+                    }
+
+                    if (isReservedIdent(v.capture)) {
+                        ctx.raiseAt(p, `capture shadows builtin constant '${v.capture.name}'`)
+                        return ERROR
+                    }
+
+                    if (ctx.variables.has(v.capture.name)) {
+                        ctx.raiseAt(p, `capture shadows local variable '${v.capture.name}'`)
+                        return ERROR
+                    }
+
+                    if (ctx.ns.items.has(v.capture.name)) {
+                        ctx.raiseAt(p, `capture shadows outer declaration '${v.capture.name}'`)
+                        return ERROR
+                    }
+
+                    ctx.variables.set(v.capture.name, {
+                        k: "comptime-const",
+                        p: v.capture,
+                        v: { type: cond.v.type.v, value: cond.v.value.v },
+                    })
+                    const result = expr(ctx, comptime, type, v.if)
+                    ctx.variables.delete(v.capture.name)
+                    if (result.k !== "normal") return result
+
+                    if (type === null) return result
+
+                    const coerced = as(ctx, p, type, result.v)
+                    if (coerced === null) return ERROR
+                    return { k: "normal", v: coerced }
+                }
+
+                assert(cond.v.value.k === "runtime")
+
+                ctx.todo(p, "'if' on optionals at runtime")
+                return ERROR
+            }
+
+            ctx.raiseAt(v.cond, `expected 'bool' or optional type, got '${typeName(cond.v.type)}'`)
             return ERROR
         }
 
@@ -1745,6 +1814,7 @@ function expr(
                     case "void":
                     case "comptime_int":
                     case "comptime_float":
+                    case "bool":
                     case "str":
                     case "path":
                     case "type":

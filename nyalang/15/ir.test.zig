@@ -93,10 +93,50 @@ test @as(MyGroup, 1 - 1);
 
 const Math = struct {
     xml: str,
+    is_single: bool,
 
-    fn from_int(value: comptime_int) Math {
-        return .{ .xml = "<mn>" + value.into_str() + "</mn>" };
-    }
+    fn mn_int(value: comptime_int) Math = .{
+        .xml = "<mn>" + value.into_str() + "</mn>",
+        .is_single = true,
+    };
+
+    fn mi(variable: str) Math = .{
+        // TODO: xss protection
+        .xml = "<mi>" + variable + "</mi>",
+        .is_single = true,
+    };
+
+    const Accents = struct {
+        sub: ?Math = null,
+        sup: ?Math = null,
+    };
+
+    fn xml_as_single(self: Math) str =
+        if (self.is_single)
+            self.xml
+        else
+            "<mrow>" + self.xml + "</mrow>";
+
+    fn attach(self: Math, accents: Accents) Math = .{
+        .xml =
+            if (accents.sub) |sub|
+                if (accents.sup) |sup|
+                    "<msubsup>" + self.xml_as_single() + sub.xml_as_single() + sup.xml_as_single() + "</msubsup>"
+                else
+                    "<msub>" + self.xml_as_single() + sub.xml_as_single() + "</msub>"
+            else
+                if (accents.sup) |sup|
+                    "<msup>" + self.xml_as_single() + sup.xml_as_single() + "</msup>"
+                else
+                    self.xml_as_single()
+        ,
+        .is_single = true,
+    };
 };
 
-test @as(Math, .from_int(23));
+test comptime @as(Math,
+    .attach(
+        .mi("x"),
+        .{ .sub = .mn_int(4) }
+    )
+);

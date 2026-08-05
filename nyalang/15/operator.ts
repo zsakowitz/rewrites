@@ -7,6 +7,7 @@ import {
     isComptimeValue,
     normal,
     tbool,
+    tcomptime_int,
     tstr,
     type FnArg,
     type Result,
@@ -227,12 +228,12 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
 
         conj,
         into_str(ctx, comptime, _self, p, args) {
-            if (args.length !== 2) {
+            if (args.length !== 1) {
                 ctx.raiseAt(p, `'comptime_int.into_str' requires exactly one argument`)
                 return ERROR
             }
 
-            const arg = fnArg(ctx, comptime, tstr, args[0]!)
+            const arg = fnArg(ctx, comptime, tcomptime_int, args[0]!)
             if (arg.k !== "normal") return ERROR
             assert(arg.v.value.k === "int")
 
@@ -467,7 +468,7 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
             const lhs = fnArg(ctx, comptime, tstr, args[0]!)
             if (lhs.k !== "normal") return ERROR
 
-            const rhs = fnArg(ctx, comptime, tstr, args[0]!)
+            const rhs = fnArg(ctx, comptime, tstr, args[1]!)
             if (rhs.k !== "normal") return ERROR
 
             if (lhs.v.value.k === "str" && rhs.v.value.k === "str") {
