@@ -163,6 +163,93 @@ const conj: BuiltinFn = (ctx, comptime, self, p, args) => {
     return fnArg(ctx, comptime, self, args[0]!)
 }
 
+const BUILTIN_METHODS_F: Record<string, BuiltinFn> = {
+    "0-": f_unary("0-", (x) => -x),
+    "+": f_binary("+", (_ctx, _p, a, b) => a + b),
+    "-": f_binary("-", (_ctx, _p, a, b) => a - b),
+    "*": f_binary("*", (_ctx, _p, a, b) => a * b),
+
+    "1/": f_unary("1/", (x) => 1 / x),
+    "/": f_binary("/", (_ctx, _p, a, b) => a / b),
+    divExact: f_binary("@divExact", (ctx, p, a, b) => {
+        if (!(isFinite(a) && isFinite(b))) {
+            ctx.raiseAt(p, `'.divExact' called with non-finite values`)
+            return null
+        }
+
+        const quot = a / b
+        if (quot !== Math.trunc(quot) || a % b !== 0) {
+            ctx.raiseAt(p, `division is not exact`)
+            return null
+        }
+
+        return quot
+    }),
+    divFloor: f_binary("@divFloor", (_ctx, _p, a, b) => Math.floor(a / b)),
+    divCeil: f_binary("@divCeil", (_ctx, _p, a, b) => Math.ceil(a / b)),
+    divTrunc: f_binary("@divTrunc", (_ctx, _p, a, b) => Math.trunc(a / b)),
+    "%": f_binary("%", (ctx, p, a, b) => {
+        if (!(isFinite(a) && isFinite(b))) {
+            ctx.raiseAt(p, `'%' called with non-finite values`)
+            return null
+        }
+
+        if (b <= 0) {
+            ctx.raiseAt(
+                p,
+                `'%' called with nonpositive divisor; use '.rem' or '.mod' to specify behavior when divisor is negative`,
+            )
+            return null
+        }
+
+        return a % b
+    }),
+    rem: f_binary("@rem", (_ctx, _p, a, b) => a % b),
+    mod: f_binary("@mod", (_ctx, _p, a, b) => ((a % b) + b) % b),
+
+    sign: f_unary("@sign", (x) => Math.sign(x)),
+    abs: f_unary("@abs", (x) => Math.abs(x)),
+
+    sin: f_unary("@sin", (x) => Math.sin(x)),
+    sinh: f_unary("@sinh", (x) => Math.sinh(x)),
+    asin: f_unary("@asin", (x) => Math.asin(x)),
+    asinh: f_unary("@asinh", (x) => Math.asinh(x)),
+    cos: f_unary("@cos", (x) => Math.cos(x)),
+    cosh: f_unary("@cosh", (x) => Math.cosh(x)),
+    acos: f_unary("@acos", (x) => Math.acos(x)),
+    acosh: f_unary("@acosh", (x) => Math.acosh(x)),
+    tan: f_unary("@tan", (x) => Math.tan(x)),
+    tanh: f_unary("@tanh", (x) => Math.tanh(x)),
+    atan: f_unary("@atan", (x) => Math.atan(x)),
+    atanh: f_unary("@atanh", (x) => Math.atanh(x)),
+
+    exp: f_unary("@exp", (x) => Math.exp(x)),
+    exp2: f_unary("@exp2", (x) => Math.pow(2, x)),
+    exp10: f_unary("@exp10", (x) => Math.pow(10, x)),
+    expm1: f_unary("@expm1", (x) => Math.expm1(x)),
+    log: f_unary("@log", (x) => Math.log(x)),
+    log2: f_unary("@log2", (x) => Math.log2(x)),
+    log10: f_unary("@log10", (x) => Math.log10(x)),
+    log1p: f_unary("@log1p", (x) => Math.log1p(x)),
+
+    floor: f_unary("@floor", (x) => Math.floor(x)),
+    ceil: f_unary("@ceil", (x) => Math.ceil(x)),
+    trunc: f_unary("@trunc", (x) => Math.trunc(x)),
+
+    isInf: f_check("@isInf", (x) => x === x && !isFinite(x)),
+    isNan: f_check("@isNan", (x) => x !== x),
+    isFin: f_check("@isFin", (x) => isFinite(x)),
+
+    "<": f_cmp("<", (a, b) => a < b),
+    ">": f_cmp(">", (a, b) => a > b),
+    "<=": f_cmp("<=", (a, b) => a <= b),
+    ">=": f_cmp(">=", (a, b) => a >= b),
+    "==": f_cmp("==", (a, b) => a == b),
+    "!=": f_cmp("!=", (a, b) => a != b),
+
+    conj,
+}
+
 const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
     bool: {
         "!": ftodo,
@@ -317,151 +404,8 @@ const BUILTIN_METHODS: Partial<Record<Type["k"], Record<string, BuiltinFn>>> = {
         conj,
     },
 
-    comptime_float: {
-        "0-": f_unary("0-", (x) => -x),
-        "+": f_binary("+", (_ctx, _p, a, b) => a + b),
-        "-": f_binary("-", (_ctx, _p, a, b) => a - b),
-        "*": f_binary("*", (_ctx, _p, a, b) => a * b),
-
-        "1/": f_unary("1/", (x) => 1 / x),
-        "/": f_binary("/", (_ctx, _p, a, b) => a / b),
-        divExact: f_binary("@divExact", (ctx, p, a, b) => {
-            if (!(isFinite(a) && isFinite(b))) {
-                ctx.raiseAt(p, `'.divExact' called with non-finite values`)
-                return null
-            }
-
-            const quot = a / b
-            if (quot !== Math.trunc(quot) || a % b !== 0) {
-                ctx.raiseAt(p, `division is not exact`)
-                return null
-            }
-
-            return quot
-        }),
-        divFloor: f_binary("@divFloor", (_ctx, _p, a, b) => Math.floor(a / b)),
-        divCeil: f_binary("@divCeil", (_ctx, _p, a, b) => Math.ceil(a / b)),
-        divTrunc: f_binary("@divTrunc", (_ctx, _p, a, b) => Math.trunc(a / b)),
-        "%": f_binary("%", (ctx, p, a, b) => {
-            if (!(isFinite(a) && isFinite(b))) {
-                ctx.raiseAt(p, `'%' called with non-finite values`)
-                return null
-            }
-
-            if (b <= 0) {
-                ctx.raiseAt(
-                    p,
-                    `'%' called with nonpositive divisor; use '.rem' or '.mod' to specify behavior when divisor is negative`,
-                )
-                return null
-            }
-
-            return a % b
-        }),
-        rem: f_binary("@rem", (_ctx, _p, a, b) => a % b),
-        mod: f_binary("@mod", (_ctx, _p, a, b) => ((a % b) + b) % b),
-
-        sign: f_unary("@sign", (x) => Math.sign(x)),
-        abs: f_unary("@abs", (x) => Math.abs(x)),
-
-        sin: f_unary("@sin", (x) => Math.sin(x)),
-        sinh: f_unary("@sinh", (x) => Math.sinh(x)),
-        asin: f_unary("@asin", (x) => Math.asin(x)),
-        asinh: f_unary("@asinh", (x) => Math.asinh(x)),
-        cos: f_unary("@cos", (x) => Math.cos(x)),
-        cosh: f_unary("@cosh", (x) => Math.cosh(x)),
-        acos: f_unary("@acos", (x) => Math.acos(x)),
-        acosh: f_unary("@acosh", (x) => Math.acosh(x)),
-        tan: f_unary("@tan", (x) => Math.tan(x)),
-        tanh: f_unary("@tanh", (x) => Math.tanh(x)),
-        atan: f_unary("@atan", (x) => Math.atan(x)),
-        atanh: f_unary("@atanh", (x) => Math.atanh(x)),
-
-        exp: f_unary("@exp", (x) => Math.exp(x)),
-        exp2: f_unary("@exp2", (x) => Math.pow(2, x)),
-        exp10: f_unary("@exp10", (x) => Math.pow(10, x)),
-        expm1: f_unary("@expm1", (x) => Math.expm1(x)),
-        log: f_unary("@log", (x) => Math.log(x)),
-        log2: f_unary("@log2", (x) => Math.log2(x)),
-        log10: f_unary("@log10", (x) => Math.log10(x)),
-        log1p: f_unary("@log1p", (x) => Math.log1p(x)),
-
-        floor: f_unary("@floor", (x) => Math.floor(x)),
-        ceil: f_unary("@ceil", (x) => Math.ceil(x)),
-        trunc: f_unary("@trunc", (x) => Math.trunc(x)),
-
-        isInf: f_check("@isInf", (x) => x === x && !isFinite(x)),
-        isNan: f_check("@isNan", (x) => x !== x),
-        isFin: f_check("@isFin", (x) => isFinite(x)),
-
-        "<": f_cmp("<", (a, b) => a < b),
-        ">": f_cmp(">", (a, b) => a > b),
-        "<=": f_cmp("<=", (a, b) => a <= b),
-        ">=": f_cmp(">=", (a, b) => a >= b),
-        "==": f_cmp("==", (a, b) => a == b),
-        "!=": f_cmp("!=", (a, b) => a != b),
-
-        conj,
-    },
-
-    f: {
-        "0-": ftodo,
-        "+": ftodo,
-        "-": ftodo,
-        "*": ftodo,
-
-        "1/": ftodo,
-        "/": ftodo, // comptime-only
-        divExact: ftodo,
-        divFloor: ftodo,
-        divCeil: ftodo,
-        divTrunc: ftodo,
-        "%": ftodo, // comptime-only
-        rem: ftodo,
-        mod: ftodo,
-
-        sign: ftodo,
-        abs: ftodo,
-
-        sin: ftodo,
-        sinh: ftodo,
-        asin: ftodo,
-        asinh: ftodo,
-        cos: ftodo,
-        cosh: ftodo,
-        acos: ftodo,
-        acosh: ftodo,
-        tan: ftodo,
-        tanh: ftodo,
-        atan: ftodo,
-        atanh: ftodo,
-
-        exp: ftodo,
-        exp2: ftodo,
-        exp10: ftodo,
-        expm1: ftodo,
-        log: ftodo,
-        log2: ftodo,
-        log10: ftodo,
-        log1p: ftodo,
-
-        floor: ftodo,
-        ceil: ftodo,
-        trunc: ftodo,
-
-        isInf: ftodo,
-        isNan: ftodo,
-        isFin: ftodo,
-
-        "<": ftodo,
-        ">": ftodo,
-        "<=": ftodo,
-        ">=": ftodo,
-        "==": ftodo,
-        "!=": ftodo,
-
-        conj,
-    },
+    comptime_float: BUILTIN_METHODS_F,
+    f: BUILTIN_METHODS_F,
 
     str: {
         "+"(ctx, comptime, _self, p, args) {
