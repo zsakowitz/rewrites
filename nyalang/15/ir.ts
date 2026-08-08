@@ -153,7 +153,7 @@ export function typeName(type: Type): string {
     }
 }
 
-type Value =
+export type Value =
     | { k: "runtime"; v: RII }
     | { k: "void"; v: null } // type = void
     | { k: "bool"; v: boolean } // type = bool
@@ -303,7 +303,7 @@ type FID = number & { __brand: "fn_decl" }
 type TID = number & { __brand: "test" }
 type IID = number & { __brand: "fn_instance" }
 
-type RuntimeInst =
+export type RuntimeInst =
     | { k: "arg-load"; v: number }
     | { k: "cf-break"; v: { n: RII; value: RII } }
     | { k: "cf-continue"; v: { n: RII; value: RII } }
